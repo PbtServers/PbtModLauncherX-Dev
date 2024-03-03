@@ -447,8 +447,8 @@ instances:
   addTemplateDescription: Import from downloaded Modpack
   addVanilla: Create from vanilla-like Minecraft
   addVanillaDescription: >-
-    Import from common .minecraft folder. This will duplciate the original game
-    profile to XMCL.
+    Import from common .minecraft folder. This will duplicate the original game
+    profile to this launcher.
   choose: Select Game
   importFolder: Import from folder
   importFolderDescription: Import Minecraft to Launcher
@@ -1139,7 +1139,7 @@ setting:
   developerMode: Developer Mode
   developerModeDescription: Developer Mode is targeting to test your own written mod
   disableTelemetry: Disable Telemetry
-  disableTelemetryDescription: XMCL will collect the game launch and user login events.
+  disableTelemetryDescription: This launcher will collect the game launch and user login events.
   enableDiscord: Enable Discord Presence
   enableDiscordDescription: This will keep update your launcher status to discord
   general: General
@@ -1209,7 +1209,7 @@ setup:
     name: '@:setting.appearance'
   dataRoot:
     description: >-
-      The data root is not a common .minecraft directory. Since XMCL data
+      The data root is not a common .minecraft directory. Since the launcher data
       directory structure is different from vanilla, we do not recommend to use
       the common .minecraft directory as a data root.
     drives: Recommend Locations
