@@ -51,7 +51,7 @@ import { useScroll } from '@vueuse/core'
 const router = useRouter()
 
 router.afterEach((r) => {
-  document.title = `XMCL KeyStone - ${r.fullPath}`
+  document.title = `PbtModLauncherX - ${r.fullPath}`
   if (containerRef.value) {
     containerRef.value.scrollTop = 0
   }
