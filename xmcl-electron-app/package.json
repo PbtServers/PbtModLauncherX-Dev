@@ -1,17 +1,20 @@
 {
-    "name": "xmcl",
+    "name": "PbtModLauncherX",
     "private": true,
     "main": "./index.js",
     "version": "0.42.0",
-    "author": "ci010 <cijhn@hotmail.com>",
-    "description": "A great minecraft launcher in the future",
+    "contributors": [
+	{"name":"PbtinaDev","url":"https://github.com/PbtServers"},
+	{"name":"ci010","email":"cijhn@hotmail.com"}
+    ],
+    "description": "La version del launcher X de PbtServers adaptada y mejorada para su uso simplificado y offline",
     "license": "MIT",
     "engines": {
         "node": ">=15.0.0"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/voxelum/x-minecraft-launcher"
+        "url": "https://github.com/PbtServers/PbtModLauncherX-Dev"
     },
     "msstoreCliAppId": "9MXJWHXTP4B9",
     "scripts": {

@@ -5,8 +5,8 @@ import { Configuration } from 'electron-builder'
 dotenv()
 
 export const config = {
-  productName: 'X Minecraft Launcher',
-  appId: 'xmcl',
+  productName: 'PbtModLauncherX',
+  appId: 'PbtModLauncherX',
   directories: {
     output: 'build/output',
     buildResources: 'build',
@@ -20,8 +20,8 @@ export const config = {
   // set this to your own repo!
   publish: [{
     provider: 'github',
-    owner: 'voxelum',
-    repo: 'x-minecraft-launcher',
+    owner: 'PbtServers',
+    repo: 'PbtModLauncherX-Dev',
   }],
   files: [{
     from: 'dist',
@@ -32,9 +32,9 @@ export const config = {
     to: '.',
     filter: 'package.json',
   }],
-  artifactName: 'xmcl-${version}-${platform}-${arch}.${ext}',
+  artifactName: 'pbtmodlauncherx-${version}-${platform}-${arch}.${ext}',
   appx: {
-    displayName: 'X Minecraft Launcher (Beta)',
+    displayName: 'PbtModLauncherX (Beta)',
     applicationId: 'CI010.XMCL',
     identityName: '22961CI010.XMCL',
     backgroundColor: 'transparent',
@@ -43,7 +43,7 @@ export const config = {
     setBuildNumber: true,
   },
   dmg: {
-    artifactName: 'xmcl-${version}.${ext}',
+    artifactName: 'pbtmodlauncherx-${version}.${ext}',
     contents: [
       {
         x: 410,
