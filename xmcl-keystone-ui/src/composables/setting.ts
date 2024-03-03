@@ -98,7 +98,7 @@ export function useGameDirectory() {
 }
 
 export function useSettings() {
-  const hideNews = useLocalStorageCacheBool('hideNews', true)
+  const hideNews = useLocalStorageCacheBool('hideNews', false)
   const streamerMode = inject('streamerMode', useLocalStorageCacheBool('streamerMode', false))
   const { state, error, isValidating } = injection(kSettingsState)
 
@@ -120,7 +120,7 @@ export function useSettings() {
 
   const locales = computed(() => state.value?.locales || [])
   const selectedLocale = computed({
-    get: () => locales.value.find(l => l.locale === state.value?.locale)?.locale || 'es-ES',
+    get: () => locales.value.find(l => l.locale === state.value?.locale)?.locale || 'en',
     set: v => state.value?.localeSet(v),
   })
   const enableDedicatedGPUOptimization = computed({
@@ -147,11 +147,11 @@ export function useSettings() {
     set: v => state.value?.developerModeSet(v),
   })
   const disableTelemetry = computed({
-    get: () => state.value?.disableTelemetry ?? true,
+    get: () => state.value?.disableTelemetry ?? false,
     set: v => state.value?.disableTelemetrySet(v),
   })
   const enableDiscord = computed({
-    get: () => state.value?.discordPresence ?? true,
+    get: () => state.value?.discordPresence ?? false,
     set: (v) => state.value?.discordPresenceSet(v),
   })
   const apiSets = computed(() => state.value?.apiSets || [])
