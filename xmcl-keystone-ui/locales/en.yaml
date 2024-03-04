@@ -1244,7 +1244,7 @@ setup:
     language: Language
     name: Set Language
   path: Current Path
-  title: 'Welcome to X Minecraft Launcher. Before start, we need you to '
+  title: 'Welcome to PbtModLauncherX. Before start, we need you to '
 shaderPack:
   deletion: Delete Shader Pack
   deletionHint: This will delete the shader pack file {path} and cannot reverted.
@@ -1279,7 +1279,7 @@ task:
   nTaskRunning: '{count} tasks is running'
   name: Task | Tasks
   pause: Pause
-title: X Minecraft Launcher
+title: PbtModLauncherX
 transportType:
   host: Host Candidate
   prflx: Peer Reflexive Candidate
