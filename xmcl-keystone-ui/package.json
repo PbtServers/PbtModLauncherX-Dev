@@ -2,7 +2,7 @@
     "name": "@xmcl/keystone-ui",
     "private": true,
     "productName": "pbtmodlauncherx",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "contributors": [
 	{"name":"PbtinaDev","url":"https://github.com/PbtServers"},
 	{"name":"ci010","email":"cijhn@hotmail.com"}
