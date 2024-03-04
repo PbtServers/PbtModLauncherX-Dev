@@ -2,6 +2,8 @@
 
 La versión del launcher X de PbtServers adaptada y mejorada para su uso simplificado y offline [🚀]
 
+![pbtmodlauncherx](https://github.com/PbtServers/PbtModLauncherX-Dev/blob/master/xmcl-electron-app/icons/dark@256x256.png?raw=true)
+
 Clonar Repositorio -->                                                                                                                                           
 `git clone --recurse-submodules https://github.com/PbtServers/PbtModLauncherX-Dev`
 
