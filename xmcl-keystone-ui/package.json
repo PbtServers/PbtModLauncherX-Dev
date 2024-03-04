@@ -3,10 +3,7 @@
     "private": true,
     "productName": "pbtmodlauncherx",
     "version": "1.0.2",
-    "contributors": [
-	{"name":"PbtinaDev","url":"https://github.com/PbtServers"},
-	{"name":"ci010","email":"cijhn@hotmail.com"}
-    ],
+    "author": "pbtservers <pbt@pbtservers.com>",
     "description": "La version del launcher X de PbtServers adaptada y mejorada para su uso simplificado y offline",
     "license": "MIT",
     "engines": {
