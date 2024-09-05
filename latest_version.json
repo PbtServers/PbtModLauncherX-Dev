@@ -1,13 +1,13 @@
 {
   "assets": [
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-linux-arm64.asar",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-linux-arm64.asar",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777937,
       "label": "",
-      "name": "app-1.0.2-linux-arm64.asar",
+      "name": "app-1.0.3-linux-arm64.asar",
       "node_id": "RA_kwDOBbOpJM4JKncR",
       "size": 25740605,
       "state": "uploaded",
@@ -35,13 +35,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777937"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-linux-arm64.asar.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-linux-arm64.asar.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777909,
       "label": "",
-      "name": "app-1.0.2-linux-arm64.asar.sha256",
+      "name": "app-1.0.3-linux-arm64.asar.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnb1",
       "size": 64,
       "state": "uploaded",
@@ -69,13 +69,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777909"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-linux.asar",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-linux.asar",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777939,
       "label": "",
-      "name": "app-1.0.2-linux.asar",
+      "name": "app-1.0.3-linux.asar",
       "node_id": "RA_kwDOBbOpJM4JKncT",
       "size": 25712373,
       "state": "uploaded",
@@ -103,13 +103,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777939"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-linux.asar.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-linux.asar.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777906,
       "label": "",
-      "name": "app-1.0.2-linux.asar.sha256",
+      "name": "app-1.0.3-linux.asar.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnby",
       "size": 64,
       "state": "uploaded",
@@ -137,13 +137,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777906"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-mac-arm64.asar",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-mac-arm64.asar",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777935,
       "label": "",
-      "name": "app-1.0.2-mac-arm64.asar",
+      "name": "app-1.0.3-mac-arm64.asar",
       "node_id": "RA_kwDOBbOpJM4JKncP",
       "size": 23884317,
       "state": "uploaded",
@@ -171,13 +171,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777935"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-mac-arm64.asar.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-mac-arm64.asar.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777908,
       "label": "",
-      "name": "app-1.0.2-mac-arm64.asar.sha256",
+      "name": "app-1.0.3-mac-arm64.asar.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnb0",
       "size": 64,
       "state": "uploaded",
@@ -205,13 +205,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777908"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-mac.asar",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-mac.asar",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777938,
       "label": "",
-      "name": "app-1.0.2-mac.asar",
+      "name": "app-1.0.3-mac.asar",
       "node_id": "RA_kwDOBbOpJM4JKncS",
       "size": 24001757,
       "state": "uploaded",
@@ -239,13 +239,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777938"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-mac.asar.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-mac.asar.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777913,
       "label": "",
-      "name": "app-1.0.2-mac.asar.sha256",
+      "name": "app-1.0.3-mac.asar.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnb5",
       "size": 64,
       "state": "uploaded",
@@ -273,13 +273,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777913"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-win-ia32.asar",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-win-ia32.asar",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777932,
       "label": "",
-      "name": "app-1.0.2-win-ia32.asar",
+      "name": "app-1.0.3-win-ia32.asar",
       "node_id": "RA_kwDOBbOpJM4JKncM",
       "size": 21557434,
       "state": "uploaded",
@@ -307,13 +307,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777932"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-win-ia32.asar.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-win-ia32.asar.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777907,
       "label": "",
-      "name": "app-1.0.2-win-ia32.asar.sha256",
+      "name": "app-1.0.3-win-ia32.asar.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnbz",
       "size": 64,
       "state": "uploaded",
@@ -341,13 +341,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777907"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-win.asar",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-win.asar",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777936,
       "label": "",
-      "name": "app-1.0.2-win.asar",
+      "name": "app-1.0.3-win.asar",
       "node_id": "RA_kwDOBbOpJM4JKncQ",
       "size": 21843130,
       "state": "uploaded",
@@ -375,13 +375,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777936"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/app-1.0.2-win.asar.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/app-1.0.3-win.asar.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777910,
       "label": "",
-      "name": "app-1.0.2-win.asar.sha256",
+      "name": "app-1.0.3-win.asar.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnb2",
       "size": 64,
       "state": "uploaded",
@@ -409,7 +409,7 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777910"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/builder-debug.yml",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/builder-debug.yml",
       "content_type": "application/x-yaml",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
@@ -443,7 +443,7 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777911"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/latest-linux-arm64.yml",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/latest-linux-arm64.yml",
       "content_type": "application/x-yaml",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
@@ -477,7 +477,7 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777912"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/latest-linux.yml",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/latest-linux.yml",
       "content_type": "application/x-yaml",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
@@ -511,7 +511,7 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777914"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/latest-mac.yml",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/latest-mac.yml",
       "content_type": "application/x-yaml",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
@@ -545,7 +545,7 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777915"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/version",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/version",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
@@ -579,13 +579,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777917"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-aarch64.rpm",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-aarch64.rpm",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777942,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-aarch64.rpm",
+      "name": "pbtmodlauncherx-1.0.3-aarch64.rpm",
       "node_id": "RA_kwDOBbOpJM4JKncW",
       "size": 74894113,
       "state": "uploaded",
@@ -613,13 +613,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777942"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-aarch64.rpm.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-aarch64.rpm.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777922,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-aarch64.rpm.sha256",
+      "name": "pbtmodlauncherx-1.0.3-aarch64.rpm.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncC",
       "size": 64,
       "state": "uploaded",
@@ -647,13 +647,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777922"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-amd64.deb",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-amd64.deb",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777945,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-amd64.deb",
+      "name": "pbtmodlauncherx-1.0.3-amd64.deb",
       "node_id": "RA_kwDOBbOpJM4JKncZ",
       "size": 78681864,
       "state": "uploaded",
@@ -681,13 +681,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777945"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-amd64.deb.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-amd64.deb.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777918,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-amd64.deb.sha256",
+      "name": "pbtmodlauncherx-1.0.3-amd64.deb.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnb-",
       "size": 64,
       "state": "uploaded",
@@ -715,13 +715,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777918"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-arm64.AppImage",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-arm64.AppImage",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:01Z",
       "download_count": 0,
       "id": 153777955,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-arm64.AppImage",
+      "name": "pbtmodlauncherx-1.0.3-arm64.AppImage",
       "node_id": "RA_kwDOBbOpJM4JKncj",
       "size": 112508803,
       "state": "uploaded",
@@ -749,13 +749,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777955"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-arm64.AppImage.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-arm64.AppImage.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777916,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-arm64.AppImage.sha256",
+      "name": "pbtmodlauncherx-1.0.3-arm64.AppImage.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnb8",
       "size": 64,
       "state": "uploaded",
@@ -783,13 +783,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777916"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-arm64.deb",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-arm64.deb",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777940,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-arm64.deb",
+      "name": "pbtmodlauncherx-1.0.3-arm64.deb",
       "node_id": "RA_kwDOBbOpJM4JKncU",
       "size": 74371622,
       "state": "uploaded",
@@ -817,13 +817,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777940"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-arm64.deb.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-arm64.deb.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777919,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-arm64.deb.sha256",
+      "name": "pbtmodlauncherx-1.0.3-arm64.deb.sha256",
       "node_id": "RA_kwDOBbOpJM4JKnb_",
       "size": 64,
       "state": "uploaded",
@@ -851,13 +851,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777919"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-arm64.tar.xz",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-arm64.tar.xz",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777941,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-arm64.tar.xz",
+      "name": "pbtmodlauncherx-1.0.3-arm64.tar.xz",
       "node_id": "RA_kwDOBbOpJM4JKncV",
       "size": 74194440,
       "state": "uploaded",
@@ -885,13 +885,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777941"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-arm64.tar.xz.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-arm64.tar.xz.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777920,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-arm64.tar.xz.sha256",
+      "name": "pbtmodlauncherx-1.0.3-arm64.tar.xz.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncA",
       "size": 64,
       "state": "uploaded",
@@ -919,13 +919,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777920"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-darwin-arm64.zip",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-darwin-arm64.zip",
       "content_type": "application/zip",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777947,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-darwin-arm64.zip",
+      "name": "pbtmodlauncherx-1.0.3-darwin-arm64.zip",
       "node_id": "RA_kwDOBbOpJM4JKncb",
       "size": 97025857,
       "state": "uploaded",
@@ -953,13 +953,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777947"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-darwin-arm64.zip.blockmap",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-darwin-arm64.zip.blockmap",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777921,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-darwin-arm64.zip.blockmap",
+      "name": "pbtmodlauncherx-1.0.3-darwin-arm64.zip.blockmap",
       "node_id": "RA_kwDOBbOpJM4JKncB",
       "size": 102933,
       "state": "uploaded",
@@ -987,13 +987,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777921"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-darwin-arm64.zip.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-darwin-arm64.zip.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777923,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-darwin-arm64.zip.sha256",
+      "name": "pbtmodlauncherx-1.0.3-darwin-arm64.zip.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncD",
       "size": 64,
       "state": "uploaded",
@@ -1021,13 +1021,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777923"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-darwin-x64.zip",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-darwin-x64.zip",
       "content_type": "application/zip",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777948,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-darwin-x64.zip",
+      "name": "pbtmodlauncherx-1.0.3-darwin-x64.zip",
       "node_id": "RA_kwDOBbOpJM4JKncc",
       "size": 101815236,
       "state": "uploaded",
@@ -1055,13 +1055,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777948"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-darwin-x64.zip.blockmap",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-darwin-x64.zip.blockmap",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777926,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-darwin-x64.zip.blockmap",
+      "name": "pbtmodlauncherx-1.0.3-darwin-x64.zip.blockmap",
       "node_id": "RA_kwDOBbOpJM4JKncG",
       "size": 106133,
       "state": "uploaded",
@@ -1089,13 +1089,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777926"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-darwin-x64.zip.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-darwin-x64.zip.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777924,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-darwin-x64.zip.sha256",
+      "name": "pbtmodlauncherx-1.0.3-darwin-x64.zip.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncE",
       "size": 64,
       "state": "uploaded",
@@ -1123,13 +1123,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777924"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-win32-ia32.zip",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-win32-ia32.zip",
       "content_type": "application/zip",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777951,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-win32-ia32.zip",
+      "name": "pbtmodlauncherx-1.0.3-win32-ia32.zip",
       "node_id": "RA_kwDOBbOpJM4JKncf",
       "size": 102718526,
       "state": "uploaded",
@@ -1157,13 +1157,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777951"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-win32-ia32.zip.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-win32-ia32.zip.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777925,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-win32-ia32.zip.sha256",
+      "name": "pbtmodlauncherx-1.0.3-win32-ia32.zip.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncF",
       "size": 64,
       "state": "uploaded",
@@ -1191,13 +1191,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777925"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-win32-x64.appx",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-win32-x64.appx",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:01Z",
       "download_count": 0,
       "id": 153777957,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-win32-x64.appx",
+      "name": "pbtmodlauncherx-1.0.3-win32-x64.appx",
       "node_id": "RA_kwDOBbOpJM4JKncl",
       "size": 118007544,
       "state": "uploaded",
@@ -1225,13 +1225,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777957"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-win32-x64.appx.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-win32-x64.appx.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777928,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-win32-x64.appx.sha256",
+      "name": "pbtmodlauncherx-1.0.3-win32-x64.appx.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncI",
       "size": 64,
       "state": "uploaded",
@@ -1259,13 +1259,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777928"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-win32-x64.zip",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-win32-x64.zip",
       "content_type": "application/zip",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777953,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-win32-x64.zip",
+      "name": "pbtmodlauncherx-1.0.3-win32-x64.zip",
       "node_id": "RA_kwDOBbOpJM4JKnch",
       "size": 109836805,
       "state": "uploaded",
@@ -1293,13 +1293,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777953"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-win32-x64.zip.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-win32-x64.zip.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777929,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-win32-x64.zip.sha256",
+      "name": "pbtmodlauncherx-1.0.3-win32-x64.zip.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncJ",
       "size": 64,
       "state": "uploaded",
@@ -1327,13 +1327,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777929"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-x64.tar.xz",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-x64.tar.xz",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777944,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-x64.tar.xz",
+      "name": "pbtmodlauncherx-1.0.3-x64.tar.xz",
       "node_id": "RA_kwDOBbOpJM4JKncY",
       "size": 78786112,
       "state": "uploaded",
@@ -1361,13 +1361,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777944"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-x64.tar.xz.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-x64.tar.xz.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777927,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-x64.tar.xz.sha256",
+      "name": "pbtmodlauncherx-1.0.3-x64.tar.xz.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncH",
       "size": 64,
       "state": "uploaded",
@@ -1395,13 +1395,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777927"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-x86_64.AppImage",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-x86_64.AppImage",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:01Z",
       "download_count": 0,
       "id": 153777954,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-x86_64.AppImage",
+      "name": "pbtmodlauncherx-1.0.3-x86_64.AppImage",
       "node_id": "RA_kwDOBbOpJM4JKnci",
       "size": 111765955,
       "state": "uploaded",
@@ -1429,13 +1429,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777954"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-x86_64.AppImage.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-x86_64.AppImage.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777930,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-x86_64.AppImage.sha256",
+      "name": "pbtmodlauncherx-1.0.3-x86_64.AppImage.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncK",
       "size": 64,
       "state": "uploaded",
@@ -1463,13 +1463,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777930"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-x86_64.rpm",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-x86_64.rpm",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777946,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-x86_64.rpm",
+      "name": "pbtmodlauncherx-1.0.3-x86_64.rpm",
       "node_id": "RA_kwDOBbOpJM4JKnca",
       "size": 79285453,
       "state": "uploaded",
@@ -1497,13 +1497,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777946"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2-x86_64.rpm.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3-x86_64.rpm.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777931,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2-x86_64.rpm.sha256",
+      "name": "pbtmodlauncherx-1.0.3-x86_64.rpm.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncL",
       "size": 64,
       "state": "uploaded",
@@ -1531,13 +1531,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777931"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2.dmg",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3.dmg",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777952,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2.dmg",
+      "name": "pbtmodlauncherx-1.0.3.dmg",
       "node_id": "RA_kwDOBbOpJM4JKncg",
       "size": 105505713,
       "state": "uploaded",
@@ -1565,13 +1565,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777952"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2.dmg.blockmap",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3.dmg.blockmap",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:32:00Z",
       "download_count": 0,
       "id": 153777943,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2.dmg.blockmap",
+      "name": "pbtmodlauncherx-1.0.3.dmg.blockmap",
       "node_id": "RA_kwDOBbOpJM4JKncX",
       "size": 110564,
       "state": "uploaded",
@@ -1599,13 +1599,13 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777943"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx-1.0.2.dmg.sha256",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx-1.0.3.dmg.sha256",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
       "id": 153777933,
       "label": "",
-      "name": "pbtmodlauncherx-1.0.2.dmg.sha256",
+      "name": "pbtmodlauncherx-1.0.3.dmg.sha256",
       "node_id": "RA_kwDOBbOpJM4JKncN",
       "size": 64,
       "state": "uploaded",
@@ -1633,7 +1633,7 @@
       "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777933"
     },
     {
-      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.2/pbtmodlauncherx.appinstaller",
+      "browser_download_url": "https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.3/pbtmodlauncherx.appinstaller",
       "content_type": "application/octet-stream",
       "created_at": "2024-02-27T09:31:59Z",
       "download_count": 0,
@@ -1691,16 +1691,16 @@
   "body": "## 0.42.0\r\n### 🚀 Features\r\n\r\n- Support java arch display ([420c201644f3baff64f3392194cad2783fc797c2](https://github.com/Voxelum/x-minecraft-launcher/commit/420c201644f3baff64f3392194cad2783fc797c2))\r\n- Add streamer mode ([59190c18d73d06a7e4af709192e55aae4cffdc76](https://github.com/Voxelum/x-minecraft-launcher/commit/59190c18d73d06a7e4af709192e55aae4cffdc76))\r\n### 🐛 Bug Fixes & Patches\r\n\r\n- Optifine display and search ([eda51b26b7517132ad56dbf72b2f80f593182123](https://github.com/Voxelum/x-minecraft-launcher/commit/eda51b26b7517132ad56dbf72b2f80f593182123))\r\n- Fix some glitch of version diagnose ([a0813944f90fb992af6e6b589a90c0a4f5159c4d](https://github.com/Voxelum/x-minecraft-launcher/commit/a0813944f90fb992af6e6b589a90c0a4f5159c4d))\r\n- Some version cannot launched ([6647630b0e92e5375aeb408140109e30e1b136c6](https://github.com/Voxelum/x-minecraft-launcher/commit/6647630b0e92e5375aeb408140109e30e1b136c6))\r\n- Redundent decodeURIComponent causing unzip failure ([6e7ef5642a49cf766ec9bdeb5041beedd80ef029](https://github.com/Voxelum/x-minecraft-launcher/commit/6e7ef5642a49cf766ec9bdeb5041beedd80ef029))\r\n- Should not show save/load after install ([8a7a6c2d29dd7a0e7afcdfff3e0caf627424bf94](https://github.com/Voxelum/x-minecraft-launcher/commit/8a7a6c2d29dd7a0e7afcdfff3e0caf627424bf94))\r\n- Localize download update button ([0cbbb3f406b5a4f5fd16a20258dcc6f7abb7afe2](https://github.com/Voxelum/x-minecraft-launcher/commit/0cbbb3f406b5a4f5fd16a20258dcc6f7abb7afe2))\r\n- Fix some local version input glich ([4107aecd1def11867a4048427450530094bf552d](https://github.com/Voxelum/x-minecraft-launcher/commit/4107aecd1def11867a4048427450530094bf552d))\r\n- Server icon show everywhere when server refreshed ([0ae7bc1276e68263f320ba3e8f4fb76584761c64](https://github.com/Voxelum/x-minecraft-launcher/commit/0ae7bc1276e68263f320ba3e8f4fb76584761c64))\r\n- Should load skin right after login ([62f743fba61428139887ab70bb372c95ac12a5ee](https://github.com/Voxelum/x-minecraft-launcher/commit/62f743fba61428139887ab70bb372c95ac12a5ee))\r\n- Fix crash in wayland mode ([f6df0ed9b4deb8a5ab3c94096ca1e17f0f43a011](https://github.com/Voxelum/x-minecraft-launcher/commit/f6df0ed9b4deb8a5ab3c94096ca1e17f0f43a011))\r\n- Quilt version lookup should also respect with minecraft version ([5648d50679a512a93a3c85148b49f9806dcab02f](https://github.com/Voxelum/x-minecraft-launcher/commit/5648d50679a512a93a3c85148b49f9806dcab02f))\r\n### 🏗️ Refactors\r\n\r\n- Make Windows also support setting to change dedicate GPU ([85a31fd73896d1aa65fd2dabefd6b821d42a7aeb](https://github.com/Voxelum/x-minecraft-launcher/commit/85a31fd73896d1aa65fd2dabefd6b821d42a7aeb))",
   "created_at": "2024-02-27T09:18:46Z",
   "draft": false,
-  "html_url": "https://github.com/PbtServers/PbtModLauncherX/releases/tag/v1.0.2",
+  "html_url": "https://github.com/PbtServers/PbtModLauncherX/releases/tag/v1.0.3",
   "id": 143768188,
-  "name": "v1.0.2",
+  "name": "v1.0.3",
   "node_id": "RE_kwDOBbOpJM4Ikbp8",
   "prerelease": false,
   "published_at": "2024-02-27T09:47:07Z",
-  "tag_name": "v1.0.2",
-  "tarball_url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/tarball/v1.0.2",
+  "tag_name": "v1.0.3",
+  "tarball_url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/tarball/v1.0.3",
   "target_commitish": "270a6ab2ec3019bf85b9b943d563099bf368d0c9",
   "upload_url": "https://uploads.github.com/repos/Voxelum/x-minecraft-launcher/releases/143768188/assets{?name,label}",
   "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/143768188",
-  "zipball_url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/zipball/v1.0.2"
+  "zipball_url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/zipball/v1.0.3"
 }
