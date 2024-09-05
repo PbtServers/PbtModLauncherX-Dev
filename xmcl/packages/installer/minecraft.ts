@@ -1,11 +1,11 @@
 import { MinecraftFolder, MinecraftLocation, ResolvedLibrary, ResolvedVersion, Version, Version as VersionJson } from '@xmcl/core'
-import { ChecksumNotMatchError, ChecksumValidatorOptions, DownloadBaseOptions, JsonValidator, Validator } from '@xmcl/file-transfer'
-import { task, Task } from '@xmcl/task'
+import { ChecksumNotMatchError, ChecksumValidatorOptions, DownloadBaseOptions, JsonValidator, Validator, getDownloadBaseOptions } from '@xmcl/file-transfer'
+import { Task, task } from '@xmcl/task'
 import { readFile, stat, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { join, relative, sep } from 'path'
 import { Dispatcher, request } from 'undici'
-import { DownloadTask } from './downloadTask'
-import { ensureDir, errorToString, joinUrl, normalizeArray, ParallelTaskOptions } from './utils'
+import { DownloadMultipleTask, DownloadTask } from './downloadTask'
+import { ParallelTaskOptions, ensureDir, errorToString, joinUrl, normalizeArray } from './utils'
 import { ZipValidator } from './zipValdiator'
 
 /**
@@ -277,10 +277,30 @@ export function installTask(versionMeta: MinecraftVersionBaseInfo, minecraft: Mi
  */
 export function installVersionTask(versionMeta: MinecraftVersionBaseInfo, minecraft: MinecraftLocation, options: JarOption = {}): Task<ResolvedVersion> {
   return task('version', async function () {
-    await this.yield(new InstallJsonTask(versionMeta, minecraft, options))
-    const version = await VersionJson.parse(minecraft, versionMeta.id)
-    if (version.downloads[options.side ?? 'client']) {
-      await this.yield(new InstallJarTask(version as any, minecraft, options))
+    const folder = MinecraftFolder.from(minecraft)
+    await this.yield(new InstallJsonTask(versionMeta, folder, options))
+    const version = await VersionJson.parse(folder, versionMeta.id)
+    const side = options.side ?? 'client'
+    if (version.downloads[side]) {
+      await this.yield(new InstallJarTask(version as any, folder, options))
+    }
+    if (side === 'server') {
+      const jarPath = folder.getVersionJar(versionMeta.id, 'server')
+      const server: Version = {
+        id: versionMeta.id,
+        type: 'release',
+        time: version.time,
+        releaseTime: version.releaseTime,
+        jar: relative(folder.libraries, jarPath).replaceAll(sep, '/'),
+        arguments: {
+          game: [],
+          jvm: [],
+        },
+        mainClass: '',
+        minimumLauncherVersion: 13,
+        libraries: [],
+      }
+      await writeFile(join(folder.getVersionRoot(versionMeta.id), 'server.json'), JSON.stringify(server, null, 2))
     }
     return version
   }, versionMeta)
@@ -321,8 +341,7 @@ export function installAssetsTask(version: ResolvedVersion, options: AssetsOptio
           hash: file.sha1,
         },
         destination: folder.getLogConfig(file.id),
-        agent: options.agent,
-        headers: options.headers,
+        ...getDownloadBaseOptions(options),
       }).setName('asset', { name: file.id, hash: file.sha1, size: file.size }))
     }
     const jsonPath = folder.getPath('assets', 'indexes', version.assets + '.json')
@@ -345,7 +364,7 @@ export function installAssetsTask(version: ResolvedVersion, options: AssetsOptio
       const urls = resolveDownloadUrls(version.assetIndex!.url, version, options.assetsIndexUrl)
       for (const url of urls) {
         try {
-          const response = await request(url, { dispatcher: options.agent?.dispatcher })
+          const response = await request(url, { dispatcher: options?.dispatcher })
           const json = await response.body.json() as any
           await writeFile(jsonPath, JSON.stringify(json))
           return json
@@ -366,10 +385,7 @@ export function installAssetsTask(version: ResolvedVersion, options: AssetsOptio
       const { objects } = await getAssetIndexFallback()
       objectArray = Object.keys(objects).map((k) => ({ name: k, ...objects[k] }))
     }
-    await this.all(objectArray.map((o) => new InstallAssetTask(o, folder, options)), {
-      throwErrorImmediately: options.throwErrorImmediately ?? false,
-      getErrorMessage: (errs) => `Errors during install Minecraft ${version.id}'s assets at ${version.minecraftDirectory}: ${errs.map(errorToString).join('\n')}`,
-    })
+    await this.yield(new InstallAssetTask(objectArray, folder, options))
 
     return version
   })
@@ -410,12 +426,7 @@ export function installResolvedAssetsTask(assets: AssetInfo[], folder: Minecraft
   return task('assets', async function () {
     await ensureDir(folder.getPath('assets', 'objects'))
 
-    // const sizes = assets.map((a) => a.size).map((a, b) => a + b, 0);
-
-    await this.all(assets.map((o) => new InstallAssetTask(o, folder, options)), {
-      throwErrorImmediately: false,
-      getErrorMessage: (errs) => `Errors during install assets at ${folder.root}:\n${errs.map(errorToString).join('\n')}`,
-    })
+    await this.yield(new InstallAssetTask(assets, folder, options))
   })
 }
 
@@ -428,12 +439,9 @@ export class InstallJsonTask extends DownloadTask {
 
     super({
       url: urls,
-      headers: options.headers,
-      agent: options.agent,
       validator: expectSha1 ? options.checksumValidatorResolver?.({ algorithm: 'sha1', hash: expectSha1 }) || { algorithm: 'sha1', hash: expectSha1 } : new JsonValidator(),
       destination,
-      skipPrevalidate: options.skipPrevalidate,
-      skipRevalidate: options.skipRevalidate,
+      ...getDownloadBaseOptions(options),
     })
 
     this.name = 'json'
@@ -445,8 +453,7 @@ export class InstallJarTask extends DownloadTask {
   constructor(version: ResolvedVersion & { downloads: Required<ResolvedVersion>['downloads'] }, minecraft: MinecraftLocation, options: Options) {
     const folder = MinecraftFolder.from(minecraft)
     const type = options.side ?? 'client'
-    const destination = join(folder.getVersionRoot(version.id),
-      type === 'client' ? version.id + '.jar' : version.id + '-' + type + '.jar')
+    const destination = folder.getVersionJar(version.id, type)
     const download = version.downloads[type]
     if (!download) {
       throw new Error(`Cannot find downloadable jar in ${type}`)
@@ -458,10 +465,7 @@ export class InstallJarTask extends DownloadTask {
       url: urls,
       validator: options.checksumValidatorResolver?.({ algorithm: 'sha1', hash: expectSha1 }) || { algorithm: 'sha1', hash: expectSha1 },
       destination,
-      headers: options.headers,
-      agent: options.agent,
-      skipPrevalidate: options.skipPrevalidate,
-      skipRevalidate: options.skipRevalidate,
+      ...getDownloadBaseOptions(options),
     })
 
     this.name = 'jar'
@@ -479,10 +483,7 @@ export class InstallAssetIndexTask extends DownloadTask {
       url: resolveDownloadUrls(version.assetIndex.url, version, options.assetsIndexUrl),
       destination: jsonPath,
       validator: options.checksumValidatorResolver?.({ algorithm: 'sha1', hash: expectSha1 }) || { algorithm: 'sha1', hash: expectSha1 },
-      headers: options.headers,
-      agent: options.agent,
-      skipPrevalidate: options.skipPrevalidate,
-      skipRevalidate: options.skipRevalidate,
+      ...getDownloadBaseOptions(options),
     })
 
     this.name = 'assetIndex'
@@ -503,10 +504,8 @@ export class InstallLibraryTask extends DownloadTask {
         ? new ZipValidator()
         : options.checksumValidatorResolver?.({ algorithm: 'sha1', hash: expectSha1 }) || { algorithm: 'sha1', hash: expectSha1 },
       destination,
-      headers: options.headers,
-      agent: options.agent,
-      skipPrevalidate: options.skipPrevalidate,
-      skipRevalidate: options.skipRevalidate,
+      ...getDownloadBaseOptions(options),
+      skipHead: lib.download.size < 2 * 1024 * 1024,
     })
 
     this.name = 'library'
@@ -514,43 +513,41 @@ export class InstallLibraryTask extends DownloadTask {
   }
 }
 
-export class InstallAssetTask extends DownloadTask {
-  constructor(asset: AssetInfo, folder: MinecraftFolder, options: AssetsOptions) {
+export class InstallAssetTask extends DownloadMultipleTask {
+  constructor(assets: AssetInfo[], folder: MinecraftFolder, options: AssetsOptions) {
     const assetsHosts = normalizeArray(options.assetsHost || [])
 
     if (assetsHosts.indexOf(DEFAULT_RESOURCE_ROOT_URL) === -1) {
       assetsHosts.push(DEFAULT_RESOURCE_ROOT_URL)
     }
 
-    const { hash, size, name } = asset
+    super(assets.map((asset) => {
+      const { hash, size, name } = asset
+      const head = hash.substring(0, 2)
+      const dir = folder.getPath('assets', 'objects', head)
+      const file = join(dir, hash)
+      const urls = assetsHosts.map((h) => `${h}/${head}/${hash}`)
+      return {
+        url: urls,
+        destination: file,
+        validator: options.prevalidSizeOnly
+          ? {
+            async validate(destination, url) {
+              const fstat = await stat(destination).catch(() => ({ size: -1 }))
+              if (fstat.size !== size) {
+                throw new ChecksumNotMatchError('size', size.toString(), fstat.size.toString(), destination, url)
+              }
+            },
+          }
+          : options.checksumValidatorResolver?.({ algorithm: 'sha1', hash }) || { algorithm: 'sha1', hash },
+        ...getDownloadBaseOptions(options),
+        skipHead: asset.size < 2 * 1024 * 1024,
+      }
+    }))
 
-    const head = hash.substring(0, 2)
-    const dir = folder.getPath('assets', 'objects', head)
-    const file = join(dir, hash)
-    const urls = assetsHosts.map((h) => `${h}/${head}/${hash}`)
-
-    super({
-      url: urls,
-      destination: file,
-      validator: options.prevalidSizeOnly
-        ? {
-          async validate(destination, url) {
-            const fstat = await stat(destination).catch(() => ({ size: -1 }))
-            if (fstat.size !== size) {
-              throw new ChecksumNotMatchError('size', size.toString(), fstat.size.toString(), destination, url)
-            }
-          },
-        }
-        : options.checksumValidatorResolver?.({ algorithm: 'sha1', hash }) || { algorithm: 'sha1', hash },
-      headers: options.headers,
-      agent: options.agent,
-      skipPrevalidate: options.skipPrevalidate,
-      skipRevalidate: options.skipRevalidate,
-    })
-
-    this._total = size
+    this._total = assets.reduce((a, b) => a + b.size, 0)
     this.name = 'asset'
-    this.param = asset
+    this.param = { count: assets.length }
   }
 }
 
@@ -563,15 +560,11 @@ const DEFAULT_MAVENS = ['https://repo1.maven.org/maven2/']
  * @param libraryOptions The library install options
  */
 export function resolveLibraryDownloadUrls(library: ResolvedLibrary, libraryOptions: LibraryOptions): string[] {
-  const libraryHosts = libraryOptions.libraryHost?.(library) ?? []
-  const url = new URL(library.download.url)
-
-  return [...new Set([
-    // user defined alternative host to download
-    ...normalizeArray(libraryHosts),
+  const urls = libraryOptions.libraryHost?.(library) ?? [
     ...normalizeArray(libraryOptions.mavenHost).map((m) => joinUrl(m, library.download.path)),
     library.download.url,
-    ...normalizeArray(libraryOptions.mavenHost).map((m) => joinUrl(m, url.pathname).replace('/maven/maven', '/maven')),
     ...DEFAULT_MAVENS.map((m) => joinUrl(m, library.download.path)),
-  ])]
+  ]
+
+  return [...new Set(normalizeArray(urls))]
 }

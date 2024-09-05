@@ -1,12 +1,12 @@
 import { getPlatform, Platform } from '@xmcl/core'
+import { DownloadBaseOptions, getDownloadBaseOptions } from '@xmcl/file-transfer'
 import { Task, task } from '@xmcl/task'
 import { exec } from 'child_process'
-import { unlink } from 'fs/promises'
-import { arch, EOL, platform, tmpdir } from 'os'
+import { stat, unlink } from 'fs/promises'
+import { EOL, platform, tmpdir } from 'os'
 import { basename, join, resolve } from 'path'
 import { Dispatcher, request } from 'undici'
 import { DownloadTask } from './downloadTask'
-import { DownloadBaseOptions } from '@xmcl/file-transfer'
 import { ensureDir, missing } from './utils'
 
 export interface JavaInfo {
@@ -66,8 +66,7 @@ export class DownloadJRETask extends DownloadTask {
         algorithm: 'sha1',
         hash: sha1,
       },
-      agent: options.agent,
-      headers: options.headers,
+      ...getDownloadBaseOptions(options),
     })
 
     this.name = 'downloadJre'
@@ -166,12 +165,22 @@ export function parseJavaVersion(versionText: string): { version: string; majorV
   const getVersion = (str?: string) => {
     if (!str) { return undefined }
     const match = /(\d+)\.(\d)+\.(\d+)(_\d+)?/.exec(str)
-    if (match === null) { return undefined }
+    if (match === null) {
+      const openjdkMatch = /openjdk version "(\d+)"/.exec(str)
+      if (openjdkMatch) {
+        return {
+          version: openjdkMatch[1],
+          majorVersion: Number.parseInt(openjdkMatch[1]),
+          patch: -1,
+        }
+      }
+      return undefined
+    }
     if (match[1] === '1') {
       return {
         version: match[0],
         majorVersion: Number.parseInt(match[2]),
-        patch: Number.parseInt(match[4].substring(1) ?? '-1'),
+        patch: Number.parseInt(match[4]?.substring(1) ?? '-1'),
       }
     }
     return {
@@ -199,7 +208,7 @@ export function parseJavaVersion(versionText: string): { version: string; majorV
 export async function getPotentialJavaLocations(): Promise<string[]> {
   const unchecked = new Set<string>()
   const currentPlatform = platform()
-  const javaFile = currentPlatform === 'win32' ? 'javaw.exe' : 'java'
+  const javaFile = currentPlatform === 'win32' ? 'java.exe' : 'java'
 
   if (process.env.JAVA_HOME) {
     unchecked.add(join(process.env.JAVA_HOME, 'bin', javaFile))
@@ -225,15 +234,12 @@ export async function getPotentialJavaLocations(): Promise<string[]> {
         resolve(stdout.split(EOL).map((item) => item.replace(/[\r\n]/g, ''))
           .filter((item) => item != null && item !== undefined)
           .filter((item) => item[0] === ' ')
-          .map((item) => `${item.split('    ')[3]}\\bin\\javaw.exe`))
+          .map((item) => `${item.split('    ')[3]}\\bin\\java.exe`))
       })
     })
     for (const o of [...out, ...await where()]) {
       unchecked.add(o)
     }
-    const currentArch = arch()
-    unchecked.add('C:\\Program Files (x86)\\Minecraft Launcher\\runtime\\jre-x64/X86')
-    unchecked.add(`C:\\Program Files (x86)\\Minecraft Launcher\\runtime\\jre-legacy\\windows-${currentArch}\\jre-legacy`)
   } else if (currentPlatform === 'darwin') {
     unchecked.add('/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java')
     unchecked.add(await which())
@@ -244,6 +250,21 @@ export async function getPotentialJavaLocations(): Promise<string[]> {
   const checkingList = Array.from(unchecked).filter((jPath) => typeof jPath === 'string').filter((p) => p !== '')
 
   return checkingList
+}
+
+async function dedupJreExecutables(files: Iterable<string>) {
+  // some file might shared same ino
+  const inos = new Set<number>()
+  const result: string[] = []
+  for (const file of files) {
+    const fstat = await stat(file)
+    if (inos.has(fstat.ino)) {
+      continue
+    }
+    inos.add(fstat.ino)
+    result.push(file)
+  }
+  return result
 }
 
 /**
@@ -262,7 +283,7 @@ export async function scanLocalJava(locations: string[]): Promise<JavaInfo[]> {
   const potential = await getPotentialJavaLocations()
   potential.forEach((p) => unchecked.add(p))
 
-  const checkingList = [...unchecked].filter((jPath) => typeof jPath === 'string').filter((p) => p !== '')
+  const checkingList = await dedupJreExecutables([...unchecked].filter((jPath) => typeof jPath === 'string').filter((p) => p !== ''))
 
   const javas = await Promise.all(checkingList.map((jPath) => resolveJava(jPath)))
   return javas.filter(((j) => j !== undefined) as (j?: JavaInfo) => j is JavaInfo)

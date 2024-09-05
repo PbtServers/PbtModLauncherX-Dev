@@ -15,6 +15,7 @@
   },
   "publishConfig": {
     "main": "./dist/index.js",
+    "browser": "./dist/index.browser.mjs",
     "module": "./dist/index.mjs",
     "access": "public"
   },
@@ -41,7 +42,7 @@
     "@xmcl/eslint-config": "workspace:^*",
     "esbuild": "^0.17.16",
     "eslint": "^8.37.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   },
   "license": "MIT",
   "bugs": {

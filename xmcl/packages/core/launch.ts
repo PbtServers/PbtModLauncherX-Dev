@@ -120,6 +120,10 @@ export interface LaunchOption {
    */
   extraMCArgs?: string[]
   /**
+   * Prepend command before java command.
+   */
+  prependCommand?: string
+  /**
    * Assign the spawn options to the process.
    *
    * If you try to set `{ shell: true }`, you might want to make all argument rounded with "".
@@ -394,10 +398,6 @@ export interface BaseServerOptions {
    */
   javaPath: string
   /**
-   * Current working directory. Default is the same with the path.
-   */
-  cwd?: string
-  /**
    * No gui for the server launch
    */
   nogui?: boolean
@@ -407,22 +407,14 @@ export interface BaseServerOptions {
   extraMCArgs?: string[]
   extraExecOption?: SpawnOptions
 
+  prependCommand?: string
+
   /**
    * The spawn process function. Used for spawn the java process at the end. By default, it will be the spawn function from "child_process" module. You can use this option to change the 3rd party spawn like [cross-spawn](https://www.npmjs.com/package/cross-spawn)
    */
   spawn?: (command: string, args?: ReadonlyArray<string>, options?: SpawnOptions) => ChildProcess
 }
 
-export interface MinecraftServerOptions extends BaseServerOptions {
-  /**
-   * Minecraft location.
-   */
-  path: string
-  /**
-   * The version id.
-   */
-  version: string | ResolvedVersion
-}
 /**
  * This is the case you provide the server jar execution path.
  */
@@ -432,18 +424,16 @@ export interface ServerOptions extends BaseServerOptions {
    *
    * This is the case like you are launching forge server.
    */
-  serverExectuableJarPath: string
+  serverExectuableJarPath?: string
+
+  mainClass?: string
+
+  classPath?: string[]
 }
 
-export async function launchServer(options: MinecraftServerOptions | ServerOptions) {
+export async function launchServer(options: ServerOptions) {
   const args = await generateArgumentsServer(options)
-  let cwd = options.cwd
-  if ('path' in options) {
-    cwd = options.path
-  } else {
-    cwd = dirname(options.serverExectuableJarPath)
-  }
-  const spawnOption = { cwd, env: process.env, ...(options.extraExecOption || {}) }
+  const spawnOption = { env: process.env, ...(options.extraExecOption || {}) }
   return (options.spawn ?? spawn)(args[0], args.slice(1), spawnOption)
 }
 
@@ -521,9 +511,14 @@ export function createMinecraftProcessWatcher(process: ChildProcess, emitter: Ev
     } else if (string.indexOf('Crash report saved to:') !== -1) {
       crashReportLocation = string.substring(string.indexOf('Crash report saved to:') + 'Crash report saved to: #@!@# '.length)
       crashReportLocation = crashReportLocation.replace(EOL, '').trim()
-    } else if (waitForReady && (string.indexOf('Reloading ResourceManager') !== -1 || string.indexOf('LWJGL Version: ') !== -1 || string.indexOf('OpenAL initialized.') !== -1)) {
+    } else if (waitForReady && (string.indexOf('Missing metadata in pack') !== -1 || string.indexOf('Registering resource reload listener') !== -1 || string.indexOf('Reloading ResourceManager') !== -1 || string.indexOf('LWJGL Version: ') !== -1 || string.indexOf('OpenAL initialized.') !== -1)) {
       waitForReady = false
       emitter.emit('minecraft-window-ready')
+    } else if (waitForReady && (string.indexOf(' Preparing level ') !== -1)) {
+      waitForReady = false
+      emitter.emit('minecraft-window-ready')
+    } else if (string.indexOf('Failed to start the minecraft server') !== -1) {
+      crashReport = string
     }
   })
   return emitter
@@ -577,7 +572,7 @@ export async function launch(options: LaunchOption): Promise<ChildProcess> {
 /**
  * Generate the argument for server
  */
-export async function generateArgumentsServer(options: MinecraftServerOptions | ServerOptions) {
+export async function generateArgumentsServer(options: ServerOptions) {
   const { javaPath, minMemory = 1024, maxMemory = 1024, extraJVMArgs = [], extraMCArgs = [], extraExecOption = {} } = options
   const cmd = [
     javaPath,
@@ -585,19 +580,25 @@ export async function generateArgumentsServer(options: MinecraftServerOptions | 
     `-Xmx${(maxMemory)}M`,
     ...extraJVMArgs,
   ]
-  if ('path' in options) {
-    const mc = MinecraftFolder.from(options.path)
-    const version = options.version
-    const resolvedVersion = typeof version === 'string' ? await Version.parse(mc, version) : version
-    cmd.push('-jar', mc.getVersionJar(resolvedVersion.minecraftVersion, 'server'))
-  } else {
+
+  if (options.classPath && options.classPath.length > 0) {
+    cmd.push('-cp', options.classPath.join(delimiter))
+  }
+
+  if (options.serverExectuableJarPath) {
     cmd.push('-jar', options.serverExectuableJarPath)
+  } else if (options.mainClass) {
+    cmd.push(options.mainClass)
   }
 
   cmd.push(...extraMCArgs)
 
   if (options.nogui) {
     cmd.push('nogui')
+  }
+
+  if (options.prependCommand && options.prependCommand.trim().length > 0) {
+    cmd.unshift(options.prependCommand.trim())
   }
 
   return cmd
@@ -627,7 +628,7 @@ export async function generateArguments(options: LaunchOption) {
   const { id = randomUUID().replace(/-/g, ''), name = 'Steve' } = options.gameProfile || {}
   const accessToken = options.accessToken || randomUUID().replace(/-/g, '')
   const properties = options.properties || {}
-  const userType = options.userType || 'Mojang'
+  const userType = options.userType || 'msa'
   const features = options.features || {}
   const jvmArguments = normalizeArguments(version.arguments.jvm, currentPlatform, features)
   const gameArguments = normalizeArguments(version.arguments.game, currentPlatform, features)
@@ -681,8 +682,6 @@ export async function generateArguments(options: LaunchOption) {
     }
   }
 
-  cmd.push('-DlibraryDirectory=' + mc.getPath('libraries'))
-
   const jvmOptions = {
     natives_directory: nativeRoot,
     launcher_name: launcherName,
@@ -710,6 +709,10 @@ export async function generateArguments(options: LaunchOption) {
   }
 
   cmd.push(...jvmArguments.map((arg) => format(arg, jvmOptions)))
+
+  if (!cmd.some(v => v.startsWith('-DlibraryDirectory'))) {
+    cmd.push('-DlibraryDirectory=' + mc.getPath('libraries'))
+  }
 
   // add extra jvm args
   if (options.extraJVMArgs instanceof Array) {
@@ -777,6 +780,11 @@ export async function generateArguments(options: LaunchOption) {
       }
     }
   }
+
+  if (options.prependCommand && options.prependCommand.trim().length > 0) {
+    cmd.unshift(options.prependCommand.trim())
+  }
+
   return cmd
 }
 

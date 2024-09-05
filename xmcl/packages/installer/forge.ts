@@ -1,4 +1,5 @@
 import { LibraryInfo, MinecraftFolder, MinecraftLocation, Version as VersionJson } from '@xmcl/core'
+import { getDownloadBaseOptions } from '@xmcl/file-transfer'
 import { parse as parseForge } from '@xmcl/forge-site-parser'
 import { Task, task } from '@xmcl/task'
 import { filterEntries, open, openEntryReadStream, readAllEntries, readEntry } from '@xmcl/unzip'
@@ -193,9 +194,7 @@ export class DownloadForgeInstallerTask extends DownloadTask {
       validator: installer?.sha1
         ? options.checksumValidatorResolver?.({ algorithm: 'sha1', hash: installer?.sha1 }) || { algorithm: 'sha1', hash: installer?.sha1 }
         : new ZipValidator(),
-      agent: options.agent,
-      skipPrevalidate: options.skipPrevalidate,
-      skipRevalidate: options.skipRevalidate,
+      ...getDownloadBaseOptions(options),
     })
 
     this.installJarPath = installJarPath
@@ -491,7 +490,7 @@ export function installByInstallerTask(version: RequiredVersion, minecraft: Mine
     const forgeVersion = getForgeArtifactVersion()
     const isLegacy = version.mcversion.startsWith('1.4.')
     const mc = MinecraftFolder.from(minecraft)
-    const jarPath = await this.yield(new DownloadForgeInstallerTask(forgeVersion, version.installer, mc, options, isLegacy)
+    const jarPath: string = await this.yield(new DownloadForgeInstallerTask(forgeVersion, version.installer, mc, options, isLegacy)
       .map(function () { return this.installJarPath }))
 
     if (isLegacy) {

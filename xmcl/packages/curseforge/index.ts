@@ -1,7 +1,6 @@
 /**
  * @module @xmcl/curseforge
  */
-import { Dispatcher, fetch } from 'undici'
 
 export interface ModAsset {
   id: number
@@ -37,6 +36,7 @@ export const enum FileModLoaderType {
   LiteLoader = 3,
   Fabric = 4,
   Quilt = 5,
+  NeoForge = 6,
 }
 export interface FileIndex {
   gameVersion: string
@@ -242,6 +242,8 @@ export interface File {
   fileStatus: FileStatus
 
   hashes: FileHash[]
+
+  fileFingerprint: number
 
   /**
    * The date of this file uploaded
@@ -511,13 +513,45 @@ export interface CurseforgeClientOptions {
    */
   headers?: Record<string, string>
   /**
-   * The optional undici dispatcher
-   */
-  dispatcher?: Dispatcher
-  /**
    * The base url, the default is `https://api.curseforge.com`
    */
   baseUrl?: string
+  /**
+   * The fetch function to use. The default is `fetch`
+   */
+  fetch?: typeof fetch
+}
+
+export interface FingerprintMatch {
+  /**
+   * The mod id
+   */
+  id: number
+  file: File
+  latestFiles: File[]
+}
+export interface FingerprintsMatchesResult {
+  data: {
+    isCacheBuilt: boolean
+    exactMatches: FingerprintMatch[]
+    exactFingerprints: number[]
+    partialMatches: FingerprintMatch[]
+    partialFingerprints: object
+    unmatchedFingerprints: number[]
+  }
+}
+
+export interface FingerprintFuzzyMatch {
+  id: number
+  file: File
+  latestFiles: File[]
+  fingerprints: number[]
+}
+
+export interface FingerprintFuzzyMatchResult {
+  data: {
+    fuzzyMatches: FingerprintFuzzyMatch[]
+  }
 }
 
 export class CurseforgeApiError extends Error {
@@ -532,7 +566,7 @@ export class CurseforgeApiError extends Error {
  */
 export class CurseforgeV1Client {
   headers: Record<string, string>
-  private dispatcher?: Dispatcher
+  private fetch: typeof fetch
   private baseUrl: string
 
   constructor(private apiKey: string, options?: CurseforgeClientOptions) {
@@ -541,7 +575,7 @@ export class CurseforgeV1Client {
       ...(options?.headers || {}),
     }
     this.baseUrl = options?.baseUrl || 'https://api.curseforge.com'
-    this.dispatcher = options?.dispatcher
+    this.fetch = options?.fetch || ((...args) => fetch(...args))
   }
 
   /**
@@ -550,13 +584,12 @@ export class CurseforgeV1Client {
   async getCategories(signal?: AbortSignal) {
     const url = new URL(this.baseUrl + '/v1/categories')
     url.searchParams.append('gameId', '432')
-    const response = await fetch(url, {
+    const response = await this.fetch(url, {
       headers: {
         ...this.headers,
         accept: 'application/json',
       },
       signal,
-      dispatcher: this.dispatcher,
     })
     if (response.status !== 200) {
       throw new CurseforgeApiError(url.toString(), response.status, await response.text())
@@ -573,8 +606,7 @@ export class CurseforgeV1Client {
    */
   async getMod(modId: number, signal?: AbortSignal) {
     const url = new URL(this.baseUrl + `/v1/mods/${modId}`)
-    const response = await fetch(url, {
-      dispatcher: this.dispatcher,
+    const response = await this.fetch(url, {
       headers: {
         accept: 'application/json',
         ...this.headers,
@@ -593,8 +625,7 @@ export class CurseforgeV1Client {
    */
   async getModDescription(modId: number, signal?: AbortSignal) {
     const url = new URL(this.baseUrl + `/v1/mods/${modId}/description`)
-    const response = await fetch(url, {
-      dispatcher: this.dispatcher,
+    const response = await this.fetch(url, {
       headers: {
         ...this.headers,
         accept: 'application/json',
@@ -620,8 +651,7 @@ export class CurseforgeV1Client {
     url.searchParams.append('gameVersionTypeId', options.gameVersionTypeId?.toString() ?? '')
     url.searchParams.append('index', options.index?.toString() ?? '')
     url.searchParams.append('pageSize', options.pageSize?.toString() ?? '')
-    const response = await fetch(url, {
-      dispatcher: this.dispatcher,
+    const response = await this.fetch(url, {
       headers: {
         ...this.headers,
         accept: 'application/json',
@@ -640,12 +670,11 @@ export class CurseforgeV1Client {
    */
   async getModFile(modId: number, fileId: number, signal?: AbortSignal) {
     const url = new URL(this.baseUrl + `/v1/mods/${modId}/files/${fileId}`)
-    const response = await fetch(url, {
+    const response = await this.fetch(url, {
       headers: {
         ...this.headers,
         accept: 'application/json',
       },
-      dispatcher: this.dispatcher,
       signal,
     })
     if (response.status !== 200) {
@@ -660,10 +689,9 @@ export class CurseforgeV1Client {
    */
   async getMods(modIds: number[], signal?: AbortSignal) {
     const url = new URL(this.baseUrl + '/v1/mods')
-    const response = await fetch(url, {
+    const response = await this.fetch(url, {
       method: 'POST',
       body: JSON.stringify({ modIds }),
-      dispatcher: this.dispatcher,
       headers: {
         ...this.headers,
         'content-type': 'application/json',
@@ -683,7 +711,7 @@ export class CurseforgeV1Client {
    */
   async getFiles(fileIds: number[], signal?: AbortSignal) {
     const url = new URL(this.baseUrl + '/v1/mods/files')
-    const response = await fetch(url, {
+    const response = await this.fetch(url, {
       method: 'POST',
       body: JSON.stringify({ fileIds }),
       headers: {
@@ -691,7 +719,6 @@ export class CurseforgeV1Client {
         'content-type': 'application/json',
         accept: 'application/json',
       },
-      dispatcher: this.dispatcher,
       signal,
     })
     if (response.status !== 200) {
@@ -719,12 +746,11 @@ export class CurseforgeV1Client {
     url.searchParams.append('index', options.index?.toString() ?? '0')
     url.searchParams.append('pageSize', options.pageSize?.toString() ?? '25')
     if (options.slug) { url.searchParams.append('slug', options.slug) }
-    const response = await fetch(url, {
+    const response = await this.fetch(url, {
       headers: {
         ...this.headers,
         accept: 'application/json',
       },
-      dispatcher: this.dispatcher,
       signal,
     })
     if (response.status !== 200) {
@@ -739,18 +765,55 @@ export class CurseforgeV1Client {
    */
   async getModFileChangelog(modId: number, fileId: number, signal?: AbortSignal) {
     const url = new URL(this.baseUrl + `/v1/mods/${modId}/files/${fileId}/changelog`)
-    const response = await fetch(url, {
+    const response = await this.fetch(url, {
       headers: {
         ...this.headers,
         accept: 'application/json',
       },
-      dispatcher: this.dispatcher,
       signal,
     })
     if (response.status !== 200) {
       throw new CurseforgeApiError(url.toString(), response.status, await response.text())
     }
     const result = await response.json() as { data: string }
+    return result.data
+  }
+
+  async getFingerprintsMatchesByGameId(gameId: number, fingerprints: number[], signal?: AbortSignal) {
+    const url = new URL(this.baseUrl + `/v1/fingerprints/${gameId}`)
+    const response = await this.fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ fingerprints }),
+      headers: {
+        ...this.headers,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      signal,
+    })
+    if (response.status !== 200) {
+      throw new CurseforgeApiError(url.toString(), response.status, await response.text())
+    }
+    const result = await response.json() as FingerprintsMatchesResult
+    return result.data
+  }
+
+  async getFingerprintsFuzzyMatchesByGameId(gameId: number, fingerprints: number[], signal?: AbortSignal) {
+    const url = new URL(this.baseUrl + `/v1/fingerprints/fuzzy/${gameId}`)
+    const response = await this.fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ fingerprints }),
+      headers: {
+        ...this.headers,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      signal,
+    })
+    if (response.status !== 200) {
+      throw new CurseforgeApiError(url.toString(), response.status, await response.text())
+    }
+    const result = await response.json() as FingerprintFuzzyMatchResult
     return result.data
   }
 }
