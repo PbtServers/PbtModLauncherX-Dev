@@ -18,3 +18,4 @@ p2p.network
 
 */build/output/*
 package-lock.json
+pnpm-lock.yaml
