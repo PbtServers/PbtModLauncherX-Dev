@@ -262,8 +262,6 @@ diagnosis:
     name: >-
       Falta la libreria {name} | Falta la libreria {name} | Faltan {count}
       Librerias | Faltan {count} Librerias
-disable: Desactivar
-downloadUpdate: Descarga de la actualización
 env:
   select:
     all: Seleccionar todo
@@ -823,6 +821,7 @@ modrinth:
     bukkit: Bukkit
     bungeecord: Bungeecord
     canvas: Canvas
+    categories: Categorías
     cartoon: Estilo Cartoony
     challenging: Desafiante
     colored-lighting: Iluminación de Colores
