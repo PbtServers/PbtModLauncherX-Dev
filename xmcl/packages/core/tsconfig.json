@@ -1,0 +1,15 @@
+{
+    "files": [
+        "index.ts",
+        "launch.ts",
+        "version.ts",
+        "folder.ts",
+        "platform.ts",
+        "utils.ts",
+        "diagnose.ts"
+    ],
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist"
+    },
+}

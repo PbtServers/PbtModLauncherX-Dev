@@ -1,0 +1,19 @@
+{
+    "private": true,
+    "version": "7.6.0",
+    "scripts": {
+        "build:docs": "tsx scripts/docs.ts",
+        "lint": "eslint packages --ext .ts",
+        "lint:fix": "eslint packages --ext .ts --fix",
+        "test": "vitest",
+        "coverage": "vitest run --coverage"
+    },
+    "packageManager": "pnpm@8.2.0",
+    "devDependencies": {
+        "tsx": "^3.12.6",
+        "typedoc": "^0.24.8",
+        "typescript": "^5.0.3",
+        "@vitest/coverage-c8": "^0.30.1",
+        "vitest": "^0.32.0"
+    }
+}

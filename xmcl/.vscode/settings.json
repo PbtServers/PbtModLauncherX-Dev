@@ -1,0 +1,10 @@
+{
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.tabSize": 2,
+    "eslint.validate": [
+        {
+            "autoFix": true,
+            "language": "typescript"
+        },
+    ]
+}

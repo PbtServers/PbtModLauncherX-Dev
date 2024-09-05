@@ -1,0 +1,57 @@
+{
+  "name": "@xmcl/installer",
+  "version": "5.4.0",
+  "main": "./index.ts",
+  "description": "The installers of Minecraft/Forge/Fabric/Liteloader/Quilt",
+  "engines": {
+    "node": ">=16.0"
+  },
+  "scripts": {
+    "build:type": "tsc",
+    "build:cjs": "esbuild --target=node16 --platform=node --external:@xmcl/* --external:undici --external:yauzl --sourcemap --format=cjs --bundle --outfile=dist/index.js index.ts",
+    "build:esm": "esbuild --target=node16 --platform=node --external:@xmcl/* --external:undici --external:yauzl --sourcemap --format=esm --bundle --outfile=dist/index.mjs index.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs"
+  },
+  "dependencies": {
+    "@xmcl/asm": "workspace:^*",
+    "@xmcl/core": "workspace:^*",
+    "@xmcl/file-transfer": "workspace:^*",
+    "@xmcl/forge-site-parser": "workspace:^*",
+    "@xmcl/task": "workspace:^*",
+    "@xmcl/unzip": "workspace:^*",
+    "undici": "6.0.1",
+    "yazl": "^2.5.1",
+    "yauzl": "^2.10.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Voxelum/minecraft-launcher-core-node.git"
+  },
+  "sideEffects": false,
+  "author": "cijhn@hotmail.com",
+  "keywords": [
+    "minecraft",
+    "typescript",
+    "minecraft-launcher",
+    "nodejs",
+    "electron"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues"
+  },
+  "homepage": "https://github.com/Voxelum/minecraft-launcher-core-node#readme",
+  "devDependencies": {
+    "@types/node": "~18.15.11",
+    "@types/yazl": "^2.4.5",
+    "@types/yauzl": "^2.10.0",
+    "@xmcl/eslint-config": "workspace:^*",
+    "esbuild": "^0.17.16",
+    "eslint": "^8.37.0",
+    "typescript": "^5.2.2"
+  }
+}

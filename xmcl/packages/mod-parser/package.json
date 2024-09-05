@@ -1,0 +1,54 @@
+{
+  "name": "@xmcl/mod-parser",
+  "version": "3.3.5",
+  "main": "./index.ts",
+  "description": "The utilities to parse Forge/Liteloader/Fabric/Quilt mod metadata.",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "build:type": "tsc",
+    "build:cjs": "esbuild --target=node16 --platform=node --sourcemap --external:toml --external:@xmcl/* --format=cjs --bundle --outfile=dist/index.js index.ts",
+    "build:esm": "esbuild --target=node16 --platform=node --sourcemap --external:toml --external:@xmcl/* --format=esm --bundle --outfile=dist/index.mjs index.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs"
+  },
+  "dependencies": {
+    "@xmcl/asm": "workspace:^*",
+    "@xmcl/system": "workspace:^*",
+    "toml": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Voxelum/minecraft-launcher-core-node.git"
+  },
+  "author": "cijhn@hotmail.com",
+  "sideEffects": false,
+  "keywords": [
+    "minecraft",
+    "typescript",
+    "minecraft-launcher",
+    "nodejs",
+    "electron",
+    "forge",
+    "minecraftforge",
+    "fabric",
+    "liteloader",
+    "quilt"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues"
+  },
+  "homepage": "https://github.com/Voxelum/minecraft-launcher-core-node#readme",
+  "devDependencies": {
+    "@types/node": "~18.15.11",
+    "@xmcl/eslint-config": "workspace:^*",
+    "esbuild": "^0.17.16",
+    "eslint": "^8.37.0",
+    "typescript": "^5.2.2"
+  }
+}

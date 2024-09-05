@@ -1,0 +1,23 @@
+{
+    "files": [
+        "index.ts",
+        "minecraft.ts",
+        "forge.ts",
+        "liteloader.ts",
+        "java-runtime.ts",
+        "optifine.ts",
+        "fabric.ts",
+        "quilt.ts",
+        "utils.ts",
+        "unzip.ts",
+        "java.ts",
+        "diagnose.ts",
+        "profile.ts",
+        "labymod.ts",
+        "downloadTask.ts"
+    ],
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist"
+    }
+}

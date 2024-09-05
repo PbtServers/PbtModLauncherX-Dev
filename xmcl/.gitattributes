@@ -1,0 +1,25 @@
+* text=auto eol=lf
+
+*.md text
+*.ts text
+*.js text
+*.json text
+
+*.png binary
+*.jpg binary
+*.zip binary
+*.jar binary
+*.litemod binary
+*.dat binary
+*.mcmeta binary
+*.mca binary
+
+# Don't allow people to merge changes to these generated files, because the result
+# may be invalid.  You need to run "rush update" again.
+pnpm-lock.yaml               merge=binary
+shrinkwrap.yaml              merge=binary
+npm-shrinkwrap.json          merge=binary
+yarn.lock                    merge=binary
+
+*.json                       linguist-language=JSON-with-Comments
+

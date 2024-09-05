@@ -1,0 +1,11 @@
+{
+    "files": [
+        "index.ts",
+        "system.ts",
+        "index.browser.ts"
+    ],
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist"
+    },
+}

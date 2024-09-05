@@ -1,0 +1,47 @@
+{
+  "name": "@xmcl/core",
+  "version": "2.13.0",
+  "main": "./index.ts",
+  "description": "Minecraft version.json parsing and game launching.",
+  "engines": {
+    "node": ">=16.0"
+  },
+  "scripts": {
+    "build:type": "tsc",
+    "build:cjs": "esbuild --target=node16 --platform=node --external:@xmcl/* --sourcemap --format=cjs --bundle --outfile=dist/index.js index.ts",
+    "build:esm": "esbuild --target=node16 --platform=node --external:@xmcl/* --sourcemap --format=esm --bundle --outfile=dist/index.mjs index.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs"
+  },
+  "dependencies": {
+    "@xmcl/unzip": "workspace:^*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Voxelum/minecraft-launcher-core-node.git"
+  },
+  "author": "cijhn@hotmail.com",
+  "keywords": [
+    "minecraft",
+    "typescript",
+    "minecraft-launcher",
+    "nodejs",
+    "electron"
+  ],
+  "sideEffects": false,
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues"
+  },
+  "homepage": "https://github.com/Voxelum/minecraft-launcher-core-node#readme",
+  "devDependencies": {
+    "@types/node": "~18.15.11",
+    "@xmcl/eslint-config": "workspace:^*",
+    "esbuild": "^0.17.16",
+    "eslint": "^8.37.0",
+    "typescript": "^5.2.2"
+  }
+}
