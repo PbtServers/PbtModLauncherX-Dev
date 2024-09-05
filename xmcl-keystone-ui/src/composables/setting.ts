@@ -122,7 +122,7 @@ export function useSettings() {
 
   const locales = computed(() => state.value?.locales || [])
   const selectedLocale = computed({
-    get: () => locales.value.find(l => l.locale === state.value?.locale)?.locale || 'en',
+    get: () => locales.value.find(l => l.locale === state.value?.locale)?.locale || 'es-ES',
     set: v => state.value?.localeSet(v),
   })
   const enableDedicatedGPUOptimization = computed({
@@ -149,11 +149,11 @@ export function useSettings() {
     set: v => state.value?.developerModeSet(v),
   })
   const disableTelemetry = computed({
-    get: () => state.value?.disableTelemetry ?? false,
+    get: () => state.value?.disableTelemetry ?? true,
     set: v => state.value?.disableTelemetrySet(v),
   })
   const enableDiscord = computed({
-    get: () => state.value?.discordPresence ?? false,
+    get: () => state.value?.discordPresence ?? true,
     set: (v) => state.value?.discordPresenceSet(v),
   })
   const apiSets = computed(() => state.value?.apiSets || [])

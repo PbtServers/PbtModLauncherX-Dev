@@ -257,6 +257,9 @@ diagnosis:
   missingJava:
     message: Click para resolver el problema
     name: No se puede encontrar java!
+  missingJava:
+    message: Click para resolver el problema
+    name: No se puede encontrar esta versión!
   missingLibraries:
     message: Instalaremos las librerias para ti
     name: >-
@@ -489,6 +492,12 @@ instanceFileOperation:
   keep: Conservar
   remove: Eliminar
 instanceSetting:
+  disableAuthlibInjector: Desactivar authlib injector
+  disableAuthlibInjectorDescription: >-
+    Si utilizas un sistema de skins de terceros, el inyector authlib te puede ayudar.
+  disableElyByAuthlib: Desactivar ely.by authlib reemplazo
+  disableElyByAuthlibDescription: >-
+    Ely.by tiene un reemplazo de authlib para mostrar skins.
   fastLaunch: Inicio Rápido
   fastLaunchHint: Ignorar el estado del usuario y los problemas sin solucionar existentes
   hideLauncher: Ocultar el lanzador después del inicio
@@ -1336,6 +1345,8 @@ setting:
     dark: Tema Oscuro
     light: Tema Claro
     system: Usar Tema del Sistema
+  themeImport: Importar Tema
+  themeExport: Exportar Tema
   themeFont: Fuente
   themeFontDescription: Cambia la fuente del lanzador.
   themeResetFont: Restablecer fuente

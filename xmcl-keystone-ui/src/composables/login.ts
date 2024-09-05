@@ -75,7 +75,6 @@ export function useAuthorityItems(allowThirdparty: Ref<boolean>, services: Ref<Y
       },
     ] as AuthorityItem[]
 
-    if (allowThirdparty.value) {
       items.push({
         value: AUTHORITY_DEV,
         text: t('userServices.offline.name'),
@@ -91,7 +90,6 @@ export function useAuthorityItems(allowThirdparty: Ref<boolean>, services: Ref<Y
           })
         } catch { }
       }
-    }
 
     return items
   })
