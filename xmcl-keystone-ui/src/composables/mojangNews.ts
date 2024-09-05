@@ -1,4 +1,5 @@
-import { useRefreshable } from './refreshable'
+import useSWRV from 'swrv'
+import { useSWRVConfig } from './swrvConfig'
 
 export interface PlayPageImage {
   title: string
@@ -28,10 +29,8 @@ export interface NewsItem {
   id: string
 }
 export function useMojangNews() {
-  const news = ref([] as NewsItem[])
-
-  const { refresh, refreshing, error } = useRefreshable(async() => {
-    const resp = await fetch('https://launchercontent.mojang.com/news.json')
+  const { data, error, isValidating, mutate } = useSWRV('/news', async () => {
+    const resp = await fetch('https://launchercontent.mojang.com/v2/news.json')
     const result: { version: number; entries: NewsItem[] } = await resp.json()
     if (result.version === 1) {
       const entries = result.entries.filter(e => e.category === 'Minecraft: Java Edition')
@@ -39,16 +38,17 @@ export function useMojangNews() {
         e.newsPageImage.url = new URL(e.newsPageImage.url, 'https://launchercontent.mojang.com').toString()
         e.playPageImage.url = new URL(e.playPageImage.url, 'https://launchercontent.mojang.com').toString()
       }
-      news.value = entries
+      return entries
     } else {
     // error
+      return []
     }
-  })
-
+  }, useSWRVConfig())
+  const news = computed(() => data.value || [] as NewsItem[])
   return {
     news,
-    refresh,
-    refreshing,
+    isValidating,
+    mutate,
     error,
   }
 }

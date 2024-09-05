@@ -1,7 +1,10 @@
 <template>
-  <div class="rounded p-2 transition-colors duration-300 hover:bg-[rgba(0,0,0,0.15)]">
+  <div
+    class="rounded p-2 transition-colors duration-300 hover:bg-[rgba(0,0,0,0.15)]"
+    :style="{ backgroundColor: version.installed ? 'rgba(0,0,0,0.25)' : '' }"
+  >
     <div
-      class="grid-cols-13 my-1 grid cursor-pointer text-gray-700 dark:text-gray-300"
+      class="grid-cols-13 my-1 grid cursor-pointer gap-x-1 text-gray-700 dark:text-gray-300"
       @click="emit('click', version)"
     >
       <div class="col-span-5">
@@ -42,7 +45,7 @@
         </div>
       </div>
       <div class="col-span-4">
-        <div>
+        <div v-if="version.downloadCount">
           {{ t('downloadCount', { count: version.downloadCount }) }}
         </div>
         <div
@@ -62,11 +65,11 @@
       <div
         colspan="3"
         :style="{ borderColor: color }"
-        class="col-span-12 border-l-[3px] pl-3"
+        class="col-span-13 border-l-[3px] pl-3"
       >
         <div
           v-if="!version.changelogLoading"
-          class="markdown-body select-text text-gray-500 transition-colors hover:text-black dark:hover:text-gray-300"
+          class="markdown-body max-h-70 select-text overflow-auto text-gray-500 transition-colors hover:text-black dark:hover:text-gray-300"
           v-html="version.changelog"
         />
         <v-skeleton-loader

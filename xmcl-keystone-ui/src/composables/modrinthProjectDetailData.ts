@@ -1,15 +1,17 @@
+import type { ExternalResource, Info, ModGallery, ProjectDetail } from '@/components/MarketProjectDetail.vue'
+import type { ProjectVersion as ModVersion } from '@/components/MarketProjectDetailVersion.vue'
 import { useMarkdown } from '@/composables/markdown'
-import { useModrinthTags } from '@/composables/modrinth'
+import { kModrinthTags } from '@/composables/modrinth'
+import { basename } from '@/util/basename'
+import { injection } from '@/util/inject'
 import { ModFile } from '@/util/mod'
+import { ProjectFile } from '@/util/search'
 import { Category, Project, ProjectVersion, SearchResultHit } from '@xmcl/modrinth'
 import { Ref } from 'vue'
-import type { ExternalResource, Info, ProjectDetail, ModGallery } from '@/components/MarketProjectDetail.vue'
-import type { ProjectVersion as ModVersion } from '@/components/MarketProjectDetailVersion.vue'
-import { ProjectFile } from '@/util/search'
 
 export function useModrinthProjectDetailData(projectId: Ref<string>, project: Ref<Project | undefined>, search: Ref<SearchResultHit | undefined>) {
   const { render } = useMarkdown()
-  const { categories } = useModrinthTags()
+  const { categories } = injection(kModrinthTags)
   const { t } = useI18n()
   const getEnv = (v: string) => {
     if (v === 'required') return t('modrinth.environments.required')
@@ -66,7 +68,7 @@ export function useModrinthProjectDetailData(projectId: Ref<string>, project: Re
       info.push({
         icon: 'description',
         name: t('modrinth.license'),
-        value: project.value.license.name,
+        value: project.value.license.name || project.value.license.id,
         url: project.value.license.url,
       })
     }
@@ -101,9 +103,11 @@ export function useModrinthProjectDetailData(projectId: Ref<string>, project: Re
       url: `https://modrinth.com/${project.value?.project_type ?? search.value?.project_type}/${project.value?.slug ?? search.value?.slug}`,
       categories: getCategories(project.value?.categories ?? search.value?.categories ?? []),
       htmlContent: project.value?.body ? render(project.value.body) : '',
+      modLoaders: project.value?.loaders || [],
       externals,
       galleries,
       info,
+      archived: project.value?.status === 'archived',
     }
     return detail
   })
@@ -129,7 +133,7 @@ export function useModrinthProjectDetailVersions(versions: Ref<ProjectVersion[] 
         disabled: false,
         type: v.version_type as any,
         downloadCount: v.downloads,
-        loaders: v.loaders,
+        loaders: v.loaders || [],
         installed: !!file,
         minecraftVersion: v.game_versions.join(', '),
         createdDate: v.date_published,
@@ -144,7 +148,7 @@ export function useModrinthProjectDetailVersions(versions: Ref<ProjectVersion[] 
       const minecraftVersion = (mcDep?.semanticVersion instanceof Array ? mcDep.semanticVersion.join(' ') : mcDep?.semanticVersion) ?? mcDep?.versionRange ?? ''
       all.push({
         id: i.modrinth?.versionId.toString() ?? '',
-        name: i.resource.name ?? '',
+        name: basename(i.path) ?? '',
         version: i.version,
         disabled: false,
         changelog: undefined,
@@ -152,7 +156,7 @@ export function useModrinthProjectDetailVersions(versions: Ref<ProjectVersion[] 
         type: 'release',
         installed: true,
         downloadCount: 0,
-        loaders: (i as ModFile).modLoaders,
+        loaders: (i as ModFile).modLoaders || [],
         minecraftVersion,
         createdDate: '',
       })

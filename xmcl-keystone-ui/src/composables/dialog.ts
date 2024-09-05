@@ -1,4 +1,4 @@
-import { computed, InjectionKey, Ref, ref } from 'vue'
+import { computed, InjectionKey, Ref, ref, ShallowRef } from 'vue'
 
 import { injection } from '@/util/inject'
 
@@ -22,13 +22,26 @@ export function useModrinthFilter() {
   return filter
 }
 
-export type DialogModel<T = any> = Ref<{
+export type DialogModelData<T> = {
   dialog: string
   parameter: T
-}>
+}
+
+export interface DialogControl {
+  isShown: Ref<boolean>
+  parameter: Ref<any>
+  show: (param?: any) => void
+  hide: () => void
+}
+
+export type DialogModel = {
+  current: ShallowRef<DialogModelData<any>>
+  registered: Record<string, DialogControl>
+}
 
 export function useDialogModel(): DialogModel {
   const model = shallowRef({ dialog: '', parameter: undefined })
+
   const channel = new BroadcastChannel('dialog')
   channel.addEventListener('message', (e) => {
     console.log(e)
@@ -41,18 +54,25 @@ export function useDialogModel(): DialogModel {
       parameter: value.parameter ? JSON.parse(JSON.stringify(value.parameter)) : value.parameter,
     })
   })
-  return model
+  return {
+    current: model,
+    registered: markRaw({}),
+  }
 }
 
 export interface DialogKey<T> extends String { }
 
-/**
- * Use a shared dialog between pages
- */
-export function useDialog<T = any>(dialogName: DialogKey<T> = '', onShown?: (param: T) => void, onHide?: () => void) {
-  const model = injection(kDialogModel)
+function getOrCreate(model: DialogModel, dialogName: DialogKey<any>) {
+  const key = `dialog-${dialogName}`
+
+  const cached = inject(key, undefined)
+  if (cached) return cached as DialogControl
+
+  const current = model.current
   const isShown = computed({
-    get: () => model.value.dialog === dialogName,
+    get: () => {
+      return current.value.dialog === dialogName
+    },
     set: (v: boolean) => {
       if (v) {
         show()
@@ -62,29 +82,80 @@ export function useDialog<T = any>(dialogName: DialogKey<T> = '', onShown?: (par
     },
   })
   function hide() {
-    if (model.value.dialog === dialogName) {
-      console.log(`hide ${dialogName}`)
-      model.value = { dialog: '', parameter: undefined }
+    if (current.value.dialog === dialogName) {
+      current.value = { dialog: '', parameter: undefined }
     }
   }
-  function show(param?: T) {
-    if (model.value.dialog !== dialogName) {
-      console.log(`show ${dialogName}`)
-      model.value = { dialog: dialogName as string, parameter: param }
-    }
+  function show(param?: any) {
+    if (current.value.dialog === dialogName) return
+    current.value = { dialog: dialogName as string, parameter: param }
   }
-  watch(isShown, (value) => {
-    if (value) {
-      onShown?.(model.value.parameter)
-    } else {
-      onHide?.()
-    }
+
+  provide(key, {
+    isShown,
+    parameter: computed(() => isShown.value ? current.value.parameter : undefined),
+    show,
+    hide,
   })
 
   return {
-    dialog: model as DialogModel<T>,
+    isShown,
+    parameter: computed(() => isShown.value ? current.value.parameter : undefined),
     show,
     hide,
+  }
+}
+
+/**
+ * Use a shared dialog between pages
+ */
+export function useDialog<T = any>(dialogName: DialogKey<T> = '', onShown?: (param: T) => void, onHide?: () => void) {
+  const model = injection(kDialogModel)
+  const { parameter, isShown, show, hide } = getOrCreate(model, dialogName)
+
+  if (onShown || onHide) {
+    watch(isShown, (value) => {
+      if (value) {
+        onShown?.(model.current.value.parameter)
+      } else {
+        onHide?.()
+      }
+    })
+  }
+
+  return {
+    parameter: parameter as Ref<T | undefined>,
+    show: show as (param?: T) => void,
+    hide,
     isShown,
+  }
+}
+
+export function useSimpleDialog<T>(onConfirm: (target: T | undefined) => void) {
+  const target = ref(undefined as T | undefined)
+  const model = computed({
+    get: () => target.value !== undefined,
+    set: (v: boolean) => {
+      if (!v) {
+        target.value = undefined
+      }
+    },
+  })
+  const cancel = () => {
+    target.value = undefined
+  }
+  const confirm = () => {
+    onConfirm(target.value as any)
+    target.value = undefined
+  }
+  const show = (t: T) => {
+    target.value = (t) as any
+  }
+  return {
+    target,
+    model,
+    show,
+    cancel,
+    confirm,
   }
 }

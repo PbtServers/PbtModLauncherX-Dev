@@ -1,5 +1,5 @@
 import { Plugin, build as esbuild } from 'esbuild'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { cleanUrl } from './util'
 /**
  * Resolve the import of preload and emit it as single chunk of js file in rollup.
@@ -37,8 +37,8 @@ export default function createPreloadPlugin(preloadSrc: string): Plugin {
           errors: result.errors,
           warnings: result.warnings,
           contents: build.initialOptions.plugins!.find(v => v.name === 'dev')
-            ? `export default ${JSON.stringify(join(build.initialOptions.outdir!, resultFile))}`
-            : `import { join } from 'path'; export default join(__dirname, ${JSON.stringify(resultFile)})`,
+            ? `export default ${JSON.stringify(join(build.initialOptions.outdir!, basename(resultFile)))}`
+            : `import { join } from 'path'; export default join(__dirname, ${JSON.stringify(basename(resultFile))})`,
           watchFiles: build.initialOptions.plugins!.find(v => v.name === 'dev') ? watching : undefined,
         }
       })

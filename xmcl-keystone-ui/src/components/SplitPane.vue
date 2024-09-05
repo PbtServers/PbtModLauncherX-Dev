@@ -12,7 +12,7 @@
         horizontal: split === 'horizontal',
       }"
       :style="{
-        [data.type]: data.percent + '%',
+        [data.type]: visibleRight ? data.percent + '%' : '100%',
         display: flexLeft ? 'flex' : 'initial',
         flexDirection: flexLeft ? 'column' : 'initial',
         overflow: flexLeft ? 'auto' : 'initial',
@@ -21,27 +21,30 @@
       <slot name="left" />
     </div>
 
-    <div
-      class="splitter-pane-resizer"
-      :class="{
-        vertical: split === 'vertical',
-        horizontal: split === 'horizontal'
-      }"
-      :style="{ [data.resizeType]: data.percent + '%'}"
-      @mousedown="onMouseDown"
-      @click="onClick"
-    />
+    <template v-if="visibleRight">
+      <div
+        class="splitter-pane-resizer"
+        :class="{
+          vertical: split === 'vertical',
+          horizontal: split === 'horizontal'
+        }"
+        :style="{ [data.resizeType]: data.percent + '%'}"
+        @mousedown="onMouseDown"
+        @click="onClick"
+      />
 
-    <div
-      class="splitter-pane splitter-paneR"
-      :class="{
-        vertical: split === 'vertical',
-        horizontal: split === 'horizontal'
-      }"
-      :style="{ [data.type]: 100 - data.percent + '%'}"
-    >
-      <slot name="right" />
-    </div>
+      <div
+        class="splitter-pane splitter-paneR"
+        :class="{
+          vertical: split === 'vertical',
+          horizontal: split === 'horizontal'
+        }"
+        :style="{ [data.type]: 100 - data.percent + '%'}"
+      >
+        <slot name="right" />
+      </div>
+    </template>
+
     <div
       v-if="data.active"
       class="vue-splitter-container-mask"
@@ -57,12 +60,14 @@ const props = withDefaults(defineProps<{
   split?: 'vertical' | 'horizontal'
   className?: string
   flexLeft?: boolean
+  visibleRight?: boolean
 }>(), {
   minPercent: 10,
   defaultPercent: 50,
   split: 'vertical',
   className: '',
   flexLeft: false,
+  visibleRight: true,
 })
 const data = reactive({
   active: false,
@@ -191,8 +196,8 @@ function onMouseMove(e: MouseEvent) {
 .splitter-pane-resizer.horizontal {
   height: 11px;
   margin: -5px 0;
-  border-top: 5px solid var(--border-dark);
-  border-bottom: 5px solid var(--border-dark);
+  border-top: 5px solid var(--color-border);
+  border-bottom: 5px solid var(--color-border);
   cursor: row-resize;
   width: 100%;
 }
@@ -201,8 +206,8 @@ function onMouseMove(e: MouseEvent) {
   width: 11px;
   height: 100%;
   margin-left: -5px;
-  border-left: 5px solid var(--border-dark);
-  border-right: 5px solid var(--border-dark);
+  border-left: 5px solid var(--color-border);
+  border-right: 5px solid var(--color-border);
   cursor: col-resize;
 }
 

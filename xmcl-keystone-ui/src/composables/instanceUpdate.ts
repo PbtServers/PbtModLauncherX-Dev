@@ -1,4 +1,4 @@
-import { CachedFTBModpackVersionManifest, InstanceData, Resource, ResourceMetadata } from '@xmcl/runtime-api'
+import { CachedFTBModpackVersionManifest, InstanceData, InstanceFileUpdate, Resource, ResourceMetadata } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
 import { DialogKey } from './dialog'
 
@@ -10,6 +10,11 @@ export type InstanceInstallOptions = {
   type: 'ftb'
   newManifest: CachedFTBModpackVersionManifest
   oldManifest: CachedFTBModpackVersionManifest
+} | {
+  type: 'updates'
+  updates: InstanceFileUpdate[]
+  id: string
+  selectOnlyAdd?: boolean
 }
 
 export const InstanceInstallDialog: DialogKey<InstanceInstallOptions> = 'instance-install'

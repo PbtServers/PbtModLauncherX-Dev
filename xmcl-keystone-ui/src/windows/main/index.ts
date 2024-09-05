@@ -4,15 +4,15 @@ import { kServiceFactory, useServiceFactory } from '@/composables'
 import { kDialogModel, useDialogModel } from '@/composables/dialog'
 import { kSWRVConfig, useSWRVConfig } from '@/composables/swrvConfig'
 import { kTaskManager, useTaskManager } from '@/composables/taskManager'
-import { kVuetify } from '@/composables/vuetify'
 import { i18n } from '@/i18n'
 import { vuetify } from '@/vuetify'
-import 'virtual:windi.css'
+import 'virtual:uno.css'
 import Vue, { defineComponent, getCurrentInstance, h, provide } from 'vue'
 import App from './App.vue'
 import Context from './Context'
 import { router } from './router'
 import { kFlights } from '@/composables/flights'
+import { kExceptionHandlers, useExceptionHandlers } from '@/composables/exception'
 
 // to prevent the universal drop activated on self element dragging
 document.addEventListener('dragstart', (e) => {
@@ -41,7 +41,7 @@ const app = new Vue(defineComponent({
 
     provide(kFlights, (window as any).flights || {})
 
-    provide(kVuetify, vuetify.framework)
+    provide(kExceptionHandlers, useExceptionHandlers())
     provide(kTaskManager, useTaskManager())
     provide(kServiceFactory, useServiceFactory())
     provide(kDialogModel, useDialogModel())

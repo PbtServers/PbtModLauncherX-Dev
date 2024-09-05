@@ -19,6 +19,7 @@
         :enable-curseforge.sync="isCurseforgeActive"
         :enable-modrinth.sync="isModrinthActive"
         :sort.sync="sort"
+        :game-version.sync="gameVersion"
       />
     </div>
     <MarketExtensions
@@ -33,24 +34,33 @@
 import AvatarItemList from '@/components/AvatarItemList.vue'
 import MarketExtensions from '@/components/MarketExtensions.vue'
 import MarketTextFieldWithMenu from '@/components/MarketTextFieldWithMenu.vue'
+import { useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
 import { kResourcePackSearch } from '@/composables/resourcePackSearch'
 import { getExtensionItemsFromRuntime } from '@/util/extensionItems'
 import { injection } from '@/util/inject'
+import { InstanceResourcePacksServiceKey } from '@xmcl/runtime-api'
+import useSWRV from 'swrv'
 
-const { runtime } = injection(kInstance)
+const { path, runtime } = injection(kInstance)
 const extensionItems = computed(() => {
-  return [{
+  return [...getExtensionItemsFromRuntime({ minecraft: runtime.value.minecraft }), {
     icon: 'palette',
     title: t('resourcepack.name', 2),
     text: t('resourcepack.enable', { count: enabled.value.length }),
-  }, ...getExtensionItemsFromRuntime(runtime.value)]
+  }, {
+    icon: isInstanceLinked.value ? 'account_tree' : 'looks_one',
+    title: t('resourcepack.name', 2) + ' ',
+    text: isInstanceLinked.value ? t('resourcepack.shared') : t('resourcepack.independent'),
+  }]
 })
-
+const { isLinked } = useService(InstanceResourcePacksServiceKey)
+const { data: isInstanceLinked } = useSWRV(computed(() => path.value), isLinked)
 const {
   keyword, modrinthCategories, curseforgeCategory,
-  modrinth, curseforge, enabled, items, sort, local,
+  modrinth, curseforge, enabled, sort, local,
   isCurseforgeActive, isModrinthActive,
+  gameVersion,
 } = injection(kResourcePackSearch)
 
 const { t } = useI18n()

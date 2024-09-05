@@ -1,4 +1,4 @@
-import { getCurseforgeModLoaderTypeFromRuntime } from '@/util/curseforge'
+import { getCurseforgeModLoaderTypeFromRuntime, getCursforgeModLoadersFromString, getModLoaderTypesForFile } from '@/util/curseforge'
 import { injection } from '@/util/inject'
 import { ProjectEntry } from '@/util/search'
 import { getSWRV } from '@/util/swrvGet'
@@ -36,10 +36,12 @@ export function useProjectInstall(runtime: Ref<RuntimeVersions>, loaders: Ref<st
     } else if (curseforgeId) {
       const proj = await getSWRV(getCurseforgeProjectModel(ref(curseforgeId)), config)
       if (!proj) { return }
-      const files = await getSWRV(getCurseforgeProjectFilesModel(ref(curseforgeId), ref(runtime.value.minecraft), ref(undefined)), config)
+      const _loaders = getCursforgeModLoadersFromString(loaders.value as any)
+      const files = await getSWRV(getCurseforgeProjectFilesModel(ref(curseforgeId), ref(runtime.value.minecraft), ref(_loaders[0])), config)
       if (!files) { return }
       const file = files.data[0]
-      const deps = await getSWRV(getCurseforgeDependenciesModel(ref(file), ref(runtime.value.minecraft), ref(getCurseforgeModLoaderTypeFromRuntime(runtime.value, true)), config), config)
+      const loaderType = getModLoaderTypesForFile(file)
+      const deps = await getSWRV(getCurseforgeDependenciesModel(ref(file), ref(runtime.value.minecraft), ref([...loaderType][0]), config), config)
       await curseforgeInstaller.installWithDependencies(proj, file, item.installed, deps || [])
     }
   }

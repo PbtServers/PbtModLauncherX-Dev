@@ -1,20 +1,19 @@
-import { kFlights } from '~/flights'
-import { PeerService } from '~/peer'
-import { ResourceService } from '~/resource'
-import { UserService } from '~/user'
 import { LaunchService as ILaunchService, InstanceModsState, PartialResourceHash, Resource, ResourceDomain, ResourceMetadata, getInstanceModStateKey } from '@xmcl/runtime-api'
 import type { Contracts } from 'applicationinsights'
 import { randomUUID } from 'crypto'
 import { LauncherAppPlugin } from '~/app'
-import { IS_DEV } from '../constant'
 import { kClientToken, kIsNewClient } from '~/clientToken'
-import { kSettings } from '~/settings'
-import { APP_INSIGHT_KEY, parseStack } from './telemetry'
+import { kFlights } from '~/flights'
 import { InstanceService } from '~/instance'
 import { JavaService } from '~/java'
 import { LaunchService } from '~/launch'
-import { NatService } from '~/nat'
+import { PeerService, kPeerFacade } from '~/peer'
+import { ResourceService } from '~/resource'
 import { ServiceStateManager } from '~/service'
+import { kSettings } from '~/settings'
+import { UserService } from '~/user'
+import { IS_DEV } from '../constant'
+import { APP_INSIGHT_KEY, parseStack } from './telemetry'
 
 const getSdkVersion = () => {
   let sdkVersion = ''
@@ -48,8 +47,9 @@ export const pluginTelemetry: LauncherAppPlugin = async (app) => {
   appInsight.setup(APP_INSIGHT_KEY)
     .setDistributedTracingMode(appInsight.DistributedTracingModes.AI_AND_W3C)
     .setAutoCollectExceptions(true)
-    .setAutoCollectPerformance(true)
+    .setAutoCollectPerformance(false)
     .setAutoCollectConsole(false)
+    .setAutoCollectHeartbeat(false)
     .setAutoCollectDependencies(false)
     .setAutoCollectRequests(false)
     .start()
@@ -90,6 +90,10 @@ export const pluginTelemetry: LauncherAppPlugin = async (app) => {
       const e = contextObjects?.error
       if (e instanceof Error) {
         handleException(exception, e)
+        if (e.name === 'NodeInternalError') {
+          // Only log 1/3 of the internal error
+          envelope.sampleRate = 33
+        }
       }
     }
     return true
@@ -108,37 +112,25 @@ export const pluginTelemetry: LauncherAppPlugin = async (app) => {
   })
 
   app.on('service-call-end', (serviceName, serviceMethod, duration, success) => {
-    const shouldTrack = () => {
-      if (serviceName === 'LaunchService' && serviceMethod === 'launch') return true
-      if (serviceName === 'UserSerivce' && serviceMethod === 'refreshUser') return true
-      return false
-    }
-    if (shouldTrack()) {
-      client.trackRequest({
-        name: `${serviceName}.${serviceMethod}`,
-        url: `/${serviceName}/${serviceMethod}`,
-        resultCode: success ? 200 : 500,
-        duration,
-        success,
-      })
-    }
+    // Disable request to reduce cost
+    // const shouldTrack = () => {
+    //   if (serviceName === 'LaunchService' && serviceMethod === 'launch') return true
+    //   if (serviceName === 'UserSerivce' && serviceMethod === 'refreshUser') return true
+    //   return false
+    // }
+    // if (shouldTrack()) {
+    //   client.trackRequest({
+    //     name: `${serviceName}.${serviceMethod}`,
+    //     url: `/${serviceName}/${serviceMethod}`,
+    //     resultCode: success ? 200 : 500,
+    //     duration,
+    //     success,
+    //   })
+    // }
   })
 
   app.on('engine-ready', async () => {
     const settings = await app.registry.get(kSettings)
-    app.registry.getOrCreate(NatService).then(async (service) => {
-      const state = await service.getNatState()
-      if (state.natDevice) {
-        client.trackEvent({
-          name: 'nat-device',
-          properties: {
-            natDeviceSupported: !!state.natDevice,
-          },
-        })
-      }
-    }, (e) => {
-      /* no-op */
-    })
 
     let javaService: JavaService | undefined
     app.registry.get(JavaService).then(service => {
@@ -208,32 +200,28 @@ export const pluginTelemetry: LauncherAppPlugin = async (app) => {
       if (!flights.disableMinecraftRunLog) {
         service.registerMiddleware({
           name: 'minecraft-run-telemetry',
-          async onBeforeLaunch(_, { gamePath }, ctx) {
-            const state = stateManager.get<InstanceModsState>(getInstanceModStateKey(gamePath))
-            const mods = state?.mods.map(m => {
-              const payload = getPayload(m.hash, m.metadata, m.name, m.domain)
-              delete payload.name
-              delete payload.domain
-              return payload
-            })
-            const runtime = instanceService?.state.all[gamePath]?.runtime
+          async onBeforeLaunch(_, payload, ctx) {
+            const path = payload.side === 'client' ? payload.options.gamePath : payload.options.extraExecOption!.cwd as string
+            const state = stateManager.get<InstanceModsState>(getInstanceModStateKey(path))
+            const mods = state?.mods.map(m => m.hash)
+            const runtime = instanceService?.state.all[path]?.runtime
             if (mods) {
               ctx.mods = mods
               ctx.runtime = runtime
             }
           },
-          async onAfterLaunch(result, opts, ctx) {
+          async onAfterLaunch(result, opt, ctx) {
             if (result.code !== 0) {
               return
             }
             if (ctx.mods) {
               client.trackEvent({
-                name: 'minecraft-run-record',
+                name: 'minecraft-run-record-v2',
                 properties: {
-                  mods: ctx.mods,
+                  mods: ctx.mods.join(','),
                   runtime: ctx.runtime,
                   java: await javaService?.getJavaState().then((javaState) => {
-                    const javaVersion = javaState.all.find(s => s.path === opts.javaPath)
+                    const javaVersion = javaState.all.find(s => s.path === opt.options.javaPath)
                     if (javaVersion) {
                       return {
                         majorVersion: javaVersion.majorVersion,
@@ -249,26 +237,11 @@ export const pluginTelemetry: LauncherAppPlugin = async (app) => {
       }
     })
 
-    process.on('uncaughtException', (e) => {
-      if (settings.disableTelemetry) return
-      if (client) {
-        client.trackException({
-          exception: e,
-          properties: e ? { ...e } : undefined,
-        })
-      }
-    })
-    process.on('unhandledRejection', (e) => {
-      if (settings.disableTelemetry) return
-      if (client) {
-        client.trackException({
-          exception: e as any, // the applicationinsights will convert it to error automatically
-          properties: e ? { ...e } : undefined,
-        })
-      }
-    })
     app.logEmitter.on('failure', (destination, tag, e: Error) => {
       if (settings.disableTelemetry) return
+      if (e.name === 'NodeInternalError') {
+        // Only log 1/3 of the internal error
+      }
       client.trackException({
         exception: e,
         properties: e ? { ...e } : undefined,

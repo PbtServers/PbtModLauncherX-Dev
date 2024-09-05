@@ -1,9 +1,8 @@
 <template>
   <v-app
     v-if="!showSetup"
-    class="h-full max-h-[100vh] overflow-auto overflow-x-hidden"
-    :class="{ 'dark': vuetify.theme.dark }"
-    :style="cssVars"
+    class="h-full max-h-screen overflow-auto overflow-x-hidden"
+    :class="{ 'dark': isDark }"
   >
     <AppBackground />
     <AppSystemBar />
@@ -13,7 +12,6 @@
       <AppSideBar />
       <main
         class="relative inset-y-0 right-0 flex max-h-full flex-col overflow-auto"
-        :class="{ solid: !blurMainBody }"
       >
         <transition
           name="fade-transition"
@@ -35,13 +33,13 @@
     <AppGameExitDialog />
     <AppLaunchBlockedDialog />
     <AppImageDialog />
+    <AppLaunchServerDialog />
     <AppSharedTooltip />
   </v-app>
   <v-app
     v-else
-    class="h-full max-h-[100vh] overflow-auto overflow-x-hidden"
-    :class="{ 'dark': vuetify.theme.dark }"
-    :style="cssVars"
+    class="h-full max-h-screen overflow-auto overflow-x-hidden"
+    :class="{ 'dark': isDark }"
   >
     <AppSystemBar
       no-user
@@ -61,15 +59,12 @@ import '@/assets/common.css'
 import AppImageDialog from '@/components/AppImageDialog.vue'
 import AppSharedTooltip from '@/components/AppSharedTooltip.vue'
 import { useAuthProfileImportNotification } from '@/composables/authProfileImport'
-import { kBackground } from '@/composables/background'
 import { useLocalStorageCacheBool } from '@/composables/cache'
-import { kColorTheme } from '@/composables/colorTheme'
 import { useDefaultErrorHandler } from '@/composables/errorHandler'
 import { useNotifier } from '@/composables/notifier'
 import { kSettingsState } from '@/composables/setting'
+import { kTheme } from '@/composables/theme'
 import { kTutorial } from '@/composables/tutorial'
-import { kVuetify } from '@/composables/vuetify'
-import { useVuetifyColorTheme } from '@/composables/vuetifyColorTheme'
 import { injection } from '@/util/inject'
 import AppAddInstanceDialog from '@/views/AppAddInstanceDialog.vue'
 import AppBackground from '@/views/AppBackground.vue'
@@ -81,17 +76,20 @@ import AppGameExitDialog from '@/views/AppGameExitDialog.vue'
 import AppInstanceDeleteDialog from '@/views/AppInstanceDeleteDialog.vue'
 import AppLaunchBlockedDialog from '@/views/AppLaunchBlockedDialog.vue'
 import AppNotifier from '@/views/AppNotifier.vue'
+import AppLaunchServerDialog from '@/views/AppLaunchServerDialog.vue'
 import AppShareInstanceDialog from '@/views/AppShareInstanceDialog.vue'
 import AppSideBar from '@/views/AppSideBar.vue'
 import AppSystemBar from '@/views/AppSystemBar.vue'
 import AppTaskDialog from '@/views/AppTaskDialog.vue'
 import Setup from '@/views/Setup.vue'
+import { kLaunchButton, useLaunchButton } from '@/composables/launchButton'
 
-const isFirstLaunch = computed(() => location.search.indexOf('setup') !== -1)
-const showSetup = ref(isFirstLaunch.value)
+const showSetup = ref(location.search.indexOf('bootstrap') !== -1)
 const { state } = injection(kSettingsState)
 
 provide('streamerMode', useLocalStorageCacheBool('streamerMode', false))
+
+provide(kLaunchButton, useLaunchButton())
 
 const tutor = injection(kTutorial)
 // Set theme and start tutorial
@@ -112,20 +110,13 @@ const onReady = async (data: any) => {
   tutor.start()
 }
 
-const { cssVars, ...colorTheme } = injection(kColorTheme)
-
-// background
-const { blurMainBody } = injection(kBackground)
-
 // color theme sync
-const vuetify = injection(kVuetify)
-useVuetifyColorTheme(vuetify, colorTheme)
+const { isDark } = injection(kTheme)
 
 // Notifier
 const { notify } = useNotifier()
 useDefaultErrorHandler(notify)
 useAuthProfileImportNotification(notify)
-
 </script>
 
 <style scoped>
@@ -142,4 +133,5 @@ img {
   max-height: 100%;
   object-fit: contain;
 }
+
 </style>

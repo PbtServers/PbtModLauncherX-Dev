@@ -26,6 +26,9 @@ function createController(): WindowController {
   function maximize() {
     ipcRenderer.invoke('control', Operation.Maximize)
   }
+  function flashFrame() {
+    ipcRenderer.invoke('flash-frame')
+  }
   function focus() {
     ipcRenderer.invoke('focus')
   }
@@ -42,6 +45,7 @@ function createController(): WindowController {
       emitter.on(channel, listener)
       return this
     },
+    openMultiplayerWindow: () => ipcRenderer.invoke('open-multiplayer-window'),
     once(channel, listener) {
       emitter.once(channel, listener)
       return this
@@ -51,6 +55,7 @@ function createController(): WindowController {
       return this
     },
     focus,
+    flashFrame,
     minimize,
     maximize,
     show,

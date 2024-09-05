@@ -1,9 +1,10 @@
 import { getFTBTemplateAndFile } from '@/util/ftb'
 import { resolveModpackInstanceConfig } from '@/util/modpackFilesResolver'
-import { CachedFTBModpackVersionManifest, InstanceFile, InstanceManifest, JavaRecord, ModpackInstallProfile, ModpackServiceKey, PeerConnection, Resource } from '@xmcl/runtime-api'
+import { CachedFTBModpackVersionManifest, InstanceFile, InstanceManifest, JavaRecord, ModpackInstallProfile, ModpackServiceKey, Peer, Resource } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
 import { DialogKey } from './dialog'
 import { useService } from './service'
+import { renderMinecraftPlayerTextHead } from '@/util/avatarRenderer'
 
 export type AddInstanceDialogParameter = {
   type: 'resource'
@@ -31,7 +32,7 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
   const { t } = useI18n()
   const { getModpackInstallFiles } = useService(ModpackServiceKey)
 
-  const getTemplates = (modpackResources: Resource[], peers: PeerConnection[], ftb: CachedFTBModpackVersionManifest[]) => {
+  const getTemplates = (modpackResources: Resource[], peers: Peer[], ftb: CachedFTBModpackVersionManifest[]) => {
     const all = [] as Array<Template>
     for (const resource of modpackResources) {
       const config = resolveModpackInstanceConfig(resource)
@@ -61,7 +62,7 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
 
     for (const c of peers) {
       if (c.sharing) {
-        all.push(getPeerTemplate(c.id, c.userInfo.name, c.sharing))
+        all.push(getPeerTemplate(c.id, c.userInfo.name, c.userInfo.avatar, c.sharing))
       }
     }
 
@@ -79,12 +80,13 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
     return t('instanceTemplate.modpack')
   }
 
-  function getPeerTemplate(id: string, name: string, man: InstanceManifest) {
-    const result: Template = {
+  function getPeerTemplate(id: string, name: string, icon: string, man: InstanceManifest) {
+    const result: Template = reactive({
       filePath: id,
       name: `${man.name ?? 'Instance'}@${name}`,
       description: '',
       instance: {
+        icon,
         name: `${man.name ?? 'Instance'}@${name}`,
         description: man.description,
         runtime: {
@@ -104,7 +106,11 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
       },
       loadFiles: () => Promise.resolve(man.files),
       type: 'peer',
-    }
+    })
+
+    renderMinecraftPlayerTextHead(icon)?.then((rendered) => {
+      result.instance.icon = rendered
+    })
 
     return result
   }

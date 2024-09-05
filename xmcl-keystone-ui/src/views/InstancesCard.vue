@@ -1,9 +1,9 @@
 <template>
   <v-card
     v-draggable-card
-    v-context-menu.force="contextMenuItems"
+    v-context-menu.force="getContextMenuItems"
     :ripple="!isBusy"
-    class="draggable-card flex w-full flex-col"
+    class="draggable-card flex flex-grow-0 flex-col"
     :color="isSelected ? 'primary' : ''"
     :dark="isSelected"
     outlined
@@ -16,7 +16,7 @@
   >
     <div
       v-if="isBusy"
-      class="absolute flex h-full w-full items-center justify-center"
+      class="absolute flex size-full items-center justify-center"
     >
       <v-progress-circular
         class="z-10"
@@ -26,43 +26,25 @@
       />
     </div>
     <v-img
-      class="white--text favicon grey en-2 flex max-h-40 items-center"
+      class="white--text favicon grey en-2 min-h-34 max-h-34 flex items-center"
       :src="image"
     >
       <div
-        class="flex items-center justify-center"
+        class="flex flex-col items-center justify-center"
       >
-        <span class="headline">{{ instance.name || `Minecraft ${instance.runtime.minecraft}` }}</span>
+        <span class="text-center text-lg">{{ instance.name || `Minecraft ${instance.runtime.minecraft}` }}</span>
+        <div
+          v-if="instance.server"
+          class="text-sm dark:text-gray-300"
+        >
+          {{ instance.server.host }}:{{ instance.server.port }}
+        </div>
       </div>
       <div
         v-if="instance.server"
-        class="absolute bottom-0 w-full justify-center"
+        class="absolute top-2 flex w-full flex-wrap justify-center gap-2"
       >
         <v-chip
-          color="green"
-          label
-          small
-          style
-        >
-          {{ instance.server.host }}:{{ instance.server.port }}
-        </v-chip>
-      </div>
-    </v-img>
-
-    <v-card-text
-      v-if="description"
-      class="font-weight-bold"
-    >
-      <TextComponent
-        :source="typeof description === 'object' ? description : { text: description }"
-      />
-    </v-card-text>
-
-    <v-card-actions class="flex flex-col">
-      <div class="flex-grow" />
-      <div class="flex flex-grow-0 flex-row flex-wrap justify-center gap-2">
-        <v-chip
-          v-if="instance.server"
           small
           label
           outlined
@@ -71,8 +53,12 @@
         >
           <TextComponent :source="status.version.name" />
         </v-chip>
+      </div>
+      <div
+        v-if="instance.server"
+        class="absolute bottom-2 flex w-full flex-wrap justify-around gap-2"
+      >
         <v-chip
-          v-if="instance.server"
           small
           outlined
           label
@@ -89,7 +75,6 @@
           {{ status.ping }} ms
         </v-chip>
         <v-chip
-          v-if="instance.server"
           small
           outlined
           label
@@ -101,86 +86,68 @@
           </v-avatar>
           {{ status.players.online }} / {{ status.players.max }}
         </v-chip>
-        <v-chip
-          label
-          outlined
-          small
-          :input-value="false"
-          @click.stop
+      </div>
+    </v-img>
+
+    <v-card-text
+      v-if="description"
+      class="font-weight-bold"
+    >
+      <TextComponent
+        :source="typeof description === 'object' ? description : { text: description }"
+      />
+    </v-card-text>
+
+    <v-card-actions class="flex flex-col items-start gap-2">
+      <div class="flex flex-row gap-2">
+        <template
+          v-for="version of versions"
         >
-          <v-avatar left>
-            <img
-              :src="'http://launcher/icons/minecraft'"
-              alt="minecraft"
-            >
-            <!-- <v-icon>power</v-icon> -->
-          </v-avatar>
-          {{ instance.runtime.minecraft }}
-        </v-chip>
-        <v-chip
-          v-if="!instance.server && instance.author"
-          outlined
-          small
-          label
-          :input-value="false"
-          @click.stop
-        >
-          <v-avatar left>
-            <v-icon>person</v-icon>
-          </v-avatar>
-          {{ instance.author }}
-        </v-chip>
-        <v-chip
-          v-if="instance.runtime.forge"
-          outlined
-          small
-          label
-        >
-          <v-avatar left>
-            <img
-              :src="'http://launcher/icons/forge'"
-              alt="forge"
-            >
-          </v-avatar>
-          {{ instance.runtime.forge }}
-        </v-chip>
-        <v-chip
-          v-if="instance.runtime.quiltLoader"
-          outlined
-          small
-          label
-        >
-          <v-avatar
-            left
-            class="rounded-none"
+          <div
+            :key="version.text"
+            class="flex items-center gap-2 px-1 text-sm"
           >
-            <img
-              :src="'http://launcher/icons/quilt'"
-              alt="quilt"
-            >
-          </v-avatar>
-          {{ instance.runtime.quiltLoader }}
-        </v-chip>
+            <v-img
+              width="24"
+              class="rounded"
+              :src="version.icon"
+            />
+            {{ version.text }}
+          </div>
+          <v-divider
+            v-if="version !== versions[versions.length - 1]"
+            :key="version.text + 'divider'"
+            class="h-full"
+            vertical
+          />
+        </template>
+      </div>
+
+      <div class="flex w-full items-center">
         <v-chip
-          v-if="instance.runtime.fabricLoader"
-          outlined
           small
+          outlined
           label
+          :input-value="false"
         >
-          <v-avatar left>
-            <img
-              :src="'http://launcher/icons/fabric'"
-              alt="fabric"
-            >
-          </v-avatar>
-          {{ instance.runtime.fabricLoader }}
+          <v-icon left>
+            update
+          </v-icon>
+          {{ getDateString(instance.lastAccessDate, { dateStyle: 'long' }) }}
         </v-chip>
+        <div class="flex-grow" />
+        <v-btn
+          small
+          icon
+          @click.stop="onSettingClick"
+        >
+          <v-icon>more_vert</v-icon>
+        </v-btn>
       </div>
     </v-card-actions>
   </v-card>
 </template>
 <script lang=ts setup>
-import unknownServer from '@/assets/unknown_server.png'
 import TextComponent from '@/components/TextComponent'
 import { useBusy } from '@/composables'
 import { kInstance } from '@/composables/instance'
@@ -191,17 +158,23 @@ import { injection } from '@/util/inject'
 import { Instance, LockKey } from '@xmcl/runtime-api'
 import { useInstanceServerStatus } from '../composables/serverStatus'
 import { vContextMenu } from '../directives/contextMenu'
+import { useDateString } from '@/composables/date'
+import { useContextMenu } from '@/composables/contextMenu'
+import { useVersionsWithIcon } from '@/composables/versionLocal'
+import { BuiltinImages } from '@/constant'
 
 const props = defineProps<{ instance: Instance }>()
 const isBusy = useBusy(LockKey.instance(props.instance.path))
 const { path } = injection(kInstance)
 const isSelected = computed(() => path.value === props.instance.path)
 const { status } = useInstanceServerStatus(computed(() => props.instance))
+const { getDateString } = useDateString()
 
+const versions = useVersionsWithIcon(computed(() => props.instance.runtime))
 const emit = defineEmits(['delete', 'click'])
 
 const image = computed(() => {
-  if (status.value.favicon && status.value.favicon !== unknownServer) {
+  if (status.value.favicon && status.value.favicon !== BuiltinImages.unknownServer) {
     return status.value.favicon
   }
   if (props.instance.icon) {
@@ -211,10 +184,22 @@ const image = computed(() => {
   if (banner) {
     return banner
   }
-  return unknownServer
+  return BuiltinImages.unknownServer
 })
 const description = computed(() => props.instance.description)
-const contextMenuItems = useInstanceContextMenuItems(computed(() => props.instance))
+const { open } = useContextMenu()
+const getContextMenuItems = useInstanceContextMenuItems(computed(() => props.instance))
+const onSettingClick = (event: MouseEvent) => {
+  const button = event.target as any // Get the button element
+  const rect = button.getBoundingClientRect() // Get the position of the button
+  const bottomLeftX = rect.left // X-coordinate of the bottom-left corner
+  const bottomLeftY = rect.bottom // Y-coordinate of the bottom-left corner
+
+  const items = getContextMenuItems()
+  if (items) {
+    open(bottomLeftX, bottomLeftY, items)
+  }
+}
 
 </script>
 

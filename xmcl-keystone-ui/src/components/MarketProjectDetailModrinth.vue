@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import MarketProjectDetail, { ProjectDependency } from '@/components/MarketProjectDetail.vue'
 import { ProjectVersion as ProjectDetailVersion } from '@/components/MarketProjectDetailVersion.vue'
-import { useModDetailEnable, useModDetailUpdate } from '@/composables/modDetail'
 import { getModrinthDependenciesModel } from '@/composables/modrinthDependencies'
 import { kModrinthInstaller } from '@/composables/modrinthInstaller'
 import { useModrinthProject } from '@/composables/modrinthProject'
 import { useModrinthProjectDetailData, useModrinthProjectDetailVersions } from '@/composables/modrinthProjectDetailData'
 import { getModrinthVersionModel, useModrinthTask } from '@/composables/modrinthVersions'
-import { useSWRVModel } from '@/composables/swrv'
+import { useProjectDetailEnable, useProjectDetailUpdate } from '@/composables/projectDetail'
+import { useLoading, useSWRVModel } from '@/composables/swrv'
 import { kSWRVConfig } from '@/composables/swrvConfig'
 import { injection } from '@/util/inject'
 import { ProjectFile } from '@/util/search'
 import { SearchResultHit } from '@xmcl/modrinth'
-import { Resource, RuntimeVersions } from '@xmcl/runtime-api'
+import { Resource } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   modrinth?: SearchResultHit
@@ -20,7 +20,7 @@ const props = defineProps<{
   installed: ProjectFile[]
   loaders: string[]
   categories: string[]
-  runtime: RuntimeVersions
+  gameVersion: string
   allFiles: ProjectFile[]
   updating?: boolean
   curseforge?: number
@@ -36,24 +36,32 @@ const emit = defineEmits<{
 
 // Project
 const projectId = computed(() => props.projectId)
-const { project, refreshing: loading, refresh } = useModrinthProject(projectId)
+const { project, isValidating: isValidatingModrinth, refresh } = useModrinthProject(projectId)
 const model = useModrinthProjectDetailData(projectId, project, computed(() => props.modrinth))
+const loading = useLoading(isValidatingModrinth, project, projectId)
 
 // Versions
 const { data: versions, isValidating: loadingVersions } = useSWRVModel(
-  getModrinthVersionModel(projectId, undefined, computed(() => props.loaders), computed(() => [props.runtime.minecraft])),
+  getModrinthVersionModel(projectId, undefined, computed(() => props.loaders), computed(() => [props.gameVersion])),
   inject(kSWRVConfig))
 const modVersions = useModrinthProjectDetailVersions(versions, computed(() => props.installed))
 
 const selectedVersion = ref(modVersions.value.find(v => v.installed) ?? modVersions.value[0] as ProjectDetailVersion | undefined)
 provide('selectedVersion', selectedVersion)
 
+const supportedVersions = computed(() => {
+  if (!project.value) return []
+  return project.value.game_versions
+})
+
 // Dependencies
-const { data: deps, isValidating, error } = useSWRVModel(getModrinthDependenciesModel(computed(() => versions.value?.find(v => v.id === selectedVersion.value?.id))))
+const version = computed(() => versions.value?.find(v => v.id === selectedVersion.value?.id))
+const { data: deps, isValidating, error } = useSWRVModel(getModrinthDependenciesModel(version))
 const dependencies = computed(() => {
+  if (!version.value) return []
   if (!deps.value) return []
 
-  return deps.value.map(({ recommendedVersion, versions, project, type }) => {
+  return deps.value.map(({ recommendedVersion, versions, project, type, parent }) => {
     // TODO: optimize this perf
     const file = computed(() => {
       for (const file of props.allFiles) {
@@ -61,6 +69,7 @@ const dependencies = computed(() => {
           return file
         }
       }
+      return undefined
     })
     const otherFile = computed(() => {
       for (const file of props.allFiles) {
@@ -68,6 +77,7 @@ const dependencies = computed(() => {
           return file
         }
       }
+      return undefined
     })
     const task = useModrinthTask(computed(() => recommendedVersion.id))
     const dep: ProjectDependency = reactive({
@@ -77,6 +87,7 @@ const dependencies = computed(() => {
       version: recommendedVersion.name,
       description: recommendedVersion.files[0].filename,
       type,
+      parent: parent?.title ?? '',
       installedVersion: computed(() => file.value?.version),
       installedDifferentVersion: computed(() => otherFile.value?.version),
       progress: computed(() => task.value ? task.value.progress / task.value.total : -1),
@@ -85,7 +96,7 @@ const dependencies = computed(() => {
   }) ?? []
 })
 
-const innerUpdating = useModDetailUpdate()
+const innerUpdating = useProjectDetailUpdate()
 watch(() => props.modrinth, () => {
   innerUpdating.value = false
 })
@@ -131,7 +142,7 @@ const onInstallDependency = async (dep: ProjectDependency) => {
   }
 }
 
-const { enabled, installed, hasInstalledVersion } = useModDetailEnable(
+const { enabled, installed, hasInstalledVersion } = useProjectDetailEnable(
   selectedVersion,
   computed(() => props.installed),
   innerUpdating,
@@ -139,7 +150,7 @@ const { enabled, installed, hasInstalledVersion } = useModDetailEnable(
   f => emit('disable', f),
 )
 
-const onDelete = async () => {
+const onDelete = () => {
   innerUpdating.value = true
   emit('uninstall', props.installed)
 }
@@ -148,6 +159,16 @@ const { push, currentRoute } = useRouter()
 const onOpenDependency = (dep: ProjectDependency) => {
   push({ query: { ...currentRoute.query, id: `modrinth:${dep.id}` } })
 }
+
+const curseforgeId = computed(() => props.curseforge || props.allFiles.find(v => v.modrinth?.projectId === props.projectId && v.curseforge)?.curseforge?.projectId)
+
+const archived = computed(() => {
+  return project.value?.status === 'archived'
+})
+// watchEffect(() => {
+//   console.log(project.value.status)
+// })
+
 </script>
 
 <template>
@@ -155,6 +176,7 @@ const onOpenDependency = (dep: ProjectDependency) => {
     :detail="model"
     :has-more="false"
     :enabled="enabled"
+    :supported-versions="supportedVersions"
     :selected-installed="installed"
     :has-installed-version="hasInstalledVersion"
     :versions="modVersions"
@@ -164,7 +186,8 @@ const onOpenDependency = (dep: ProjectDependency) => {
     :loading="loading"
     :loading-versions="loadingVersions"
     :modrinth="projectId"
-    :curseforge="curseforge"
+    :curseforge="curseforgeId"
+    current-target="modrinth"
     @open-dependency="onOpenDependency"
     @install="onInstall"
     @enable="enabled = $event"

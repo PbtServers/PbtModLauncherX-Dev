@@ -1,9 +1,9 @@
 /* eslint-disable no-dupe-class-members */
 import { Duplex } from 'stream'
-import { Dispatcher, errors, getGlobalDispatcher } from 'undici'
+import { Dispatcher, getGlobalDispatcher } from 'undici'
 
 export interface DispatchInterceptor {
-  (options: Dispatcher.DispatchOptions): void | Promise<void>
+  (options: Dispatcher.DispatchOptions): void
 }
 
 export class DispatchHandler implements Dispatcher.DispatchHandlers {
@@ -26,8 +26,8 @@ export class DispatchHandler implements Dispatcher.DispatchHandlers {
   }
 
   /** Invoked when statusCode and headers have been received. May be invoked multiple times due to 1xx informational headers. */
-  onHeaders(statusCode: number, headers: string[] | null, resume: () => void, statusMessage?: any): boolean {
-    return this.handler.onHeaders?.(statusCode, headers, resume, statusMessage) ?? false
+  onHeaders(statusCode: number, headers: Buffer[] | string[] | null, resume: () => void, statusMessage?: any): boolean {
+    return this.handler.onHeaders?.(statusCode, headers as any, resume, statusMessage) ?? false
   }
 
   /** Invoked when response payload data is received. */
@@ -42,6 +42,17 @@ export class DispatchHandler implements Dispatcher.DispatchHandlers {
 
   onBodySent(chunkSize: number, totalBytesSent: number) {
     this.handler.onBodySent?.(chunkSize, totalBytesSent)
+  }
+}
+
+export function createInterceptOptionsInterceptor(interceptors: DispatchInterceptor[]): Dispatcher.DispatchInterceptor {
+  return (dispatch) => {
+    return function Intercept(options, handler) {
+      for (const interceptor of interceptors) {
+        interceptor(options)
+      }
+      return dispatch(options, handler)
+    }
   }
 }
 

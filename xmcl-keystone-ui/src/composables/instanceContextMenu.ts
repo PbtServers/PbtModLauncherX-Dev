@@ -4,17 +4,20 @@ import { ContextMenuItem } from './contextMenu'
 import { useDialog } from './dialog'
 import { useService } from './service'
 
-export function useInstanceContextMenuItems(instance: Ref<Instance>) {
+export function useInstanceContextMenuItems(instance: Ref<Instance | undefined>) {
   const { show: showDeleteDialog } = useDialog('delete-instance')
   const { duplicateInstance } = useService(InstanceServiceKey)
   const { showItemInDirectory } = useService(BaseServiceKey)
   const { t } = useI18n()
-  const items = computed(() => {
+
+  return () => {
+    const inst = instance.value
+    if (!inst) return []
     const result: ContextMenuItem[] = [
       {
-        text: t('instance.showInstance', { file: instance.value.path }),
+        text: t('instance.showInstance', { file: inst.path }),
         onClick: () => {
-          showItemInDirectory(instance.value.path)
+          showItemInDirectory(inst.path)
         },
         icon: 'folder',
       },
@@ -23,19 +26,17 @@ export function useInstanceContextMenuItems(instance: Ref<Instance>) {
         color: 'red',
         icon: 'delete',
         onClick() {
-          showDeleteDialog({ name: instance.value.name, path: instance.value.path })
+          showDeleteDialog({ name: inst.name, path: inst.path })
         },
       },
       {
         text: t('instance.duplicate'),
         icon: 'file_copy',
         onClick() {
-          duplicateInstance(instance.value.path)
+          duplicateInstance(inst.path)
         },
       },
     ]
     return result
-  })
-
-  return items
+  }
 }

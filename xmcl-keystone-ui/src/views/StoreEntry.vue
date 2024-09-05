@@ -2,13 +2,25 @@
   <div
     ref="container"
     class="w-full overflow-auto"
+    :class="{ 'pinned': pinned }"
   >
-    <div class="z-8 sticky top-1 mt-4 flex w-full px-4 lg:justify-center">
+    <v-progress-linear
+      class="absolute left-0 top-0 z-10 m-0 p-0"
+      :active="isModrinthSearching || ftbLoading || isCurseforgeSearching"
+      height="3"
+      :indeterminate="true"
+    />
+    <div
+      class="z-8 sticky top-1 mt-4 w-full px-4 grid"
+      style="grid-template-columns: 35% 25% 10% 30%;"
+    >
       <v-text-field
+        id="search-text-field"
         ref="searchTextField"
         v-model="keyword"
+        background-color="secondary"
         color="green"
-        class="max-w-100 rounded-xl"
+        class="rounded-xl search-field pr-4"
         append-icon="search"
         solo
         hide-details
@@ -16,10 +28,14 @@
         :placeholder="t('modrinth.searchText')"
         @click:clear="query = ''"
         @keydown.enter="query = keyword"
+        @click:append="query = keyword"
       />
     </div>
     <div class="main px-3">
-      <div class="section">
+      <div
+        id="popular-modpacks"
+        class="section"
+      >
         <v-subheader>
           <v-icon left>
             local_fire_department
@@ -86,6 +102,7 @@
       <div class="content">
         <div
           v-if="!searchError && items.length > 0"
+          id="search-result"
           class="relative flex flex-col gap-3 lg:px-2.5"
         >
           <div
@@ -95,7 +112,7 @@
               v-model="page"
               :length="pageCount"
               color="success"
-              :disabled="refreshing"
+              :disabled="isModrinthSearching || isCurseforgeSearching"
               :total-visible="12"
             />
           </div>
@@ -122,6 +139,7 @@
       </div>
       <div class="category overflow-auto">
         <StoreExploreCategories
+          id="search-category"
           :display="hovered?.gallery"
           :groups="groups"
           :loading="refreshingTag"
@@ -141,23 +159,46 @@ import Hint from '@/components/Hint.vue'
 import StoreExploreCard, { ExploreProject } from '@/components/StoreExploreCard.vue'
 import StoreExploreCategories, { Category, ExploreCategoryGroup } from '@/components/StoreExploreCategories.vue'
 import StoreGallery, { GameGallery } from '@/components/StoreGallery.vue'
-import { CurseforgeProps, useCurseforge, useCurseforgeCategories, useCurseforgeCategoryI18n } from '@/composables/curseforge'
+import { CurseforgeBuiltinClassId, kCurseforgeCategories, useCurseforge, useCurseforgeCategoryI18n } from '@/composables/curseforge'
 import { useDateString } from '@/composables/date'
 import { getFeedTheBeastProjectModel, useFeedTheBeast } from '@/composables/ftb'
 import { useMarketSort } from '@/composables/marketSort'
-import { ModrinthOptions, getFacatsText, useModrinth, useModrinthTags } from '@/composables/modrinth'
+import { getFacatsText, kModrinthTags, useModrinth } from '@/composables/modrinth'
+import { useQuery, useQueryNumber, useQueryStringArray } from '@/composables/query'
 import { useSortByItems } from '@/composables/sortBy'
 import { kSWRVConfig } from '@/composables/swrvConfig'
 import { useTextFieldBehavior } from '@/composables/textfieldBehavior'
+import { useTutorial } from '@/composables/tutorial'
 import { clientCurseforgeV1, clientModrinthV2 } from '@/util/clients'
+import { getCursforgeModLoadersFromString } from '@/util/curseforge'
+import { injection } from '@/util/inject'
 import { getExpectedSize } from '@/util/size'
 import { getSWRV } from '@/util/swrvGet'
 import { useEventListener, useFocus } from '@vueuse/core'
-import { FileModLoaderType, Mod, ModsSearchSortField } from '@xmcl/curseforge'
+import { Mod, ModsSearchSortField } from '@xmcl/curseforge'
 import { SearchResultHit } from '@xmcl/modrinth'
+import { DriveStep } from 'driver.js'
 import useSWRV from 'swrv'
 
-const keyword = ref('')
+const { push } = useRouter()
+
+function ensureQuery(query: Record<string, string | (string | null)[] | null | undefined>) {
+  query.page = '1'
+  scrollToView()
+  if (!query.query) {
+    if (query.sort === '0') {
+      query.sort = '1'
+    }
+  }
+}
+
+const query = useQuery('query', ensureQuery)
+const gameVersion = useQuery('gameVersion', ensureQuery)
+const modLoaders = useQueryStringArray('modLoaders', ensureQuery)
+const sort = useQuery('sort', (q) => { q.page = '1' })
+const page = useQueryNumber('page', 1)
+
+const keyword = ref(query)
 const { t } = useI18n()
 const { getDateString } = useDateString()
 const tCategory = useCurseforgeCategoryI18n()
@@ -178,14 +219,14 @@ const { data: modrinthResult, error, isValidating } = useSWRV('/modrinth/feature
   const result = await clientModrinthV2.searchProjects({
     index: 'follows',
     limit: 5,
-    facets: getFacatsText('', '', [], '', 'modpack', ''),
+    facets: getFacatsText('', '', [], [], 'modpack', ''),
   })
   return result.hits
 }, inject(kSWRVConfig))
 const { data: curseforgeResult, error: curseforgeError, isValidating: curseforgeValidating } = useSWRV('/curseforge/featured', async () => {
   const result = await clientCurseforgeV1.searchMods({ sortField: ModsSearchSortField.Featured, classId: 4471, pageSize: 5 })
   return result.data
-})
+}, inject(kSWRVConfig))
 const popularItems = computed(() => {
   function getGameGalleryFromModrinth(hits: SearchResultHit[]) {
     return hits.map((hit) => {
@@ -235,7 +276,7 @@ const { data: modrinthRecent, error: errorRecent, isValidating: isValidatingRece
   const result = await clientModrinthV2.searchProjects({
     index: 'updated',
     limit: 24,
-    facets: getFacatsText('', '', [], '', 'modpack', ''),
+    facets: getFacatsText('', '', [], [], 'modpack', ''),
   })
   return result.hits
 }, inject(kSWRVConfig))
@@ -283,14 +324,14 @@ const { data: modrinthRecentMinecraft } = useSWRV('/modrinth/recent_version', as
   const result = await clientModrinthV2.searchProjects({
     index: 'newest',
     limit: 30,
-    facets: getFacatsText(latestModrinth.value, '', [], '', 'modpack', ''),
+    facets: getFacatsText(latestModrinth.value, '', [], [], 'modpack', ''),
   })
   return result.hits
 }, inject(kSWRVConfig))
 const { data: curseforgeRecentMinecraft } = useSWRV('/curseforge/recent_version', async () => {
   const result = await clientCurseforgeV1.searchMods({ sortField: ModsSearchSortField.GameVersion, classId: 4471, pageSize: 30 })
   return result.data
-})
+}, inject(kSWRVConfig))
 const recentMinecraftItems = computed(() => {
   const modrinths = modrinthRecentMinecraft.value || []
   const curseforges = curseforgeRecentMinecraft.value || []
@@ -309,18 +350,22 @@ const recentMinecraftItems = computed(() => {
       type: 'curseforge',
       title: r.name,
       image: r.logo.thumbnailUrl,
-      gameVersion: r.latestFilesIndexes[0].gameVersion,
+      gameVersion: r.latestFilesIndexes[0]?.gameVersion,
       categories: r.categories.map(c => tCategory(c.name)),
     })),
   )
 })
 
 // FTB
-const { refreshing: ftbLoading, currentKeyword, data: ftbData } = useFeedTheBeast(reactive({ keyword }))
+const { refreshing: ftbLoading, currentKeyword, data: ftbData } = useFeedTheBeast(reactive({ keyword: query }))
 const ftbItems = ref([] as ExploreProject[])
 const config = inject(kSWRVConfig)
 watch(ftbData, async (packs) => {
   if (!packs) {
+    ftbItems.value = []
+    return
+  }
+  if (!('packs' in packs)) {
     ftbItems.value = []
     return
   }
@@ -345,186 +390,46 @@ watch(ftbData, async (packs) => {
     return result
   }))
 }, { immediate: true })
-watch(ftbItems, console.log, { immediate: true })
 
 // Routing
-const { push } = useRouter()
 const enter = (type: string, id: string) => {
-  console.log(type, id)
   push(`/store/${type}/${id}`)
 }
 
 const sortBy = useSortByItems()
-const { refreshing: refreshingTag, categories, modLoaders, gameVersions, error: tagError } = useModrinthTags()
-const { categories: curseforgeCategories } = useCurseforgeCategories()
-const revMap: Record<string, number> = {
-  multiplayer: 4484,
-  lightweight: 4481,
-  adventure: 4475,
-  combat: 4483,
-  quests: 4478,
-  technology: 4472,
-  magic: 4473,
-}
-const groups = computed(() => {
-  const cfCats = curseforgeCategories.value?.filter(c => c.parentCategoryId === 4471)
+const { refreshing: refreshingTag, categories: modrinthCategories, modLoaders: modrinthModloaders, gameVersions, error: tagError } = injection(kModrinthTags)
 
-  const groupedCategories: Category[] = []
-  const bin: Record<string, boolean> = {}
-  const binMap: Record<string, string> = {
-    adventure: 'adventure',
-    challenging: 'challenging',
-    combat: 'combat',
-    'kitchen-sink': 'kitchen-sink',
-    lightweight: 'lightweight',
-    magic: 'magic',
-    multiplayer: 'multiplayer',
-    optimization: 'optimization',
-    quests: 'quests',
-    technology: 'technology',
+const { modrinthSort, curseforgeSort } = useMarketSort(sort)
 
-    Quests: 'quests',
-    Tech: 'technology',
-    Magic: 'magic',
-    'Adventure and RPG': 'adventure',
-    'Combat / PvP': 'combat',
-    'Small / Light': 'lightweight',
-    Multiplayer: 'multiplayer',
-  }
-  for (const c of categories.value.filter(v => v.project_type === 'modpack')) {
-    const key = binMap[c.name]
-    if (!(key in bin) || !key) {
-      groupedCategories.push({
-        id: c.name,
-        text: t(`modrinth.categories.${c.name}`, c.name),
-        iconHTML: c.icon,
-      })
-      if (key) {
-        bin[key] = true
-      }
-    }
-  }
-  for (const c of (cfCats || [])) {
-    const key = binMap[c.name]
-    if (!(key in bin) || !key) {
-      groupedCategories.push({
-        id: c.id.toString(),
-        text: tCategory(c.name),
-        icon: c.iconUrl,
-      })
-      if (key) {
-        bin[key] = true
-      }
-    }
-  }
-
-  const result: ExploreCategoryGroup[] = [{
-    id: 'sortBy',
-    text: t('modrinth.sort.title'),
-    type: 'buttons',
-    categories: sortBy.value.map(s => ({
-      id: s.value,
-      text: s.text,
-      icon: s.icon,
-    })),
-  }, {
-    id: 'gameVersions',
-    text: t('modrinth.gameVersions.name'),
-    type: 'menu',
-    categories: gameVersions.value.map(v => ({
-      id: v.version,
-      text: v.version,
-    })),
-  }, {
-    id: 'modloaders',
-    text: t('modrinth.modLoaders.name'),
-    type: 'checkbox',
-    categories: modLoaders.value.filter(l => l.supported_project_types.includes('modpack')).map(l => ({
-      id: l.name,
-      text: l.name,
-      iconHTML: l.icon,
-    })),
-  }, {
-    id: 'categories',
-    text: t('modrinth.categories.categories'),
-    type: 'checkbox',
-    categories: groupedCategories,
-  }]
-
-  return result
-})
-
-const page = ref(1)
-const query = ref('')
-const gameVersion = ref('')
-const modLoader = ref('')
-const { sort, modrinthSort, curseforgeSort } = useMarketSort('' as string)
+const _modrinthCategories = useQueryStringArray('modrinthCategories', ensureQuery)
 // Modrinth
-const data: ModrinthOptions = reactive({
-  query,
-  gameVersion,
-  license: '',
-  category: [],
-  modLoader,
-  environment: '',
-  sortBy: modrinthSort as any,
-  projectType: 'modpack',
-  page,
-})
-
-const selected = computed(() => {
-  const result: string[] = []
-
-  if (data.category.length > 0) {
-    result.push(...data.category)
-  }
-  if (curseforgeData.category) {
-    result.push(curseforgeData.category)
-  }
-  if (data.environment) {
-    result.push(data.environment)
-  }
-  if (data.gameVersion) {
-    result.push(data.gameVersion)
-  }
-  if (data.license) {
-    result.push(data.license)
-  }
-  if (data.modLoader) {
-    result.push(data.modLoader)
-  }
-  if (data.sortBy) {
-    result.push(data.sortBy)
-  }
-
-  return result
-})
 const {
   error: searchError,
-  refreshing, projects, pageCount,
-} = useModrinth(data)
+  refreshing: isModrinthSearching, projects, pageCount,
+} = useModrinth(
+  query,
+  gameVersion,
+  '',
+  _modrinthCategories,
+  modLoaders,
+  '',
+  modrinthSort,
+  'modpack',
+  page,
+  10,
+)
 
 // Curseforge
-const curseforgeData: CurseforgeProps = reactive({
-  type: 'modpacks',
+const curseforgeCategory = useQueryNumber('curseforgeCategory', undefined as undefined | number, ensureQuery)
+const { projects: curseforgeProjects, isValidating: isCurseforgeSearching } = useCurseforge(
+  CurseforgeBuiltinClassId.modpack,
+  query,
   page,
-  keyword: query,
-  category: '',
-  sortField: curseforgeSort as any,
-  modLoaderType: computed(() => {
-    return modLoader.value === 'forge'
-      ? FileModLoaderType.Forge
-      : modLoader.value === 'fabric'
-        ? FileModLoaderType.Fabric
-        : modLoader.value === 'quilt'
-          ? FileModLoaderType.Quilt
-          : FileModLoaderType.Any
-  }),
-  sortOrder: 'desc',
+  computed(() => getCursforgeModLoadersFromString(modLoaders.value)),
+  curseforgeCategory,
+  curseforgeSort,
   gameVersion,
-  from: '',
-})
-const { projects: curseforgeProjects } = useCurseforge(curseforgeData)
+)
 
 const items = computed(() => {
   const modrinths = projects.value.map((p) => {
@@ -541,7 +446,7 @@ const items = computed(() => {
         { icon: 'edit', text: getDateString(p.date_modified) },
         { icon: 'local_offer', text: p.versions[p.versions.length - 1] },
       ],
-      tags: p.categories.map(c => ({ icon: categories.value.find(cat => cat.name === c)?.icon, text: t(`modrinth.categories.${c}`, c) })),
+      tags: p.categories.map(c => ({ icon: modrinthCategories.value.find(cat => cat.name === c)?.icon, text: t(`modrinth.categories.${c}`, c) })),
       gallery: p.gallery,
     }
     return mapped
@@ -572,10 +477,10 @@ const items = computed(() => {
     return mapped
   })
 
-  if (curseforgeData.category && data.category.length === 0) {
+  if (curseforgeCategory.value && _modrinthCategories.value.length === 0) {
     return curseforges
   }
-  if (data.category.length > 0 && curseforgeData.category === '') {
+  if (_modrinthCategories.value.length > 0 && curseforgeCategory.value === undefined) {
     return modrinths
   }
 
@@ -585,8 +490,15 @@ const items = computed(() => {
 // Scroll to the search result
 const container = ref<any>(null)
 const exploreHeader = ref<any | null>(null)
-watch(items, (values) => {
-  if (query.value || gameVersion.value || modLoader.value) {
+function scrollToView() {
+  const component = exploreHeader.value
+  const el = component?.$el as HTMLElement | undefined
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' })
+  }
+}
+watch(items, () => {
+  if (query.value || gameVersion.value || modLoaders.value.length > 0 || _modrinthCategories.value.length > 0 || curseforgeCategory.value) {
     // Scroll to the element
     const component = exploreHeader.value
     const el = component?.$el as HTMLElement | undefined
@@ -598,6 +510,10 @@ watch(items, (values) => {
       }
     }
   }
+})
+
+watch(page, () => {
+  scrollToView()
 })
 
 // Hovered project
@@ -618,51 +534,152 @@ const onMouseLeave = (e: any) => {
   }, 300)
 }
 
+// Categories
+const { categories: curseforgeCategories } = injection(kCurseforgeCategories)
+const groups = computed(() => {
+  const modrinthCatResult: Category[] = modrinthCategories.value.filter(v => v.project_type === 'modpack').map(c => ({
+    id: c.name,
+    text: t(`modrinth.categories.${c.name}`, c.name),
+    iconHTML: c.icon,
+  }))
+  const curseforgeCatResult: Category[] = (curseforgeCategories.value?.filter(c => c.parentCategoryId === 4471) || []).map(c => ({
+    id: c.id.toString(),
+    text: tCategory(c.name),
+    icon: c.iconUrl,
+  }))
+
+  const result: ExploreCategoryGroup[] = [{
+    id: 'sortBy',
+    text: t('modrinth.sort.title'),
+    type: 'buttons',
+    categories: sortBy.value.map(s => ({
+      id: s.value,
+      text: s.text,
+      icon: s.icon,
+    })),
+  }, {
+    id: 'gameVersions',
+    text: t('modrinth.gameVersions.name'),
+    type: 'menu',
+    categories: gameVersions.value.map(v => ({
+      id: v.version,
+      text: v.version,
+    })),
+  }, {
+    id: 'modloaders',
+    text: t('modrinth.modLoaders.name'),
+    type: 'checkbox',
+    categories: modrinthModloaders.value.filter(l => l.supported_project_types.includes('modpack')).map(l => ({
+      id: l.name,
+      text: l.name[0].toUpperCase() + l.name.slice(1),
+      iconHTML: l.icon,
+    })),
+  }, {
+    id: 'modrinthCategories',
+    text: t('modrinth.categories.categories') + ' (Modrinth)',
+    type: 'checkbox',
+    categories: modrinthCatResult,
+  }, {
+    id: 'curseforgeCategories',
+    text: t('curseforge.category') + ' (Curseforge)',
+    type: 'checkbox',
+    categories: curseforgeCatResult,
+  }]
+
+  return result
+})
+
+const selected = computed(() => {
+  const result: string[] = []
+
+  result.push(..._modrinthCategories.value)
+  if (typeof curseforgeCategory.value === 'number') {
+    result.push(curseforgeCategory.value.toString())
+  }
+  if (gameVersion.value) {
+    result.push(gameVersion.value)
+  }
+  result.push(...modLoaders.value)
+  if (sort.value) {
+    result.push(sort.value)
+  }
+
+  return result
+})
+
 // Category select
 const onSelect = ({ group, category }: { group: string; category: string }) => {
-  if (group === 'categories') {
-    const cat = categories.value.find(c => c.name === category)
-
-    if (cat) {
-      const index = data.category.indexOf(category)
-      if (index === -1) {
-        data.category.push(category)
-      } else {
-        data.category.splice(index, 1)
-      }
-
-      if (revMap[category]) {
-        const cfCat = revMap[category].toString()
-        if (curseforgeData.category === cfCat) {
-          curseforgeData.category = ''
-        } else {
-          curseforgeData.category = cfCat
-        }
-      }
+  if (group === 'modrinthCategories') {
+    const index = _modrinthCategories.value.indexOf(category)
+    if (index === -1) {
+      _modrinthCategories.value = [..._modrinthCategories.value, category]
     } else {
-      if (curseforgeData.category === category) {
-        curseforgeData.category = ''
+      _modrinthCategories.value = _modrinthCategories.value.filter((_, i) => i !== index)
+    }
+  } else if (group === 'curseforgeCategories') {
+    const cat = curseforgeCategories.value?.find(c => c.id.toString() === category)
+    if (cat) {
+      if (curseforgeCategory.value === cat.id) {
+        curseforgeCategory.value = undefined
       } else {
-        curseforgeData.category = category
+        curseforgeCategory.value = cat.id
       }
     }
   } else if (group === 'modloaders') {
-    data.modLoader = category
-  } else if (group === 'environments') {
-    data.environment = category
+    if (category) {
+      const index = modLoaders.value.indexOf(category)
+      if (index === -1) {
+        modLoaders.value = [...modLoaders.value, category]
+      } else {
+        modLoaders.value = modLoaders.value.filter((_, i) => i !== index)
+      }
+    }
   } else if (group === 'gameVersions') {
-    data.gameVersion = category
-  } else if (group === 'licenses') {
-    data.license = category
+    gameVersion.value = category
   } else if (group === 'sortBy') {
-    sort.value = category
+    sort.value = category === sort.value ? '' : category
   }
 }
 
+// Search field
 const searchTextField = ref(undefined as any | undefined)
 const searchTextEl = computed(() => searchTextField.value?.$el as HTMLElement | undefined)
 const { focused } = useFocus(searchTextEl)
 useEventListener(document, 'keydown', useTextFieldBehavior(searchTextField, focused), { capture: true })
+
+// Category sticky
+const pinned = ref(false)
+onMounted(() => {
+  const el = document.querySelector('#search-category')
+  if (el) {
+    const observer = new IntersectionObserver(
+      ([e]) => {
+        pinned.value = e.isIntersecting
+      },
+      { threshold: [1] },
+    )
+    observer.observe(el)
+  }
+})
+
+// Tutorial
+useTutorial(computed(() => {
+  const steps: DriveStep[] = [
+    { element: '#popular-modpacks', popover: { align: 'center', title: t('store.popular'), description: t('tutorial.storePoupularModpackDescription') } },
+    { element: '#search-text-field', popover: { title: t('curseforge.search'), description: t('tutorial.storeSearchDescription') } },
+    {
+      element: '#search-result',
+      popover: {
+        side: 'right',
+        align: 'start',
+        title: t('modInstall.search'),
+        description: t('tutorial.storeSearchResultDescription'),
+      },
+    },
+    { element: '#search-category', popover: { side: 'left', title: t('curseforge.category'), description: t('tutorial.storeSearchCategoryDescription') } },
+  ]
+  return steps
+}))
 </script>
 <style scoped>
 .main {
@@ -703,6 +720,18 @@ useEventListener(document, 'keydown', useTextFieldBehavior(searchTextField, focu
   grid-row: auto;
 }
 
+.search-field {
+  grid-column-start: 2;
+  grid-column-end: 4;
+  transition: all;
+  transition-duration: 200ms;
+}
+
+.pinned .search-field {
+  grid-column-start: 1;
+  grid-column-end: 4;
+}
+
 @media screen and (max-width: 1024px) {
   .content {
     grid-column: 1 / 3;
@@ -710,6 +739,11 @@ useEventListener(document, 'keydown', useTextFieldBehavior(searchTextField, focu
 
   .category {
     grid-column: 3 / 5;
+  }
+
+  .pinned .search-field {
+    grid-column-start: 1;
+    grid-column-end: 3;
   }
 }
 

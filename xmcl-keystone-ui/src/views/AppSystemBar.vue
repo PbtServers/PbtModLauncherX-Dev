@@ -26,7 +26,12 @@
     </span>
     <slot />
 
+    <AppAudioPlayer
+      v-if="!noDebug"
+      class="ml-22"
+    />
     <div class="grow " />
+
     <TaskSpeedMonitor v-if="!noTask" />
     <AppSystemBarBadge
       v-if="!noTask"
@@ -37,13 +42,29 @@
     <AppSystemBarAvatar
       v-if="!noUser"
     />
+    <AppSystemBarBadge
+      v-if="tutor"
+      id="tutor-button"
+      icon="quiz"
+      :text="t('help')"
+      can-hide-text
+      @click="tutor.start()"
+    />
+    <AppSystemBarBadge
+      v-if="!noDebug"
+      id="feedback-button"
+      icon="bug_report"
+      :text="t('feedback.name')"
+      can-hide-text
+      @click="showFeedbackDialog"
+    />
 
     <span class="flex h-full shrink grow-0 p-0">
       <v-icon
         v-if="!hideWindowControl"
         v-ripple
         tabindex="-1"
-        class="xy-0 non-moveable mr-0 flex cursor-pointer select-none items-center px-3 py-1 after:hidden hover:bg-[rgba(255,255,255,0.5)]"
+        class="xy-0 non-moveable mr-0 flex cursor-pointer select-none items-center px-3 py-1 after:hidden! hover:bg-[rgba(255,255,255,0.5)]"
 
         small
         @click="minimize"
@@ -52,14 +73,14 @@
         v-if="!hideWindowControl"
         v-ripple
         tabindex="-1"
-        class="non-moveable top-0 mr-0 flex cursor-pointer select-none items-center px-3 py-1 after:hidden hover:bg-[rgba(255,255,255,0.5)]"
+        class="non-moveable top-0 mr-0 flex cursor-pointer select-none items-center px-3 py-1 after:hidden! hover:bg-[rgba(255,255,255,0.5)]"
         small
         @click="maximize"
       >crop_din</v-icon>
       <v-icon
         v-if="!hideWindowControl"
         v-ripple
-        class="non-moveable top-0 mr-0 flex cursor-pointer select-none items-center px-3 py-1 after:hidden hover:bg-[rgb(209,12,12)]"
+        class="non-moveable top-0 mr-0 flex cursor-pointer select-none items-center px-3 py-1 after:hidden! hover:bg-[rgb(209,12,12)]"
         small
         @click="close"
       >close</v-icon>
@@ -67,34 +88,39 @@
   </v-system-bar>
 </template>
 <script lang="ts" setup>
-import { useBarBlur } from '../composables/background'
-import { kColorTheme } from '../composables/colorTheme'
 import { useDialog } from '../composables/dialog'
 import { useTaskCount } from '../composables/task'
 
 import TaskSpeedMonitor from '../components/TaskSpeedMonitor.vue'
 import { injection } from '@/util/inject'
 import { useWindowStyle } from '@/composables/windowStyle'
-import AppSystemBarAvatar from './AppSystemBarUser.vue'
+import AppSystemBarAvatar from './AppSystemBarUserMenu.vue'
 import { kTutorial } from '@/composables/tutorial'
 import AppSystemBarBadge from '@/components/AppSystemBarBadge.vue'
+import AppAudioPlayer from '@/components/AppAudioPlayer.vue'
+import { kTheme } from '@/composables/theme'
 
-defineProps<{
+const props = defineProps<{
   noUser?: boolean
   noTask?: boolean
+  noDebug?: boolean
   back?: boolean
 }>()
 
-const { appBarColor } = injection(kColorTheme)
-const { blurAppBar } = useBarBlur()
-const { maximize, minimize, close } = windowController
+const { appBarColor, blurAppBar } = injection(kTheme)
+const { maximize, minimize, close, hide } = windowController
 const { shouldShiftBackControl, hideWindowControl } = useWindowStyle()
 const { show: showFeedbackDialog } = useDialog('feedback')
 const { show: showTaskDialog } = useDialog('task')
 const { t } = useI18n()
 const { count } = useTaskCount()
-const tutor = inject(kTutorial)
+const tutor = inject(kTutorial, undefined)
 
-const { back: onBack } = useRouter()
-
+let onBack = () => {}
+if (props.back) {
+  const router = useRouter()
+  onBack = () => {
+    router.back()
+  }
+}
 </script>

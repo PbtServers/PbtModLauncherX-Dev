@@ -1,10 +1,11 @@
-import { BaseServiceException, BaseServiceKey, Environment, BaseService as IBaseService, MigrateOptions, MutableState, Settings } from '@xmcl/runtime-api'
+import { BaseServiceException, BaseServiceKey, Environment, BaseService as IBaseService, MigrateOptions, MutableState, PoolStats, Settings } from '@xmcl/runtime-api'
 import { readdir, rename, stat } from 'fs-extra'
 import os, { freemem, totalmem } from 'os'
 import { join } from 'path'
 import { Inject, LauncherAppKey, kGameDataPath } from '~/app'
 import { kClientToken } from '~/clientToken'
 import { kLogRoot } from '~/logger'
+import { kNetworkInterface } from '~/network'
 import { AbstractService, ExposeServiceKey, Singleton } from '~/service'
 import { kSettings } from '~/settings'
 import { TaskFn, kTaskExecutor } from '~/task'
@@ -26,12 +27,20 @@ export class BaseService extends AbstractService implements IBaseService {
     })
   }
 
+  destroyPool(origin: string) {
+    return this.app.registry.get(kNetworkInterface).then(s => s.destroyPool(origin))
+  }
+
+  getNetworkStatus(): Promise<Record<string, PoolStats>> {
+    return this.app.registry.get(kNetworkInterface).then(s => s.getDownloadAgentStatus())
+  }
+
   getSessionId() {
     return this.app.registry.get(kClientToken)
   }
 
   getGameDataDirectory(): Promise<string> {
-    return this.app.getGameDataPath()
+    return this.app.registry.get(kGameDataPath).then(f => f())
   }
 
   async getSettings(): Promise<MutableState<Settings>> {
@@ -116,7 +125,7 @@ export class BaseService extends AbstractService implements IBaseService {
     if (!settings.updateInfo) {
       throw new Error('Cannot download update if we don\'t check the version update!')
     }
-    this.log(`Start to download update: ${settings.updateInfo.name} incremental=${settings.updateInfo.incremental}`)
+    this.log(`Start to download update: ${settings.updateInfo.name} operation=${settings.updateInfo.operation}`)
     await this.submit(this.app.updater.downloadUpdateTask(settings.updateInfo).setName('downloadUpdate'))
     settings.updateStatusSet('ready')
   }

@@ -2,7 +2,7 @@
   <v-dialog
     v-model="isShown"
     width="900"
-    :persistent="!loading"
+    :persistent="true"
   >
     <v-toolbar
       elevation="4"
@@ -11,7 +11,7 @@
       <v-btn
         icon
         :style="{ visibility: step === 1 ? 'hidden' : 'visible' }"
-        @click="step -= 1"
+        @click="back"
       >
         <v-icon>arrow_back</v-icon>
       </v-btn>
@@ -47,7 +47,7 @@
             @select="onSelectType"
           />
           <AppLoadingCircular
-            v-if="tStep === 'create' &&loading"
+            v-if="tStep === 'create' && loading"
             :texts="[t('instances.loadingFiles') + '...']"
           />
           <StepChoice
@@ -80,6 +80,18 @@
         @next="next"
         @quit="quit"
       >
+        <div v-if="type === 'template' || type === 'manual' || !type">
+          <v-btn
+            text
+            :loading="loading"
+            @click="onImportModpack"
+          >
+            <v-icon left>
+              note_add
+            </v-icon>
+            {{ t('importModpack.name') }}
+          </v-btn>
+        </div>
         <div
           v-if="error"
           class="pointer-events-none absolute left-0 flex w-full justify-center"
@@ -101,6 +113,7 @@
 </template>
 
 <script lang=ts setup>
+import AppLoadingCircular from '@/components/AppLoadingCircular.vue'
 import StepChoice from '@/components/StepChoice.vue'
 import StepConfig from '@/components/StepConfig.vue'
 import StepSelect from '@/components/StepSelect.vue'
@@ -108,21 +121,20 @@ import StepServer from '@/components/StepServer.vue'
 import StepperFooter from '@/components/StepperFooter.vue'
 import { useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
-import { kInstanceVersionDiagnose } from '@/composables/instanceVersionDiagnose'
+import { kInstanceVersionInstall } from '@/composables/instanceVersionInstall'
 import { kInstances } from '@/composables/instances'
-import { kPeerState } from '@/composables/peers'
+import { kJavaContext } from '@/composables/java'
+import { useNotifier } from '@/composables/notifier'
+import { kPeerShared } from '@/composables/peers'
 import { kUserContext } from '@/composables/user'
+import { getFTBTemplateAndFile } from '@/util/ftb'
 import { injection } from '@/util/inject'
-import { CachedFTBModpackVersionManifest, CreateInstanceManifest, InstanceIOServiceKey, InstanceManifest, ModpackServiceKey, PeerServiceKey, Resource, ResourceServiceKey } from '@xmcl/runtime-api'
+import { resolveModpackInstanceConfig } from '@/util/modpackFilesResolver'
+import { CachedFTBModpackVersionManifest, CreateInstanceManifest, InstanceIOServiceKey, InstanceManifest, ModpackServiceKey, PeerServiceKey, Resource, ResourceDomain, ResourceServiceKey } from '@xmcl/runtime-api'
 import StepTemplate from '../components/StepTemplate.vue'
 import { useDialog } from '../composables/dialog'
 import { kInstanceCreation, useInstanceCreation } from '../composables/instanceCreation'
 import { AddInstanceDialogKey } from '../composables/instanceTemplates'
-import { useNotifier } from '../composables/notifier'
-import { resolveModpackInstanceConfig } from '@/util/modpackFilesResolver'
-import { getFTBTemplateAndFile } from '@/util/ftb'
-import { kJavaContext } from '@/composables/java'
-import AppLoadingCircular from '@/components/AppLoadingCircular.vue'
 
 const type = ref(undefined as 'modrinth' | 'mmc' | 'server' | 'vanilla' | 'manual' | 'template' | undefined)
 const manifests = ref([] as CreateInstanceManifest[])
@@ -284,14 +296,16 @@ provide(kInstanceCreation, creation)
 
 // Install
 const router = useRouter()
-const { fix } = injection(kInstanceVersionDiagnose)
+const { fix } = injection(kInstanceVersionInstall)
 const onCreate = async () => {
-  await create((newPath) => {
+  const newPath = await create((newPath) => {
     path.value = newPath
     if (router.currentRoute.path !== '/') router.push('/')
     hide()
   })
-  await fix().catch(() => { })
+  if (newPath === path.value) {
+    await fix().catch(() => { })
+  }
 }
 
 // Stepper model
@@ -320,11 +334,46 @@ function next() {
     step.value += 1
   }
 }
+function back() {
+  if (step.value > 1) {
+    step.value -= 1
+  }
+  if (step.value === 1) {
+    type.value = undefined
+  }
+}
+
+// Manuall import
+const { importResources } = useService(ResourceServiceKey)
+const onImportModpack = () => {
+  windowController.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: t('modpack.name', 2), extensions: ['zip', 'mrpack'] }],
+  }).then(async (res) => {
+    if (res.canceled) return
+    const file = res.filePaths[0]
+    try {
+      loading.value = true
+      const [result] = await importResources([{ path: file, domain: ResourceDomain.Modpacks }])
+      if (result) {
+        await onSelectResource(result)
+        type.value = 'template'
+        nextTick(() => {
+          step.value = 3
+        })
+      }
+    } catch (e) {
+      error.value = e
+    } finally {
+      loading.value = false
+    }
+  })
+}
 
 // Peer
 const { on: onPeerService } = useService(PeerServiceKey)
 const { notify } = useNotifier()
-const { connections } = injection(kPeerState)
+const { connections } = injection(kPeerShared)
 onPeerService('share', (event) => {
   if (!event.manifest) {
     return
@@ -334,7 +383,6 @@ onPeerService('share', (event) => {
     notify({
       level: 'info',
       title: t('AppShareInstanceDialog.instanceShare', { user: conn.userInfo.name }),
-      full: true,
       more() {
         if (!isShown.value && event.manifest) {
           show({ type: 'manifest', manifest: event.manifest })

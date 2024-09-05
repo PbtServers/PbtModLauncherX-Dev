@@ -4,6 +4,7 @@
         "resourceMonitor": true,
         "serviceChannels": true,
         "windowController": true,
+        "multiplayer": true,
         "appsHost": true,
         "bootstrap": true,
         "gameMonitor": true,
@@ -15,7 +16,6 @@
     "extends": [
         "../.eslintrc.json",
         ".eslintrc-auto-import.json",
-        "plugin:tailwindcss/recommended",
         "plugin:vue/recommended"
     ],
     "parser": "vue-eslint-parser",
@@ -31,12 +31,12 @@
         "browser": true
     },
     "rules": {
-        "tailwindcss/no-custom-classname": "off",
-        "tailwindcss/migration-from-tailwind-2": "off",
+        
         "vue/no-mutating-props": "off",
         "vue/multi-word-component-names": "off",
         "vue/no-v-text-v-html-on-component": "off",
         "func-call-spacing": "off",
-        "@typescript-eslint/func-call-spacing": "error"
+        "@typescript-eslint/func-call-spacing": "error",
+        "vue/valid-v-slot": "off"
     }
 }

@@ -1,13 +1,12 @@
 import { TaskItem } from '@/entities/task'
 import { injection } from '@/util/inject'
 import { TaskState } from '@xmcl/runtime-api'
-import { computed } from 'vue'
+import { Ref, computed } from 'vue'
 import { kTaskManager } from './taskManager'
 
 export function useTaskCount() {
-  const proxy = injection(kTaskManager)
-  const { tasks } = proxy
-  const count = computed(() => tasks.value.filter(t => t.state === TaskState.Running).length)
+  const { tasks } = inject(kTaskManager, { tasks: { value: [] as TaskItem[] } as any as Ref<TaskItem[]> } as any)
+  const count = computed(() => tasks.value.filter((t: TaskItem) => t.state === TaskState.Running).length)
   return { count }
 }
 
@@ -35,7 +34,7 @@ export function useTask(finder: (i: TaskItem) => boolean) {
 
   const tTask = useTaskName()
   const name = computed(() => task.value ? tTask(task.value.path, task.value.param) : '')
-  const task = computed(() => tasks.value.find((i) => i.state === TaskState.Running && finder(i)))
+  const task = computed(() => tasks.value.find((i) => (i.state === TaskState.Running || i.state === TaskState.Paused) && finder(i)))
   const time = computed(() => task.value?.time ?? '')
   const status = computed(() => task.value?.state ?? TaskState.Idle)
   const progress = computed(() => task.value?.progress ?? -1)

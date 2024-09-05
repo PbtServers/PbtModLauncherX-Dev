@@ -1,18 +1,18 @@
-import { File, HashAlgo, Mod } from '@xmcl/curseforge'
+import { CurseforgeV1Client, File, HashAlgo, Mod } from '@xmcl/curseforge'
 import { InstanceFile, McbbsModpackManifest, ModpackFileInfoCurseforge, ResourceDomain, getInstanceConfigFromMcbbsModpack } from '@xmcl/runtime-api'
 import { readEntry } from '@xmcl/unzip'
 import { join } from 'path'
 import { Entry } from 'yauzl'
 import { LauncherAppPlugin } from '~/app'
-import { CurseForgeService } from '~/curseforge'
-import { ModpackService } from './ModpackService'
 import { guessCurseforgeFileUrl } from '../util/curseforge'
+import { ModpackService } from './ModpackService'
 import { getCurseforgeFiles, getCurseforgeProjects } from './getCurseforgeFiles'
+import { resolveHashes } from './resolveHashes'
 
 export const pluginMcbbsModpackHandler: LauncherAppPlugin = async (app) => {
   const modpackService = await app.registry.get(ModpackService)
   modpackService.registerHandler<McbbsModpackManifest>('mcbbs', {
-    readMetadata: async (zip, entries) => {
+    readManifest: async (zip, entries) => {
       const mcbbsManifest = entries.find(e => e.fileName === 'mcbbs.packmeta')
       if (mcbbsManifest) {
         return readEntry(zip, mcbbsManifest).then(b => JSON.parse(b.toString()) as McbbsModpackManifest)
@@ -25,9 +25,9 @@ export const pluginMcbbsModpackHandler: LauncherAppPlugin = async (app) => {
         // curseforge or mcbbs
         const curseforgeFiles = manifest.files.map(f => f).filter((f): f is ModpackFileInfoCurseforge => !('type' in f) || f.type === 'curse' || 'hashes' in f)
         const ids = curseforgeFiles.map(f => f.fileID).filter(id => typeof id === 'number')
-        const curseforgeService = await app.registry.getOrCreate(CurseForgeService)
-        const files = await getCurseforgeFiles(curseforgeService.client, ids)
-        const mods = await getCurseforgeProjects(curseforgeService.client, files.map(f => f.modId))
+        const client = await app.registry.getOrCreate(CurseforgeV1Client)
+        const files = await getCurseforgeFiles(client, ids)
+        const mods = await getCurseforgeProjects(client, files.map(f => f.modId))
 
         const dict: Record<string, File> = {}
         for (const file of files) {
@@ -66,15 +66,10 @@ export const pluginMcbbsModpackHandler: LauncherAppPlugin = async (app) => {
           if (!domain) {
             domain = file.fileName.endsWith('.jar') ? ResourceDomain.Mods : file.modules.some(f => f.name === 'META-INF') ? ResourceDomain.Mods : ResourceDomain.ResourcePacks
           }
-          const sha1 = file.hashes.find(v => v.algo === HashAlgo.Sha1)?.value
           infos.push({
             downloads: file.downloadUrl ? [file.downloadUrl] : guessCurseforgeFileUrl(file.id, file.fileName),
             path: join(domain, file.fileName),
-            hashes: sha1
-              ? {
-                sha1: file.hashes.find(v => v.algo === HashAlgo.Sha1)?.value,
-              } as Record<string, string>
-              : {},
+            hashes: resolveHashes(file),
             curseforge: {
               fileId: file.id,
               projectId: file.modId,

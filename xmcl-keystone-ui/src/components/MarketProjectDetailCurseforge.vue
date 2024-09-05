@@ -6,20 +6,21 @@ import { useCurseforgeChangelog } from '@/composables/curseforgeChangelog'
 import { getCurseforgeDependenciesModel, useCurseforgeTask } from '@/composables/curseforgeDependencies'
 import { kCurseforgeInstaller } from '@/composables/curseforgeInstaller'
 import { useDateString } from '@/composables/date'
-import { useModDetailEnable, useModDetailUpdate } from '@/composables/modDetail'
-import { useSWRVModel } from '@/composables/swrv'
-import { getCurseforgeFileGameVersions, getCurseforgeModLoaderTypeFromRuntime, getCurseforgeRelationType, getCursforgeFileModLoaders } from '@/util/curseforge'
+import { useProjectDetailEnable, useProjectDetailUpdate } from '@/composables/projectDetail'
+import { useLoading, useSWRVModel } from '@/composables/swrv'
+import { basename } from '@/util/basename'
+import { getCurseforgeFileGameVersions, getCurseforgeRelationType, getCursforgeFileModLoaders, getCursforgeModLoadersFromString, getModLoaderTypesForFile } from '@/util/curseforge'
 import { injection } from '@/util/inject'
 import { ModFile } from '@/util/mod'
 import { ProjectFile } from '@/util/search'
-import { Mod } from '@xmcl/curseforge'
-import { Resource, RuntimeVersions } from '@xmcl/runtime-api'
+import { FileModLoaderType, Mod, ModStatus } from '@xmcl/curseforge'
+import { Resource } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   curseforge?: Mod
   curseforgeId: number
   installed: ProjectFile[]
-  runtime: RuntimeVersions
+  gameVersion: string
   loaders: string[]
   allFiles: ProjectFile[]
   category?: number
@@ -29,7 +30,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: 'category', cat: number): void
-  (event: 'install', file: Resource[]): void
   (event: 'uninstall', files: ProjectFile[]): void
   (event: 'enable', file: ProjectFile): void
   (event: 'disable', file: ProjectFile): void
@@ -37,17 +37,13 @@ const emit = defineEmits<{
 
 const { getDateString } = useDateString()
 
-const cursforgeModId = computed(() => props.curseforgeId)
+const curseforgeModId = computed(() => props.curseforgeId)
 
-const { data: curseforgeProject, mutate } = useSWRVModel(getCurseforgeProjectModel(cursforgeModId))
-const curseforgeMod = computed(() => {
-  if (props.curseforge) return props.curseforge
-  if (curseforgeProject.value) return curseforgeProject.value
-})
-const { data: description, isValidating: loadings } = useSWRVModel(getCurseforgeProjectDescriptionModel(cursforgeModId))
+const { data: curseforgeProject, mutate } = useSWRVModel(getCurseforgeProjectModel(curseforgeModId))
+const { data: description, isValidating: isValidatingDescription } = useSWRVModel(getCurseforgeProjectDescriptionModel(curseforgeModId))
 const model = computed(() => {
   const externals: ExternalResource[] = []
-  const mod = curseforgeMod.value
+  const mod = props.curseforge || curseforgeProject.value
   if (mod?.links.issuesUrl) {
     externals.push({
       icon: 'pest_control',
@@ -120,6 +116,13 @@ const model = computed(() => {
       })
     }
   }
+  const mapping = {
+    [FileModLoaderType.Forge]: 'forge',
+    [FileModLoaderType.Fabric]: 'fabric',
+    [FileModLoaderType.Quilt]: 'quilt',
+    [FileModLoaderType.NeoForge]: 'neoforge',
+  } as Record<FileModLoaderType, string>
+  const modLoaders = [...new Set(mod?.latestFilesIndexes.map(v => mapping[v.modLoader]) || [])]
   const detail: ProjectDetail = {
     id: props.curseforgeId.toString(),
     title: mod?.name ?? '',
@@ -131,12 +134,16 @@ const model = computed(() => {
     url: mod?.links.websiteUrl ?? '',
     categories,
     htmlContent: description.value ?? '',
+    modLoaders,
     externals,
     galleries,
     info,
+    archived: ModStatus.Inactive === mod?.status || ModStatus.Abandoned === mod?.status,
   }
   return detail
 })
+
+const loading = useLoading(isValidatingDescription, description, curseforgeModId)
 
 const { t } = useI18n()
 const tCategory = useCurseforgeCategoryI18n()
@@ -146,8 +153,8 @@ const releaseTypes: Record<string, 'release' | 'beta' | 'alpha'> = {
   3: 'alpha',
 }
 
-const { files, refreshing: loadingVersions, index, totalCount, pageSize } = useCurseforgeProjectFiles(cursforgeModId,
-  computed(() => props.runtime.minecraft),
+const { files, refreshing: loadingVersions, index, totalCount, pageSize } = useCurseforgeProjectFiles(curseforgeModId,
+  computed(() => props.gameVersion),
   computed(() => undefined))
 
 const modId = ref(0)
@@ -158,9 +165,9 @@ const modVersions = computed(() => {
   const versions: ProjectVersion[] = []
   const installed = [...props.installed]
   for (const file of files.value) {
-    if (props.loaders.length > 0) {
-      const loaders = getCursforgeFileModLoaders(file)
-      if (!loaders.some(l => props.loaders.indexOf(l.toLowerCase() as any) !== -1)) {
+    const loaders = getCursforgeFileModLoaders(file)
+    if (props.loaders.length > 0 && loaders.length > 0) {
+      if (!loaders.some(l => props.loaders.indexOf(l as any) !== -1)) {
         continue
       }
     }
@@ -187,7 +194,7 @@ const modVersions = computed(() => {
     const mcDep = 'dependencies' in i ? (i as ModFile).dependencies.find(d => d.modId === 'minecraft') : undefined
     versions.push({
       id: i.curseforge?.fileId.toString() ?? '',
-      name: i.resource.name ?? '',
+      name: basename(i.path) ?? '',
       version: i.version,
       disabled: false,
       changelog: undefined,
@@ -195,7 +202,7 @@ const modVersions = computed(() => {
       type: 'release',
       installed: true,
       downloadCount: 0,
-      loaders: (i as ModFile).modLoaders,
+      loaders: 'modLoaders' in i ? (i as ModFile).modLoaders : [],
       minecraftVersion: (mcDep?.semanticVersion instanceof Array ? mcDep.semanticVersion.join(' ') : mcDep?.semanticVersion) ?? mcDep?.versionRange ?? '',
       createdDate: '',
     })
@@ -216,7 +223,7 @@ const onLoadMore = () => {
 const selectedVersion = ref(modVersions.value.find(v => v.installed) ?? modVersions.value[0] as ProjectVersion | undefined)
 provide('selectedVersion', selectedVersion)
 
-const innerUpdating = useModDetailUpdate()
+const innerUpdating = useProjectDetailUpdate()
 
 watch(() => props.curseforge, () => {
   innerUpdating.value = false
@@ -225,7 +232,7 @@ watch(() => props.installed, () => {
   innerUpdating.value = false
 }, { deep: true })
 
-const { enabled, installed, hasInstalledVersion } = useModDetailEnable(
+const { enabled, installed, hasInstalledVersion } = useProjectDetailEnable(
   selectedVersion,
   computed(() => props.installed),
   innerUpdating,
@@ -233,43 +240,50 @@ const { enabled, installed, hasInstalledVersion } = useModDetailEnable(
   (f) => emit('disable', f),
 )
 
+const curseforgeFile = computed(() => files.value.find(f => f.id === Number(selectedVersion.value?.id)))
 const { data: deps, error, isValidating: loadingDependencies } = useSWRVModel(
   getCurseforgeDependenciesModel(
-    computed(() => files.value.find(f => f.modId === props.curseforgeId)),
-    computed(() => props.runtime.minecraft),
-    computed(() => getCurseforgeModLoaderTypeFromRuntime(props.runtime)),
+    curseforgeFile,
+    computed(() => props.gameVersion),
+    // TODO: limit the modloaders
+    computed(() => curseforgeFile.value ? getModLoaderTypesForFile(curseforgeFile.value).values().next().value : FileModLoaderType.Any),
   ),
 )
 
-const dependencies = computed(() => deps.value?.map((resolvedDep) => {
-  const task = useCurseforgeTask(computed(() => resolvedDep.file.id))
-  const file = computed(() => {
-    for (const file of props.allFiles) {
-      if (file.curseforge?.fileId === resolvedDep.file.id) {
-        return file
+const dependencies = computed(() => !curseforgeFile.value
+  ? []
+  : deps.value?.map((resolvedDep) => {
+    const task = useCurseforgeTask(computed(() => resolvedDep.file.id))
+    const file = computed(() => {
+      for (const file of props.allFiles) {
+        if (file.curseforge?.fileId === resolvedDep.file.id) {
+          return file
+        }
       }
-    }
-  })
-  const otherFile = computed(() => {
-    for (const file of props.allFiles) {
-      if (file.curseforge?.projectId === resolvedDep.project.id && file.curseforge?.fileId !== resolvedDep.file.id) {
-        return file
+      return undefined
+    })
+    const otherFile = computed(() => {
+      for (const file of props.allFiles) {
+        if (file.curseforge?.projectId === resolvedDep.project.id && file.curseforge?.fileId !== resolvedDep.file.id) {
+          return file
+        }
       }
-    }
-  })
-  const dep: ProjectDependency = reactive({
-    id: resolvedDep.project.id.toString(),
-    icon: resolvedDep.project.logo?.url,
-    title: resolvedDep.project.name,
-    version: resolvedDep.file.displayName,
-    description: resolvedDep.file.fileName,
-    type: getCurseforgeRelationType(resolvedDep.type),
-    installedVersion: computed(() => file.value?.version),
-    installedDifferentVersion: computed(() => otherFile.value?.version),
-    progress: computed(() => task.value ? task.value.progress / task.value.total : -1),
-  })
-  return dep
-}) ?? [])
+      return undefined
+    })
+    const dep: ProjectDependency = reactive({
+      id: resolvedDep.project.id.toString(),
+      icon: resolvedDep.project.logo?.url,
+      title: resolvedDep.project.name,
+      version: resolvedDep.file.displayName,
+      description: resolvedDep.file.fileName,
+      type: getCurseforgeRelationType(resolvedDep.type),
+      parent: resolvedDep.parent?.name ?? '',
+      installedVersion: computed(() => file.value?.version),
+      installedDifferentVersion: computed(() => otherFile.value?.version),
+      progress: computed(() => task.value ? task.value.progress / task.value.total : -1),
+    })
+    return dep
+  }) ?? [])
 
 const installing = ref(false)
 
@@ -310,7 +324,7 @@ const installDependency = async (dep: ProjectDependency) => {
   }
 }
 
-const onDelete = async () => {
+const onDelete = () => {
   innerUpdating.value = true
   emit('uninstall', props.installed)
 }
@@ -323,6 +337,8 @@ const onOpenDependency = (dep: ProjectDependency) => {
 const onRefresh = () => {
   mutate()
 }
+
+const modrinthId = computed(() => props.modrinth || props.allFiles.find(v => v.curseforge?.projectId === props.curseforgeId && v.modrinth)?.modrinth?.projectId)
 </script>
 <template>
   <MarketProjectDetail
@@ -330,15 +346,17 @@ const onRefresh = () => {
     :enabled="enabled"
     :selected-installed="installed"
     :dependencies="dependencies"
+    :supported-versions="curseforgeProject?.latestFilesIndexes.map(v => v.gameVersion) ?? []"
     :has-installed-version="hasInstalledVersion"
-    :loading="loadings"
+    :loading="loading"
     :has-more="files.length < totalCount"
     :loading-versions="loadingVersions"
     :updating="innerUpdating || updating || installing"
     :versions="modVersions"
     :curseforge="curseforgeId"
-    :modrinth="modrinth"
+    :modrinth="modrinthId"
     :loading-dependencies="loadingDependencies"
+    current-target="curseforge"
     @load-changelog="loadChangelog"
     @delete="onDelete"
     @enable="enabled = $event"

@@ -39,6 +39,13 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
         },
         enabled: !!checkUpdate,
       },
+      {
+        label: t('multiplayer'),
+        type: 'normal',
+        click: () => {
+          this.openMultiplayerWindow()
+        },
+      },
       // {
       //   label: t('browseApps'),
       //   type: 'normal',
@@ -73,7 +80,7 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
         },
       },
     ]
-    if (app.platform.os === 'osx') {
+    if (app.platform.os === 'osx' || app.platform.os === 'linux') {
       const show = () => {
         const window = this.mainWin
         if ((!window || window.isDestroyed()) && this.activatedManifest) {
@@ -134,6 +141,13 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
 
     if (app.dock) {
       app.dock.setIcon(nativeTheme.shouldUseDarkColors ? darkIcon : lightIcon)
+      app.on('activate', () => {
+        if (this.mainWin && !this.mainWin.isDestroyed()) {
+          this.mainWin?.show()
+        } else if (this.activatedManifest) {
+          this.activate(this.activatedManifest, false)
+        }
+      })
     }
     app.on('before-quit', () => {
       this.tray?.destroy()

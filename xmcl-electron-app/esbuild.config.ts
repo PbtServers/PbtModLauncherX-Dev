@@ -3,7 +3,6 @@ import { BuildOptions } from 'esbuild'
 import { yamlPlugin } from 'esbuild-plugin-yaml'
 import path from 'path'
 import pluginVueDevtools from './plugins/esbuild.devtool.plugin'
-import pluginJsdetect from './plugins/esbuild.jschardet.plugin'
 import plugin7Zip from './plugins/esbuild.native.plugin'
 import pluginNode from './plugins/esbuild.node.plugin'
 import pluginPreload from './plugins/esbuild.preload.plugin'
@@ -18,13 +17,12 @@ const config = {
   assetNames: '[name]',
   entryNames: '[dir]/[name]',
   format: 'cjs',
-  sourcemap: process.env.SOURCEMAP === 'production' ? 'external' : 'linked',
+  sourcemap: process.env.NODE_ENV === 'production' ? 'external' : 'linked',
   minifyWhitespace: process.env.NODE_ENV === 'production',
   minifySyntax: process.env.NODE_ENV === 'production',
   treeShaking: true,
   keepNames: true,
   define: {
-    'process.env.BUILD_TARGET': JSON.stringify(process.env.BUILD_TARGET) ?? '""',
     'process.env.BUILD_NUMBER': JSON.stringify(process.env.BUILD_NUMBER) ?? '0',
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV) ?? '"development"',
     'process.env.CURSEFORGE_API_KEY': JSON.stringify(process.env.CURSEFORGE_API_KEY),
@@ -42,6 +40,7 @@ const config = {
     '.ico': 'file',
     '.class': 'binary',
     '.html': 'file',
+    '.wasm': 'file',
   },
   plugins: [
     pluginRenderer(),
@@ -50,7 +49,7 @@ const config = {
     pluginPreload(path.resolve(__dirname, './preload')),
     pluginVueDevtools(path.resolve(__dirname, '../extensions')),
     pluginWorker(),
-    pluginJsdetect(),
+    // pluginJsdetect(),
     plugin7Zip(path.resolve(__dirname, './node_modules')),
     pluginNode(),
     yamlPlugin({}) as any,

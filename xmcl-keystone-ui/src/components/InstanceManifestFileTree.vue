@@ -2,11 +2,13 @@
   <v-treeview
     class="export-dialog-files"
     :value="value"
+    :input-value="value"
     style="width: 100%"
     :search="search"
     :items="files"
     item-key="path"
     :open="opened"
+    :open-all="openAll"
     :selectable="selectable"
     open-on-click
     item-children="children"
@@ -43,27 +45,41 @@
       <div style="padding: 5px 0px;">
         <span
           style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;"
-          :style="{ color: item.disabled ? 'grey' : darkTheme ? 'white' : 'black', ...(item.style || {}) }"
+          :style="{ color: item.disabled ? 'grey' : isDark ? 'white' : 'black', ...(item.style || {}) }"
         >{{ item.name }}</span>
         <div
           style="color: grey; font-size: 12px; font-style: italic; max-width: 300px;"
         >
           {{ getDescription(item) }}
         </div>
-        <div
-          v-if="item.size > 0"
-          style="color: grey; font-size: 12px; font-style: italic; max-width: 300px;"
-        >
-          {{ item.size > 0 ? getExpectedSize(item.size) : '' }}
-        </div>
+        <span class="inline-flex gap-2 items-center">
+          <div
+            v-if="item.size > 0"
+            style="color: grey; font-size: 12px; font-style: italic; max-width: 300px;"
+          >
+            {{ item.size > 0 ? getExpectedSize(item.size) : '' }}
+          </div>
+          <v-icon
+            v-if="item.modrinth"
+            size="20"
+          >
+            $vuetify.icons.modrinth
+          </v-icon>
+          <v-icon
+            v-if="item.curseforge"
+            size="20"
+          >
+            $vuetify.icons.curseforge
+          </v-icon>
+        </span>
       </div>
     </template>
   </v-treeview>
 </template>
 
 <script lang=ts setup>
-import { useTheme } from '@/composables'
 import { FileNodesSymbol, InstanceFileNode } from '@/composables/instanceFileNodeData'
+import { kTheme } from '@/composables/theme'
 
 import { injection } from '@/util/inject'
 import { getExpectedSize } from '@/util/size'
@@ -72,11 +88,12 @@ defineProps<{
   value: string[]
   multiple?: boolean
   selectable?: boolean
+  openAll?: boolean
   search?: string
 }>()
 
 const { t } = useI18n()
-const { darkTheme } = useTheme()
+const { isDark } = injection(kTheme)
 
 const opened = ref([])
 
@@ -97,36 +114,16 @@ const translatedFiles = computed(() => ({
   logs: t('intro.struct.logs'),
   'optionsshaders.txt': t('intro.struct.optionShadersTxt'),
 } as Record<string, string>))
-const translatedMods = computed(() => ({
-  curseforge: t('exportModpackTarget.curseforge'),
-  modrinth: t('exportModpackTarget.modrinth'),
-  override: t('exportModpackTarget.override'),
-}))
 
 function getDescription(item: InstanceFileNode<any>) {
+  if (item.descrription) return item.descrription
   if (item.path in translatedFiles.value) {
     return translatedFiles.value[item.path]
-  }
-  if (item.path.startsWith('mods/')) {
-    let text = t('intro.struct.modJar')
-    if (item.data) {
-      if (item.data.curseforge) {
-        text += (' 🧬 ' + translatedMods.value.curseforge)
-      }
-      if (item.data.modrinth) {
-        text += (' 🧬 ' + translatedMods.value.modrinth)
-      }
-      if (!item.data.modrinth && !item.data.curseforge) {
-        text += (' 🧬 ' + translatedMods.value.override)
-      }
-    }
-    return text
   }
   return ''
 }
 watch(files, () => {
   opened.value = []
-  console.log(files.value)
 })
 </script>
 

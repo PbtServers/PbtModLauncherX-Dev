@@ -1,7 +1,8 @@
 <template>
   <div class="">
     <v-list
-      class="non-moveable w-full bg-transparent"
+      class="non-moveable w-full"
+      color="transparent"
       three-line
       subheader
     >
@@ -67,7 +68,7 @@
           @click="toggle"
         >
           <SetupLayoutPreview
-            :dark="vuetify.theme.dark"
+            :dark="isDark"
             :type="'default'"
           />
         </v-card>
@@ -81,7 +82,7 @@
           @click="toggle"
         >
           <SetupLayoutPreview
-            :dark="vuetify.theme.dark"
+            :dark="isDark"
             :type="'focus'"
           />
         </v-card>
@@ -104,14 +105,14 @@
 </template>
 <script lang=ts setup>
 import SetupLayoutPreview from '@/components/SetupLayoutPreview.vue'
+import { kTheme } from '@/composables/theme'
 import { kUILayout } from '@/composables/uiLayout'
-import { kVuetify } from '@/composables/vuetify'
 import { injection } from '@/util/inject'
 
 defineProps<{ value: string }>()
 
 const data = injection('setup' as any) as any
-const vuetify = injection(kVuetify)
+const { isDark } = injection(kTheme)
 
 const layoutModel = computed({
   get() { return layout.value === 'default' ? 0 : 1 },

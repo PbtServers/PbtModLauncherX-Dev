@@ -125,8 +125,23 @@ export interface ModrinthModpackManifest {
   dependencies: {
     minecraft: string
     forge?: string
+    neoforge?: string
     'fabric-loader'?: string
     'quilt-loader'?: string
+  }
+}
+
+export interface MMCModpackManifest {
+  json: {
+    components: Array<{
+      uid: 'net.minecraft' | 'net.minecraftforge' | 'net.fabricmc.fabric-loader' | 'net.quiltmc.quilt-loader' | 'net.neoforge'
+      version: string
+    }>
+    formatVersion: 1
+  }
+  cfg: {
+    name: string
+    notes: string
   }
 }
 
@@ -268,9 +283,30 @@ export function getInstanceConfigFromMcbbsModpack(manifest: McbbsModpackManifest
     minMemory: manifest.launchInfo ? Number(manifest.launchInfo.minMemory) : undefined,
   }
 }
+
+export function getInstanceConfigFromMmcModpack(manifest: MMCModpackManifest) {
+  const forge = manifest.json.components.find(c => c.uid === 'net.minecraftforge')
+  const fabric = manifest.json.components.find(c => c.uid === 'net.fabricmc.fabric-loader')
+  const quilt = manifest.json.components.find(c => c.uid === 'net.quiltmc.quilt-loader')
+  const neoForge = manifest.json.components.find(c => c.uid === 'net.neoforge')
+  return {
+    name: manifest.cfg.name,
+    modpackVersion: '',
+    runtime: {
+      minecraft: manifest.json.components.find(c => c.uid === 'net.minecraft')!.version,
+      forge: forge ? forge.version : '',
+      fabricLoader: fabric ? fabric.version : '',
+      quiltLoader: quilt ? quilt.version : '',
+      neoForged: neoForge ? neoForge.version : '',
+    },
+  }
+}
+
 export function getInstanceConfigFromCurseforgeModpack(manifest: CurseforgeModpackManifest) {
   const forgeId = manifest.minecraft.modLoaders.find(l => l.id.startsWith('forge'))
   const fabricId = manifest.minecraft.modLoaders.find(l => l.id.startsWith('fabric'))
+  const neoForgeId = manifest.minecraft.modLoaders.find(l => l.id.startsWith('neoforge'))
+  const quiltId = manifest.minecraft.modLoaders.find(l => l.id.startsWith('quilt'))
   return {
     name: `${manifest.name}-${manifest.version}`,
     modpackVersion: manifest.version,
@@ -278,9 +314,9 @@ export function getInstanceConfigFromCurseforgeModpack(manifest: CurseforgeModpa
     runtime: {
       minecraft: manifest.minecraft.version,
       forge: forgeId ? forgeId.id.substring(6) : '',
-      liteloader: '',
       fabricLoader: fabricId ? fabricId.id.substring(7) : '',
-      yarn: '',
+      neoForged: neoForgeId ? neoForgeId.id.substring(9) : '',
+      quiltLoader: quiltId ? quiltId.id.substring(6) : '',
     },
   }
 }
@@ -292,6 +328,7 @@ export function getInstanceConfigFromModrinthModpack(manifest: ModrinthModpackMa
     runtime: {
       minecraft: manifest.dependencies.minecraft,
       forge: manifest.dependencies.forge,
+      neoForged: manifest.dependencies.neoforge,
       fabricLoader: manifest.dependencies['fabric-loader'],
       quiltLoader: manifest.dependencies['quilt-loader'],
     },
@@ -309,22 +346,38 @@ export function getModrinthModpackFromInstance(instance: InstanceData): Modrinth
       forge: instance.runtime.forge || undefined,
       'fabric-loader': instance.runtime.fabricLoader || undefined,
       'quilt-loader': instance.runtime.quiltLoader || undefined,
+      neoforge: instance.runtime.neoForged || undefined,
     },
     files: [],
   }
 }
 export function getCurseforgeModpackFromInstance(instance: InstanceData): CurseforgeModpackManifest {
-  const modLoaders = instance.runtime.forge
-    ? [{
+  const modLoaders = [] as { id: string; primary: boolean }[]
+
+  if (instance.runtime.forge) {
+    modLoaders.push({
       id: `forge-${instance.runtime.forge}`,
       primary: true,
-    }]
-    : (instance.runtime.fabricLoader
-      ? [{
-        id: `fabric-${instance.runtime.fabricLoader}`,
-        primary: true,
-      }]
-      : [])
+    })
+  }
+  if (instance.runtime.fabricLoader) {
+    modLoaders.push({
+      id: `fabric-${instance.runtime.fabricLoader}`,
+      primary: true,
+    })
+  }
+  if (instance.runtime.neoForged) {
+    modLoaders.push({
+      id: `neoforge-${instance.runtime.neoForged}`,
+      primary: true,
+    })
+  }
+  if (instance.runtime.quiltLoader) {
+    modLoaders.push({
+      id: `quilt-${instance.runtime.quiltLoader}`,
+      primary: true,
+    })
+  }
 
   return {
     manifestType: 'minecraftModpack',

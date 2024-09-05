@@ -1,14 +1,14 @@
 <template>
-  <v-container
+  <div
     grid-list-lg
     fill-height
     class="resource-pack-preview-page"
   >
-    <v-layout
+    <div
       v-if="!loading"
       style="height: 100%"
     >
-      <v-flex
+      <div
         style="height: 100%"
         xs4
       >
@@ -20,18 +20,18 @@
             :data-component="PreviewItem"
           /> -->
         </v-list>
-      </v-flex>
-      <v-flex xs8>
+      </div>
+      <div xs8>
         <displayer
           v-if="data.displayed"
           :value="data.displayed"
         />
-        <v-layout
+        <div
           style="overflow-x: auto; max-height: 70px"
           row
           wrap
         >
-          <v-flex
+          <div
             v-for="item in selects"
             :key="item.name"
             xs4
@@ -42,12 +42,12 @@
               :label="item.name"
               hide-details
             />
-          </v-flex>
-        </v-layout>
-      </v-flex>
-    </v-layout>
+          </div>
+        </div>
+      </div>
+    </div>
     <refreshing-tile v-else />
-  </v-container>
+  </div>
 </template>
 
 <script lang=ts setup>
@@ -58,10 +58,10 @@ import Displayer from './ResourcePackPreviewDisplayer.vue'
 import PreviewItem from './ResourcePackPreviewItem.vue'
 import { useBlockModelPreview, useBlockStateModels } from '../composables/useBlockModelPreview'
 import { injection } from '@/util/inject'
-import { kInstanceVersion } from '@/composables/instanceVersion'
+import { kInstance } from '@/composables/instance'
 
 const text = ref('')
-const { minecraft } = injection(kInstanceVersion)
+const { runtime } = injection(kInstance)
 const { listBlockStates, loadModel } = useBlockModelPreview()
 const loading = ref(true)
 let current: any
@@ -72,7 +72,7 @@ const data = reactive({
 const block: Ref<BlockStateJson | undefined> = ref(undefined)
 const { selects, selected } = useBlockStateModels(block)
 loading.value = true
-listBlockStates(minecraft.value).then((json) => {
+listBlockStates(runtime.value.minecraft).then((json) => {
   data.models = json.map(j => Object.freeze({
     ...j,
     onClick() {

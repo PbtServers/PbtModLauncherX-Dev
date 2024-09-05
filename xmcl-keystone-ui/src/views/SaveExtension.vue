@@ -8,55 +8,49 @@
       'mb-2': compact,
     }"
   >
-    <!-- <span class="text-lg">{{ t('save.name', 2) }}</span> -->
+    <div class="flex flex-grow-0 flex-row items-center justify-center gap-1">
+      <AvatarItemList :items="items" />
+    </div>
     <v-spacer />
-    <v-text-field
-      class="max-w-60"
-      small
-      hide-details
-      outlined
-      filled
-      dense
-      prepend-inner-icon="search"
+    <MarketTextFieldWithMenu
+      :placeholder="t('save.search')"
+      :keyword.sync="keyword"
+      :curseforge-category.sync="curseforgeCategory"
+      curseforge-category-filter="worlds"
+      :modrinth-categories="[]"
+      :modrinth-category-filter="''"
+      :enable-curseforge.sync="isCurseforgeActive"
+      :sort.sync="sort"
+      :game-version.sync="gameVersion"
     />
-    <!-- <v-btn
-      text
-      @click="isCopyFromDialogShown = true"
-    >
-      <v-icon left>
-        input
-      </v-icon>
-      {{ t('save.copyFrom.title') }}
-    </v-btn>
-    <v-btn
-      text
-      @click="doImport"
-    >
-      <v-icon left>
-        move_to_inbox
-      </v-icon>
-      {{ t('save.import') }}
-    </v-btn> -->
   </div>
 </template>
 
 <script lang="ts" setup>
+import AvatarItemList from '@/components/AvatarItemList.vue'
+import MarketTextFieldWithMenu from '@/components/MarketTextFieldWithMenu.vue'
+import { kInstance } from '@/composables/instance'
+import { kInstanceSave } from '@/composables/instanceSave'
+import { kSaveSearch } from '@/composables/savesSearch'
 import { kCompact } from '@/composables/scrollTop'
+import { getExtensionItemsFromRuntime } from '@/util/extensionItems'
 import { injection } from '@/util/inject'
 
-// const { importSave } = useInstanceSaves()
+const { keyword, curseforge, gameVersion, curseforgeCategory, isCurseforgeActive, sort } = injection(kSaveSearch)
+
+const { runtime: version } = injection(kInstance)
+const { isInstanceLinked } = injection(kInstanceSave)
 const { t } = useI18n()
-const { showOpenDialog } = windowController
-// const { isShown: isCopyFromDialogShown } = useDialog('save-copy-from')
-// async function doImport() {
-//   const { filePaths } = await showOpenDialog({
-//     title: t('save.importTitle'),
-//     message: t('save.importMessage'),
-//     filters: [{ extensions: ['zip'], name: 'zip' }],
-//   })
-//   for (const file of filePaths) {
-//     importSave({ path: file })
-//   }
-// }
+
+const items = computed(() => {
+  return [
+    ...getExtensionItemsFromRuntime({ minecraft: version.value.minecraft }),
+    {
+      icon: isInstanceLinked.value ? 'account_tree' : 'looks_one',
+      title: t('save.name', 2),
+      text: isInstanceLinked.value ? t('save.shared') : t('save.independent'),
+    },
+  ]
+})
 const compact = injection(kCompact)
 </script>

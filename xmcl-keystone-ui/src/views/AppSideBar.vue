@@ -21,64 +21,20 @@
           arrow_back
         </v-icon>
       </v-list-item>
-      <v-list-group
-        v-model="expanding"
+
+      <v-list-item
+        id="my-stuff-button"
         v-shared-tooltip.right="_ => t('myStuff')"
-        active-class="v-list-item--link"
-        class="non-moveable avatar"
+        link
+        push
+        to="/me"
+        class="non-moveable"
       >
-        <template #activator>
-          <v-list-item-icon>
-            <v-icon> widgets </v-icon>
-          </v-list-item-icon>
-        </template>
-
-        <v-list-item
-          v-shared-tooltip.right="_ => t('modpack.name', 2) + ' & ' + t('localVersion.title')"
-          link
-          push
-          to="/local-resources"
-          class="non-moveable"
-        >
-          <v-list-item-icon>
-            <v-icon> inventory </v-icon>
-          </v-list-item-icon>
-          <v-list-item-title v-text="'Text'" />
-        </v-list-item>
-
-        <v-list-item
-          v-if="sideBarShowCurseforge"
-          v-shared-tooltip.right="'Curseforge'"
-          link
-          class="non-moveable"
-          @click="goToCurseforge()"
-        >
-          <v-list-item-icon>
-            <v-icon
-              :size="28"
-              class="mr-0.5"
-            >
-              $vuetify.icons.curseforge
-            </v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>Curseforge</v-list-item-title>
-        </v-list-item>
-
-        <v-list-item
-          v-if="sideBarShowModrinth"
-          v-shared-tooltip.right="'Modrinth'"
-          link
-          class="non-moveable"
-          @click="goToModrinth()"
-        >
-          <v-list-item-icon>
-            <v-icon>
-              $vuetify.icons.modrinth
-            </v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>Modrinth</v-list-item-title>
-        </v-list-item>
-      </v-list-group>
+        <v-list-item-icon>
+          <v-icon> widgets </v-icon>
+        </v-list-item-icon>
+        <v-list-item-title v-text="'Text'" />
+      </v-list-item>
       <v-list-item
         v-if="true"
         v-shared-tooltip.right="_ => t('store.name', 2)"
@@ -110,10 +66,9 @@
     >
       <v-list-item
         v-shared-tooltip.right="_ => t('multiplayer.name')"
-        push
         link
         class="non-moveable"
-        to="/multiplayer"
+        @click="goMultiplayer"
       >
         <v-list-item-icon>
           <v-icon
@@ -157,40 +112,29 @@
 </template>
 
 <script lang=ts setup>
-import { useLocalStorageCacheBool } from '@/composables/cache'
 import { kSettingsState } from '@/composables/setting'
-import { kMarketRoute } from '@/composables/useMarketRoute'
 import { injection } from '@/util/inject'
-import { useBarBlur } from '../composables/background'
-import { kColorTheme } from '../composables/colorTheme'
 import { kUILayout } from '../composables/uiLayout'
 import AppSideBarContentFocus from './AppSideBarContentFocus.vue'
 import AppSideBarContentNext from './AppSideBarContentNext.vue'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
+import { kTheme } from '@/composables/theme'
 
-const { blurSidebar } = useBarBlur()
+const { blurSidebar } = injection(kTheme)
 const layout = injection(kUILayout)
 const useFocus = computed(() => layout.value === 'focus')
 const { state } = injection(kSettingsState)
 
-const sideBarShowCurseforge = useLocalStorageCacheBool('sideBarShowCurseforge', true)
-const sideBarShowModrinth = useLocalStorageCacheBool('sideBarShowModrinth', true)
-
 const { t } = useI18n()
-const { sideBarColor } = injection(kColorTheme)
-const { push, back, currentRoute } = useRouter()
-const expanding = ref(false)
-
-const navToMe = () => {
-  if (currentRoute.path !== 'me') {
-    push('/me')
-  }
-}
-
-const { goToCurseforge, goToModrinth, goToFtb } = injection(kMarketRoute)
+const { sideBarColor } = injection(kTheme)
+const { back } = useRouter()
 
 function goBack() {
   back()
+}
+
+function goMultiplayer() {
+  windowController.openMultiplayerWindow()
 }
 
 </script>
@@ -213,7 +157,7 @@ function goBack() {
 
 .sidebar .v-list .v-list-item--active, .v-list .v-list-item--active .v-icon {
   /* color: #4caf50 !important; */
-  color: var(--primary);
+  color: var(--color-primary);
 }
 
 .sidebar .v-list-item--link:before {

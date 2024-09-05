@@ -1,7 +1,10 @@
 <template>
   <v-dialog
     v-model="isShown"
-    class="mx-20"
+    fullscreen
+    hide-overlay
+    transition="dialog-bottom-transition"
+    scrollable
   >
     <v-stepper
       v-model="step"
@@ -112,14 +115,14 @@
   </v-dialog>
 </template>
 <script lang=ts setup>
-import { useRefreshable, useService, useServiceBusy } from '@/composables'
+import { useRefreshable } from '@/composables'
+import { kPeerState } from '@/composables/peers'
 import { kUserContext } from '@/composables/user'
 import { injection } from '@/util/inject'
-import { createAnswerAppUrl, PeerServiceKey } from '@xmcl/runtime-api'
+import { createAnswerAppUrl } from '@xmcl/runtime-api'
 import { useDialog } from '../composables/dialog'
-import { kPeerState } from '@/composables/peers'
 
-const { isShown, dialog } = useDialog('peer-receive')
+const { isShown, parameter } = useDialog('peer-receive')
 const { gameProfile } = injection(kUserContext)
 const { connections, setRemoteDescription } = injection(kPeerState)
 
@@ -139,8 +142,8 @@ const error = computed(() => !!errorText.value)
 const copied = ref(false)
 
 watch(isShown, (v) => {
-  if (v && typeof dialog.value.parameter === 'string') {
-    id.value = dialog.value.parameter as string
+  if (v && typeof parameter.value === 'string') {
+    id.value = parameter.value as string
     step.value = 2
   } else {
     copied.value = false
@@ -154,9 +157,7 @@ function copyLocalDescription() {
   copied.value = true
 }
 
-const answering = useServiceBusy(PeerServiceKey, 'setRemoteDescription')
-
-const { refresh: answer } = useRefreshable(async () => {
+const { refresh: answer, refreshing: answering } = useRefreshable(async () => {
   errorText.value = ''
   try {
     if (!remoteDescription.value) {

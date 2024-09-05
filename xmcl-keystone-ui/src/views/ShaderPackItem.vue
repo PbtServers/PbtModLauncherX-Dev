@@ -5,7 +5,8 @@
     :selected="selected"
     :has-update="hasUpdate"
     :checked="checked"
-    :height="80"
+    :dense="dense"
+    :height="itemHeight"
     :get-context-menu-items="getContextMenuItems"
     :install="install"
     @click="emit('click', $event)"
@@ -13,12 +14,12 @@
   />
 </template>
 <script setup lang="ts">
-import { ShaderPackProject } from '@/composables/shaderPackSearch'
 import MarketItem from '@/components/MarketItem.vue'
-import { ContextMenuItem } from '@/composables/contextMenu'
-import { useMarketRoute } from '@/composables/useMarketRoute'
-import { BaseServiceKey, ResourceServiceKey } from '@xmcl/runtime-api'
 import { useService } from '@/composables'
+import { ContextMenuItem } from '@/composables/contextMenu'
+import { ShaderPackProject } from '@/composables/shaderPackSearch'
+import { ProjectEntry } from '@/util/search'
+import { BaseServiceKey, ResourceServiceKey } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   pack: ShaderPackProject
@@ -26,7 +27,9 @@ const props = defineProps<{
   checked: boolean
   selected: boolean
   hasUpdate?: boolean
-  install: (p: ShaderPackProject) => Promise<void>
+  dense?: boolean
+  itemHeight?: number
+  install: (p: ProjectEntry) => Promise<void>
 }>()
 
 const emit = defineEmits<{
@@ -35,13 +38,12 @@ const emit = defineEmits<{
   (event: 'install', pack: ShaderPackProject): void
 }>()
 
-const { goModrinthProject } = useMarketRoute()
 const { t } = useI18n()
 const { removeResources } = useService(ResourceServiceKey)
 const { showItemInDirectory } = useService(BaseServiceKey)
 const getContextMenuItems = () => {
   const all = [] as ContextMenuItem[]
-  const id = props.pack.modrinth?.project_id || props.pack.modrinthProjectId
+  // const id = props.pack.modrinth?.project_id || props.pack.modrinthProjectId
   if (props.pack.installed.length > 0) {
     all.push({
       text: t('delete.name', { name: props.pack.title }),
@@ -58,15 +60,15 @@ const getContextMenuItems = () => {
       icon: 'folder',
     })
   }
-  if (id) {
-    all.push({
-      text: t('mod.showInModrinth'),
-      onClick: () => {
-        goModrinthProject(id)
-      },
-      icon: '$vuetify.icons.modrinth',
-    })
-  }
+  // if (id) {
+  //   all.push({
+  //     text: t('mod.showInModrinth'),
+  //     onClick: () => {
+  //       goModrinthProject(id)
+  //     },
+  //     icon: '$vuetify.icons.modrinth',
+  //   })
+  // }
   return all
 }
 

@@ -22,16 +22,17 @@
     @dragstart="onDragStart"
     @dragend="onDragEnd"
     @drop="onDrop"
-    @click="emit('click')"
+    @click="emit('click', $event)"
   >
-    <v-list-item-avatar v-if="!selectionMode">
+    <v-list-item-avatar :size="dense ? 30 : 40">
       <img
         ref="iconImage"
+        v-fallback-img="BuiltinImages.unknownServer"
         :class="{ 'opacity-20': item.installed.length === 0 && hover }"
-        :src="icon || item.icon || unknownServer"
+        :src="icon || item.icon || BuiltinImages.unknownServer"
       >
       <v-btn
-        v-if="item.installed.length === 0"
+        v-if="install && item.installed.length === 0"
         class="absolute"
         large
         icon
@@ -46,13 +47,6 @@
         </v-icon>
       </v-btn>
     </v-list-item-avatar>
-    <v-list-item-action v-else>
-      <v-checkbox
-        v-model="isChecked"
-        hide-details
-        @click.stop
-      />
-    </v-list-item-action>
     <v-list-item-content>
       <v-badge
         class="w-full"
@@ -70,6 +64,14 @@
             v-if="item.installed.length > 0 && getContextMenuItems"
           >
             <div class="flex-grow" />
+            <v-icon
+              v-if="hasDuplicate"
+              v-shared-tooltip="props.item.installed.map(v => basename(v.path)).join(', ')"
+              size="15"
+              color="red"
+            >
+              warning
+            </v-icon>
             <v-btn
               x-small
               icon
@@ -83,9 +85,15 @@
               </v-icon>
             </v-btn>
           </template>
+          <template v-else-if="dense">
+            <div class="flex-grow" />
+            <v-icon small>
+              {{ item.modrinth || item.modrinthProjectId ? '$vuetify.icons.modrinth' : '$vuetify.icon.curseforge' }}
+            </v-icon>
+          </template>
         </v-list-item-title>
       </v-badge>
-      <v-list-item-subtitle>
+      <v-list-item-subtitle v-if="!dense">
         <template v-if="description">
           {{ description }}
         </template>
@@ -96,7 +104,10 @@
           {{ item.description }}
         </template>
       </v-list-item-subtitle>
-      <v-list-item-subtitle class="invisible-scroll flex flex-grow-0 gap-2">
+      <v-list-item-subtitle
+        v-if="!dense"
+        class="invisible-scroll flex flex-grow-0 gap-2"
+      >
         <slot
           v-if="slots.labels"
           name="labels"
@@ -135,7 +146,6 @@
 </template>
 
 <script lang="ts" setup>
-import unknownServer from '@/assets/unknown_server.png'
 import { ContextMenuItem, useContextMenu } from '@/composables/contextMenu'
 import { getCurseforgeProjectModel } from '@/composables/curseforge'
 import { getModrinthProjectModel } from '@/composables/modrinthProject'
@@ -148,32 +158,27 @@ import { getExpectedSize } from '@/util/size'
 import { getSWRV } from '@/util/swrvGet'
 import { Ref } from 'vue'
 import TextComponent from './TextComponent'
+import { Resource } from '@xmcl/runtime-api'
+import { basename } from '@/util/basename'
+import { vFallbackImg } from '@/directives/fallbackImage'
+import { BuiltinImages } from '@/constant'
 
 const props = defineProps<{
   item: ProjectEntry<ProjectFile>
   selectionMode: boolean
   checked: boolean
   selected: boolean
+  dense?: boolean
   hasUpdate?: boolean
   height?: number
   draggable?: boolean
-  install: (p: ProjectEntry) => Promise<void>
+  install?: (p: ProjectEntry) => Promise<void>
   getContextMenuItems?: () => ContextMenuItem[]
 }>()
 const slots = useSlots()
-const emit = defineEmits(['click', 'checked', 'drop', 'install'])
+const emit = defineEmits(['click', 'checked', 'drop'])
 
 const hover = ref(false)
-
-const isChecked = computed({
-  get() {
-    return props.checked
-  },
-  set(v) {
-    emit('checked', v)
-  },
-})
-
 const config = injection(kSWRVConfig)
 const icon = ref(undefined as undefined | string)
 const title = ref(undefined as undefined | string)
@@ -181,6 +186,8 @@ const description = ref(undefined as undefined | string)
 const downloadCount = ref(undefined as undefined | number)
 const followerCount = ref(undefined as undefined | number)
 const { open } = useContextMenu()
+
+const hasDuplicate = computed(() => props.item.installed.length > 1)
 
 const dragover = ref(0)
 const onDragEnter = (e: DragEvent) => {
@@ -247,7 +254,7 @@ watch(() => props.item, (newMod) => {
   }
 }, { immediate: true })
 const { t } = useI18n()
-const tooltip = computed(() => props.hasUpdate ? t('mod.hasUpdate') : props.item.description || props.item.title)
+const tooltip = computed(() => props.hasUpdate ? t('mod.hasUpdate') : props.item.description.trim() || props.item.title.trim())
 const onSettingClick = (event: MouseEvent) => {
   const button = event.target as any // Get the button element
   const rect = button.getBoundingClientRect() // Get the position of the button
@@ -291,11 +298,14 @@ const tags = computed(() => {
       icon: '$vuetify.icons.curseforge',
     })
   }
-  if (props.item.files && props.item.files.length > 0 && props.item.files[0].resource.size) {
-    tags.push({
-      icon: 'storage',
-      text: getExpectedSize(props.item.files[0].resource.size),
-    })
+  if (props.item.files && props.item.files.length > 0 && props.item.files[0]) {
+    if ('resource' in props.item.files[0]) {
+      const res = props.item.files[0].resource as Resource
+      tags.push({
+        icon: 'storage',
+        text: getExpectedSize(res.size),
+      })
+    }
   }
 
   return tags
@@ -305,7 +315,7 @@ const installing = ref(false)
 const onInstall = async () => {
   try {
     installing.value = true
-    await props.install(props.item)
+    await props.install?.(props.item)
   } finally {
     // Delay for the local file to be updated
     setTimeout(() => {

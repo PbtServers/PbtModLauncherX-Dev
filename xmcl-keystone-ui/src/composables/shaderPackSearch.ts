@@ -1,12 +1,15 @@
+import { basename } from '@/util/basename'
 import { clientModrinthV2 } from '@/util/clients'
 import { ProjectEntry, ProjectFile } from '@/util/search'
 import { InstanceData, ResourceDomain, ResourceServiceKey } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
+import { InstanceShaderFile } from './instanceShaderPack'
 import { useMarketSort } from './marketSort'
 import { useModrinthSearch } from './modrinthSearch'
+import { searlizers, useQueryOverride } from './query'
 import { useDomainResources } from './resources'
 import { useService } from './service'
-import { useAggregateProjects, useProjectsFilterSearch } from './useAggregateProjects'
+import { useAggregateProjectsSplitted, useProjectsFilterSort } from './useAggregateProjects'
 
 export const kShaderPackSearch: InjectionKey<ReturnType<typeof useShaderPackSearch>> = Symbol('ShaderPackSearch')
 
@@ -18,15 +21,15 @@ export enum ShaderLoaderFilter {
 /**
  * Represent a mod project
  */
-export type ShaderPackProject = ProjectEntry
+export type ShaderPackProject = ProjectEntry<InstanceShaderFile>
 
-function useLocalSearch(shaderPack: Ref<string | undefined>) {
+function useLocalSearch(shaderPack: Ref<string | undefined>, keyword: Ref<string>) {
   const { resources: shaderFiles } = useDomainResources(ResourceDomain.ShaderPacks)
 
   const shaderProjectFiles = computed(() => {
     return shaderFiles.value.map(s => {
       const enabled = shaderPack.value === s.fileName
-      const file: ProjectFile = markRaw({
+      const file: InstanceShaderFile = markRaw({
         path: s.path,
         version: '',
         resource: s,
@@ -39,28 +42,16 @@ function useLocalSearch(shaderPack: Ref<string | undefined>) {
   })
 
   const { updateResources } = useService(ResourceServiceKey)
-  watch(shaderFiles, async (files) => {
-    const absent = files.filter(f => !f.metadata.modrinth)
-    const versions = await clientModrinthV2.getProjectVersionsByHash(absent.map(a => a.hash))
-    const options = Object.entries(versions).map(([hash, version]) => {
-      const f = files.find(f => f.hash === hash)
-      if (f) return { hash: f.hash, metadata: { modrinth: { projectId: version.project_id, versionId: version.id } } }
-      return undefined
-    }).filter((v): v is any => !!v)
-    if (options.length > 0) {
-      console.log('update shader packs', options)
-      updateResources(options)
-    }
-  }, { immediate: true })
 
   const result = computed(() => {
     const indices: Record<string, ShaderPackProject> = {}
-    const _all: ShaderPackProject[] = []
+    const _enabled: ShaderPackProject[] = markRaw([])
+    const _disabled: ShaderPackProject[] = markRaw([])
 
-    const getFromResource = (m: ProjectFile) => {
+    const getFromResource = (m: InstanceShaderFile) => {
       const curseforgeId = m.curseforge?.projectId
       const modrinthId = m.modrinth?.projectId
-      const name = m.resource.name
+      const name = basename(m.path)
       const obj = indices[name] || (modrinthId && indices[modrinthId]) || (curseforgeId && indices[curseforgeId])
       if (obj) {
         obj.installed?.push(m)
@@ -93,69 +84,134 @@ function useLocalSearch(shaderPack: Ref<string | undefined>) {
     }
 
     for (const m of shaderProjectFiles.value) {
+      if (!m.resource.fileName.toLowerCase().includes(keyword.value.toLowerCase())) {
+        continue
+      }
       const mod = getFromResource(m)
       if (mod) {
-        _all.push(mod)
+        if (m.enabled) {
+          _enabled.push(mod)
+        } else {
+          _disabled.push(mod)
+        }
       }
     }
 
-    return markRaw(_all)
+    return [
+      _enabled,
+      _disabled,
+    ]
   })
 
   const loadingCached = ref(false)
 
+  function effect() {
+    watch(shaderFiles, async (files) => {
+      const absent = files.filter(f => !f.metadata.modrinth)
+      const versions = await clientModrinthV2.getProjectVersionsByHash(absent.map(a => a.hash))
+      const options = Object.entries(versions).map(([hash, version]) => {
+        const f = files.find(f => f.hash === hash)
+        if (f) return { hash: f.hash, metadata: { modrinth: { projectId: version.project_id, versionId: version.id } } }
+        return undefined
+      }).filter((v): v is any => !!v)
+      if (options.length > 0) {
+        console.log('update shader packs', options)
+        updateResources(options)
+      }
+    }, { immediate: true })
+  }
+
   return {
     shaderProjectFiles,
-    cached: result,
+    enabled: computed(() => result.value[0]),
+    disabled: computed(() => result.value[1]),
     loadingCached,
     shaderFiles,
+    effect,
   }
 }
 
 export function useShaderPackSearch(runtime: Ref<InstanceData['runtime']>, shaderPack: Ref<string | undefined>) {
-  const shaderLoaderFilters = ref(['iris', 'optifine'] as ShaderLoaderFilter[])
   const keyword: Ref<string> = ref('')
+  const gameVersion = ref('')
+  const shaderLoaderFilters = ref(['iris', 'optifine'] as ShaderLoaderFilter[])
   const modrinthCategories = ref([] as string[])
   const isCurseforgeActive = ref(true)
   const isModrinthActive = ref(true)
-  const { sort, modrinthSort } = useMarketSort(0)
+  const sort = ref(0)
+  const { modrinthSort } = useMarketSort(sort)
 
-  const { loadMoreModrinth, loadingModrinth, modrinth, modrinthError } = useModrinthSearch<ShaderPackProject>('shader', keyword, shaderLoaderFilters, modrinthCategories, modrinthSort, runtime)
-  const { cached, loadingCached, shaderProjectFiles } = useLocalSearch(shaderPack)
+  const { loadMoreModrinth, loadingModrinth, modrinth, modrinthError, effect: modrinthEffect } = useModrinthSearch<ShaderPackProject>('shader', keyword, shaderLoaderFilters, modrinthCategories, modrinthSort, gameVersion)
+  const { enabled, disabled, loadingCached, shaderProjectFiles, effect: localEffect } = useLocalSearch(shaderPack, keyword)
   const loading = computed(() => loadingModrinth.value || loadingCached.value)
 
-  const all = useAggregateProjects(
+  function effect() {
+    modrinthEffect()
+    localEffect()
+
+    useQueryOverride('keyword', keyword, '', searlizers.string)
+    useQueryOverride('gameVersion', gameVersion, computed(() => runtime.value.minecraft), searlizers.string)
+    useQueryOverride('modrinthCategories', modrinthCategories, [], searlizers.stringArray)
+    useQueryOverride('shaderLoaderFilters', shaderLoaderFilters, ['iris', 'optifine'], searlizers.stringArray)
+    useQueryOverride('isCurseforgeActive', isCurseforgeActive, true, searlizers.boolean)
+    useQueryOverride('isModrinthActive', isModrinthActive, true, searlizers.boolean)
+    useQueryOverride('sort', sort, 0, searlizers.number)
+  }
+
+  const {
+    installed,
+    notInstalledButCached,
+    others,
+  } = useAggregateProjectsSplitted(
     modrinth,
     ref([]),
-    ref([]),
-    cached,
+    disabled,
+    enabled,
   )
 
-  const networkOnly = computed(() => keyword.value.length > 0 || modrinthCategories.value.length > 0)
+  const networkOnly = computed(() => modrinthCategories.value.length > 0)
 
-  const items = useProjectsFilterSearch(
+  const _installed = useProjectsFilterSort(
     keyword,
-    all,
+    installed,
+    networkOnly,
+    isCurseforgeActive,
+    isModrinthActive,
+  )
+  const _notInstalledButCached = useProjectsFilterSort(
+    keyword,
+    notInstalledButCached,
+    networkOnly,
+    isCurseforgeActive,
+    isModrinthActive,
+  )
+  const _others = useProjectsFilterSort(
+    keyword,
+    others,
     networkOnly,
     isCurseforgeActive,
     isModrinthActive,
   )
 
   return {
-    networkOnly,
+    gameVersion,
     shaderProjectFiles,
     modrinthCategories,
     shaderLoaderFilters,
-    items,
+
+    enabled: _installed,
+    disabled: _notInstalledButCached,
+    others: _others,
+
     loadMoreModrinth,
     sort,
     isModrinthActive,
     modrinthError,
     loadingModrinth,
-    cached,
     loadingCached,
     modrinth,
     keyword,
     loading,
+    effect,
   }
 }

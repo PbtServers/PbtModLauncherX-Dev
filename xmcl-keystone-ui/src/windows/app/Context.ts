@@ -1,38 +1,36 @@
-import { kSemaphores, useExternalRoute, useI18nSync, useSemaphores, useThemeSync } from '@/composables'
-import { kColorTheme, useColorTheme } from '@/composables/colorTheme'
+import { useI18nSync } from '@/composables'
 import { kExceptionHandlers, useExceptionHandlers } from '@/composables/exception'
 import { kImageDialog, useImageDialog } from '@/composables/imageDialog'
 import { kInstance, useInstance } from '@/composables/instance'
 import { kInstances, useInstances } from '@/composables/instances'
 import { kNotificationQueue, useNotificationQueue } from '@/composables/notifier'
+import { kPeerState, usePeerState } from '@/composables/peers'
 import { kServerStatusCache, useServerStatusCache } from '@/composables/serverStatus'
 import { kSettingsState, useSettingsState } from '@/composables/setting'
+import { kTheme, useTheme } from '@/composables/theme'
 import { kUILayout, useUILayout } from '@/composables/uiLayout'
-import { kMarketRoute, useMarketRoute } from '@/composables/useMarketRoute'
+import { kUserContext, useUserContext } from '@/composables/user'
 import { kLocalVersions, useLocalVersions } from '@/composables/versionLocal'
-import { kVuetify } from '@/composables/vuetify'
 import { vuetify } from '@/vuetify'
-import 'virtual:windi.css'
+import 'virtual:uno.css'
 import { provide } from 'vue'
 
 export default defineComponent({
   setup(props, ctx) {
-    provide(kVuetify, vuetify.framework)
-    provide(kSemaphores, useSemaphores())
     provide(kExceptionHandlers, useExceptionHandlers())
     provide(kServerStatusCache, useServerStatusCache())
     provide(kNotificationQueue, useNotificationQueue())
 
-    provide(kColorTheme, useColorTheme(computed(() => vuetify.framework.theme.dark)))
+    provide(kTheme, useTheme(vuetify.framework))
 
     const settings = useSettingsState()
     provide(kSettingsState, settings)
 
     useI18nSync(vuetify.framework, settings.state)
-    useThemeSync(vuetify.framework, settings.state)
 
-    const router = useRouter()
-    useExternalRoute(router)
+    const userContext = useUserContext()
+    provide(kUserContext, userContext)
+    provide(kPeerState, usePeerState(userContext.gameProfile))
 
     provide(kLocalVersions, useLocalVersions())
     const instances = useInstances()
@@ -41,7 +39,6 @@ export default defineComponent({
 
     provide(kUILayout, useUILayout())
     provide(kImageDialog, useImageDialog())
-    provide(kMarketRoute, useMarketRoute())
 
     return () => ctx.slots.default?.()
   },

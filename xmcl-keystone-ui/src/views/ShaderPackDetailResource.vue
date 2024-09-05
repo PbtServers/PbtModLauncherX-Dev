@@ -3,7 +3,7 @@ import MarketProjectDetail, { Info, ProjectDetail } from '@/components/MarketPro
 import { ProjectVersion } from '@/components/MarketProjectDetailVersion.vue'
 import { useService } from '@/composables'
 import { kInstanceShaderPacks } from '@/composables/instanceShaderPack'
-import { useModDetailUpdate } from '@/composables/modDetail'
+import { useProjectDetailUpdate } from '@/composables/projectDetail'
 import { ShaderPackProject } from '@/composables/shaderPackSearch'
 import { injection } from '@/util/inject'
 import { getExpectedSize } from '@/util/size'
@@ -79,12 +79,13 @@ const model = computed(() => {
     url: '',
     htmlContent: props.shaderPack.description,
     installed: !!props.shaderPack.installed,
+    modLoaders: [],
     enabled: true,
   })
   return result
 })
 
-const updating = useModDetailUpdate()
+const updating = useProjectDetailUpdate()
 
 const { shaderPack: selectedShaderPack } = injection(kInstanceShaderPacks)
 const { removeResources } = useService(ResourceServiceKey)

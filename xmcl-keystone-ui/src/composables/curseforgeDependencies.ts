@@ -7,33 +7,50 @@ import { Ref } from 'vue'
 import { getCurseforgeProjectFilesModel, getCurseforgeProjectModel } from './curseforge'
 import { kSWRVConfig } from './swrvConfig'
 import { kTaskManager } from './taskManager'
+import { getModLoaderTypesForFile } from '@/util/curseforge'
 
 type ProjectDependency = {
+  /**
+   * The type of the dependency relative to the root mod
+   */
   type: FileRelationType
+  /**
+   * The type of the dependency relative to the parent mod
+   */
+  relativeType: FileRelationType
   file: File
   files: File[]
   project: Mod
+  parent: Mod
 }
 
 const visit = async (dep: ProjectDependency, modLoaderType: Ref<FileModLoaderType>, gameVersion: Ref<string | undefined>, visited: Set<number>, config = injection(kSWRVConfig)): Promise<ProjectDependency[]> => {
   const { file } = dep
+  if (dep.relativeType === FileRelationType.EmbeddedLibrary ||
+    dep.relativeType === FileRelationType.Include ||
+    dep.relativeType === FileRelationType.Incompatible
+  ) {
+    return []
+  }
   if (visited.has(file.modId)) {
     return []
   }
   visited.add(file.modId)
 
-  const dependencies = await Promise.all(file.dependencies.map(async (dep) => {
+  const dependencies = await Promise.all(file.dependencies.map(async (d) => {
     try {
-      const modLoaderTypes = getModLoaderTypes(file)
+      const modLoaderTypes = getModLoaderTypesForFile(file)
       const loaderType = modLoaderTypes.has(modLoaderType.value) ? modLoaderType.value : FileModLoaderType.Any
-      const project = await getSWRV(getCurseforgeProjectModel(ref(dep.modId)), config)
-      const files = await getSWRV(getCurseforgeProjectFilesModel(ref(dep.modId), gameVersion, ref(loaderType)), config)
+      const project = await getSWRV(getCurseforgeProjectModel(ref(d.modId)), config)
+      const files = await getSWRV(getCurseforgeProjectFilesModel(ref(d.modId), gameVersion, ref(loaderType)), config)
       if (project && files) {
         return await visit({
-          type: dep.relationType,
+          type: dep.relativeType || d.relationType,
           files: files.data,
           file: files.data[0],
+          relativeType: d.relationType,
           project,
+          parent: dep.project,
         }, modLoaderType, gameVersion, visited, config)
       }
     } catch (e) {
@@ -42,24 +59,6 @@ const visit = async (dep: ProjectDependency, modLoaderType: Ref<FileModLoaderTyp
   }))
 
   return [dep, ...dependencies.reduce((a, b) => a.concat(b), [])]
-}
-
-function getModLoaderTypes(file: File) {
-  const modLoaderTypes = new Set<FileModLoaderType>()
-  if (file.sortableGameVersions) {
-    for (const ver of file.sortableGameVersions) {
-      if (ver.gameVersionName === 'Forge') {
-        modLoaderTypes.add(FileModLoaderType.Forge)
-      } else if (ver.gameVersionName === 'Fabric') {
-        modLoaderTypes.add(FileModLoaderType.Fabric)
-      } else if (ver.gameVersionName === 'Quilt') {
-        modLoaderTypes.add(FileModLoaderType.Quilt)
-      } else if (ver.gameVersionName === 'LiteLoader') {
-        modLoaderTypes.add(FileModLoaderType.LiteLoader)
-      }
-    }
-  }
-  return modLoaderTypes
 }
 
 export function getCurseforgeDependenciesModel(fileRef: Ref<File | undefined>, gameVersion: Ref<string | undefined>, modLoaderType: Ref<FileModLoaderType>, config = injection(kSWRVConfig)) {

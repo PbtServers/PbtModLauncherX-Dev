@@ -1,26 +1,43 @@
 <template>
   <MarketBase
     :items="displayItems"
-    :item-height="76"
+    :item-height="itemHeight"
     :plans="{}"
     :class="{
       dragover,
     }"
     :error="modrinthError"
     :loading="loading"
+    @load="onLoad"
   >
-    <template #item="{ item, hasUpdate, checked, selectionMode, selected, on }">
+    <template #item="{ item, hasUpdate, checked, selectionMode, selected, on, index }">
       <v-subheader
         v-if="typeof item === 'string'"
-        class="h-[76px]"
+        class="flex"
+        :style="{ height: itemHeight + 'px' }"
       >
-        {{ item === 'enabled' ? t("resourcepack.selected") : t("resourcepack.unselected") }}
+        {{
+          item === 'enabled' ? t("resourcepack.selected") :
+          item === 'disabled' ? t("resourcepack.unselected") :
+          t("modInstall.search")
+        }}
+        <div class="flex-grow" />
+        <v-btn
+          v-if="index === 0"
+          v-shared-tooltip="_ => t('mod.denseView')"
+          icon
+          @click="denseView = !denseView"
+        >
+          <v-icon> {{ denseView ? 'reorder' : 'list' }} </v-icon>
+        </v-btn>
       </v-subheader>
       <ResourcePackItem
         v-else-if="(typeof item === 'object')"
         :pack="item"
+        :dense="denseView"
         :draggable="!networkOnly && !item.disabled"
         :selection-mode="selectionMode"
+        :item-height="itemHeight"
         :selected="selected"
         :has-update="hasUpdate"
         :checked="checked"
@@ -33,19 +50,19 @@
       <Hint
         v-if="dragover"
         icon="save_alt"
-        :text="
-          t('resourcepack.dropHint')"
+        :text="t('resourcepack.dropHint')"
         class="h-full"
       />
       <MarketProjectDetailModrinth
-        v-else-if="selectedItem && (selectedItem.modrinth || selectedModrinthId)"
-        :modrinth="selectedItem.modrinth"
+        v-else-if="selectedItem?.modrinth || selectedModrinthId"
+        :modrinth="selectedItem?.modrinth"
         :project-id="selectedModrinthId"
-        :installed="selectedItem.installed"
+        :installed="selectedItem?.installed || getInstalledModrinth(selectedItem?.modrinth?.project_id || selectedModrinthId)"
+        :game-version="gameVersion"
         :loaders="modrinthLoaders"
         :categories="modrinthCategories"
-        :runtime="runtime"
         :all-files="files"
+        :curseforge="selectedItem?.curseforge?.id || selectedCurseforgeId"
         @install="onInstall"
         @uninstall="onUninstall"
         @enable="onEnable"
@@ -53,14 +70,15 @@
         @category="toggleCategory"
       />
       <MarketProjectDetailCurseforge
-        v-else-if="selectedItem && selectedCurseforgeId"
-        :curseforge="selectedItem.curseforge"
-        :curseforge-id="selectedItem.curseforge?.id || selectedCurseforgeId"
-        :installed="selectedItem.installed"
+        v-else-if="selectedItem?.curseforge || selectedCurseforgeId"
+        :curseforge="selectedItem?.curseforge"
+        :curseforge-id="Number(selectedItem?.curseforge?.id || selectedCurseforgeId)"
+        :installed="selectedItem?.installed || getInstalledCurseforge(Number(selectedItem?.curseforge?.id || selectedCurseforgeId))"
         :loaders="[]"
+        :game-version="gameVersion"
         :category="curseforgeCategory"
-        :runtime="runtime"
         :all-files="files"
+        :modrinth="selectedItem?.modrinth?.project_id || selectedModrinthId"
         @install="onInstall"
         @uninstall="onUninstall"
         @enable="onEnable"
@@ -73,19 +91,17 @@
         :installed="selectedItem.installed"
         :runtime="runtime"
       />
-      <Hint
+      <MarketRecommendation
         v-else
-        icon="playlist_add"
-        :text="
-          t('resourcepack.selectSearchHint')"
-        class="h-full"
+        curseforge="texture-packs"
+        modrinth="resourcepack"
+        @modrinth="modrinthCategories.push($event.name)"
+        @curseforge="curseforgeCategory = $event.id"
       />
     </template>
-    <DeleteDialog
-      :title="t('resourcepack.delete.title')"
-    >
+    <SimpleDialog :title="t('resourcepack.delete.title')">
       {{ t('resourcepack.delete.content') }}
-    </DeleteDialog>
+    </SimpleDialog>
   </MarketBase>
 </template>
 
@@ -110,40 +126,60 @@ import { ProjectEntry, ProjectFile } from '@/util/search'
 import { Resource, ResourceDomain, ResourceServiceKey } from '@xmcl/runtime-api'
 import ResourcePackDetailResource from './ResourcePackDetailResource.vue'
 import ResourcePackItem from './ResourcePackItem.vue'
-import DeleteDialog from '@/components/DeleteDialog.vue'
+import SimpleDialog from '@/components/SimpleDialog.vue'
+import MarketRecommendation from '@/components/MarketRecommendation.vue'
+import { useLocalStorageCacheBool } from '@/composables/cache'
+import { vSharedTooltip } from '@/directives/sharedTooltip'
 
 const { runtime, path } = injection(kInstance)
 const { files, enable, disable, insert } = injection(kInstanceResourcePacks)
 const {
-  items,
   modrinthError,
   loading,
   modrinthCategories,
   curseforgeCategory,
+
   enabled,
   disabled,
+  others,
+
+  loadMoreCurseforge,
+  loadMoreModrinth,
   keyword,
   networkOnly,
+  gameVersion,
+  effect,
 } = injection(kResourcePackSearch)
+
+// Register the resource pack search effect
+effect()
 
 const isLocalFile = (f: any): f is ProjectEntry<InstanceResourcePack> => !!f
 
 const displayItems = computed(() => {
-  if (!networkOnly.value) {
-    if (enabled.value.length > 0) {
-      return [
-        'enabled' as string,
-        ...enabled.value,
-        'disabled' as string,
-        ...disabled.value,
-      ] as (string | ResourcePackProject)[]
-    }
-    return [
+  const result: (string | ProjectEntry)[] = []
+
+  if (enabled.value.length > 0) {
+    result.push(
+      'enabled' as string,
+      ...enabled.value,
+    )
+  }
+  if (disabled.value.length > 0) {
+    result.push(
       'disabled' as string,
       ...disabled.value,
-    ] as (string | ResourcePackProject)[]
+    )
   }
-  return items.value
+
+  if (others.value.length > 0) {
+    result.push(
+      'search' as string,
+      ...others.value,
+    )
+  }
+
+  return result
 })
 
 const modrinthLoaders = computed(() => {
@@ -170,7 +206,7 @@ const onInstall = (r: Resource[]) => {
 }
 const onUninstall = (v: ProjectFile[]) => {
   const packs = v as InstanceResourcePack[]
-  removeResources(v.map(f => f.resource.hash))
+  removeResources(v.map(f => (f as InstanceResourcePack).resource.hash))
   disable(packs)
 }
 const onEnable = (f: ProjectFile) => {
@@ -185,6 +221,11 @@ const onDrop = (item: ResourcePackProject, id: string) => {
   if (target !== -1 && from !== -1) {
     insert(from, target)
   }
+}
+
+const onLoad = () => {
+  loadMoreCurseforge()
+  loadMoreModrinth()
 }
 
 const toggleCategory = useToggleCategories(modrinthCategories)
@@ -209,14 +250,14 @@ onMounted(() => {
 
 // Drop
 const { importResources } = useService(ResourceServiceKey)
-const { dragover } = useDrop(() => {}, async (t) => {
+const { dragover } = useDrop(() => { }, async (t) => {
   const paths = [] as string[]
   for (const f of t.files) {
     paths.push(f.path)
   }
   const resources = await importResources(paths.map(p => ({ path: p, domain: ResourceDomain.ResourcePacks })))
   enable(resources.map(r => `file/${r.fileName}`))
-}, () => {})
+}, () => { })
 
 // modrinth installer
 const modrinthInstaller = useModrinthInstaller(
@@ -245,6 +286,17 @@ const onInstallProject = useProjectInstall(
   curseforgeInstaller,
   modrinthInstaller,
 )
+
+const getInstalledModrinth = (projectId: string) => {
+  return files.value.filter((m) => m.modrinth?.projectId === projectId)
+}
+const getInstalledCurseforge = (modId: number | undefined) => {
+  return files.value.filter((m) => m.curseforge?.projectId === modId)
+}
+
+// dense
+const denseView = useLocalStorageCacheBool('resource-pack-dense-view', false)
+const itemHeight = computed(() => denseView.value ? 48 : 76)
 
 </script>
 

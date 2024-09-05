@@ -1,21 +1,17 @@
 <template>
   <v-card
-    v-draggable-card
     v-data-transfer:id="source.name"
     v-data-transfer-image="icon"
-    v-context-menu="items"
     hover
     outlined
-    draggable
-    class="white--text draggable-card p-2"
+    class="dark:white--text draggable-card p-2"
     style="margin-top: 10px; transition-duration: 0.2s; margin-bottom: 20px"
-    @dragstart="emit('dragstart', $event)"
+    @dragstart="onDragStart"
     @dragend="emit('dragend', $event)"
   >
     <div class="flex items-center gap-4">
       <img
         ref="icon"
-        v-fallback-img="unknownPack"
         class="rounded-lg object-contain"
         :src="source.icon"
         width="80px"
@@ -29,7 +25,7 @@
         <div class="flex gap-2">
           <AvatarChip
             small
-            avatar="http://launcher/icons/minecraft"
+            :avatar="BuiltinImages.minecraft"
             :text="`Minecraft ${source.gameVersion}`"
           />
 
@@ -69,39 +65,37 @@
         >
           <v-icon>launch</v-icon>
         </v-btn>
+        <v-btn
+          text
+          icon
+          color="red"
+          @click="emit('remove')"
+        >
+          <v-icon>delete</v-icon>
+        </v-btn>
       </div>
     </div>
   </v-card>
 </template>
 
 <script lang=ts setup>
-import { BaseServiceKey, InstanceSaveMetadata } from '@xmcl/runtime-api'
+import { BaseServiceKey, InstanceSave } from '@xmcl/runtime-api'
 import unknownPack from '@/assets/unknown_pack.png'
 import { useService } from '@/composables'
 import { vFallbackImg } from '../directives/fallbackImage'
 import { vDataTransfer, vDataTransferImage, vDraggableCard } from '../directives/draggableCard'
-import { vContextMenu } from '../directives/contextMenu'
-import { ContextMenuItem } from '../composables/contextMenu'
 import AvatarChip from '@/components/AvatarChip.vue'
+import { BuiltinImages } from '@/constant'
 
 const props = defineProps<{
   exportSave(path:string): void
-  source: InstanceSaveMetadata
+  source: InstanceSave
 }>()
 
 const emit = defineEmits(['dragstart', 'dragend', 'remove'])
 const { showItemInDirectory } = useService(BaseServiceKey)
 
 const { t } = useI18n()
-const items = computed(() => {
-  const result: ContextMenuItem[] = [{
-    text: t('save.deleteTitle'),
-    icon: 'delete',
-    color: 'red',
-    onClick: () => { emit('remove') },
-  }]
-  return result
-})
 const levelMode = computed(() => {
   switch (props.source.mode) {
     case 0: return t('gameType.survival')
@@ -113,6 +107,11 @@ const levelMode = computed(() => {
       return t('gameType.non')
   }
 })
+const onDragStart = (e: DragEvent) => {
+  e.dataTransfer?.setData('save', props.source.path)
+  e.dataTransfer?.setDragImage((e.target as HTMLElement).querySelector('img')!, 0, 0)
+  emit('dragstart', e)
+}
 const icon = ref(null)
 </script>
 

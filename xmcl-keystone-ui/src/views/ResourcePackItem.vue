@@ -6,7 +6,8 @@
     :has-update="hasUpdate"
     :checked="checked"
     :draggable="draggable"
-    :height="76"
+    :dense="dense"
+    :height="itemHeight"
     :get-context-menu-items="isBuiltIn ? undefined : getContextMenuItems"
     :install="install"
     @drop="emit('drop', $event)"
@@ -25,7 +26,7 @@
       >
         <v-avatar left>
           <v-img
-            src="http://launcher/icons/minecraft"
+            :src="BuiltinImages.minecraft"
             left
           />
         </v-avatar>
@@ -50,11 +51,11 @@ import { useService } from '@/composables'
 import { ContextMenuItem } from '@/composables/contextMenu'
 import { kInstance } from '@/composables/instance'
 import { ResourcePackProject } from '@/composables/resourcePackSearch'
-import { useMarketRoute } from '@/composables/useMarketRoute'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
 import { ProjectEntry } from '@/util/search'
-import { ResourceServiceKey, isCompatible } from '@xmcl/runtime-api'
+import { BaseServiceKey, ResourceServiceKey, isCompatible } from '@xmcl/runtime-api'
+import { BuiltinImages } from '../constant'
 
 const props = defineProps<{
   pack: ResourcePackProject
@@ -63,6 +64,8 @@ const props = defineProps<{
   draggable?: boolean
   selected: boolean
   hasUpdate?: boolean
+  dense?: boolean
+  itemHeight?: number
   install: (p: ProjectEntry) => Promise<void>
 }>()
 
@@ -92,14 +95,21 @@ const tooltip = computed(() => compatible.value
     format: props.pack.installed[0].pack_format,
   }))
 
-const { goModrinthProject, searchInCurseforge, searchInModrinth, goCurseforgeProject } = useMarketRoute()
 const { t } = useI18n()
 const { removeResources } = useService(ResourceServiceKey)
+const { showItemInDirectory } = useService(BaseServiceKey)
 
 const isBuiltIn = computed(() => props.pack.id === 'vanilla' || props.pack.id === 'fabric' || props.pack.id === 'file/mod_resources')
 const getContextMenuItems = () => {
   const all = [] as ContextMenuItem[]
   if (props.pack.installed.length > 0) {
+    all.push({
+      text: t('resourcepack.showFile', { file: props.pack.installed[0].resource.path }),
+      onClick: () => {
+        showItemInDirectory(props.pack.installed[0].resource.path)
+      },
+      icon: 'folder',
+    })
     all.push({
       text: t('delete.name', { name: props.pack.title }),
       onClick: () => {
@@ -111,41 +121,41 @@ const getContextMenuItems = () => {
     })
   }
 
-  if (props.pack.curseforgeProjectId || props.pack.curseforge) {
-    all.push({
-      text: t('resourcepack.showInCurseforge', { name: props.pack.title }),
-      onClick: () => {
-        goCurseforgeProject(props.pack.curseforgeProjectId || props.pack.curseforge?.id || 0, 'texture-packs')
-      },
-      icon: '$vuetify.icons.curseforge',
-    })
-  } else {
-    all.push({
-      text: t('resourcepack.searchOnCurseforge', { name: props.pack.title }),
-      onClick: () => {
-        searchInCurseforge(props.pack.title, 'texture-packs')
-      },
-      icon: 'search',
-    })
-  }
+  // if (props.pack.curseforgeProjectId || props.pack.curseforge) {
+  //   all.push({
+  //     text: t('resourcepack.showInCurseforge', { name: props.pack.title }),
+  //     onClick: () => {
+  //       goCurseforgeProject(props.pack.curseforgeProjectId || props.pack.curseforge?.id || 0, 'texture-packs')
+  //     },
+  //     icon: '$vuetify.icons.curseforge',
+  //   })
+  // } else {
+  //   all.push({
+  //     text: t('resourcepack.searchOnCurseforge', { name: props.pack.title }),
+  //     onClick: () => {
+  //       searchInCurseforge(props.pack.title, 'texture-packs')
+  //     },
+  //     icon: 'search',
+  //   })
+  // }
 
-  if (props.pack.modrinthProjectId || props.pack.modrinth) {
-    all.push({
-      text: t('mod.showInModrinth', { name: props.pack.title }),
-      onClick: () => {
-        goModrinthProject(props.pack.modrinthProjectId || props.pack.modrinth?.project_id || '')
-      },
-      icon: '$vuetify.icons.modrinth',
-    })
-  } else {
-    all.push({
-      text: t('resourcepack.searchOnModrinth', { name: props.pack.title }),
-      onClick: () => {
-        searchInModrinth(props.pack.title, 'resourcepack')
-      },
-      icon: 'search',
-    })
-  }
+  // if (props.pack.modrinthProjectId || props.pack.modrinth) {
+  //   all.push({
+  //     text: t('mod.showInModrinth', { name: props.pack.title }),
+  //     onClick: () => {
+  //       goModrinthProject(props.pack.modrinthProjectId || props.pack.modrinth?.project_id || '')
+  //     },
+  //     icon: '$vuetify.icons.modrinth',
+  //   })
+  // } else {
+  //   all.push({
+  //     text: t('resourcepack.searchOnModrinth', { name: props.pack.title }),
+  //     onClick: () => {
+  //       searchInModrinth(props.pack.title, 'resourcepack')
+  //     },
+  //     icon: 'search',
+  //   })
+  // }
   return all
 }
 

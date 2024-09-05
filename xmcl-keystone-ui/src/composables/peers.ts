@@ -1,110 +1,155 @@
-import { BaseServiceKey, GameProfileAndTexture, PeerServiceKey, PeerState } from '@xmcl/runtime-api'
+import { GameProfileAndTexture, NatDeviceInfo, NatType, PeerServiceKey, PeerState } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
-import { PeerGroup } from './peerGroup'
 import { useService } from './service'
 import { useState } from './syncableState'
+import { useRefreshable } from './refreshable'
+import { LocalNotification, useNotifier } from './notifier'
+import { useDialog } from './dialog'
+import { AddInstanceDialogKey } from './instanceTemplates'
+import { useIntervalFn } from '@vueuse/core'
+
+export const kPeerShared: InjectionKey<ReturnType<typeof usePeerConnections>> = Symbol('PeerState')
+
+export function usePeerConnections(notification: Ref<LocalNotification[]>) {
+  const { getPeerState } = useService(PeerServiceKey)
+  const { state } = useState(getPeerState, PeerState)
+  const { notify } = useNotifier(notification)
+  const { t } = useI18n()
+  const { show: showShareInstance } = useDialog('share-instance')
+  const { show: showAddInstance } = useDialog(AddInstanceDialogKey)
+  watch(state, (s) => {
+    if (!s) return
+    s.subscribe('connectionShareManifest', ({ id, manifest }) => {
+      const info = s.connections.find(c => c.id === id)
+      const name = info?.userInfo.name || id.substring(0, 6)
+      const show = () => {
+        if (manifest) {
+          notify({
+            icon: info?.userInfo.avatar,
+            title: t('multiplayer.sharingNotificationTitle'),
+            body: t('multiplayer.sharingNotificationBody', { name }),
+            operations: [{
+              text: t('download'),
+              icon: 'download',
+              handler() {
+                showShareInstance(manifest)
+              },
+            }, {
+              text: t('instances.add'),
+              icon: 'add',
+              color: 'primary',
+              handler() {
+                showAddInstance({
+                  type: 'manifest',
+                  manifest,
+                })
+              },
+            }],
+          })
+        }
+      }
+      if (!document.hasFocus()) {
+        windowController.flashFrame()
+        window.addEventListener('focus', () => {
+          show()
+        }, { once: true })
+      } else {
+        show()
+      }
+    })
+  })
+  return {
+    connections: computed(() => state.value?.connections ?? []),
+  }
+}
 
 export const kPeerState: InjectionKey<ReturnType<typeof usePeerState>> = Symbol('PeerState')
 
 export function usePeerState(gameProfile: Ref<GameProfileAndTexture>) {
-  const { getPeerState, initiate, on, setRemoteDescription } = useService(PeerServiceKey)
+  const { getPeerState, exposePort, unexposePort } = useService(PeerServiceKey)
+  const { initiate, setRemoteDescription, drop, refreshNat, isReady, setUserInfo, leaveGroup, joinGroup } = multiplayer
+
   const { state } = useState(getPeerState, PeerState)
-  const { getSessionId } = useService(BaseServiceKey)
-  const connections = computed(() => state.value?.connections || [])
 
-  const group = ref('')
-  const groupState = ref<'connecting' | 'connected' | 'closing' | 'closed'>('closed')
-  const error = ref<Error | undefined>(undefined)
-  let _group: PeerGroup | undefined
-  let _id = ''
+  const refreshNatType = useRefreshable(() => refreshNat())
 
-  getSessionId().then((s) => {
-    _id = s
-  })
-
-  on('connection-local-description', ({ description, type }) => {
-    _group?.sendLocalDescription(description.id, description.sdp, type, description.candidates)
-  })
-
-  async function joinGroup(groupId?: string) {
-    if (!groupId) {
-      const buf = new Uint16Array(1)
-      window.crypto.getRandomValues(buf)
-      groupId = gameProfile.value.name + '@' + buf[0]
-    }
-    if (!_id) {
-      if (typeof window.crypto.randomUUID === 'function') {
-        _id = window.crypto.randomUUID()
-      } else {
-        _id = await getSessionId()
+  const device = computed(() => state.value?.natDeviceInfo)
+  const natType = computed(() => {
+    const type = state.value?.natType || 'Unknown'
+    if (type === 'Blocked') {
+      if (state.value && state.value.ips.length > 0) {
+        return 'Symmetric NAT'
       }
+      return 'Blocked'
     }
-    _group = new PeerGroup(groupId, _id)
+    return type
+  })
 
-    _group.onheartbeat = (sender) => {
-      console.log(`Get heartbeat from ${sender}`)
-      const peer = connections.value.find(p => p.remoteId === sender)
-      // Ask sender to connect to me :)
-      if (!peer) {
-        if (_id.localeCompare(sender) > 0) {
-          console.log(`Not found the ${sender}. Initiate new connection`)
-          // Only if my id is greater than other's id, we try to initiate the connection.
-          // This will have a total order in the UUID random space
+  const connections = computed(() => state.value?.connections ?? [])
+  const validIceServers = computed(() => state.value?.validIceServers ?? [])
+  const ips = computed(() => state.value?.ips ?? [])
+  const exposedPorts = computed(() => state.value?.exposedPorts.map(v => v[0]) ?? [])
 
-          // Try to connect to the sender
-          initiate({ remoteId: sender, initiate: true, gameProfile: gameProfile.value })
+  watch(gameProfile, (p) => {
+    setUserInfo({
+      ...p,
+      name: p.name,
+      avatar: p.textures.SKIN.url,
+    })
+  }, { immediate: true })
+
+  const group = computed(() => state.value?.group)
+  const groupState = computed(() => state.value?.groupState || 'closed')
+  const error = computed(() => state.value?.groupError)
+  const turnservers = computed(() => state.value?.turnservers || {})
+
+  let buffer = [] as Array<{ port: number; session: string }>
+  const otherExposedPorts = ref([] as Array<{ port: number; user: string }>)
+  multiplayer.on('lan', (msg) => {
+    buffer.push(msg)
+  })
+
+  useIntervalFn(() => {
+    if (buffer.length > 0) {
+      const b = buffer
+      otherExposedPorts.value = b.map(({ port, session }) => {
+        return {
+          port,
+          user: connections.value.find(c => c.id === session)?.userInfo.name || session.substring(0, 6),
         }
-      }
-    }
-    _group.ondescriptor = async (sender, sdp, type, candidates) => {
-      setRemoteDescription({
-        description: {
-          id: sender,
-          session: '',
-          sdp,
-          candidates,
-        },
-        type: type as any,
-        gameProfile: gameProfile.value,
       })
+      buffer = []
+    } else if (otherExposedPorts.value.length > 0) {
+      otherExposedPorts.value = []
     }
-    _group.onstate = (state) => {
-      groupState.value = state
-    }
-    _group.onerror = (err) => {
-      if (err instanceof Error) error.value = err
-    }
-
-    group.value = groupId
-    groupState.value = _group.state
-  }
-
-  function leaveGroup() {
-    _group?.quit()
-    _group = undefined
-    group.value = ''
-    groupState.value = 'closed'
-  }
+  }, 1000)
 
   function _setRemoteDescription(type: 'offer' | 'answer', description: string) {
     return setRemoteDescription({
       description,
       type,
-      gameProfile: gameProfile.value,
     })
   }
 
-  function _initiate() {
-    return initiate({ gameProfile: gameProfile.value, initiate: true })
-  }
-
   return {
-    joinGroup,
-    leaveGroup,
+    exposedPorts,
+    exposePort,
+    unexposePort,
+    otherExposedPorts,
+    device,
+    turnservers,
+    validIceServers,
+    natType,
+    refreshNatType: refreshNatType.refresh,
+    refreshingNatType: refreshNatType.refreshing,
+    ips,
     setRemoteDescription: _setRemoteDescription,
-    initiate: _initiate,
+    initiate,
     group,
     groupState,
     connections,
+    drop,
+    leaveGroup,
+    joinGroup,
   }
 }

@@ -3,14 +3,19 @@
     class="flex h-full flex-col"
     :color="error ? 'red' : cardColor"
   >
+    <v-progress-linear
+      v-if="refreshing"
+      class="absolute left-0 bottom-0 z-20 m-0 p-0"
+      indeterminate
+    />
     <v-card-title>
       <v-icon left>
         {{ icon }}
       </v-icon>
       {{ title }}
     </v-card-title>
-    <v-card-text class="flex-grow">
-      <template v-if="refreshing">
+    <v-card-text class="flex-grow relative">
+      <template v-if="refreshing && icons.length === 0">
         <v-skeleton-loader type="paragraph" />
       </template>
       <template v-else>
@@ -29,6 +34,7 @@
             <img
               v-if="a.icon"
               :src="a.icon"
+              draggable="false"
             >
             <span v-else> {{ a.name[0]?.toUpperCase() }} </span>
           </v-avatar>
@@ -37,8 +43,6 @@
     </v-card-text>
     <v-card-actions>
       <v-btn
-        :disabled="refreshing"
-        :loading="refreshing"
         color="teal accent-4"
         text
         @click="emit('navigate')"
@@ -49,7 +53,7 @@
   </v-card>
 </template>
 <script lang="ts" setup>
-import { kColorTheme } from '@/composables/colorTheme'
+import { kTheme } from '@/composables/theme'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { getColor } from '@/util/color'
 import { injection } from '@/util/inject'
@@ -65,5 +69,5 @@ defineProps<{
   icons: Array<{ name: string; icon?: string; color?: string }>
 }>()
 const emit = defineEmits(['navigate'])
-const { cardColor } = injection(kColorTheme)
+const { cardColor } = injection(kTheme)
 </script>

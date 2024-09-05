@@ -4,10 +4,11 @@ import { StoreProjectVersion } from '@/components/StoreProjectInstallVersionDial
 import { TeamMember } from '@/components/StoreProjectMembers.vue'
 import { kInstances } from '@/composables/instances'
 import { useMarkdown } from '@/composables/markdown'
-import { useModrinthTags } from '@/composables/modrinth'
-import { useModrinthInstallModpack } from '@/composables/modrinthInstall'
+import { kModrinthTags } from '@/composables/modrinth'
+import { useModrinthInstallModpack } from '@/composables/modrinthInstaller'
 import { useModrinthProject } from '@/composables/modrinthProject'
 import { useModrinthVersions } from '@/composables/modrinthVersions'
+import { useNotifier } from '@/composables/notifier'
 import { usePresence } from '@/composables/presence'
 import { kSWRVConfig } from '@/composables/swrvConfig'
 import { useTasks } from '@/composables/task'
@@ -22,8 +23,8 @@ const props = defineProps<{ id: string }>()
 const { t } = useI18n()
 const projectId = computed(() => props.id)
 
-const { categories: modrinthCategories } = useModrinthTags()
-const { project: proj, refreshing, refreshError, refresh } = useModrinthProject(projectId)
+const { categories: modrinthCategories } = injection(kModrinthTags)
+const { project: proj, isValidating: refreshing } = useModrinthProject(projectId)
 const { render } = useMarkdown()
 const project = computed(() => {
   const p = proj.value
@@ -105,10 +106,13 @@ const project = computed(() => {
 const { versions, error } = useModrinthVersions(computed(() => props.id))
 
 const _installing = ref(false)
+const { notify } = useNotifier()
 const onInstall = (v: StoreProjectVersion) => {
   const ver = v as ProjectVersion
   _installing.value = true
-  installModpack(ver).finally(() => {
+  installModpack(ver).catch((e) => {
+    notify({ level: 'error', title: e.message })
+  }).finally(() => {
     _installing.value = false
   })
 }

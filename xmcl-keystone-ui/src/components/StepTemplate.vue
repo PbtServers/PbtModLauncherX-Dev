@@ -9,7 +9,8 @@
     />
     <v-list
       v-else
-      class="flex flex-col overflow-auto bg-transparent p-0"
+      color="transparent"
+      class="flex flex-col overflow-auto p-0"
       two-line
     >
       <v-list-item class="mb-2">
@@ -63,7 +64,7 @@
                 >
                   <v-avatar left>
                     <img
-                      :src="'http://launcher/icons/minecraft'"
+                      :src="BuiltinImages.minecraft"
                       alt="minecraft"
                     >
                   </v-avatar>
@@ -77,7 +78,7 @@
                 >
                   <v-avatar left>
                     <img
-                      :src="'http://launcher/icons/forge'"
+                      :src="BuiltinImages.forge"
                       alt="forge"
                     >
                   </v-avatar>
@@ -91,7 +92,7 @@
                 >
                   <v-avatar left>
                     <img
-                      :src="'http://launcher/icons/fabric'"
+                      :src="BuiltinImages.fabric"
                       alt="fabric"
                     >
                   </v-avatar>
@@ -121,16 +122,17 @@ import { useGetFeedTheBeastVersionsCache } from '@/composables/ftb'
 import { kInstanceCreation } from '@/composables/instanceCreation'
 import { kJavaContext } from '@/composables/java'
 import { useModpacks } from '@/composables/modpack'
-import { kPeerState } from '@/composables/peers'
+import { kPeerShared } from '@/composables/peers'
 import { injection } from '@/util/inject'
 import { Ref } from 'vue'
 import { Template, useInstanceTemplates } from '../composables/instanceTemplates'
+import { BuiltinImages } from '../constant'
 
 const emit = defineEmits(['select'])
 
 // Templates
 const { all } = injection(kJavaContext)
-const { connections } = injection(kPeerState)
+const { connections } = injection(kPeerShared)
 const { getFeaturedModpacks } = useGetFeedTheBeastVersionsCache()
 const { getTemplates } = useInstanceTemplates(all)
 const { resources } = useModpacks()

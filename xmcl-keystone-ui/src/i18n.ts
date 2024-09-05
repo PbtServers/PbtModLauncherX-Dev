@@ -4,6 +4,7 @@ import VueI18n from 'vue-i18n'
 import { castToVueI18n, createI18n } from 'vue-i18n-bridge'
 
 import '../locales/es-ES.yaml'
+import '../locales/en.yaml'
 
 Vue.use(VueI18n, { bridge: true })
 export const i18n = castToVueI18n(

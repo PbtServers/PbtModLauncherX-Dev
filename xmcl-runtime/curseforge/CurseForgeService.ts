@@ -1,45 +1,29 @@
-import { CurseforgeV1Client } from '@xmcl/curseforge'
 import { DownloadTask } from '@xmcl/installer'
 import { CurseForgeServiceKey, CurseForgeService as ICurseForgeService, InstallFileOptions, InstallFileResult, ProjectType, ResourceDomain, getCurseforgeFileUri } from '@xmcl/runtime-api'
 import { existsSync } from 'fs'
 import { unlink } from 'fs-extra'
 import { join } from 'path'
-import { Client } from 'undici'
-import { Inject, LauncherAppKey } from '~/app'
-import { NetworkInterface, kDownloadOptions, kNetworkInterface } from '~/network'
+import { Inject, LauncherAppKey, kGameDataPath, kTempDataPath } from '~/app'
+import { kDownloadOptions } from '~/network'
 import { ResourceService } from '~/resource'
 import { AbstractService, ExposeServiceKey, Singleton } from '~/service'
 import { TaskFn, kTaskExecutor } from '~/task'
 import { LauncherApp } from '../app/LauncherApp'
-import { guessCurseforgeFileUrl } from '../util/curseforge'
+import { guessCurseforgeFileUrl, resolveCurseforgeHash } from '../util/curseforge'
 import { requireObject, requireString } from '../util/object'
+import filenamify from 'filenamify'
 
 @ExposeServiceKey(CurseForgeServiceKey)
 export class CurseForgeService extends AbstractService implements ICurseForgeService {
-  readonly client: CurseforgeV1Client
-
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
     @Inject(kTaskExecutor) private submit: TaskFn,
     @Inject(ResourceService) private resourceService: ResourceService,
-    @Inject(kNetworkInterface) networkInterface: NetworkInterface,
   ) {
     super(app)
-
-    const dispatcher = networkInterface.registerAPIFactoryInterceptor((origin, options) => {
-      if (origin.host === 'api.curseforge.com') {
-        return new Client(origin, {
-          ...options,
-          pipelining: 6,
-          bodyTimeout: 7000,
-          headersTimeout: 7000,
-        })
-      }
-    })
-    this.client = new CurseforgeV1Client(process.env.CURSEFORGE_API_KEY || '', { dispatcher })
   }
 
   @Singleton((o) => o.file.id)
-  async installFile({ file, type, instancePath, icon }: InstallFileOptions): Promise<InstallFileResult> {
+  async installFile({ file, type, instancePath, icon, noPersist }: InstallFileOptions): Promise<InstallFileResult> {
     requireString(type)
     requireObject(file)
     // instancePath ||= this.instanceService.state.path
@@ -63,8 +47,8 @@ export class CurseForgeService extends AbstractService implements ICurseForgeSer
 
     this.log(`Try install file ${file.displayName}(${file.downloadUrl}) in type ${type}`)
     const resourceService = this.resourceService
-    const downloadOptions = await this.app.registry.get(kDownloadOptions)
-    const destination = join(this.app.temporaryPath, file.fileName)
+    const getTemp = await this.app.registry.get(kTempDataPath)
+    const destination = getTemp(filenamify(file.fileName, { replacement: '-' }))
 
     const domain = typeToDomain[type] ?? ResourceDomain.Unclassified
     // Try to find the resource in cache
@@ -72,30 +56,40 @@ export class CurseForgeService extends AbstractService implements ICurseForgeSer
     if (resource && resource.storedPath && existsSync(resource.storedPath)) {
       this.log(`The curseforge file ${file.displayName}(${file.downloadUrl}) existed in cache!`)
     } else {
+      const downloadOptions = await this.app.registry.get(kDownloadOptions)
       const task = new DownloadTask({
         ...downloadOptions,
         url: downloadUrls,
+        validator: resolveCurseforgeHash(file.hashes),
         destination,
       }).setName('installCurseforgeFile', { modId: file.modId, fileId: file.id })
       await this.submit(task)
 
       const icons = icon ? [icon] : []
-      const [imported] = await resourceService.importResources([{
-        path: destination,
-        domain,
-        uris,
-        metadata: {
-          curseforge: {
-            projectId: file.modId,
-            fileId: file.id,
+      if (noPersist) {
+        const [res] = await resourceService.resolveResources([{
+          path: destination,
+          domain,
+        }])
+        resource = res
+      } else {
+        const [imported] = await resourceService.importResources([{
+          path: destination,
+          domain,
+          uris,
+          metadata: {
+            curseforge: {
+              projectId: file.modId,
+              fileId: file.id,
+            },
           },
-        },
-        icons,
-      }])
+          icons,
+        }])
+        imported.path = imported.storedPath || imported.path
 
-      imported.path = imported.storedPath || imported.path
+        resource = imported
+      }
 
-      resource = imported
       this.log(`Install curseforge file ${file.displayName}(${file.downloadUrl}) success!`)
       await unlink(destination).catch(() => undefined)
     }

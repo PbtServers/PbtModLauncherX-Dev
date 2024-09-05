@@ -8,7 +8,7 @@
       v-if="modid"
       small
       class="mod-tag"
-      :outlined="darkTheme"
+      :outlined="isDark"
       color="orange en-1"
       :disabled="disabled"
       label
@@ -46,7 +46,7 @@
     <v-chip
       v-for="(tag, index) in tags"
       :key="`${tag}-${index}`"
-      :outlined="darkTheme"
+      :outlined="isDark"
       class="mod-tag"
       small
       label
@@ -70,7 +70,7 @@
 </template>
 
 <script lang=ts setup>
-import { useScrollRight, useTheme } from '@/composables'
+import { useScrollRight } from '@/composables'
 import { getCompatibleIcon } from '@/composables/compatibleIcon'
 import { useModCompatibleTooltip } from '@/composables/modCompatibleTooltip'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
@@ -78,6 +78,8 @@ import { getColor } from '@/util/color'
 import { injection } from '@/util/inject'
 import { CompatibleDetail } from '@/util/modCompatible'
 import { kInstanceModsContext } from '@/composables/instanceMods'
+import { kTheme } from '@/composables/theme'
+import { BuiltinImages } from '../constant'
 
 const props = defineProps<{
   modid?: string
@@ -99,12 +101,12 @@ const { getTooltip } = useModCompatibleTooltip()
 
 const getDepIcon = (name: string, icon?: string) => {
   if (icon) return icon
-  if (name === 'forge') return 'http://launcher/icons/forge'
-  if (name === 'minecraft') return 'http://launcher/icons/minecraft'
-  if (name === 'fabricloader' || name.startsWith('fabric-') || name === 'fabric') return 'http://launcher/icons/fabric'
+  if (name === 'forge') return BuiltinImages.forge
+  if (name === 'minecraft') return BuiltinImages.minecraft
+  if (name === 'fabricloader' || name.startsWith('fabric-') || name === 'fabric') return BuiltinImages.fabric
   return ''
 }
-const { darkTheme } = useTheme()
+const { isDark } = injection(kTheme)
 
 const container = ref(null as null | HTMLElement)
 const { onWheel } = useScrollRight(container)

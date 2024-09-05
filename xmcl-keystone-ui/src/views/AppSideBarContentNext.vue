@@ -3,7 +3,7 @@
     <v-list
       nav
       dense
-      class="ml-1 flex-grow-0 justify-start overflow-auto px-2"
+      class="ml-1 gap-1 flex flex-col flex-grow-0 justify-start overflow-auto px-2"
     >
       <template v-if="isValidating">
         <v-skeleton-loader
@@ -13,12 +13,23 @@
           type="avatar"
         />
       </template>
-      <AppSideBarInstanceItem
-        v-for="(i, index) of instances"
-        :key="i.path + ' ' + index"
-        :instance="i"
-        @drop="setToPrevious($event, i.path)"
-      />
+      <template v-for="(i, index) of groups">
+        <AppSideBarInstanceItem
+          v-if="typeof i === 'string'"
+          :key="i + index"
+          :path="i"
+          @arrange="move($event.targetPath, i, $event.previous)"
+          @group="group($event, i)"
+        />
+        <AppSideBarGroupItem
+          v-else-if="typeof i === 'object'"
+          :key="i.id + index"
+          :group="i"
+          :color="i.color || defaultColor"
+          @arrange="move($event.targetPath, $event.toPath || i, $event.previous)"
+          @group="group($event, i)"
+        />
+      </template>
 
       <v-list-item
         push
@@ -51,66 +62,66 @@
       </v-list-item>
       <v-spacer />
     </v-list>
+    <SimpleDialog
+      :width="500"
+      color="primary"
+      dialog="saveCopyDialog"
+      :title="t('save.copy.title')"
+      :confirm="t('save.copy.confirm')"
+      @confirm="doCopy"
+    >
+      {{ copySavePayload?.destInstancePath }}
+      {{ copySavePayload?.saveName }}
+    </SimpleDialog>
+    <AppSideBarGroupSettingDialog :default-color="defaultColor" />
   </div>
 </template>
 <script setup lang="ts">
+import SimpleDialog from '@/components/SimpleDialog.vue'
 import { useService } from '@/composables'
-import { useLocalStorageCacheBool } from '@/composables/cache'
-import { ContextMenuItem } from '@/composables/contextMenu'
 import { useDialog } from '@/composables/dialog'
 import { AddInstanceDialogKey } from '@/composables/instanceTemplates'
 import { kInstances } from '@/composables/instances'
 import { injection } from '@/util/inject'
-import { InstanceServiceKey } from '@xmcl/runtime-api'
+import { InstanceSavesServiceKey, InstanceServiceKey } from '@xmcl/runtime-api'
 import AppSideBarInstanceItem from './AppSideBarInstanceItem.vue'
+import { useNotifier } from '@/composables/notifier'
+import { useInstanceGroup, useInstanceGroupDefaultColor } from '@/composables/instanceGroup'
+import AppSideBarGroupItem from './AppSideBarGroupItem.vue'
+import AppSideBarGroupSettingDialog from './AppSideBarGroupSettingDialog.vue'
 
 const { t } = useI18n()
 
-const sideBarShowCurseforge = useLocalStorageCacheBool('sideBarShowCurseforge', true)
-const sideBarShowModrinth = useLocalStorageCacheBool('sideBarShowModrinth', true)
-const { instances, setToPrevious, isValidating } = injection(kInstances)
-const { showOpenDialog } = windowController
-const { addExternalInstance } = useService(InstanceServiceKey)
-
-async function onImport(type: 'zip' | 'folder') {
-  const fromFolder = type === 'folder'
-  const filters = fromFolder
-    ? []
-    : [{ extensions: ['zip'], name: 'Zip' }]
-  const { filePaths } = await showOpenDialog({
-    title: t('instances.importFolder'),
-    message: t('instances.importFolderDescription'),
-    filters,
-    properties: fromFolder ? ['openDirectory'] : ['openFile'],
-  })
-  if (filePaths && filePaths.length > 0) {
-    const filePath = filePaths[0]
-    if (type === 'folder') {
-      addExternalInstance(filePath)
-    }
-  }
-}
+const { instances, isValidating } = injection(kInstances)
 
 const { show: showAddInstance } = useDialog(AddInstanceDialogKey)
 
-const items = computed(() => {
-  const result: ContextMenuItem[] = [
-    {
-      text: 'Curseforge',
-      icon: sideBarShowCurseforge.value ? 'check' : '',
-      onClick() {
-        sideBarShowCurseforge.value = !sideBarShowCurseforge.value
-      },
-    },
-    {
-      text: 'Modrinth',
-      icon: sideBarShowModrinth.value ? 'check' : '',
-      onClick() {
-        sideBarShowModrinth.value = !sideBarShowModrinth.value
-      },
-    },
-  ]
-  return result
-})
+const { groups, move, group } = useInstanceGroup()
+
+const { isShown } = useDialog('saveCopyDialog')
+const copySavePayload = ref(undefined as {
+  saveName: string
+  srcInstancePath: string
+  destInstancePath: string
+} | undefined)
+const { cloneSave } = useService(InstanceSavesServiceKey)
+const defaultColor = useInstanceGroupDefaultColor()
+const { notify } = useNotifier()
+function doCopy() {
+  if (copySavePayload.value) {
+    cloneSave({ ...copySavePayload.value }).then(() => {
+      notify({
+        level: 'success',
+        title: t('save.copy.name'),
+      })
+    }, () => {
+      notify({
+        level: 'error',
+        title: t('save.copy.name'),
+      })
+    })
+  }
+  isShown.value = false
+}
 
 </script>

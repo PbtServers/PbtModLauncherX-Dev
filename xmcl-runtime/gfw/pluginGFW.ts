@@ -8,7 +8,7 @@ export const pluginGFW: LauncherAppPlugin = (app) => {
     const taobao = new Client('https://npm.taobao.org')
     const google = new Client('https://www.google.com')
     const yandex = new Client('https://www.yandex.com')
-    const networkEnv = await Promise.race([
+    const networkEnv = await Promise.any([
       taobao.request({
         method: 'HEAD',
         path: '/',
@@ -28,7 +28,7 @@ export const pluginGFW: LauncherAppPlugin = (app) => {
         headersTimeout: 5000,
       }).then(() => 'yandex' as const, () => 'global' as const),
     ])
-    logger.log(networkEnv ? 'Detected current in China mainland.' : 'Detected current NOT in China mainland.')
+    logger.log(networkEnv ? 'Detected current in Chinese Mainland.' : 'Detected current NOT in Chinese Mainland.')
     taobao.close()
     google.close()
     return networkEnv

@@ -1,5 +1,3 @@
-import { URL } from 'url'
-
 export const isValidUrl = (url: string) => {
   try {
     // eslint-disable-next-line no-new
@@ -19,4 +17,22 @@ export function joinUrl(a: string, b: string) {
     return a + '/' + b
   }
   return a + b
+}
+
+export function replaceHost(a: string | URL, b: string | URL) {
+  if (a instanceof URL) {
+    a = a.toString()
+  }
+  const url = new URL(a)
+
+  let host
+  if (b instanceof URL) {
+    host = b.toString()
+  } else {
+    host = new URL(b).host
+  }
+
+  url.host = host
+
+  return url.toString()
 }

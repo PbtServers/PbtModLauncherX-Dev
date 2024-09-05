@@ -23,7 +23,7 @@ export function applyUpdateToResource(resource: Resource, update: PartialResourc
   resource.name = update.name ?? resource.name
   for (const [key, val] of Object.entries(update.metadata ?? {})) {
     if (!val) continue
-    Object.assign(resource.metadata)[key] = val as any
+    (resource.metadata as any)[key] = val as any
   }
   resource.tags = update.tags ?? resource.tags
   resource.icons = update.icons ?? resource.icons
@@ -40,15 +40,20 @@ export class InstanceModsState {
     const mods = [...this.mods]
     for (const [r, a] of ops) {
       if (a === InstanceModUpdatePayloadAction.Upsert) {
-        const index = mods.findIndex(m => m.path === r.path || m.hash === r.hash)
+        const index = mods.findIndex(m => m?.path === r?.path || m.hash === r.hash)
         if (index === -1) {
           mods.push(r)
-        } else if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-debugger
-          console.debug(`The mod ${r.path} is already in the list!`)
+        } else {
+          const existed = mods[index]
+          if (existed.path !== r.path) {
+            mods[index] = r
+          } else if (process.env.NODE_ENV === 'development') {
+            // eslint-disable-next-line no-debugger
+            console.debug(`The mod ${r.path} is already in the list!`)
+          }
         }
       } else if (a === InstanceModUpdatePayloadAction.Remove) {
-        const index = mods.findIndex(m => m.path === r.path || m.hash === r.hash)
+        const index = mods.findIndex(m => m?.path === r?.path || m.hash === r.hash)
         if (index !== -1) mods.splice(index, 1)
       } else {
         for (const update of r as PartialResourceHash[]) {
@@ -73,6 +78,10 @@ export interface InstanceModsService {
    */
   watch(instancePath: string): Promise<MutableState<InstanceModsState>>
   /**
+   * Refresh the metadata of the instance mods
+   */
+  refreshMetadata(instancePath: string): Promise<void>
+  /**
    * Show instance /mods dictionary
    * @param instancePath The instance path
    */
@@ -95,6 +104,12 @@ export interface InstanceModsService {
    * @param options The uninstall options
    */
   uninstall(options: InstallModsOptions): Promise<void>
+  /**
+   * Install mods to the server instance.
+   */
+  installToServerInstance(options: InstallModsOptions): Promise<void>
+
+  getServerInstanceMods(path: string): Promise<Array<{ fileName: string; ino: number }>>
 }
 
 export const InstanceModsServiceKey: ServiceKey<InstanceModsService> = 'InstanceModsService'

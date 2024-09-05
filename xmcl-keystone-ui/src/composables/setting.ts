@@ -43,6 +43,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
   const globalShowLog = computed(() => state.value?.globalShowLog ?? false)
   const globalDisableAuthlibInjector = computed(() => state.value?.globalDisableAuthlibInjector ?? true)
   const globalDisableElyByAuthlib = computed(() => state.value?.globalDisableElyByAuthlib ?? false)
+  const globalPrependCommand = computed(() => state.value?.globalPrependCommand ?? '')
   const setGlobalSettings = (setting: {
     globalMinMemory: number
     globalMaxMemory: number
@@ -54,6 +55,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
     globalShowLog: boolean
     globalDisableAuthlibInjector: boolean
     globalDisableElyByAuthlib: boolean
+    globalPrependCommand: string
   }) => {
     state.value?.globalInstanceSetting(setting)
   }
@@ -69,6 +71,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
     globalShowLog,
     globalDisableAuthlibInjector,
     globalDisableElyByAuthlib,
+    globalPrependCommand,
     setGlobalSettings,
   }
 }
@@ -98,7 +101,6 @@ export function useGameDirectory() {
 }
 
 export function useSettings() {
-  const hideNews = useLocalStorageCacheBool('hideNews', false)
   const streamerMode = inject('streamerMode', useLocalStorageCacheBool('streamerMode', false))
   const { state, error, isValidating } = injection(kSettingsState)
 
@@ -200,7 +202,6 @@ export function useSettings() {
     apiSetsPreference,
     apiSets,
     disableTelemetry,
-    hideNews,
     error,
     isValidating,
   }

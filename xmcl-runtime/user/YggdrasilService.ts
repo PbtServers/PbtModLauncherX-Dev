@@ -1,8 +1,6 @@
 import { YggdrasilService as IYggdrasilService, YggdrasilApi, YggdrasilSchema, YggdrasilServiceKey } from '@xmcl/runtime-api'
-import { Pool } from 'undici'
-import { LauncherApp, LauncherAppKey, Inject } from '~/app'
+import { Inject, LauncherApp, LauncherAppKey } from '~/app'
 import { kClientToken } from '~/clientToken'
-import { NetworkInterface, kNetworkInterface } from '~/network'
 import { AbstractService, ExposeServiceKey } from '~/service'
 import { createSafeFile } from '~/util/persistance'
 import { YggdrasilAccountSystem } from './accountSystems/YggdrasilAccountSystem'
@@ -27,28 +25,25 @@ export class YggdrasilService extends AbstractService implements IYggdrasilServi
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
     @Inject(kClientToken) clientToken: string,
     @Inject(kUserTokenStorage) tokenStorage: UserTokenStorage,
-    @Inject(kNetworkInterface) networkInterface: NetworkInterface,
   ) {
     super(app, async () => {
       const apis = await this.yggdrasilFile.read()
+      const litteSkin = apis.yggdrasilServices.find(a => new URL(a.url).host === 'littleskin.cn')
+      if (litteSkin && !litteSkin.authlibInjector) {
+        apis.yggdrasilServices.splice(apis.yggdrasilServices.indexOf(litteSkin), 1)
+        apis.yggdrasilServices.push(await loadYggdrasilApiProfile('https://littleskin.cn/api/yggdrasil'))
+      }
+      const ely = apis.yggdrasilServices.find(a => new URL(a.url).host === 'authserver.ely.by')
+      if (ely && !ely.authlibInjector) {
+        apis.yggdrasilServices.splice(apis.yggdrasilServices.indexOf(ely), 1)
+        apis.yggdrasilServices.push(await loadYggdrasilApiProfile('https://authserver.ely.by/api/authlib-injector'))
+      }
       this.yggdrasilServices.push(...apis.yggdrasilServices)
     })
 
-    const dispatcher = networkInterface.registerAPIFactoryInterceptor((origin, options) => {
-      const hosts = this.yggdrasilServices.map(v => new URL(v.url).hostname)
-      if (hosts.indexOf(origin.hostname) !== -1) {
-        return new Pool(origin, {
-          ...options,
-          pipelining: 1,
-          connections: 6,
-          keepAliveMaxTimeout: 60_000,
-        })
-      }
-    })
-
     this.yggdrasilAccountSystem = new YggdrasilAccountSystem(
+      app,
       this,
-      dispatcher,
       clientToken,
       tokenStorage,
     )
@@ -72,6 +67,17 @@ export class YggdrasilService extends AbstractService implements IYggdrasilServi
     this.log(`Add ${url} as yggdrasil (authlib-injector) api service ${domain}`)
 
     const api = await loadYggdrasilApiProfile(url)
+    // check dup
+    const existed = this.yggdrasilServices.find(a => new URL(a.url).host === new URL(url).host)
+    if (existed) {
+      if (existed.authlibInjector && !api.authlibInjector) {
+        return
+      }
+      if (!existed.authlibInjector && api.authlibInjector) {
+        this.yggdrasilServices = this.yggdrasilServices.filter(a => new URL(a.url).host !== new URL(url).host)
+      }
+    }
+
     this.yggdrasilServices.push(api)
     await this.yggdrasilFile.write({ yggdrasilServices: this.yggdrasilServices })
   }

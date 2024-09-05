@@ -1,16 +1,26 @@
+import { MaybeRef, get } from '@vueuse/core'
 import { SWRVCache, mutate } from 'swrv'
 import { Ref } from 'vue'
 
 export interface SWRVModel<T> {
-  key: Ref<string | undefined>
+  key: MaybeRef<string> | Ref<string | undefined>
   fetcher: (...args: any[]) => Promise<T>
 }
 
 export function getSWRV<T>(model: SWRVModel<T>, config: any) {
-  if (model.key.value) {
-    return swrvGet(model.key.value, model.fetcher, config.cache!, config.dedupingInterval!)
+  const key = get(model.key)
+  if (!key) {
+    throw new Error('Key is required')
   }
-  return Promise.resolve(undefined)
+  return swrvGet(key!, model.fetcher, config.cache!, config.dedupingInterval!)
+}
+
+export function formatKey(path: string, record: Record<string, MaybeRef<string | number | undefined | string[] | number[]>>) {
+  return `${path}?${buildSearchParameters(record)}`
+}
+
+export function buildSearchParameters(record: Record<string, MaybeRef<string | number | undefined | string[] | number[]>>) {
+  return Object.entries(record).map(([k, v]) => `${k}=${get(v) || ''}`).join('&')
 }
 
 export async function swrvGet<T>(key: string, fetcher: (abortSignal?: AbortSignal) => Promise<T>,

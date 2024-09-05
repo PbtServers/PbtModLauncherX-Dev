@@ -1,25 +1,26 @@
 /* eslint-disable no-dupe-class-members */
 import { ExportResourceOptions, ResourceService as IResourceService, ImportResourceOptions, Pagination, PartialResourceHash, PromiseSignal, ResolveResourceOptions, Resource, ResourceDomain, ResourceMetadata, ResourceServiceKey, createPromiseSignal } from '@xmcl/runtime-api'
-import { FSWatcher, existsSync } from 'fs'
+import { FSWatcher } from 'fs'
 import { ensureDir, unlink } from 'fs-extra'
 import { basename, join } from 'path'
 import { Inject, LauncherApp, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
 import { ImageStorage } from '~/imageStore'
 import { AbstractService, ExposeServiceKey } from '~/service'
+import { SqliteWASMDialectConfig } from '~/sql'
 import { copyPassively, missing, readdirEnsured } from '~/util/fs'
 import { ResourceContext } from './core/ResourceContext'
 import { createResourceContext } from './core/createResourceContext'
-import { generateResource, getResourceAndMetadata } from './core/generateResource'
+import { generateResource, getResourceAndMetadata, pickMetadata } from './core/generateResource'
 import { getResourceEntry } from './core/getResourceEntry'
 import { loadResources } from './core/loadResources'
-import { migrateImageProtocolChange, migrateLevelDBData } from './core/migrateLegacy'
+import { migrateImageProtocolChange } from './core/migrateLegacy'
 import { migrate } from './core/migrateResources'
 import { parseMetadata } from './core/parseMetadata'
 import { resolveDomain } from './core/resolveDomain'
 import { tryPersistResource } from './core/tryPersistResource'
 import { upsertMetadata } from './core/upsertMetadata'
 import { watchResources } from './core/watchResources'
-import { ResourceWorker, kResourceWorker } from './worker'
+import { ResourceWorker, kResourceDatabaseOptions, kResourceWorker } from './worker'
 
 const EMPTY_RESOURCE_SHA1 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
 
@@ -69,6 +70,7 @@ export class ResourceService extends AbstractService implements IResourceService
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
     @Inject(ImageStorage) readonly imageStore: ImageStorage,
     @Inject(kResourceWorker) worker: ResourceWorker,
+    @Inject(kResourceDatabaseOptions) dbOptions: SqliteWASMDialectConfig,
     @Inject(kGameDataPath) private getPath: PathResolver,
   ) {
     super(app, async () => {
@@ -86,13 +88,6 @@ export class ResourceService extends AbstractService implements IResourceService
         this.error(new Error('Fail to migrate the legacy resource', { cause: e }))
       })
 
-      const legacyPath = this.getAppDataPath('resources-v2')
-      if (existsSync(legacyPath)) {
-        await migrateLevelDBData(legacyPath, this.context, this).catch((e) => {
-          this.error(new Error('Fail to migrate the legacy leveldb', { cause: e }))
-        })
-      }
-
       await migrateImageProtocolChange(this.context)
 
       this.signals[ResourceDomain.Mods].accept(mount(ResourceDomain.Mods))
@@ -106,7 +101,8 @@ export class ResourceService extends AbstractService implements IResourceService
         this.error(new Error('Fail to initialize resource-images folder', { cause: e }))
       })
     })
-    this.context = createResourceContext(this.getAppDataPath('resources.sqlite'), imageStore, this, this, worker)
+
+    this.context = createResourceContext(imageStore, this, this, worker, dbOptions)
 
     app.registryDisposer(async () => {
       for (const watcher of Object.values(this.watchers)) {
@@ -117,26 +113,27 @@ export class ResourceService extends AbstractService implements IResourceService
   }
 
   async isResourceDatabaseOpened() {
-    return this.context.sqlite.open
+    const isOpened = await this.context.isDatabaseOpened()
+    return isOpened
   }
 
   async getResourceMetadataByUri(uri: string): Promise<ResourceMetadata[]> {
     const result = await getResourceAndMetadata(this.context, { uris: [uri] })
-    return result
+    return result.map(pickMetadata)
   }
 
   async getResourceMetadataByHash(sha1: string): Promise<ResourceMetadata | undefined> {
     const metadata = await this.context.db.selectFrom('resources')
       .selectAll()
       .where('sha1', '=', sha1).executeTakeFirst()
-    return metadata
+    return metadata ? pickMetadata(metadata) : undefined
   }
 
   async getResourcesMetadataByHashes(sha1: string[]): Promise<Array<ResourceMetadata | undefined>> {
     const metadata = await this.context.db.selectFrom('resources')
       .selectAll()
       .where('sha1', 'in', sha1).execute()
-    return metadata
+    return metadata ? metadata.map(pickMetadata) : []
   }
 
   async getResourcesUnder({ fileNames, domain }: { fileNames: string[]; domain: ResourceDomain }): Promise<(Resource | undefined)[]> {
@@ -277,11 +274,14 @@ export class ResourceService extends AbstractService implements IResourceService
       const resolved = await getResourceEntry(path, this.context)
       if ('domainedPath' in resolved) {
         const metadata = await getResourceAndMetadata(this.context, { domainedPath: resolved.domainedPath })
-        return generateResource(this.getPath(), metadata[0], metadata[0], { path, domain })
+        return generateResource(this.getPath(), resolved, metadata[0], { path, domain, mtime: resolved.mtime })
       }
 
       try {
         const parsed = await parseMetadata(path, resolved.fileType, domain ?? ResourceDomain.Unclassified, this.context)
+        if (resolved.fileType === 'directory') {
+          return generateResource(this.getPath(), resolved, undefined, { path, domain })
+        }
         const data = await upsertMetadata(parsed.metadata, parsed.uris, parsed.icons, parsed.name, resolved.sha1, this.context)
         return generateResource(this.getPath(), resolved, data, { path, domain })
       } catch (e) {
@@ -307,7 +307,9 @@ export class ResourceService extends AbstractService implements IResourceService
         if (resolved.storedPath) {
           return resolved
         }
-
+        if (!resolved.fileType && resolved.path.endsWith('.txt')) {
+          return resolved
+        }
         if (resolved.domain === ResourceDomain.Unclassified) {
           resolved.domain = resolveDomain(resolved.metadata)
         }
@@ -322,10 +324,10 @@ export class ResourceService extends AbstractService implements IResourceService
         }
 
         const storedPathOrErr = await tryPersistResource(resolved, this.getPath(), this.context).catch(e => e)
-        if (typeof storedPathOrErr === 'string') {
-          const resource = { ...resolved, storedPath: storedPathOrErr }
+        if (storedPathOrErr instanceof Array) {
+          const resource = { ...resolved, storedPath: storedPathOrErr[0] }
 
-          this.log(`Persist new resource ${resource.path} -> ${storedPathOrErr}`)
+          this.log(`Persist new resource ${resource.path} -> ${storedPathOrErr[0]} linked=${storedPathOrErr[1]}`)
 
           return resource
         }

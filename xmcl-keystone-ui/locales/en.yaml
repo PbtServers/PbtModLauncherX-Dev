@@ -5,6 +5,9 @@ AppAddInstanceDialog:
   downloadedNotification: The modpack {name} downloaded. Do you want to create instance for it?
   serverTitle: Input your server address
 AppShareInstanceDialog:
+  alterDownloadDescription: >-
+    If you don't want to mess up current instance. You can also create a new
+    instance from your peer's config. Click the button below to create instance.
   baseInfo: Basic Setting
   cancelShare: Cancel Share
   description: >-
@@ -12,7 +15,7 @@ AppShareInstanceDialog:
     your PC.
   downloadDescription: >-
     Please verify the files your peer provided to you. Select the file you want
-    to download.
+    to download. It will be placed to current instance {name}.
   downloadNotifyTitle: Download Instance from {user}
   downloadTitle: Download files from other peers
   downloadToLocal: Download to current instance
@@ -101,6 +104,7 @@ browseApp:
 cancel: Cancel
 checkUpdate:
   name: Check Update
+color: Color
 confirm: Start
 copyClipboard:
   success: Copy to clipboard
@@ -126,6 +130,9 @@ curseforge:
   search: Search
   totalDownloads: Total Downloads
 curseforgeCard: {}
+curseforgeCategory:
+  Fabric: Fabric
+  Food: Food
 dataMigration:
   apply: Apply Setting
   directoryCriteriaHint: Please make sure your new directory location is an EMPTY directory!
@@ -183,8 +190,8 @@ diagnosis:
     message: You can ask Launcher to download it for you.
     name: The java version {javaVersion} does not suitable to {version}!
   instanceFiles:
-    description: This might be incompleted installation last time
-    title: Install files to instances
+    description: The instance installation include {counts} files.
+    title: Incompleted instance installation
   invalidJava:
     message: Click to use another java to launch.
     name: Invalid java location.
@@ -214,8 +221,8 @@ disk:
   available: Available
   used: Used
 download: Download
-downloadUpdate: Download Update
 downloadCount: '{count} downloads'
+downloadUpdate: Download Update
 duration:
   day: '{duration} day | {duration} days'
   hour: '{duration} hour | {duration} hours'
@@ -223,6 +230,11 @@ duration:
   second: '{duration} second | {duration} seconds'
 edit: Edit
 enable: Enable
+env:
+  select:
+    all: Select All
+    fit: Select Fit
+    none: Select None
 error:
   name: Error | Errors
 errors:
@@ -243,7 +255,12 @@ errors:
     Error during accessing the download file path. Please ensure the launcher
     has permission to write on it.
   HeadersTimeoutError: HTTP Header timeout
+  NotFoundError: 404 Not Found
   SocketError: Server socket error
+eula:
+  body: >-
+    By check the checkbox button, you are indicating your agreement to
+    Minecraft's {eula}.
 exception:
   http: >-
     HTTP request to {url} failed. Status code {statusCode}. {code}. Please retry
@@ -270,11 +287,17 @@ feedback:
   discord: Discord
   discordDescription: Join Discord Channel
   discordJoin: Join
+  generateReport: Generate Report
+  generateSaveAs: Save the report to
   github: Github Issue
   githubDescription: Open an Github Issue to tell your thought
   githubOpenIssue: Github
+  hint: >-
+    Click the button to create the report and contact the developer team. The
+    report will contains your device info including operating system type,
+    version, user name (in your os), etc.
   kook: Kook
-  kookDescription: Kook is an alter app for discord in China Mainland user
+  kookDescription: Kook is an alter app for discord for Chinese Mainland users
   name: Feedback
   qq: QQ Group
   qqDescription: >-
@@ -310,11 +333,12 @@ help: Help
 home: Home
 importModpack:
   failed: Import {modpack} failed
+  name: Import Modpack
   success: Import {modpack} succeed
 importResource: Import Resource
 install: Install
 installAssets:
-  asset: Install Asset {hash}
+  asset: Install {count} Assets
   assetIndex: Check Assets Index File
   name: Install Asset Files
 installAuthlibInjector: Install authlib-injector
@@ -366,6 +390,7 @@ installVersion:
   name: Install Minecraft Client {version}
 instance:
   addServer: Add Server
+  changeIcon: Change Icon
   current: Current Instance
   delete: Delete Game
   deleteHint: The instance data will be moved from the disk forever. You sure to do this?
@@ -375,10 +400,12 @@ instance:
   fileApiHint: The url to synchronize instance files from a remote config server.
   gameVersion: Game Version
   icon: Profile Icon
+  iconHint: The icon could be a file or internet url link.
   iconUrl: Icon Url
   includeVersion: Include Version | Include Versions
   lastPlayed: Last Played
   launchArguments: Launch Arguments Preview
+  launchServer: Launch localhost server
   mcOptions: Minecraft Options
   mcOptionsHint: Additional Minecraft launch arugments
   name: Profile Name
@@ -387,6 +414,8 @@ instance:
   openCrashReportFolder: Open Crash Report Folder
   openLogFolder: Open Log Folder
   playtime: Playtime
+  prependCommand: Prepend Command
+  prependCommandHint: This will prepend this command before all the launch commands
   requireName: The name is required
   showInstance: Show game folder
   versionHint: The Minecraft version of this game
@@ -429,6 +458,9 @@ instanceTemplate:
 instanceUpdate:
   basic: Setting Update
   files: File Updates
+  loaderChanged: >-
+    The modloader of this instance has been changed. The old modloader is
+    {modloader}, and the new modloader is {newModloader}.
   title: Update Instance
   update: Start Update
 instances:
@@ -450,6 +482,7 @@ instances:
     Import from common .minecraft folder. This will duplicate the original game
     profile to this launcher.
   choose: Select Game
+  folderSetting: Folder Settings
   importFolder: Import from folder
   importFolderDescription: Import Minecraft to Launcher
   loadingFiles: Loading Modpack Files
@@ -480,6 +513,7 @@ labyMod:
 launch:
   cancel: Cancel
   kill: Stop
+  killServer: Kill Localhost Server
   launch: Launch
 launchBlocked:
   ignore: Force Launch
@@ -594,8 +628,8 @@ loginError:
     Fail to exchange Minecraft token by XBox token. Please make sure you have
     Minecraft in Xbox, or retry.
   loginXboxFailed: >-
-    Fail to login Xbox by Microsoft token. Please make sure you have a linked
-    xbox account to your Microsoft account. Please try again.
+    Fail to login Xbox by Microsoft token. Please make sure you have a
+    independent xbox account to your Microsoft account. Please try again.
   requestFailed: Login failed, we do not know the exact reason. Please retry.
   requireEmail: E-mail is required
   requirePassword: Password is required
@@ -607,8 +641,11 @@ logsCrashes:
   placeholder: No Files Found
   title: Logs or Crash Reports
 me:
+  games: My Games
+  modpacks: My Modpacks
   news: News
   recentPlay: Recent Play
+  versions: Installed Versions
 minecraftVersion:
   empty: Cannot load Minecraft versions
   name: Minecraft Version
@@ -625,6 +662,7 @@ mod:
     delete it? | You will lose these mod & these metadata forever. Are you sure
     you want to do that?
   deletionRestHint: And {rest} more Mods...
+  denseView: Dense View
   dropHint: Drop mod's .jar/.litemod here to import.
   enabled: '{count} Mods enabled'
   filter: Filter Mods
@@ -634,6 +672,7 @@ mod:
   incompatible: Incompatible Mod.
   manage: Manage Mods
   maybeCompatible: Maybe Compatible.
+  mods: '{count} Mods'
   name: Mod | Mods
   noModLoaderHint: Don't forget to enable a modloader to use mods!
   openLink: Open the mod url {url}
@@ -647,14 +686,21 @@ mod:
   switchDefaultSource: Default Mod Source
   toUpdate: '{count} to update'
 modInstall:
+  archived: >-
+    {name} has been archived. {name} will not receive any further updates unless
+    the author decides to unarchive the project.
+  checkDependencies: Check Dependencies
   checkUpgrade: Check Mods Update
+  checkedDependencies: Checked Dependencies
   checkedUpgrade: Upgrade checked
   currentVersion: Selected Version
   dependencyHint: Installed another version {version}
   install: Install
+  installDependencies: Install Missing Dependencies
   installHint: Will install {file} file with {dependencies} dependencies
   installed: Installed
-  noVersionSupported: Mod does not support current Minecraft version
+  noVersionSupported: Mod only support Minecraft {supported}.
+  recommendation: Explore the {first} or {second} mods in {modrinth} and {curseforge}!
   search: Search Result
   searchHint: Search and select project
   source: Mod Source
@@ -883,6 +929,8 @@ multiplayer:
   enterRemoteTokenHint: >-
     Once your peer enter your token, you need to enter his token to the text
     area below. Click confirm to connect.
+  exposedPortDescription: The port you exposed to other peers
+  exposedPorts: Forwarded Ports
   gatheringIce: >
     "Please wait for the ICE server to collect enough information about your
     network. If you are impatient and there are enough information, you can give
@@ -905,12 +953,17 @@ multiplayer:
   joinManual: Join
   joinOrCreateGroup: Join/Create Group
   joinOrCreateGroupHint: Get group id from your friends or create a group
+  kernel: P2P Kernel
+  kernelDescription: >-
+    Use either native WebRTC or node-datachannel. Only switch this when your p2p
+    connection sometime crash the launcher window.
   leaveGroup: Leave group
   localToken: Local Token
   manualConnect: Manually Connect
   name: Multiplayer on LAN
   networkInfo: Network Info
   next: Next
+  otherExposedPortDescription: The port forword by {user}
   placeholder: Connect with other user to play Minecraft on LAN!
   previous: Previous
   receiveHint: >-
@@ -922,6 +975,8 @@ multiplayer:
   sendTokenToRemote: Send Token to Remote
   share: Share Instance Config
   sharing: Sharing files...
+  sharingNotificationBody: You can download or create instance from {name} shared config.
+  sharingNotificationTitle: A peer is sharing game config
   start: Start
   startNewP2PConnection: Click the Start button to create a new peer connection
 myStuff: My Stuff
@@ -1005,6 +1060,7 @@ resourcepack:
   incompatible: >-
     Incompatible Resource Pack format({format}). Fitin {accept}. Current
     {actual}.
+  independent: Instance use independent resource pack folder
   manage: Manage Resource Packs
   name: Resource Pack | Resource Packs
   searchHint: Search reosurce pack
@@ -1012,10 +1068,13 @@ resourcepack:
   searchOnModrinth: '@:mod.searchOnModrinth'
   selectSearchHint: Search and select resource pack
   selected: Selected Resource Packs
+  shared: Instance use shared resource pack folder
+  showDirectory: Show resource packs directory
   showFile: Show resource pack in folder {file}
   showInCurseforge: Show {name} in curseforge
   unselected: Unselected Resource Packs
 save:
+  cheat: Cheating
   copy:
     cancel: Cancel Copy
     confirm: Start Copy
@@ -1032,6 +1091,7 @@ save:
     fromProfile: From Other Instances
     fromResource: From Managed Resources
     title: Import Save from Managed Source
+  createNew: Create New World
   createdWorlds: You have {count} worlds
   deleteHint: >-
     This operation cannot be revert. You will lose this save data forever. Are
@@ -1042,11 +1102,21 @@ save:
   export: Export Save
   exportMessage: Export the Save as zip
   exportTitle: Export the Save
+  gameMode: game mode
   import: Import Save
   importMessage: Import a Save from zip
   importTitle: Import a Save
+  independent: Instance use independent saves folder
+  levelName: Level Name
   manage: Manage Saves
   name: Save | Saves
+  search: Search Saves
+  selected: Local Saves
+  shared: Instance use shared saves folder
+  showDirectory: Show saves directory
+  unselected: Shared Saves
+  useCurrent: Use current world
+saves: {}
 screenshots:
   empty: You don't have screenshots
   goto: Open Folder
@@ -1063,8 +1133,11 @@ server:
   host: Host
   hostHint: The host (with port) of the server
   ipAddress: IP Address
+  maxPlayers: Max Players
   motd: Server MOTD
   name: Server | Servers
+  nogui: No Server Gui
+  onlineMode: Online Mode
   ping: Ping
   pings: Pings
   players: Players
@@ -1094,6 +1167,8 @@ setting:
   autoDownloadDescription: Auto Download Update if it's Avaiable
   autoInstallOnAppQuit: Autoinstall
   autoInstallOnAppQuitDescription: Autoinstall the Update on App Quit
+  backgroundColorAbove: Show background color as overlay
+  backgroundColorAboveDescription: This will make background color display above the background image or video.
   backgroundImage: Background image
   backgroundImageBlur: Image blur
   backgroundImageBlurDescription: Drag to blur, easy
@@ -1104,6 +1179,7 @@ setting:
     cover: Cover
     name: Image Fit
   backgroundImageSelect: select
+  backgroundMusic: Theme Background Music
   backgroundType: Background Type
   backgroundTypeDescription: Show special effect on background (This may impact performance)
   backgroundTypes:
@@ -1140,14 +1216,15 @@ setting:
   developerModeDescription: Developer Mode is targeting to test your own written mod
   disableTelemetry: Disable Telemetry
   disableTelemetryDescription: This launcher will collect the game launch and user login events.
+  enableDedicatedGPUOptimization: Assign Dedicated GPU
+  enableDedicatedGPUOptimizationDescription: This option will assign dedicated GPU to Minecraft process.
   enableDiscord: Enable Discord Presence
   enableDiscordDescription: This will keep update your launcher status to discord
   general: General
   githubRelease: Github Release
   globalSetting: Global Instance Setting
   globalSettingHint: Instance will use these settings by default.
-  hideNews: Hide News
-  hideNewsDescription: This will hide the news under the instance page
+  hideNewsHeader: Hide News Showcase
   language: Language
   languageDescription: The display language
   latestVersion: Latest Version
@@ -1156,8 +1233,6 @@ setting:
     focus: Focus Layout
   layoutDescription: The launcher layout reprensenting different UI logic
   layoutTitle: Layout
-  enableDedicatedGPUOptimization: Assign Dedicated GPU
-  enableDedicatedGPUOptimizationDescription: This option will assign dedicated GPU to Minecraft process.
   linuxTitlebar: Native title bar
   linuxTitlebarDescription: Use native linux title bar for launcher
   location: Store Location
@@ -1185,6 +1260,7 @@ setting:
     all: All
     legacy: Legacy Version Only
   resetToDefault: Reset to Default
+  showNewsHeader: Unhide News showcase
   showRoot: Show
   streamerMode: Streaming Mode
   streamerModeDescription: This will hide your private information like email in launcher.
@@ -1192,19 +1268,32 @@ setting:
     dark: Dark Theme
     light: Light Theme
     system: Use System Theme
+  themeExport: Export Theme
+  themeFont: Font
+  themeFontDescription: Change the font of the launcher.
+  themeImport: Import Theme
+  themeResetFont: Reset Font
+  themeSelectFont: Select Font
+  themeShare: Share Theme
+  themeShareDescription: You can share the theme with your friend.
   update: Update
   useBmclAPI: Use BMCL API
   useBmclAPIDescription: >-
-    Use BMCLAPI to download Minecraft when you are in China Mainland. (This
-    won't affect if you're not in China mainland)
+    Use BMCLAPI to download Minecraft when you are in Chinese Mainland. (This
+    won't affect if you're not in Chinese Mainland)
   useProxy: HTTP Proxy
   useProxyDescription: The proxy server address for the http request
+  viewBackgroundMusic: View Musics
 settingLabel:
   global: Global
   globalHint: This setting will follow the global setting
   local: Local
   localHint: This setting is modified by current instance
 setup:
+  account:
+    description: Login your game account. If you don't have one, you can skip it for now.
+    name: Add Game Account
+    skip: Skip for now
   appearance:
     name: '@:setting.appearance'
   dataRoot:
@@ -1259,6 +1348,8 @@ shaderPack:
   selectSearchHint: Search and select Shader Pack
   showDirectory: Show shader pack directory
   showFile: Show this shader pack in folder
+shared:
+  accept: Accept
 store:
   explore: Explore
   latestMinecraft: Latest Minecraft Version
@@ -1273,20 +1364,41 @@ tag:
 task:
   cancelled: Cancelled
   clear: Clear Finished Tasks
+  connection:
+    connected: Connected
+    free: Free
+    pending: Pending
+    queued: Queued
+    running: Running connection
+    size: total count
+  connections: Network Connections
   empty: No Running Tasks
   failed: Failed
   manager: Task Manager
   nTaskRunning: '{count} tasks is running'
   name: Task | Tasks
   pause: Pause
+theme:
+  selectImage: Select Image
+  selectMusic: Select Music
+  selectVideo: Select Video
 title: PbtModLauncherX
 transportType:
   host: Host Candidate
   prflx: Peer Reflexive Candidate
   relay: Relay Candidate
   srflx: Server Reflexive Candidate
+turnRegion:
+  fr: Frence
+  guangzhou: Guangzhou, China
+  hk: Hong Kong
+  liaoning: Liaoning, China
+  po: Poland
 tutorial:
   feedbackDescription: If you encounter any problem, please click this button to send feedback!
+  hideNewsHeaderDescription: >-
+    You can see the News showacse on the left. Clicking this button can hide
+    this show case.
   instance:
     iconDescription: Click to change icon.`
     iconTitle: Instance icon
@@ -1297,9 +1409,7 @@ tutorial:
   instanceAddDescription: >-
     Click this button to import existed Minecraft or create a new one from
     scratch or modpack.
-  instanceSelectDescription: >-
-    Clicking this button will navigate to the page to select and create new
-    game.
+  instanceSelectDescription: Clicking this button will navigate to the page to select game and read news.
   launchDescription: Click this button to install or launch the game.
   mod:
     defaultSourceDescription: >-
@@ -1336,12 +1446,23 @@ tutorial:
       If you or your friend cannot connect to group. You can try to manually
       exchange the token by clicking manually connect. If that also failed, it
       might be the internet issue.
+  recentPlayDescription: >-
+    The created games will listed here. You can switch the views here to also
+    see the installed versions and downloaded modpacks.
+  storePoupularModpackDescription: >-
+    You will see the most popular modpacks in Curseforge and Modrinth in this
+    section.
+  storeSearchCategoryDescription: You can also toggle the categories or filters here.
+  storeSearchDescription: You can search Modpack by inputing in this text box. Press Enter to search.
+  storeSearchResultDescription: You will see all search results listed here.
   userAccountDescription: Click this icon to add or manage your Minecraft account.
 universalDrop:
   enableModsAfterImport: Enable Mods After Import
   start: Import Started
   title: Drop File(s) Here to Import as
   unknownResource: Unknown
+update:
+  goOfficialWebDownload: Re-download on official website
 upstream:
   downgrade: Downgrade
   missingModpackMetadata: >-

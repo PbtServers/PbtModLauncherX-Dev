@@ -2,25 +2,21 @@ import { AccentState, HAS_DEV_SERVER, HOST, IS_DEV, WindowsBuild } from '@/const
 import browsePreload from '@preload/browse'
 import indexPreload from '@preload/index'
 import monitorPreload from '@preload/monitor'
+import multiplayerPreload from '@preload/multiplayer'
 import browserWinUrl from '@renderer/browser.html'
 import loggerWinUrl from '@renderer/logger.html'
 import { InstalledAppManifest, Settings } from '@xmcl/runtime-api'
 import { Client, LauncherAppController } from '@xmcl/runtime/app'
 import { Logger } from '@xmcl/runtime/logger'
-import { kUserAgent } from '@xmcl/runtime/network'
 import { kSettings } from '@xmcl/runtime/settings'
-import { UserService } from '@xmcl/runtime/user'
-import { BrowserWindow, DidCreateWindowDetails, Event, HandlerDetails, Session, Tray, WebContents, dialog, ipcMain, nativeTheme, protocol, session, shell } from 'electron'
-import { createReadStream } from 'fs'
-import { readFile } from 'fs-extra'
-import { join } from 'path'
-import { Readable } from 'stream'
+import { BrowserWindow, Event, HandlerDetails, Session, Tray, WebContents, dialog, ipcMain, nativeTheme, protocol, shell } from 'electron'
 import ElectronLauncherApp from './ElectronLauncherApp'
 import { plugins } from './controllers'
 import { definedLocales } from './definedLocales'
 import { createI18n } from './utils/i18n'
 import { darkIcon } from './utils/icons'
-import { trackWindowSize } from './utils/windowSizeTracker'
+import { getLoginSuccessHTML } from './utils/login'
+import { createWindowTracker } from './utils/windowSizeTracker'
 
 export class ElectronController implements LauncherAppController {
   protected windowsVersion?: { major: number; minor: number; build: number }
@@ -31,9 +27,11 @@ export class ElectronController implements LauncherAppController {
 
   protected browserRef: BrowserWindow | undefined = undefined
 
+  protected multiplayerRef: BrowserWindow | undefined = undefined
+
   protected i18n = createI18n(definedLocales, 'en')
 
-  private logger: Logger
+  readonly logger: Logger
 
   protected tray: Tray | undefined
 
@@ -50,8 +48,13 @@ export class ElectronController implements LauncherAppController {
 
   private windowOpenHandler: Parameters<WebContents['setWindowOpenHandler']>[0] = (detail: HandlerDetails) => {
     const url = new URL(detail.url)
-    if (url.host === 'app' || detail.frameName === '' || detail.frameName === 'app') {
-      const man = this.activatedManifest!
+    const features = detail.features.split(',')
+    const width = parseInt(features.find(f => f.startsWith('width'))?.split('=')[1] ?? '1024', 10)
+    const height = parseInt(features.find(f => f.startsWith('height'))?.split('=')[1] ?? '768', 10)
+    const minWidth = parseInt(features.find(f => f.startsWith('min-width'))?.split('=')[1] ?? '600', 10)
+    const minHeight = parseInt(features.find(f => f.startsWith('min-height'))?.split('=')[1] ?? '600', 10)
+    const man = this.activatedManifest!
+    if (url.host === 'app' || detail.frameName === 'app' || (url.host.startsWith('localhost') && HAS_DEV_SERVER)) {
       return {
         action: 'allow',
         overrideBrowserWindowOptions: {
@@ -59,18 +62,14 @@ export class ElectronController implements LauncherAppController {
           icon: nativeTheme.shouldUseDarkColors ? man.iconSets.darkIcon : man.iconSets.icon,
           titleBarStyle: this.getTitlebarStyle(),
           trafficLightPosition: this.app.platform.os === 'osx' ? { x: 14, y: 10 } : undefined,
-          minWidth: 600,
-          minHeight: 600,
-          width: 1024,
-          height: 768,
+          minWidth,
+          minHeight,
+          width,
+          height,
           show: false,
           frame: this.getFrameOption(),
 
           webPreferences: {
-            contextIsolation: true,
-            nodeIntegration: false,
-            nodeIntegrationInWorker: false,
-            nodeIntegrationInSubFrames: false,
             preload: indexPreload,
             devTools: IS_DEV,
           },
@@ -82,8 +81,7 @@ export class ElectronController implements LauncherAppController {
     return { action: 'deny' }
   }
 
-  private onWebContentCreateWindow = (window: BrowserWindow,
-    details: DidCreateWindowDetails) => {
+  private onWebContentCreateWindow = (window: BrowserWindow) => {
     window.webContents.setWindowOpenHandler(this.windowOpenHandler)
     window.webContents.on('will-navigate', this.onWebContentWillNavigate)
     window.webContents.on('did-create-window', this.onWebContentCreateWindow)
@@ -105,6 +103,10 @@ export class ElectronController implements LauncherAppController {
     if (app.platform.os === 'windows') {
       this.windowsVersion = app.windowsUtils?.getWindowsVersion()
     }
+
+    this.handle('open-multiplayer-window', () => {
+      this.openMultiplayerWindow()
+    })
 
     this.app.on('window-all-closed', () => {
       if (process.platform !== 'darwin' && !this.parking) {
@@ -135,8 +137,11 @@ export class ElectronController implements LauncherAppController {
     }])
   }
 
-  handle(channel: string, handler: (event: { sender: Client }, ...args: any[]) => any) {
-    return ipcMain.handle(channel, handler)
+  handle(channel: string, handler: (event: { sender: Client }, ...args: any[]) => any, once = false) {
+    if (!once) {
+      return ipcMain.handle(channel, handler)
+    }
+    return ipcMain.handleOnce(channel, handler)
   }
 
   broadcast(channel: string, ...payload: any[]): void {
@@ -199,107 +204,7 @@ export class ElectronController implements LauncherAppController {
     }
   }
 
-  private getSharedSession(userAgent: string) {
-    if (this.sharedSession) {
-      return this.sharedSession
-    }
-
-    const restoredSession = session.fromPartition('persist:main')
-    restoredSession.setUserAgent(userAgent)
-
-    for (const e of session.defaultSession.getAllExtensions()) {
-      restoredSession.loadExtension(e.path)
-    }
-
-    restoredSession.webRequest.onHeadersReceived((detail, cb) => {
-      if (detail.responseHeaders &&
-        !detail.responseHeaders['access-control-allow-origin'] &&
-        !detail.responseHeaders['Access-Control-Allow-Origin']) {
-        detail.responseHeaders['access-control-allow-origin'] = ['*']
-      }
-
-      cb({ responseHeaders: detail.responseHeaders })
-    })
-
-    restoredSession.webRequest.onBeforeSendHeaders((detail, cb) => {
-      if (detail.requestHeaders) {
-        detail.requestHeaders['User-Agent'] = userAgent
-      }
-      if (detail.url.startsWith('https://api.xmcl.app/modrinth') ||
-        detail.url.startsWith('https://api.xmcl.app/curseforge')
-      ) {
-        this.app.registry.get(UserService).then(userService => {
-          userService.getOfficialUserProfile().then(profile => {
-            if (profile && profile.accessToken) {
-              detail.requestHeaders.Authorization = `Bearer ${profile.accessToken}`
-            }
-            cb({ requestHeaders: detail.requestHeaders })
-          }).catch(() => {
-            cb({ requestHeaders: detail.requestHeaders })
-          })
-        }).catch(e => {
-          cb({ requestHeaders: detail.requestHeaders })
-        })
-      } else if (detail.url.startsWith('https://api.curseforge.com')) {
-        detail.requestHeaders['x-api-key'] = process.env.CURSEFORGE_API_KEY || ''
-        cb({ requestHeaders: detail.requestHeaders })
-      } else {
-        cb({ requestHeaders: detail.requestHeaders })
-      }
-    })
-
-    const handler = async (request: Request): Promise<Response> => {
-      const url = new URL(request.url)
-      if (url.host === HOST && !HAS_DEV_SERVER) {
-        const realPath = join(__dirname, 'renderer', url.pathname)
-        const mimeType =
-          url.pathname.endsWith('.js')
-            ? 'text/javascript'
-            : url.pathname.endsWith('.css')
-              ? 'text/css'
-              : url.pathname.endsWith('.html')
-                ? 'text/html'
-                : url.pathname.endsWith('.json')
-                  ? 'application/json'
-                  : url.pathname.endsWith('.png')
-                    ? 'image/png'
-                    : url.pathname.endsWith('.svg')
-                      ? 'image/svg+xml'
-                      : url.pathname.endsWith('.ico')
-                        ? 'image/x-icon'
-                        : url.pathname.endsWith('.woff')
-                          ? 'font/woff'
-                          : url.pathname.endsWith('.woff2')
-                            ? 'font/woff2'
-                            : url.pathname.endsWith('.ttf')
-                              ? 'font/ttf'
-                              // webp
-                              : url.pathname.endsWith('.webp') ? 'image/webp' : ''
-        return new Response(Readable.toWeb(createReadStream(realPath)) as any, {
-          headers: {
-            'Content-Type': mimeType,
-          },
-        })
-      }
-      const response = await this.app.protocol.handle({
-        url: new URL(url),
-        method: request.method,
-        headers: request.headers,
-        body: request.body ? Readable.fromWeb(request.body as any) : request.body as any,
-      })
-      return new Response(response.body instanceof Readable ? Readable.toWeb(response.body) as any : response.body, {
-        status: response.status,
-        headers: response.headers,
-      })
-    }
-
-    restoredSession.protocol.handle('http', handler)
-    this.sharedSession = restoredSession
-
-    return restoredSession
-  }
-
-  async activate(manifest: InstalledAppManifest): Promise<void> {
+  async activate(manifest: InstalledAppManifest, isBootstrap = false): Promise<void> {
     this.logger.log(`Activate app ${manifest.name} ${manifest.url}`)
     this.parking = true
 
@@ -311,7 +216,7 @@ export class ElectronController implements LauncherAppController {
     this.activatedManifest = manifest
 
     try {
-      await this.createAppWindow(this.app.launcherAppManager.getAppRoot(manifest.url))
+      await this.createAppWindow(isBootstrap)
     } finally {
       this.parking = false
     }
@@ -341,39 +246,76 @@ export class ElectronController implements LauncherAppController {
     this.browserRef = browser
   }
 
-  async createAppWindow(appDir: string) {
-    const man = this.activatedManifest!
-    const configPath = man === this.app.builtinAppManifest ? join(this.app.appDataPath, 'main-window-config.json') : join(appDir, 'window-config.json')
-    this.logger.log(`Creating app window by config ${configPath}`)
-    const configData = await readFile(configPath, 'utf-8').then((v) => JSON.parse(v)).catch(() => ({
-      width: -1,
-      height: -1,
-      x: null,
-      y: null,
-    }))
-    const config = {
-      width: typeof configData.width === 'number' ? configData.width as number : -1,
-      height: typeof configData.height === 'number' ? configData.height as number : -1,
-      x: typeof configData.x === 'number' ? configData.x as number : null,
-      y: typeof configData.y === 'number' ? configData.y as number : null,
-    }
+  async openMultiplayerWindow() {
+    if (!this.multiplayerRef || this.multiplayerRef.isDestroyed()) {
+      const man = this.activatedManifest!
+      const tracker = createWindowTracker(this.app, 'multiplayer', man)
+      const config = await tracker.getConfig()
 
-    const ua = await this.app.registry.get(kUserAgent)
-    const restoredSession = this.getSharedSession(ua)
+      const win = new BrowserWindow({
+        icon: nativeTheme.shouldUseDarkColors ? man.iconSets.darkIcon : man.iconSets.icon,
+        titleBarStyle: this.getTitlebarStyle(),
+        trafficLightPosition: this.app.platform.os === 'osx' ? { x: 14, y: 10 } : undefined,
+        minWidth: 400,
+        minHeight: 600,
+        width: config.getWidth(400),
+        height: config.getHeight(600),
+        x: config.x,
+        y: config.y,
+        show: false,
+        frame: this.getFrameOption(),
+
+        webPreferences: {
+          session: this.app.session.getSession(this.activatedManifest!.url),
+          contextIsolation: true,
+          sandbox: false,
+          preload: multiplayerPreload,
+          devTools: IS_DEV,
+        },
+      })
+
+      tracker.track(win)
+
+      const url = new URL(man.url)
+      url.pathname = '/app.html'
+      win.loadURL(url.toString())
+      this.onWebContentCreateWindow(win)
+      win.once('ready-to-show', () => {
+        win.show()
+      })
+      win.on('close', (e) => {
+        if (this.mainWin && !this.mainWin.isDestroyed()) {
+          win.hide()
+          e.preventDefault()
+        }
+      })
+      this.multiplayerRef = win
+    } else {
+      this.multiplayerRef.show()
+      this.multiplayerRef.focus()
+    }
+  }
+
+  async createAppWindow(isBootstrap: boolean) {
+    const man = this.activatedManifest!
+    const tracker = createWindowTracker(this.app, 'app-manager', man)
+    const config = await tracker.getConfig()
+
+    const restoredSession = this.app.session.getSession(man.url)
     const minWidth = man.minWidth ?? 800
     const minHeight = man.minHeight ?? 600
 
     // Ensure the settings is loaded
     if (this.app.platform.os === 'linux' && !this.settings) {
-      if (!await this.app.isGameDataPathMissing()) {
-        this.settings = await this.app.registry.get(kSettings)
-      }
+      this.settings = await this.app.registry.get(kSettings)
     }
 
     const browser = new BrowserWindow({
       title: man.name,
-      width: config.width > 0 ? config.width : undefined,
-      height: config.height > 0 ? config.height : undefined,
+      width: config.getWidth(minWidth),
+      height: config.getHeight(minHeight),
+      x: config.x,
+      y: config.y,
       minWidth: man.minWidth,
       minHeight: man.minHeight,
       frame: this.getFrameOption(),
@@ -394,12 +336,15 @@ export class ElectronController implements LauncherAppController {
       browser.setAspectRatio(minWidth / minHeight)
     }
 
-    this.logger.log(`Created app window by config ${configPath}`)
     browser.on('ready-to-show', () => {
       this.logger.log('App Window is ready to show!')
 
       if (man.vibrancy) {
         this.setWindowBlurEffect(browser)
+      }
+
+      if (config.maximized) {
+        browser.maximize()
       }
 
       browser.show()
@@ -408,14 +353,16 @@ export class ElectronController implements LauncherAppController {
     browser.webContents.on('will-navigate', this.onWebContentWillNavigate)
     browser.webContents.on('did-create-window', this.onWebContentCreateWindow)
     browser.webContents.setWindowOpenHandler(this.windowOpenHandler)
+    browser.on('closed', () => {
+      this.multiplayerRef?.close()
+    })
 
     this.setupBrowserLogger(browser, 'app')
-
-    trackWindowSize(browser, config, configPath)
+    tracker.track(browser)
 
     let url = man.url
-    if (await this.app.isGameDataPathMissing()) {
-      url += '?setup'
+    if (isBootstrap) {
+      url += '?bootstrap'
     }
     this.logger.log(url)
     browser.loadURL(url)
@@ -434,11 +381,16 @@ export class ElectronController implements LauncherAppController {
     return this.loggerWin
   }
 
-  createMonitorWindow() {
+  async createMonitorWindow() {
+    const tracker = createWindowTracker(this.app, 'monitor', this.activatedManifest!)
+
+    const config = await tracker.getConfig()
     const browser = new BrowserWindow({
       title: 'KeyStone Monitor',
-      width: 770,
-      height: 580,
+      width: config.getWidth(600),
+      height: config.getHeight(400),
+      x: config.x,
+      y: config.y,
       minWidth: 600,
       minHeight: 400,
       frame: false,
@@ -448,7 +400,7 @@ export class ElectronController implements LauncherAppController {
       icon: darkIcon,
       webPreferences: {
         preload: monitorPreload,
-        session: session.fromPartition('persist:logger'),
+        session: this.app.session.getSession(this.activatedManifest!.url),
       },
     })
 
@@ -457,6 +409,8 @@ export class ElectronController implements LauncherAppController {
 
     browser.loadURL(loggerWinUrl)
     browser.show()
+
+    tracker.track(browser)
 
     this.loggerWin = browser
   }
@@ -481,14 +435,6 @@ export class ElectronController implements LauncherAppController {
     return result.response === 1
   }
 
-  async processFirstLaunch(): Promise<{ path: string; instancePath: string; locale: string }> {
-    return new Promise<{ path: string; instancePath: string; locale: string }>((resolve) => {
-      ipcMain.handleOnce('bootstrap', (_, path, instancePath, locale) => {
-        resolve({ path, instancePath, locale })
-      })
-    })
-  }
-
   private getFrameOption() {
     if (this.app.platform.os === 'linux') {
       return this.settings?.linuxTitlebar
@@ -508,10 +454,16 @@ export class ElectronController implements LauncherAppController {
     return this.mainWin ?? this.loggerWin
   }
 
+  getLoginSuccessHTML() {
+    const title = this.i18n.t('urlSuccess')
+    const body = this.i18n.t('autoCloseHint').replace('{time}', '<span id="countdown">10</span>')
+    return getLoginSuccessHTML(title, body)
+  }
+
   openDevTools() {
     for (const win of BrowserWindow.getAllWindows()) {
       win.webContents.closeDevTools()
-      win.webContents.openDevTools()
+      win.webContents.openDevTools({ mode: 'detach' })
     }
   }
 }

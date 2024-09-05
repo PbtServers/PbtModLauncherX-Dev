@@ -5,7 +5,8 @@
   >
     <v-avatar
       :left="true"
-      class="hidden h-[34px] w-[34px] lg:block"
+      class="hidden lg:block"
+      style="height: 34px; width: 34px"
       :class="{ responsive }"
     >
       <img
@@ -22,7 +23,7 @@
       class="text overflow-hidden overflow-ellipsis whitespace-nowrap"
     >
       <div
-        class="select-none font-semibold text-gray-300"
+        class="select-none font-semibold dark:text-gray-300"
         :style="{
           color: bgColor
         }"
