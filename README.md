@@ -9,7 +9,7 @@ Clonar Repositorio -->
 `git clone --recurse-submodules https://github.com/PbtServers/PbtModLauncherX-Dev`
 
 Instalar Dependencias y Ejecutar Dev -->                                                                                                                         
-`pnpm build:dir`
+(Ejecutar Compilación habitual)
 
 `pnpm install`                                                                                                                                                   
 `npm run dev:renderer`                                                                                                                                           
