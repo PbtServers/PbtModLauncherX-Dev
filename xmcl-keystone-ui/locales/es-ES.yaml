@@ -1,4 +1,7 @@
 AppAddInstanceDialog:
+  choiceTitle: Multiples perfiles de arranque detectados. Selecciona uno.
+  configTitle: Configuración
+  createTitle: Crear Instancia
   downloadedNotification: El modpack {name} se ha descargado. ¿Quieres crear una instancia para ello?
   serverTitle: Ingrese la dirección de su servidor
 AppShareInstanceDialog:
@@ -29,6 +32,7 @@ BaseSettingGeneral:
   title: General
 FeedTheBeast:
   search: Buscar en FTB
+FeedTheBeastCard: {}
 FeedTheBeastProject:
   changelog: Registro de cambios
   details: Detalles
@@ -86,6 +90,11 @@ HomeSyncDialogPush:
 SettingMigrationDialog:
   selectRootDirectory: Seleccionar Directorio Raíz
 add: Añadir
+ago:
+  day: 'hace {duration} dia | hace {duration} dias'
+  hour: 'hace {duration} hora | hace {duration} horas'
+  minute: 'hace {duration} minuto | hace {duration} minutos'
+  second: 'hace {duration} segundo | hace {duration} segundos'
 authProfileAddedNotification: Perfil de Autenticación {name} Añadido
 author: Autor
 back: Atrás
@@ -99,15 +108,20 @@ browseApp:
   launch: Iniciar y configurar como predeterminado
 cancel: Cancelar
 color: Color
+checkUpdate:
+  name: Revisar Update
 confirm: Comenzar
 copyClipboard:
   success: Copiar al portapapeles
 create: Crear
 curseforge:
+  authors: Autores
+  category: Categoría
   createdDate: Fecha de creación
   downloadOnly: Descargar
   file:
     gameVersion: Versión del Juego
+    modLoader: Cargador de Mods
   install: Instalar
   installTo: Instalar en {path}
   installToStorage: Instalar en Almacenamiento
@@ -117,8 +131,10 @@ curseforge:
     files: Archivos
     images: Imágenes
   recentFiles: Archivos Recientes
+  releasedDate: Fecha de Lanzamiento
   search: Buscar
   totalDownloads: Descargas Totales
+curseforgeCard: {}
 curseforgeCategory:
   API and Library: API y Bibliotecas
   Addons: Addons
@@ -193,6 +209,12 @@ delete:
   name: Eliminar {name}
   'no': 'No'
   'yes': Borrar
+dependencies:
+  embedded: Embedded
+  incompatible: Incompatible
+  name: Dependencies
+  optional: Optional
+  required: Required
 description: Descripción
 detail: Detalle
 diagnosis:
@@ -231,6 +253,15 @@ diagnosis:
   missingAssetsIndex:
     message: Launcher descargará el índice de assets por ti
     name: Falta el archivo de índice de activos de {version}.
+  missingAuthlibInjector: {}
+  missingJava:
+    message: Click para resolver el problema
+    name: No se puede encontrar java!
+  missingLibraries:
+    message: Instalaremos las librerias para ti
+    name: >-
+      Falta la libreria {name} | Falta la libreria {name} | Faltan {count}
+      Librerias | Faltan {count} Librerias
 disable: Desactivar
 downloadUpdate: Descarga de la actualización
 env:
@@ -238,6 +269,28 @@ env:
     all: Seleccionar todo
     fit: Seleccionar Ajustar
     none: Seleccionar Ninguno
+  missingVersion:
+    message: Click para instalar esta versión
+    name: La versión {version} no está instalada!
+  missingVersionJar:
+    message: Click para instalar esta versión
+    name: Falta el jar de la versión %{version}
+disable: Deshabilitar
+disk:
+  available: Disponible
+  used: Usado
+download: Descargar
+downloadUpdate: Descargar Update
+downloadCount: '{count} descargas'
+duration:
+  day: '{duration} dia | {duration} dias'
+  hour: '{duration} hora | {duration} horas'
+  minute: '{duration} minuto | {duration} minutos'
+  second: '{duration} segundo | {duration} segundos'
+edit: Editar
+enable: Habilitar
+error:
+  name: Error | Errores
 errors:
   DatabaseNotOpened: |-
     ¡La base de datos no está abierta! 
@@ -249,6 +302,38 @@ eula:
   body: >-
     Al marcar el botón de la casilla de verificación, estás indicando que estás
     de acuerdo con la {eula} de Minecraft.
+  BadForgeInstallerJarError: >-
+    No se puede leer el jar de forge. Puede que sea un formato
+    nuevo de forge? Contacta con los desarrolladores si persiste.
+  BadInstanceType: 'Instancia no válida: {type}'
+  BodyTimeoutError: HTTP Body timeout
+  ChecksumNotMatchError: Checksum not matched! Expect {expect}. Actual {actual}.
+  ConnectTimeoutError: Connection timeout to server.
+  DNSNotFoundError: Busqueda DNS Fallida
+  DatabaseNotOpened: >-
+    Base de datos no abierta! El launcher no funcionará correctamente! Porfavor
+    establece un directorio de datos. Puedes probar a resetear los datos principales
+    en la página de ajustes.
+  DownloadAggregateError: Fallo al descargar el archivo.
+  DownloadFileSystemError: >-
+    Error al acceder al directorio de descarga. Porfavor asegurate
+    que el launcher tiene permiso de escritura.
+  HeadersTimeoutError: HTTP Header timeout
+  SocketError: Server socket error
+exception:
+  http: >-
+    HTTP request to {url} failed. Status code {statusCode}. {code}. Please retry
+    or check your network. If this error persist, please send report to
+    developer team.
+existed: Existed
+exportModpackTarget:
+  curseforge: Archivo CurseForge
+  github: Archivo GitHub
+  modrinth: Archivo Modrinth
+  override: Override (Raw)
+extensions:
+  mrpack: Modpack de Modrinth
+  zip: Archivo Zip
 fabricVersion:
   disable: Desactivar Fabric
   empty: No hay versión de Fabric para Minecraft {version}
@@ -274,6 +359,15 @@ feedback:
     Únete al grupo de QQ de comentarios y habla directamente con los autores.
     Número del grupo: {number}
   qqEnterGroup: Unirse
+fileDetail:
+  fileSize: Tamaño de Archivo
+  hash: Hash
+filter: Filtro
+finish: Terminar
+forgeConfig:
+  hint: >-
+    Porfavor al menos ejecuta el juego una vez, para que podamos detectar
+    el archivo de configuración!
 forgeVersion:
   common: Común
   disable: Desactivar Forge
@@ -313,8 +407,10 @@ installForge:
   postProcessing: Procesamiento posterior
 installInstance:
   file: Actualizar Archivo de Instancia {file}
+  link: Copiar o adjuntar {count} Archivos
   name: Actualizar Instancia
   resolve: Resolver Configuración de Instancia
+  unzip: Descomprimir {count} Archivos
 installJre:
   decompress: Descomprimir archivos JRE en la carpeta
   download: Descargar archivo JRE comprimido
@@ -422,9 +518,22 @@ instanceUpdate:
   update: Iniciar Actualización
 instances:
   add: Crear juego
+  addDescription: Crear nueva instancia desde cero
+  addMMCDescription: >-
+    Importar instancia ya existente. Debes seleccionar el directorio de
+    la instancia de MultiMC.
+  addManually: Crear Manualmente
+  addModrinthDescription: >-
+    Importar instancia ya existente. Debes seleccionar el directorio de
+    la instancia de Modrinth.
   addServer: Crear desde el servidor
   addServerDescription: Esto creará un juego que se iniciará directamente en el servidor.
   addTemplate: Crear desde plantilla
+  addTemplateDescription: Importar de modpack descargado
+  addVanilla: Crear desde minecraft vanilla
+  addVanillaDescription: >-
+    Importa desde tu instancia .minecraft esto duplicará tu juego original
+    en este launcher.
   choose: Selecciona un juego
   folderSetting: Configuración de carpeta
   importFolder: Importar desde Carpeta
@@ -437,9 +546,55 @@ items:
 java:
   allocatedLong: Usar Java predeterminada del sistema
   allocatedShort: Asignación Automática
+  browse: Buscar ejecutable de Java
+  importFromFile: Importar java desde archivo
+  invalid: Localización de java inválida
+  location: Localización de java
+  maxMemory: Memoria Máxima
+  memory: Memoria de Java
+  memoryAuto: Automática
+  memoryManual: Manual
+  memoryUnassigned: No Asignada
+  minMemory: Memoria Mínima
+  modifyInstance: Modificar lugar de java
+  noMemory: No limitar el uso de memoria
+  refresh: Refrescar java local
+  systemMemory: Uso de memoria actual
+labyMod:
+  disable: Deshabilitar labymod
+  empty: LabyMod no soporta minecraft actual
 launch:
   killServer: Matar el servidor localhost
+  cancel: Cancelar
+  kill: Matar
+  launch: Lanzar
 launchBlocked:
+  ignore: Lanzar Forzosamente
+  launchBadVersion:
+    description: La versión {version} json se está rompiendo. Puede que reinstalando funcione?
+    title: Mala versión de JSON
+  launchGeneralException:
+    description: Algunos errores causaron el cierre del juego.
+    title: Arranque fallido
+  launchInvalidJavaPath:
+    description: >-
+      La versión de java seleccionada no es válida. Porfavor elige una nueva. <span
+      class="highlight"> {javaPath} </span>
+    title: Java inválido
+  launchJavaNoPermission:
+    description: >-
+      El launcher no tiene permiso para ejecutar java <span
+      class="highlight"> {javaPath} </span>. Puedes cambiar el permiso del archivo java
+      pero también hay la opción de darle permisos al launcher.
+    title: No hay permiso para lanzar
+  launchNoProperJava:
+    description: >-
+      No hay un java válido para arrancar el juego. ({javaPath} 
+      es válida?)
+    title: No hay java encontrado
+  launchNoVersionInstalled:
+    description: No se puede resolver la versión <span class="highlight">{version}</span> para lanzar.
+    title: No hay versión elegida
   launchSpawnProcessFailed:
     description: >-
       Verifique su Java o otorgue más permisos al iniciador y vuelva a
@@ -447,11 +602,94 @@ launchBlocked:
 
       Si esto aún no funciona, comuníquese con los desarrolladores.
     title: No se puede iniciar el proceso del juego
+  launchUserStatusRefreshFailed:
+    description: No se puede recargar el estado del usuario.
+    title: Error al validar el estado del usuario
+  unexpectedText: >-
+    Esto no debería ocurrir. Prueba a reiniciar el launcher.
+    Contacta a developers si esto vuelve a ocurrir.
+  userAcquireMicrosoftTokenFailed: >-
+    No se pudo obtener el token de microsoft. Porfavor revisa tu cuenta
+    algo no ha salido bien.
+  userCheckGameOwnershipFailed: Fallo al revisar tu cuenta de minecraft
+  userExchangeXboxTokenFailed: >-
+    Fallo al pedir el token de xbox a microsoft. Porfavor vuelve
+    a intentar o revisa tu conexión.
+  userLoginMinecraftByXboxFailed: >-
+    Fallo al iniciar sesión con token de xbox. Porfavor vuelve
+    a intentar o revisa tu conexión.
+launchFailed:
+  crash: Juego Crasheado!!
+  description: No hay reporte de crash. Revisa los errores.
+  failedToLaunch: Error de arranque
+  latestLog: Log mas reciente
+  title: El Juego se ha cerrado con un código extraño
 launchStatus:
-  refreshingUser: Actualizar token de usuario
-  spawningProcess: ''
+  assigningMemory: Asignando Memoria
+  exit: Salir del Juego?
+  injectingAuthLib: Ajustando el AuthLib
+  launching: Iniciando...
+  launchingSlow: Aún iniciando... El Motor gráfico puede ser lento...
+  refreshingUser: Recargando token de usuario
+  spawningProcess: Apareciendo Proceso
+launcherUpdate:
+  alreadyLatest: Actualizado!
+  installAndQuit: Reinicia para instalar
+  noUpdateAvailable: No hay Actualizaciones!
+  reinstall: Reinstalar
+  updateToThisVersion: Descargar y Instalar
 liteloader:
   name: LiteLoader
+localVersion:
+  auto: Auto Computado
+  delete: Borrar versión local
+  deleteDescription: >-
+    Esta acción eliminará el jar y json de tu versión. Debes volver
+    a descargarla si quieres utilizarla otra vez.
+  empty: No hay versión instalada
+  hint: Lanza una versión local específica
+  refresh: Recargar versiones
+  reinstallDescription: >-
+    Si crees que esta instalación tiene problemas, puedes intentar
+    reinstalandola.
+  reinstallTitle: Reinstalar {version}
+  title: Versión local | Versiones locales
+logLevel:
+  error: Error
+  info: Info
+  success: Correcto
+  warning: Aviso
+login:
+  dropHint: Deja el link con authcode para iniciar sesión manualmente
+  forgetPassword: Contraseña olvidada?
+  login: Iniciar Sesión
+  manualLoginUrl: Si el navegador no aparece, haz click en este url!
+  signup: Crear cuenta
+  signupDescription: Nuevo aquí?
+  userRelogin: Token expirado. Debes volver a iniciar sesión!
+loginError:
+  acquireMicrosoftTokenFailed: >-
+    Fallo al adquirir el token de microsoft. Esto puede ser un error de red. Porfavor
+    vuelve a intentarlo.
+  badNetworkOrServer: >-
+    Porfavor revisa la conectividad de tu red! O puede que el servidor de auth
+    esté caido!
+  checkOwnershipFailed: Fallo al revisar tu cuenta. Vuelve a intentarlo.
+  connectionReset: Fallo al iniciar sesión, la conexión se cerró.
+  fetchMinecraftProfileFailed: 'Fallo al obtener el perfil de minecraft: {reason}'
+  illegalEmail: E-mail debe ser válido
+  invalidCredentials: Credenciales inválidas. Usuario o contraseña.
+  loginMinecraftByXboxFailed: >-
+    Fallo al cambiar el token de microsoft por xbox. Porfavor asegurate de que
+    tienes minecraft en xbox, o vuelve a intentarlo.
+  loginXboxFailed: >-
+    Fallo al iniciar sesión con xbox. Porfavor asegurate de que
+    tu cuenta de xbox está vinculada con microsoft. Vuelve a intentarlo.
+  requestFailed: Fallo al iniciar sesión, no sabemos la razón exacta. Vuelve a intentar.
+  requireEmail: E-mail requerido
+  requirePassword: Contraseña requerida
+  requireUsername: Usuario requerido
+  timeout: Timeout de login. Vuelve a intentar o revisa tu red.
 logsCrashes:
   crashes: Informes de Errores
   logs: Registros
@@ -483,6 +721,7 @@ mod:
   dropHint: Arrastra el archivo .jar/.litemod del mod aquí para importarlo.
   enabled: '{count} Mods habilitados'
   filter: Filtrar Mods
+  groupInstalled: Mods Instalados en Grupo
   hasUpdate: ¡El Mod tiene una nueva versión!
   hideIncompatible: Ocultar Mods Incompatibles
   incompatible: Mod Incompatible.
@@ -526,7 +765,9 @@ modInstall:
   upgrade: Actualizar Mods
 modSearchType:
   all: Todos
-  local: Caché en Disco
+  local: Locales
+  explore: ModPacks
+  installed: Instalados
 modified:
   reset: Restablecer
   save: Guardar
@@ -711,6 +952,12 @@ modrinth:
   updateAt: Actualizado
   versions: Versiones
   wikiUrl: Wiki
+modrinthCard:
+  currentVersion: Versión actual
+  projectHint: >
+    Esta instancia ha sido creada desde Modrinth <code class="rounded p-1"
+    style="background: rgba(123,123,123,0.2)">{title}</code> (project id:
+          <code class="rounded p-1" style="background: rgba(123,123,123,0.2)">{id}</code>)
 multiplayer:
   exposedPortDescription: El puerto que expuso a otros pares
   exposedPorts: Puertos reenviados
@@ -725,8 +972,94 @@ multiplayer:
     Puede descargar o crear una instancia desde la configuración compartida de
     {nombre}.
   sharingNotificationTitle: Un compañero está compartiendo la configuración del juego.
+  allowTurn: Activar servidor relay
+  allowTurnHint: >-
+    Habilita el servidor relay si no ves a tus amigos. Pero, utilizarlo
+    hace tu conexión más lenta. Intenta no utilizarlo.
+  complete: Completo
+  confirm: Confirmar
+  connections: Conexiones
+  copied: Copiado!
+  copy: Copiar
+  copyGroupToFriendHint: Deja a tus amigos unirse con este id
+  copyLocalHint: >
+    "Please copy the local SDP text and send it to your object to have your
+    object enter this text in the join connection <span>A token can be only used
+    for <span style="color: red; font-weight: bold;">one peer</span>! You cannot
+    send the same token to multiple peer!</span> <br> <span class="hint-text"
+    style="font-style: italic;">If you need to connect multiple peers, you need
+    to create <span style="font-weight: bold; color: rgba(245, 158,
+    11)">multiple</span> connections.</span>"
+  createLocalToken: Crear token local
+  currentIpTitle: IP Publica Detectada
+  currentNatTitle: 'Red Actual (NAT):'
+  difficultyLevelHint: El nivel de dificultad para crear la red
+  disconnect: Desconectar
+  disconnectDescription: Seguro que quieres desconectarte de {user}({id})?
+  disconnected: Desconectado
+  enterRemoteToken: Introduce el token remoto
+  enterRemoteTokenHint: >-
+    Cuando tu amigo introduzca el token, debes introducir el suyo
+    en la area inferior. Presiona confirmar para aceptar.
+  gatheringIce: >
+    "Please wait for the ICE server to collect enough information about your
+    network. If you are impatient and there are enough information, you can give
+    the current SDP to the other party in advance and click Next Please send the
+    <span class="v-chip v-chip--label v-size--small" style="text-font: bold"
+    >Local Token</span> to your peer, you peer enter your token in <span
+    class="v-chip v-chip--label v-size--small" style="text-font: bold"> Join
+    Connection </span> section. <br> The ICE server might need some time to
+    collect your info to create <span class="v-chip v-chip--label v-size--small"
+    style="text-font: bold">Local token</span>.<br> You do not need to wait
+    until the ICE status complete. If the token below remain unchanged, you can
+    copy it and send to you peer."
+  groupId: ID de Grupo
+  illegalTokenDescription: Token ilegal, asegurate de que el token sea correcto
+  initiateConnection: Iniciar conexión
+  inviteLink: Link de invitación
+  joinConnection: >-
+    Si tu amigo ya ha iniciado la conexión, debes unirte a su
+    conexión.
+  joinManual: Unirse
+  joinOrCreateGroup: Unirse/Crear Grupo
+  joinOrCreateGroupHint: Obten el id de grupo de tus amigos o crea uno
+  leaveGroup: Abandonar Grupo
+  localToken: Token Local
+  manualConnect: Conexión Manual
+  name: Multijugador en LAN
+  networkInfo: Info de Red
+  next: Siguiente
+  placeholder: Conectar con otros usuarios para jugar en LAN!
+  previous: Anterior
+  receiveHint: >-
+    Después de que los demás pongan el token, tu conexión se creará
+    automaticamente. Ya puedes cerrar el diálogo.
+  receiveRemoteTokenHint: Porfavor introduce el token de tu peer aquí
+  remoteToken: Token Remoto
+  routerInfo: Router Info
+  sendTokenToRemote: Mandar token al remoto
+  share: Compartir la config de la instancia
+  sharing: Compartiendo archivos...
+  start: Iniciar
+  startNewP2PConnection: Click al botón de Iniciar para crear una conexión
+myStuff: Mods Locales
+name: Nombre
+natType:
+  blocked: Blocked
+  fullCone: Full Cone
+  openInternet: Open Internet
+  restrictNat: Restrict NAT
+  restrictPortNat: Restrict Port NAT
+  symmetricNat: Symmetric NAT
+  symmetricUDPFirewall: Symmetric UDP Firewall
+  unknown: Desconocido
 neoForgedVersion:
+  disable: Deshabilitar NeoForged
+  empty: NeoForged no soporta la versión {version}
   name: NeoForged
+news:
+  name: Noticias
+  readMore: Leer más
 next: Siguiente
 'no': 'No'
 ok: Aceptar
@@ -793,8 +1126,10 @@ resourcepack:
   independent: La instancia utiliza la carpeta del paquete de recursos independiente
   manage: Gestionar Paquetes de Recursos
   name: Paquete de Recursos | Paquetes de Recursos
+  searchHint: Buscar Recursos
   searchOnCurseforge: Buscar {name} en CurseForge
   searchOnModrinth: '@:mod.searchOnModrinth'
+  selectSearchHint: Buscar y seleccionar recursos
   selected: Paquetes de Recursos Seleccionados
   shared: La instancia utiliza la carpeta del paquete de recursos compartido
   showFile: Mostrar paquete de recursos en la carpeta {file}
@@ -906,6 +1241,7 @@ setting:
   backgroundImageFit:
     contain: Contener
     cover: Cubrir
+    name: Ajustar imagen
   backgroundImageSelect: seleccionar
   backgroundMusic: Música de fondo del tema
   backgroundType: Tipo de Fondo
@@ -953,6 +1289,8 @@ setting:
   globalSetting: Configuración Global de la Instancia
   globalSettingHint: La instancia utilizará estos ajustes por defecto.
   hideNewsHeader: Ocultar escaparate de noticias
+  hideNews: Ocultar Noticias
+  hideNewsDescription: Esto ocultará las noticias en la página de la instancia
   language: Idioma
   languageDescription: El idioma de la interfaz
   latestVersion: Última Versión
@@ -979,6 +1317,7 @@ setting:
   officialWebsite: Sitio Web Oficial
   particleMode:
     bubble: Burbuja
+    name: Modo de Partícula
     push: Empujar
     remove: Eliminar
     repulse: Repulsar
@@ -1028,7 +1367,23 @@ setup:
       original, no recomendamos usar el directorio .minecraft común como
       directorio de datos.
     name: Establecer Directorio de Datos
-  defaultPath: Directorio Predeterminado
+  defaultLayoutDescription: >-
+    La forma principal intenta mejorar el diseño "instancia". Lo que hace
+    es parecerse a discord. También se inspira en lanzadores de otras marcas
+    como Steam, etc.
+  defaultPath: Directorio Principal
+  error:
+    badDataRoot: Directorio inválido para datos del launcher! Porfavor utiliza otro!
+    exists: >-
+      El directorio actual no está vacio. Esta bien pero recomendamos hacer copias
+      de tus datos.
+    noPermission: >-
+      El launcher no tiene permiso para acceder! Porfavor intenta
+      otro directorio.
+    nonDictionary: El lugar elegido es un archivo! elige un directorio!
+  focusLayoutDescription: >-
+    El look focus es la interfaz normal del launcher de minecraft. Está diseñado
+    para ser utilizado con una instancia o pocas.
   game:
     description: >-
       Elige un directorio de juego existente (.minecraft) para importar recursos
@@ -1047,14 +1402,25 @@ setup:
 shaderPack:
   deletion: Eliminar Pack de Shaders
   deletionHint: Esto eliminará el archivo del pack de shaders {path} y no se podrá deshacer.
+  disabled: Pack de shaders deshabilitado
+  dropHint: Importar pack de shaders
   empty: No se ha asignado ningún pack de shaders
   enable: Usando el pack de shaders {name}
+  enabled: Enabled Shader Pack
   manage: Gestionar Packs de Shaders
   name: Pack de Shaders
+  searchHint: Buscar pack de shaders
+  selectSearchHint: Busca y elige un pack de shaders
   showDirectory: Mostrar directorio de packs de shaders
   showFile: Mostrar este pack de shaders en la carpeta
 shared:
   accept: Aceptar
+store:
+  explore: Explorar
+  latestMinecraft: Versión de Minecraft Reciente
+  name: Buscar ModPacks
+  popular: ModPacks Populares
+  recentUpdated: Recientemente Actualizados
 summery: Resumen
 tag:
   create: Crear Etiqueta
@@ -1116,11 +1482,14 @@ universalDrop:
 update:
   goOfficialWebDownload: Vuelva a descargar en el sitio web oficial.
 upstream:
+  downgrade: Desactualizar
   missingModpackMetadata: >-
     No se encontraron los metadatos antiguos del modpack.
 
     Todavía puedes actualizar, pero el resultado podría ser incorrecto. Por
     favor, haz una copia de seguridad de los archivos de la instancia.
+  onlyShowCurrentVersion: Solo Mostrar la versión actual
+  update: Actualizar
 user:
   accessToken: Token de Acceso
   authMode: Servicio de Autenticación
@@ -1142,3 +1511,60 @@ user:
   submitChallenges: Enviar Respuestas
   tokenExpired: Caducado
   tokenValidUntil: Token Válido Hasta
+userAccount:
+  add: Añadir cuenta
+  removeDescription: Esto eliminará toda la información de esta cuenta. Estás seguro?
+  removeTitle: Eliminar cuenta
+userCape:
+  changeTitle: Cambiar tu capa
+  description: >-
+    Las capas son recompensas especiales que reciben los jugadores en ciertos eventos,
+    campañas, y otros acontecimientos. En este sitio puedes cambiar entre ellas
+    actualmente tienes:
+  noCape: Sin Capa
+userService:
+  add: Añadir más servicios
+  authLibInjector: Seguir la recomendación del inyector authlib
+  baseUrlHint: El URL Base de tu servicio personalizado
+  title: Servicios de terceros
+  validateHint: Usado para revisar si el token es válido
+userServices:
+  microsoft:
+    account: Cuenta Microsoft
+    deviceCode: Código de Dispositivo
+    deviceCodeHint: El Código se generará después de iniciar sesión
+    fastLogin: Inicio Rápido
+    name: Microsoft
+    password: Introduce la contraseña en el navegador
+    useDeviceCode: Iniciar sesión por código de dispositivo
+  mojang:
+    account: E-Mail
+    name: Mojang
+    password: Contraseña
+  offline:
+    account: Usuario
+    name: Sin Conexión
+    password: Sin Contraseña
+    uuid: UUID del Usuario (Opcional)
+userSkin:
+  import: Importar Skin
+  importFile: Abrir desde Archivo
+  importLink: Abrir desde URL
+  placeUrlHere: Añade tu skin para importar
+  reset: Reset
+  save: Guardar
+  saveTitle: Guardar skin
+  skinType: Tipo de skin
+  upload: Subir skin
+  urlNotEmpty: El URL de la skin no puede estar vacio
+  urlNotValid: EL URL de la skin es inválido
+  useSlim: Usar modelo Slim
+version:
+  name: Versión | Versiones
+  notInstalled: Versión no instalada
+versionType:
+  alpha: Alfa
+  beta: Beta
+  name: Estado
+  release: Estable
+'yes': 'Si'
