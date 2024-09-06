@@ -6,7 +6,7 @@ if (!existsSync(join(__dirname, 'dist'))) {
 }
 
 if (!existsSync(join(__dirname, '.env'))) {
-  writeFileSync(join(__dirname, '.env'), 'CURSEFORGE_API_KEY=')
+  writeFileSync(join(__dirname, '.env'), 'CURSEFORGE_API_KEY=$2a$10$5BgCleD8.rLQ5Ix17Xm2lOjgfoeTJV26a1BXmmpwrOemgI517.nuC')
 }
 
 if (process.platform === 'linux' || process.platform === 'openbsd' || process.platform === 'freebsd') {
