@@ -257,9 +257,9 @@ diagnosis:
   missingJava:
     message: Click para resolver el problema
     name: No se puede encontrar java!
-  missingJava:
-    message: Click para resolver el problema
-    name: No se puede encontrar esta versión!
+  missingVersion:
+    message: Click para instalar esta versión
+    name: La versión {version} no está instalada!
   missingLibraries:
     message: Instalaremos las librerias para ti
     name: >-
