@@ -11,7 +11,7 @@
     <Logo>icons\256x256.png</Logo>
   </Properties>
   <Resources>
-    <Resource Language="en-US" />
+    <Resource Language="es-ES" />
   </Resources>
   <Dependencies>
   <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17134.0" MaxVersionTested="11.0.0.0" />

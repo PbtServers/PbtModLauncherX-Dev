@@ -38,7 +38,7 @@ export const config = {
     applicationId: 'pbtmodlauncherx',
     identityName: 'pbtmodlauncherx',
     backgroundColor: 'transparent',
-    publisher: 'process.env.PUBLISHER',
+    publisher: 'CN=DAFB9390-F5BD-4F94-828C-242F8DAA6FDE',
     publisherDisplayName: 'CI010',
     setBuildNumber: true,
   },
