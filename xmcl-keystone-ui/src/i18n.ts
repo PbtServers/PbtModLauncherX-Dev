@@ -3,7 +3,7 @@ import Vue from 'vue'
 import VueI18n from 'vue-i18n'
 import { castToVueI18n, createI18n } from 'vue-i18n-bridge'
 // @ts-ignore
-import es-ES '../locales/es-ES.yaml'
+import es-ES from '../locales/es-ES.yaml'
 import en from '../locales/en.yaml'
 
 Vue.use(VueI18n, { bridge: true })
