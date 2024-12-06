@@ -3,6 +3,7 @@
 *.gen
 coverage
 node_modules/
+pnpm-lock.yaml
 npm-debug.log
 npm-debug.log.*
 thumbs.db
