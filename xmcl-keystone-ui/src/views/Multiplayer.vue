@@ -717,11 +717,3 @@ const onJoin = () => {
     leaveGroup()
   }
 }
-
-// useTutorial(computed(() => [
-//   { element: '#group-input', popover: { title: t('tutorial.multiplayer.groupTitle'), description: t('tutorial.multiplayer.groupDescription') } },
-//   { element: '#join-group-button', popover: { title: t('tutorial.multiplayer.groupTitle'), description: t('tutorial.multiplayer.joinDescription') } },
-//   { element: '.multiplayer-content', popover: { title: t('tutorial.multiplayer.contentTitle'), description: t('tutorial.multiplayer.contentDescription') } },
-//   { element: '#manual-connect-button', popover: { title: t('multiplayer.manualConnect'), description: t('tutorial.multiplayer.manualDescription') } },
-// ]))
-</script>

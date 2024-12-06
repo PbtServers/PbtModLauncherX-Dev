@@ -453,7 +453,6 @@ import { usePresence } from '@/composables/presence'
 import { useProjectInstall } from '@/composables/projectInstall'
 import { kCompact } from '@/composables/scrollTop'
 import { useToggleCategories } from '@/composables/toggleCategories'
-import { useTutorial } from '@/composables/tutorial'
 import { BuiltinImages } from '@/constant'
 import { injection } from '@/util/inject'
 import { isNoModLoader } from '@/util/isNoModloader'
@@ -842,31 +841,6 @@ const onInstallProject = useProjectInstall(
   },
 )
 
-useTutorial(computed(() => [{
-  element: '#search-text-field',
-  popover: {
-    title: t('tutorial.mod.searchTitle') + ' (ctrl + f)',
-    description: t('tutorial.mod.searchDescription'),
-  },
-}, {
-  element: '#left-pane',
-  popover: {
-    title: t('tutorial.mod.listTitle'),
-    description: t('tutorial.mod.listDescription'),
-  },
-}, {
-  element: '#right-pane',
-  popover: {
-    title: t('tutorial.mod.detailTitle'),
-    description: t('tutorial.mod.detailDescription'),
-  },
-}, {
-  element: '#default-source-button',
-  popover: {
-    title: t('tutorial.mod.defaultSourceTitle'),
-    description: t('tutorial.mod.defaultSourceDescription'),
-  },
-}]))
 // Presense
 usePresence(computed(() => t('presence.mod')))
 

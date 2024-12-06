@@ -168,7 +168,6 @@ import { useQuery } from '@/composables/query'
 import InstancesCards from './InstancesCards.vue'
 import ResourceManageModpack from './ResourceManageModpack.vue'
 import ResourceManageVersions from './ResourceManageVersions.vue'
-import { useTutorial } from '@/composables/tutorial'
 import { DriveStep } from 'driver.js'
 import { kTheme } from '@/composables/theme'
 
@@ -259,14 +258,5 @@ const onInstanceClick = (instance: string) => {
 const openInBrowser = (url: string) => {
   window.open(url, 'browser')
 }
-
-// Tutorial
-useTutorial(computed(() => {
-  const steps: DriveStep[] = [
-    { element: '#hide-news-button', popover: { title: t('setting.hideNewsHeader'), description: t('tutorial.hideNewsHeaderDescription') } },
-    { element: '#my-stuff-header', popover: { title: t('me.recentPlay'), description: t('tutorial.recentPlayDescription') } },
-  ]
-  return steps
-}))
 
 </script>

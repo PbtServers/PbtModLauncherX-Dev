@@ -167,7 +167,6 @@ import { useQuery, useQueryNumber, useQueryStringArray } from '@/composables/que
 import { useSortByItems } from '@/composables/sortBy'
 import { kSWRVConfig } from '@/composables/swrvConfig'
 import { useTextFieldBehavior } from '@/composables/textfieldBehavior'
-import { useTutorial } from '@/composables/tutorial'
 import { clientCurseforgeV1, clientModrinthV2 } from '@/util/clients'
 import { getCursforgeModLoadersFromString } from '@/util/curseforge'
 import { injection } from '@/util/inject'
@@ -672,24 +671,6 @@ onMounted(() => {
   }
 })
 
-// Tutorial
-useTutorial(computed(() => {
-  const steps: DriveStep[] = [
-    { element: '#popular-modpacks', popover: { align: 'center', title: t('store.popular'), description: t('tutorial.storePoupularModpackDescription') } },
-    { element: '#search-text-field', popover: { title: t('curseforge.search'), description: t('tutorial.storeSearchDescription') } },
-    {
-      element: '#search-result',
-      popover: {
-        side: 'right',
-        align: 'start',
-        title: t('modInstall.search'),
-        description: t('tutorial.storeSearchResultDescription'),
-      },
-    },
-    { element: '#search-category', popover: { side: 'left', title: t('curseforge.category'), description: t('tutorial.storeSearchCategoryDescription') } },
-  ]
-  return steps
-}))
 </script>
 <style scoped>
 .main {

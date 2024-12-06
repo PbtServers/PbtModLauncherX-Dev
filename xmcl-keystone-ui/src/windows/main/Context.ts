@@ -29,7 +29,6 @@ import { kSettingsState, useSettingsState } from '@/composables/setting'
 import { kShaderPackSearch, useShaderPackSearch } from '@/composables/shaderPackSearch'
 import { useTelemetryTrack } from '@/composables/telemetryTrack'
 import { kTheme, useTheme } from '@/composables/theme'
-import { kTutorial, useTutorialModel } from '@/composables/tutorial'
 import { kUILayout, useUILayout } from '@/composables/uiLayout'
 import { kUserContext, useUserContext } from '@/composables/user'
 import { kLocalVersions, useLocalVersions } from '@/composables/versionLocal'
@@ -113,7 +112,6 @@ export default defineComponent({
     provide(kImageDialog, useImageDialog())
     provide(kFilterCombobox, useFilterComboboxData())
     provide(kYggdrasilServices, useYggdrasilServices())
-    provide(kTutorial, useTutorialModel())
     provide(kModrinthTags, useModrinthTags())
     provide(kCurseforgeCategories, useCurseforgeCategories())
 

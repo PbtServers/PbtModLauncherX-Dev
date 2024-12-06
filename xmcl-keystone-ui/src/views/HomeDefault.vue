@@ -110,7 +110,6 @@
 import { useLocalStorageCache, useLocalStorageCacheBool } from '@/composables/cache'
 import { kInstance } from '@/composables/instance'
 import { kUpstream } from '@/composables/instanceUpdate'
-import { useTutorial } from '@/composables/tutorial'
 import { injection } from '@/util/inject'
 import { DriveStep } from 'driver.js'
 import debounce from 'lodash.debounce'
@@ -278,15 +277,6 @@ const scrollElement = ref(null as HTMLElement | null)
 provide('scrollElement', scrollElement)
 
 const { t } = useI18n()
-useTutorial(computed(() => {
-  const steps: DriveStep[] = [
-    { element: '#user-avatar', popover: { title: t('userAccount.add'), description: t('tutorial.userAccountDescription') } },
-    { element: '#create-instance-button', popover: { title: t('instances.add'), description: t('tutorial.instanceAddDescription') } },
-    { element: '#launch-button', popover: { title: t('launch.launch'), description: t('tutorial.launchDescription') } },
-    { element: '#feedback-button', popover: { title: t('feedback.name'), description: t('tutorial.feedbackDescription') } },
-  ]
-  return steps
-}))
 </script>
 
 <style scoped>

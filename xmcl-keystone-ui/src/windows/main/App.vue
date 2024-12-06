@@ -67,7 +67,6 @@ import { kLocalizedContent, useLocalizedContentControl } from '@/composables/loc
 import { useNotifier } from '@/composables/notifier'
 import { kSettingsState } from '@/composables/setting'
 import { kTheme } from '@/composables/theme'
-import { kTutorial } from '@/composables/tutorial'
 import { injection } from '@/util/inject'
 import AppAddInstanceDialog from '@/views/AppAddInstanceDialog.vue'
 import AppBackground from '@/views/AppBackground.vue'
@@ -93,25 +92,6 @@ provide('streamerMode', useLocalStorageCacheBool('streamerMode', false))
 provide(kLocalizedContent, useLocalizedContentControl())
 
 provide(kLaunchButton, useLaunchButton())
-
-const tutor = injection(kTutorial)
-// Set theme and start tutorial
-const onReady = async (data: any) => {
-  await nextTick()
-  showSetup.value = false
-  await nextTick()
-  if (state.value) {
-    state.value.themeSet(data.theme)
-  } else {
-    const unwatch = watch(state, (state) => {
-      if (state) {
-        state.themeSet(data.theme)
-      }
-      unwatch()
-    })
-  }
-  tutor.start()
-}
 
 // color theme sync
 const { isDark } = injection(kTheme)
