@@ -264,8 +264,6 @@ diagnosis:
     name: >-
       Falta la libreria {name} | Falta la libreria {name} | Faltan {count}
       Librerias | Faltan {count} Librerias
-disable: Desactivar
-downloadUpdate: Descarga de la actualización
 env:
   select:
     all: Seleccionar todo

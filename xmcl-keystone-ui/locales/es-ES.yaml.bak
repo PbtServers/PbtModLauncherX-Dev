@@ -1461,6 +1461,11 @@ shaderPack:
   name: Pack de Shaders
   searchHint: Buscar pack de shaders
   selectSearchHint: Busca y elige un pack de shaders
+  noShaderMod: No hay ningún mod de sombreado instalado
+  noShaderModHint: No puedes usar sombreador sin un mod de sombreado
+  noShaderModInstallHint: >-
+    Debe instalar uno de los siguientes mods para cargar el paquete de
+    sombreadores.
   showDirectory: Mostrar directorio de packs de shaders
   showFile: Mostrar este pack de shaders en la carpeta
 shared:
