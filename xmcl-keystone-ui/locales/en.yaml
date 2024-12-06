@@ -393,7 +393,9 @@ instance:
   changeIcon: Change Icon
   current: Current Instance
   delete: Delete Game
-  deleteHint: The instance data will be moved from the disk forever. You sure to do this?
+  deleteFailed: Fail to delete instance
+  deleteFailedPermission: Other program occupied the file
+  deleteHint: The instance data will be removed from the disk forever. Are you sure?
   duplicate: Duplicate Game
   duplicatedName: Duplicated Name
   fileApi: The synchronize file server API url
@@ -406,6 +408,10 @@ instance:
   lastPlayed: Last Played
   launchArguments: Launch Arguments Preview
   launchServer: Launch localhost server
+  linkFileDesc: >-
+    This will overwrite instance local {file} with the global {file}. Are you
+    sure to link it?
+  linkFileTitle: Are you sure to link {file}?
   mcOptions: Minecraft Options
   mcOptionsHint: Additional Minecraft launch arugments
   name: Profile Name
@@ -418,6 +424,10 @@ instance:
   prependCommandHint: This will prepend this command before all the launch commands
   requireName: The name is required
   showInstance: Show game folder
+  useSharedOptions: Use shared game settings
+  useSharedOptionsDesc: This will link the options.txt to a shared file across instance
+  useSharedServersList: Use shared servers list
+  useSharedServersListDesc: This will link the servers.dat to a shared file across instance
   versionHint: The Minecraft version of this game
   vmOptions: JVM Options
   vmOptionsHint: Extra arguments passing to JVM
@@ -425,6 +435,9 @@ instanceAge:
   older: Older
   threeDay: In Three Days
   today: Today
+instanceDiscover:
+  gameFolder: Discover {count} game folders
+  instanceFolder: Found {count} instances
 instanceFileOperation:
   add: Add
   backup-add: Replace (Backup)
@@ -465,6 +478,9 @@ instanceUpdate:
   update: Start Update
 instances:
   add: Create Game
+  addCurseForgeDescription: >-
+    Import from curseforge data folder. You need to select curseforge's root
+    data folder
   addDescription: Create a new instance from scratch
   addMMCDescription: >-
     Import existed MultiMC instance. You need to select the instance folder from
@@ -482,6 +498,7 @@ instances:
     Import from common .minecraft folder. This will duplicate the original game
     profile to this launcher.
   choose: Select Game
+  fix: Repair
   folderSetting: Folder Settings
   importFolder: Import from folder
   importFolderDescription: Import Minecraft to Launcher
@@ -515,6 +532,7 @@ launch:
   kill: Stop
   killServer: Kill Localhost Server
   launch: Launch
+  launchAnyway: Launch Anyway
 launchBlocked:
   ignore: Force Launch
   launchBadVersion:
@@ -664,14 +682,24 @@ mod:
   deletionRestHint: And {rest} more Mods...
   denseView: Dense View
   dropHint: Drop mod's .jar/.litemod here to import.
+  duplicatedDetected: '{count} duplicated mods'
+  duplicatedDetectedDescription: >-
+    Found mods with same mod id but different files. This might cause Minecraft
+    crash. Please select the file you want to keep.
   enabled: '{count} Mods enabled'
   filter: Filter Mods
   groupInstalled: Group Installed Mods
   hasUpdate: Mod has a new version!
   hideIncompatible: Hide Incompatible Mods
   incompatible: Incompatible Mod.
+  incompatibleHint: Check out your mod compatibility report
+  incompatibleHintDescription: >-
+    Some mods dependencies might be missing. Or some dependencies versions do
+    not matched.
   manage: Manage Mods
   maybeCompatible: Maybe Compatible.
+  modloaderSelectHint: The mod support following mod loaders. Please select one to install.
+  modloaderSelectNotSupported: Not found {modloader} for Minecraft {minecraft}
   mods: '{count} Mods'
   name: Mod | Mods
   noModLoaderHint: Don't forget to enable a modloader to use mods!
@@ -703,6 +731,7 @@ modInstall:
   recommendation: Explore the {first} or {second} mods in {modrinth} and {curseforge}!
   search: Search Result
   searchHint: Search and select project
+  skipVersion: Skip the Mods with different Minecraft version
   source: Mod Source
   switch: Swtich Version
   upgrade: Upgrade Mods
@@ -711,6 +740,11 @@ modSearchType:
   explore: Explore Market
   installed: Installed
   local: Disk Cache
+modUpgradePolicy:
+  curseforge: Curseforge First
+  curseforgeOnly: Curseforge Only
+  modrinth: Modrinth First
+  modrinthOnly: Modrinth Only
 modified:
   reset: Reset
   save: Save
@@ -1244,6 +1278,7 @@ setting:
     Limit the maximum number of sockets to allow per host or for all hosts in
     total. 0 means no limit.
   maxSocketsTitle: Max HTTP sockets
+  migrateFromOther: Import from other launcher
   name: Global Setting | Global Settings
   network: Network Settings
   officialWebsite: Official Website
@@ -1344,12 +1379,17 @@ shaderPack:
   enabled: Enabled Shader Pack
   manage: Manage Shader Packs
   name: Shader Pack
+  noShaderMod: No Shader Mod Installed
+  noShaderModHint: You cannot use shader without a shader mod
+  noShaderModInstallHint: You need to install one of the following mod to load shader pack.
   searchHint: Search Shader Pack
   selectSearchHint: Search and select Shader Pack
   showDirectory: Show shader pack directory
   showFile: Show this shader pack in folder
 shared:
   accept: Accept
+  keepSelected: Keep Selected
+  skipForNow: Skip for now
 store:
   explore: Explore
   latestMinecraft: Latest Minecraft Version

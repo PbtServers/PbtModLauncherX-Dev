@@ -52,7 +52,21 @@ const { t } = useI18n()
 let buffer = undefined as undefined | string
 const updateSearch = debounce(() => {
   if (typeof buffer === 'string') {
-    replace({ query: { ...route.query, keyword: buffer } })
+    const isSuperQuery = buffer.startsWith('@')
+    if (isSuperQuery) {
+      const query = buffer.substring(1)
+      const isCurseforgeProjectId = /^\d+$/.test(query) && query.length < 10
+      const isModrinthProject = /^[0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz]+$/.test(query) && query.length === 8
+      if (isCurseforgeProjectId) {
+        replace({ query: { ...route.query, id: `curseforge:${query}` } })
+      } else if (isModrinthProject) {
+        replace({ query: { ...route.query, id: `modrinth:${query}` } })
+      } else {
+        replace({ query: { ...route.query, keyword: query } })
+      }
+    } else {
+      replace({ query: { ...route.query, keyword: buffer } })
+    }
     buffer = undefined
   }
 }, 500)

@@ -3,8 +3,9 @@ import { Stats } from 'fs'
 import { stat } from 'fs-extra'
 import { join, relative } from 'path'
 import { Logger } from '~/logger'
-import { ResourceService, ResourceWorker } from '~/resource'
+import { ResourceManager, ResourceWorker } from '~/resource'
 import { readdirIfPresent } from '../util/fs'
+import { isNonnull } from '~/util/object'
 
 /**
  * @returns The instance file with file stats array. The InstanceFile does not have hashes and downloads.
@@ -81,48 +82,77 @@ export const isSpecialFile = (relativePath: string) =>
   (relativePath.startsWith('resourcepacks') || relativePath.startsWith('shaderpacks') || relativePath.startsWith('mods')) &&
   !relativePath.endsWith('.txt')
 
-export async function decoareteInstanceFileFromResourceCache(
-  localFile: InstanceFile,
-  stat: Stats,
+export async function decorateInstanceFiles(files: [InstanceFile, Stats][],
   instancePath: string,
   worker: ResourceWorker,
-  resourceService: ResourceService,
-  undecorated: Array<InstanceFile>,
-  undecoratedResources: Map<InstanceFile, Resource>,
-  hashes?: string[],
-) {
-  const relativePath = localFile.path
-  const filePath = join(instancePath, relativePath)
-  const ino = stat.ino
-  if (isSpecialFile(relativePath)) {
-    let resource = await resourceService.getReosurceByIno(ino)
-    const sha1 = resource?.hash ?? await worker.checksum(filePath, 'sha1')
-    if (!resource) {
-      resource = await resourceService.getResourceByHash(sha1)
-    }
-    if (resource?.metadata.modrinth) {
-      localFile.modrinth = {
-        projectId: resource.metadata.modrinth.projectId,
-        versionId: resource.metadata.modrinth.versionId,
-      }
-    }
-    if (resource?.metadata.curseforge) {
-      localFile.curseforge = {
-        projectId: resource.metadata.curseforge.projectId,
-        fileId: resource.metadata.curseforge.fileId,
-      }
-    }
-    localFile.downloads = resource?.uris && resource.uris.some(u => u.startsWith('http')) ? resource.uris.filter(u => u.startsWith('http')) : undefined
-    localFile.hashes = await resolveHashes(filePath, worker, hashes, sha1)
+  resourceManager: ResourceManager,
+  undecoratedResources: Set<InstanceFile>,
+  hashes?: string[]) {
+  const sha1Lookup = await resourceManager.getSnapshotsByIon(files
+    .filter(([localFile, stat]) => isSpecialFile(localFile.path))
+    .map(([localFile, stat]) => stat.ino))
+    .then(v => Object.fromEntries(v.map(s => [s.ino, s.sha1])))
 
-    // No download url...
-    if ((!localFile.downloads || localFile.downloads.length === 0)) {
-      undecorated.push(localFile)
-      if (resource) {
-        undecoratedResources.set(localFile, resource)
+  for (const [localFile, stat] of files) {
+    const relativePath = localFile.path
+    const filePath = join(instancePath, relativePath)
+    const ino = stat.ino
+    if (isSpecialFile(relativePath)) {
+      const sha1 = sha1Lookup[ino] || await worker.checksum(filePath, 'sha1')
+      localFile.hashes.sha1 = sha1
+    }
+  }
+
+  const exsitedSha1 = files.map(f => f[0].hashes.sha1).filter(isNonnull)
+
+  const metadataLookup = await resourceManager.getMetadataByHashes(exsitedSha1).then(v => {
+    return Object.fromEntries(v.filter(isNonnull).map(m => [m.sha1, m]))
+  })
+  const urisLookup = await resourceManager.getUrisByHash(exsitedSha1).then(v => {
+    return v.reduce((acc, cur) => {
+      if (!acc[cur.sha1]) {
+        acc[cur.sha1] = []
+      }
+      acc[cur.sha1].push(cur.uri)
+      return acc
+    }, {} as Record<string, string[]>)
+  })
+
+  for (const [localFile, stat] of files) {
+    const relativePath = localFile.path
+    const filePath = join(instancePath, relativePath)
+    if (isSpecialFile(relativePath)) {
+      const sha1 = localFile.hashes.sha1
+      const metadata = metadataLookup[sha1]
+      if (metadata?.modrinth) {
+        localFile.modrinth = {
+          projectId: metadata.modrinth.projectId,
+          versionId: metadata.modrinth.versionId,
+        }
+      }
+      if (metadata?.curseforge) {
+        localFile.curseforge = {
+          projectId: metadata.curseforge.projectId,
+          fileId: metadata.curseforge.fileId,
+        }
+      }
+
+      const uris = urisLookup[sha1]
+      localFile.downloads = uris && uris.some(u => u.startsWith('http')) ? uris.filter(u => u.startsWith('http')) : undefined
+      localFile.hashes = {
+        ...localFile.hashes,
+        ...await resolveHashes(filePath, worker, hashes, sha1),
+      }
+
+      // No download url...
+      if ((!localFile.downloads || localFile.downloads.length === 0) && metadata) {
+        undecoratedResources.add(localFile)
+      }
+    } else {
+      localFile.hashes = {
+        ...localFile.hashes,
+        ...await resolveHashes(filePath, worker, hashes),
       }
     }
-  } else {
-    localFile.hashes = await resolveHashes(filePath, worker)
   }
 }

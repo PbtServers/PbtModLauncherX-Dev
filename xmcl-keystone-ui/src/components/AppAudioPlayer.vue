@@ -5,7 +5,7 @@
   >
     <span class="max-w-40  overflow-hidden overflow-ellipsis whitespace-nowrap">
       <span class="bar_content">
-        {{ basename(currentUrl) }}
+        {{ basename(currentUrl, '/') }}
       </span>
     </span>
     <v-btn
@@ -33,6 +33,15 @@
     >
       <v-icon class="mr-0">
         skip_next
+      </v-icon>
+    </v-btn>
+    <v-btn
+      icon
+      x-small
+      @click="shuffle = !shuffle"
+    >
+      <v-icon class="mr-0">
+        {{ shuffle ? 'shuffle' : 'repeat' }}
       </v-icon>
     </v-btn>
     <!-- <v-slider
@@ -75,7 +84,6 @@
     </v-menu>
     <audio
       ref="audio"
-      autoplay
       :src="currentUrl"
       :type="currentMineType"
     />
@@ -84,8 +92,9 @@
 <script lang="ts" setup>
 import { injection } from '@/util/inject'
 import { basename } from '@/util/basename'
-import { useMediaControls } from '@vueuse/core'
+import { useLocalStorage, useMediaControls } from '@vueuse/core'
 import { kTheme } from '@/composables/theme'
+import { kInstanceLaunch } from '@/composables/instanceLaunch'
 
 defineProps<{ }>()
 
@@ -97,6 +106,30 @@ const currentMineType = computed(() => currentBackgroundMusics.value[index.value
 
 const audio = ref<HTMLAudioElement | null>(null)
 const { playing, volume, ended } = useMediaControls(audio)
+
+const shuffle = useLocalStorage('audioShuffle', false)
+
+onMounted(() => {
+  playing.value = localStorage.getItem('audioPlaying') === 'true'
+})
+
+watch(playing, (v) => {
+  localStorage.setItem('audioPlaying', v.toString())
+})
+
+const { gameProcesses } = injection(kInstanceLaunch)
+
+let lastState = undefined as boolean | undefined
+watch(computed(() => gameProcesses.value.length), (cur, last) => {
+  if (cur > 0 && last === 0) {
+    lastState = playing.value
+    audio.value?.pause()
+  } else if (cur === 0 && last > 0) {
+    if (lastState) {
+      audio.value?.play()
+    }
+  }
+})
 
 onMounted(() => {
   const v = localStorage.getItem('audioVolume')
@@ -112,16 +145,27 @@ watch(volume, (v) => {
 const play = () => {
   playing.value = !playing.value
 }
-const next = () => {
+const next = async () => {
   audio.value?.pause()
   // play next
-  index.value = (index.value + 1) % currentBackgroundMusics.value.length
+  if (!shuffle.value) {
+    index.value = (index.value + 1) % currentBackgroundMusics.value.length
+  } else {
+    // should not play the same music
+    let nextIndex = index.value
+    while (nextIndex === index.value) {
+      nextIndex = Math.floor(Math.random() * currentBackgroundMusics.value.length)
+    }
+    index.value = nextIndex
+  }
+  await nextTick()
   audio.value?.play()
 }
-const prev = () => {
+const prev = async () => {
   audio.value?.pause()
   // play prev
   index.value = (index.value - 1 + currentBackgroundMusics.value.length) % currentBackgroundMusics.value.length
+  await nextTick()
   audio.value?.play()
 }
 

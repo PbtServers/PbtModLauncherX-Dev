@@ -1,6 +1,6 @@
 import type { FabricModMetadata, LiteloaderModMetadata, QuiltModMetadata } from '@xmcl/mod-parser'
 import type { PackMeta } from '@xmcl/resourcepack'
-import { ForgeModCommonMetadata } from './mod'
+import { ForgeModCommonMetadata, NeoforgeMetadata } from './mod'
 import { CurseforgeModpackManifest, McbbsModpackManifest, MMCModpackManifest, Modpack, ModrinthModpackManifest } from './modpack'
 import { ResourceSaveMetadata } from './save'
 import { ModpackInstallProfile } from '../services/ModpackService'
@@ -45,6 +45,7 @@ export interface ResourceSourceModrinth {
 
 export enum ResourceType {
   Forge = 'forge',
+  Neoforge = 'neoforge',
   Liteloader = 'liteloader',
   Fabric = 'fabric',
   Quilt = 'quilt',
@@ -68,7 +69,9 @@ export enum ResourceDomain {
 }
 
 export interface ResourceMetadata {
-  [ResourceType.Forge]?: ForgeModCommonMetadata
+  name?: string
+  forge?: ForgeModCommonMetadata
+  neoforge?: NeoforgeMetadata
   [ResourceType.Fabric]?: FabricModMetadata | FabricModMetadata[]
   [ResourceType.Liteloader]?: LiteloaderModMetadata
   [ResourceType.Quilt]?: QuiltModMetadata
@@ -103,71 +106,67 @@ export interface ResourceMetadata {
    */
   gitlab?: ResourceSourceGit
 }
+
+export interface Resource extends File {
+  /**
+   * Latest version is `3`
+   */
+  version: number
+
+  name: string
+  // /**
+  //  * The uri of the resource. Used for indexing
+  //  */
+  // uris: string[]
+
+  hash: string
+  /**
+   * The icon urls
+   */
+  icons?: string[]
+  /**
+   * The resource metadata
+   */
+  metadata: ResourceMetadata
+}
+
 /**
  * The resource representing a file metadata
  */
-export interface Resource {
+export interface File {
   /**
-   * Latest version is `2`
+   * The path of the resource file
    */
-  version: number
-  /**
-   * The sha1 of the resource. This is the primary key of the resource.
-   */
-  hash: string
-  /**
-   * The display name of the resource.
-   */
-  name: string
+  path: string
   /**
    * The original file name when this resource is imported with extension.
    */
   fileName: string
-  /**
-   * The file type, can be `zip` or `directory`
-   */
-  fileType: string
   /**
    * The size of the resource
    * @default 0
    */
   size: number
   /**
-   * The tag on this file. Used for indexing.
+   * The last modified time of the resource
    */
-  tags: string[]
-  /**
-   * The uri of the resource. Used for indexing
-   */
-  uris: string[]
-  /**
-   * The expect domain of the resource. This decide where (which folder) the resource should go
-   */
-  domain: ResourceDomain
-  /**
-   * The icon urls
-   */
-  icons?: string[]
-  /**
-   * The persisted resource file path
-   */
-  storedPath?: string
-
-  storedDate?: number
-
   mtime: number
   /**
-   * The resource metadata
+   * The access time of the resource
    */
-  metadata: ResourceMetadata
+  atime: number
   /**
-   * The path of the resource file
+   * The create time of the resource
    */
-  path: string
+  ctime: number
   /**
    * The ino of the file
    */
   ino: number
+  /**
+   * Is this file a directory
+   */
+  isDirectory: boolean
 }
 
 export type Persisted<T extends Resource> = T & {
@@ -253,20 +252,6 @@ export function isResourcePackResource(resource: Resource): resource is Resource
   return !!resource.metadata.resourcepack
 }
 
-export function isModResource(resource: Resource): resource is ModResource {
-  return resource.domain === ResourceDomain.Mods
-}
-
-export function isShaderPackResource(resource: Resource): resource is ShaderPackResource {
-  return resource.domain === ResourceDomain.ShaderPacks
-}
-/**
- * Is this resource a raw modpack resource. The raw modpack means it just containing the .minecraft folder content itself
- */
-export function isModpackResource(resource: Resource): resource is ModpackResource {
-  return resource.domain === ResourceDomain.Modpacks
-}
-
 export function isRawModpackResource(resource: Resource): resource is RawModpackResource {
   return !!resource.metadata.modpack
 }
@@ -283,10 +268,63 @@ export function isMcbbsModpackResource(resource: Resource): resource is McbbsMod
   return !!resource.metadata['mcbbs-modpack']
 }
 
-export function isSaveResource(resource: Resource): resource is SaveResource {
-  return resource.domain === ResourceDomain.Saves
+export function isPersistedResource<T extends Resource>(resource: T): resource is Persisted<T> {
+  return false
 }
 
-export function isPersistedResource<T extends Resource>(resource: T): resource is Persisted<T> {
-  return !!resource.storedPath
+export const enum FileUpdateAction { Upsert = 0, Remove = 1, Update = 2 }
+
+export type UpdateResourcePayload = {
+  hash: string
+  icons?: string[]
+  metadata?: ResourceMetadata
+  uris?: string[]
+}
+
+export type FileUpdateOperation = [Resource, FileUpdateAction.Upsert] | [string, FileUpdateAction.Remove] | [UpdateResourcePayload[], FileUpdateAction.Update]
+
+export class ResourceState {
+  /**
+   * The mods under instance folder
+   */
+  files = [] as Resource[]
+
+  filesUpdates(ops: FileUpdateOperation[]) {
+    const files = [...this.files]
+    for (const [r, a] of ops) {
+      if (!r) {
+        console.warn('Invalid resource', r)
+        continue
+      }
+      if (a === FileUpdateAction.Upsert) {
+        const index = files.findIndex(m => m.path === r.path)
+        if (index === -1) {
+          files.push(r)
+        } else {
+          files[index] = r
+        }
+      } else if (a === FileUpdateAction.Remove) {
+        const index = files.findIndex(m => m.path === r)
+        if (index !== -1) files.splice(index, 1)
+      } else {
+        for (const update of r as UpdateResourcePayload[]) {
+          for (const m of files) {
+            if (m.hash === update.hash) {
+              applyUpdateToResource(m, update)
+            }
+          }
+        }
+      }
+    }
+    this.files = files
+  }
+}
+
+export function applyUpdateToResource(resource: Resource, update: UpdateResourcePayload) {
+  resource.name = update.metadata?.name ?? resource.name
+  for (const [key, val] of Object.entries(update.metadata ?? {})) {
+    if (!val) continue
+    (resource.metadata as any)[key] = val as any
+  }
+  resource.icons = update.icons ?? resource.icons
 }

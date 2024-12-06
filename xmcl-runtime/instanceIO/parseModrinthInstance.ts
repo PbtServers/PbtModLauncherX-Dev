@@ -29,6 +29,9 @@ export async function parseModrinthInstance(instancePath: string) {
     },
   }
 
+  options.resourcepacks = true
+  options.shaderpacks = true
+
   if (modrinth.metadata.linked_data) {
     options.upstream = {
       type: 'modrinth-modpack',

@@ -1,15 +1,15 @@
 import { basename } from '@/util/basename'
-import { clientModrinthV2 } from '@/util/clients'
-import { ProjectEntry, ProjectFile } from '@/util/search'
-import { InstanceData, ResourceDomain, ResourceServiceKey } from '@xmcl/runtime-api'
+import { ProjectEntry } from '@/util/search'
+import { InstanceData } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
 import { InstanceShaderFile } from './instanceShaderPack'
 import { useMarketSort } from './marketSort'
 import { useModrinthSearch } from './modrinthSearch'
 import { searlizers, useQueryOverride } from './query'
-import { useDomainResources } from './resources'
-import { useService } from './service'
 import { useAggregateProjectsSplitted, useProjectsFilterSort } from './useAggregateProjects'
+import { useCurseforgeSearch } from './curseforgeSearch'
+import { ModFile } from '@/util/mod'
+import { CurseforgeBuiltinClassId } from './curseforge'
 
 export const kShaderPackSearch: InjectionKey<ReturnType<typeof useShaderPackSearch>> = Symbol('ShaderPackSearch')
 
@@ -23,26 +23,7 @@ export enum ShaderLoaderFilter {
  */
 export type ShaderPackProject = ProjectEntry<InstanceShaderFile>
 
-function useLocalSearch(shaderPack: Ref<string | undefined>, keyword: Ref<string>) {
-  const { resources: shaderFiles } = useDomainResources(ResourceDomain.ShaderPacks)
-
-  const shaderProjectFiles = computed(() => {
-    return shaderFiles.value.map(s => {
-      const enabled = shaderPack.value === s.fileName
-      const file: InstanceShaderFile = markRaw({
-        path: s.path,
-        version: '',
-        resource: s,
-        enabled,
-        modrinth: s.metadata.modrinth,
-        curseforge: s.metadata.curseforge,
-      })
-      return file
-    })
-  })
-
-  const { updateResources } = useService(ResourceServiceKey)
-
+function useLocalSearch(shaderProjectFiles: Ref<InstanceShaderFile[]>, keyword: Ref<string>) {
   const result = computed(() => {
     const indices: Record<string, ShaderPackProject> = {}
     const _enabled: ShaderPackProject[] = markRaw([])
@@ -84,7 +65,7 @@ function useLocalSearch(shaderPack: Ref<string | undefined>, keyword: Ref<string
     }
 
     for (const m of shaderProjectFiles.value) {
-      if (!m.resource.fileName.toLowerCase().includes(keyword.value.toLowerCase())) {
+      if (!m.fileName.toLowerCase().includes(keyword.value.toLowerCase())) {
         continue
       }
       const mod = getFromResource(m)
@@ -106,19 +87,6 @@ function useLocalSearch(shaderPack: Ref<string | undefined>, keyword: Ref<string
   const loadingCached = ref(false)
 
   function effect() {
-    watch(shaderFiles, async (files) => {
-      const absent = files.filter(f => !f.metadata.modrinth)
-      const versions = await clientModrinthV2.getProjectVersionsByHash(absent.map(a => a.hash))
-      const options = Object.entries(versions).map(([hash, version]) => {
-        const f = files.find(f => f.hash === hash)
-        if (f) return { hash: f.hash, metadata: { modrinth: { projectId: version.project_id, versionId: version.id } } }
-        return undefined
-      }).filter((v): v is any => !!v)
-      if (options.length > 0) {
-        console.log('update shader packs', options)
-        updateResources(options)
-      }
-    }, { immediate: true })
   }
 
   return {
@@ -126,27 +94,29 @@ function useLocalSearch(shaderPack: Ref<string | undefined>, keyword: Ref<string
     enabled: computed(() => result.value[0]),
     disabled: computed(() => result.value[1]),
     loadingCached,
-    shaderFiles,
     effect,
   }
 }
 
-export function useShaderPackSearch(runtime: Ref<InstanceData['runtime']>, shaderPack: Ref<string | undefined>) {
+export function useShaderPackSearch(runtime: Ref<InstanceData['runtime']>, shaderPacks: Ref<InstanceShaderFile[]>) {
   const keyword: Ref<string> = ref('')
   const gameVersion = ref('')
   const shaderLoaderFilters = ref(['iris', 'optifine'] as ShaderLoaderFilter[])
   const modrinthCategories = ref([] as string[])
+  const curseforgeCategory = ref(undefined as number | undefined)
   const isCurseforgeActive = ref(true)
   const isModrinthActive = ref(true)
   const sort = ref(0)
-  const { modrinthSort } = useMarketSort(sort)
+  const { modrinthSort, curseforgeSort } = useMarketSort(sort)
 
   const { loadMoreModrinth, loadingModrinth, modrinth, modrinthError, effect: modrinthEffect } = useModrinthSearch<ShaderPackProject>('shader', keyword, shaderLoaderFilters, modrinthCategories, modrinthSort, gameVersion)
-  const { enabled, disabled, loadingCached, shaderProjectFiles, effect: localEffect } = useLocalSearch(shaderPack, keyword)
-  const loading = computed(() => loadingModrinth.value || loadingCached.value)
+  const { loadMoreCurseforge, loadingCurseforge, curseforge, curseforgeError, effect: onCurseforgeEffect } = useCurseforgeSearch<ProjectEntry<ModFile>>(CurseforgeBuiltinClassId.shaderPack, keyword, ref([]), curseforgeCategory, curseforgeSort, gameVersion)
+  const { enabled, disabled, loadingCached, shaderProjectFiles, effect: localEffect } = useLocalSearch(shaderPacks, keyword)
+  const loading = computed(() => loadingModrinth.value || loadingCached.value || loadingCurseforge.value)
 
   function effect() {
     modrinthEffect()
+    onCurseforgeEffect()
     localEffect()
 
     useQueryOverride('keyword', keyword, '', searlizers.string)
@@ -164,7 +134,7 @@ export function useShaderPackSearch(runtime: Ref<InstanceData['runtime']>, shade
     others,
   } = useAggregateProjectsSplitted(
     modrinth,
-    ref([]),
+    curseforge,
     disabled,
     enabled,
   )
@@ -193,17 +163,28 @@ export function useShaderPackSearch(runtime: Ref<InstanceData['runtime']>, shade
     isModrinthActive,
   )
 
+  function loadMore() {
+    if (isModrinthActive.value) {
+      loadMoreModrinth()
+    }
+    if (isCurseforgeActive.value) {
+      loadMoreCurseforge()
+    }
+  }
+
   return {
     gameVersion,
     shaderProjectFiles,
     modrinthCategories,
     shaderLoaderFilters,
+    curseforgeError,
 
     enabled: _installed,
     disabled: _notInstalledButCached,
     others: _others,
 
-    loadMoreModrinth,
+    curseforgeCategory,
+    loadMore,
     sort,
     isModrinthActive,
     modrinthError,

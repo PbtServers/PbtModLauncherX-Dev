@@ -56,6 +56,7 @@ export interface UIThemeData {
   backgroundVolume?: number
   backgroundImageFit: 'cover' | 'contain'
   font?: MediaData
+  fontSize?: number
   particleMode?: ParticleMode
   blur: number
   blurSidebar?: number
@@ -96,7 +97,9 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     backgroundVolume: 1,
     backgroundImage: undefined,
     backgroundImageFit: 'cover',
+    backgroundType: BackgroundType.NONE,
     font: undefined,
+    fontSize: 16,
     blur: 4,
     blurSidebar: 0,
     blurAppBar: 0,
@@ -112,9 +115,8 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
   }, { immediate: true })
 
   const backgroundType = computed({
-    get() { return currentTheme.value?.backgroundType ?? BackgroundType.NONE },
+    get() { return currentTheme.value.backgroundType ?? BackgroundType.NONE },
     set(v: BackgroundType) {
-      if (!currentTheme.value) return
       currentTheme.value.backgroundType = v
       writeTheme(currentTheme.value.name, currentTheme.value)
     },
@@ -126,15 +128,15 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
       writeTheme(currentTheme.value.name, currentTheme.value)
     },
   })
-  const backgroundImage = computed(() => currentTheme.value?.backgroundImage)
+  const backgroundImage = computed(() => currentTheme.value.backgroundImage)
   const backgroundColorOverlay = computed({
-    get() { return currentTheme.value?.backgroundColorOverlay ?? false },
+    get() { return currentTheme.value.backgroundColorOverlay ?? false },
     set(v: boolean) {
       currentTheme.value.backgroundColorOverlay = v
       writeTheme(currentTheme.value.name, currentTheme.value)
     },
   })
-  const backgroundMusic = computed(() => currentTheme.value?.backgroundMusic ?? [])
+  const backgroundMusic = computed(() => currentTheme.value.backgroundMusic ?? [])
   const backgroundImageFit = computed({
     get() { return currentTheme.value.backgroundImageFit },
     set(v: 'cover' | 'contain') {
@@ -143,14 +145,14 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const particleMode = computed({
-    get() { return currentTheme.value?.particleMode ?? ParticleMode.PUSH },
+    get() { return currentTheme.value.particleMode ?? ParticleMode.PUSH },
     set(v: ParticleMode) {
       currentTheme.value.particleMode = v
       writeTheme(currentTheme.value.name, currentTheme.value)
     },
   })
   const blurSidebar = computed({
-    get() { return currentTheme.value?.blurSidebar ?? 4 },
+    get() { return currentTheme.value.blurSidebar ?? 4 },
     set(v: number) {
       if (!currentTheme.value) return
       currentTheme.value.blurSidebar = v
@@ -158,7 +160,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const blurAppBar = computed({
-    get() { return currentTheme.value?.blurAppBar ?? 4 },
+    get() { return currentTheme.value.blurAppBar ?? 4 },
     set(v: number) {
       if (!currentTheme.value) return
       currentTheme.value.blurAppBar = v
@@ -166,7 +168,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const volume = computed({
-    get() { return currentTheme.value?.backgroundVolume ?? 0 },
+    get() { return currentTheme.value.backgroundVolume ?? 0 },
     set(v: number) {
       if (!currentTheme.value) return
       currentTheme.value.backgroundVolume = v
@@ -175,7 +177,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
   })
 
   const appBarColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkAppBarColor : currentTheme.value?.colors.lightAppBarColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkAppBarColor : currentTheme.value.colors.lightAppBarColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkAppBarColor = v
@@ -186,7 +188,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const sideBarColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkSideBarColor : currentTheme.value?.colors.lightSideBarColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkSideBarColor : currentTheme.value.colors.lightSideBarColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkSideBarColor = v
@@ -197,7 +199,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const primaryColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkPrimaryColor : currentTheme.value?.colors.lightPrimaryColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkPrimaryColor : currentTheme.value.colors.lightPrimaryColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkPrimaryColor = v
@@ -208,7 +210,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const backgroundColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkBackground : currentTheme.value?.colors.lightBackground ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkBackground : currentTheme.value.colors.lightBackground ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkBackground = v
@@ -219,7 +221,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const infoColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkInfoColor : currentTheme.value?.colors.lightInfoColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkInfoColor : currentTheme.value.colors.lightInfoColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkInfoColor = v
@@ -230,7 +232,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const errorColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkErrorColor : currentTheme.value?.colors.lightErrorColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkErrorColor : currentTheme.value.colors.lightErrorColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkErrorColor = v
@@ -241,7 +243,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const warningColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkWarningColor : currentTheme.value?.colors.lightWarningColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkWarningColor : currentTheme.value.colors.lightWarningColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkWarningColor = v
@@ -252,7 +254,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const successColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkSuccessColor : currentTheme.value?.colors.lightSuccessColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkSuccessColor : currentTheme.value.colors.lightSuccessColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkSuccessColor = v
@@ -263,7 +265,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const accentColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkAccentColor : currentTheme.value?.colors.lightAccentColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkAccentColor : currentTheme.value.colors.lightAccentColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkAccentColor = v
@@ -274,7 +276,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     },
   })
   const cardColor = computed({
-    get: () => isDark.value ? currentTheme.value?.colors.darkCardColor : currentTheme.value?.colors.lightCardColor ?? '',
+    get: () => isDark.value ? currentTheme.value.colors.darkCardColor : currentTheme.value.colors.lightCardColor ?? '',
     set: (v: string) => {
       if (isDark.value) {
         currentTheme.value.colors.darkCardColor = v
@@ -442,14 +444,14 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     const media = await addMedia(filePath)
     const theme = currentTheme.value
     if (!theme) return
-    theme.backgroundMusic?.push(media)
+    theme.backgroundMusic.push(media)
     writeTheme(theme.name, theme)
   }
 
   async function removeMusic(index: number) {
     const theme = currentTheme.value
     if (!theme) return
-    const m = theme.backgroundMusic?.splice(index, 1)
+    const m = theme.backgroundMusic.splice(index, 1)
     if (m) {
       await removeMedia(m[0].url).catch(() => { })
     }
@@ -479,7 +481,14 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     }
   }
 
-  const font = computed(() => currentTheme.value?.font)
+  const font = computed(() => currentTheme.value.font)
+  const fontSize = computed({
+    get() { return currentTheme.value.fontSize ?? 16 },
+    set(v: number) {
+      currentTheme.value.fontSize = v
+      writeTheme(currentTheme.value.name, currentTheme.value)
+    },
+  })
 
   async function setFont(path: string) {
     const media = await addMedia(path)
@@ -497,6 +506,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     if (theme.font) {
       await removeMedia(theme.font.url).catch(() => { })
       theme.font = undefined
+      theme.fontSize = 16
       writeTheme(theme.name, theme)
     }
   }
@@ -541,6 +551,9 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     if (theme.backgroundColorOverlay) {
       settings.backgroundColorOverlay = theme.backgroundColorOverlay
     }
+    if (theme.fontSize) {
+      settings.fontSize = theme.fontSize
+    }
     settings.dark = isDark.value
     const serialized: ThemeData = {
       name: theme.name,
@@ -573,6 +586,8 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     }
     if (data.settings?.backgroundType) {
       theme.backgroundType = data.settings.backgroundType as BackgroundType
+    } else {
+      theme.backgroundType = BackgroundType.NONE
     }
     if (data.settings?.backgroundImageFit) {
       theme.backgroundImageFit = data.settings.backgroundImageFit as 'cover' | 'contain'
@@ -601,6 +616,9 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
     if (data.assets.font) {
       theme.font = data.assets.font as MediaData
     }
+    if (data.settings?.fontSize) {
+      theme.fontSize = data.settings.fontSize as number ?? 16
+    }
     if (data.settings?.dark) {
       darkTheme.value = data.settings.dark ? 'dark' : 'light'
     } else {
@@ -622,6 +640,10 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
   @font-face {
     font-family: 'custom';
     src: url('${font.value?.url}');
+  }
+
+  html {
+    font-size: ${fontSize.value}px;
   }
   
   .v-application {
@@ -686,6 +708,7 @@ export function useTheme(framework: Framework, { addMedia, removeMedia, exportTh
 
     font,
     setFont,
+    fontSize,
     resetFont,
 
     removeMusic,

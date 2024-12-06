@@ -2,33 +2,44 @@ import { BuiltinImages } from '@/constant'
 import { ModFile } from '@/util/mod'
 import { ProjectFile } from '@/util/search'
 import { FabricModMetadata } from '@xmcl/mod-parser'
-import { GameOptionsState, InstanceOptionsServiceKey, InstanceShaderPacksServiceKey, Resource, RuntimeVersions } from '@xmcl/runtime-api'
+import { GameOptionsState, InstanceOptionsServiceKey, InstanceShaderPacksServiceKey, Resource, ResourceState, RuntimeVersions } from '@xmcl/runtime-api'
 import debounce from 'lodash.debounce'
 import { InjectionKey, Ref } from 'vue'
 import { useRefreshable } from './refreshable'
 import { useService } from './service'
+import { useState } from './syncableState'
+import { ReactiveResourceState } from '@/util/ReactiveResourceState'
 
 export const kInstanceShaderPacks: InjectionKey<ReturnType<typeof useInstanceShaderPacks>> = Symbol('InstanceShaderPacks')
 
 export interface InstanceShaderFile extends ProjectFile {
-  /**
-   * Backed resource
-   */
-  resource: Resource
+  fileName: string
+
+  size: number
+
+  hash: string
 }
 
 export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<RuntimeVersions>, mods: Ref<ModFile[]>, gameOptions: Ref<GameOptionsState | undefined>) {
-  const { link, scan } = useService(InstanceShaderPacksServiceKey)
+  const { link, watch: watchShaderPacks } = useService(InstanceShaderPacksServiceKey)
   const { editOculusShaderOptions, getOculusShaderOptions, getIrisShaderOptions, editIrisShaderOptions, getShaderOptions, editShaderOptions } = useService(InstanceOptionsServiceKey)
 
+  const { state, error, isValidating } = useState(() => instancePath.value ? watchShaderPacks(instancePath.value) : undefined, ReactiveResourceState)
+
+  const shaderPacks = computed(() => state.value?.files.map(f => ({
+    path: f.path,
+    version: '',
+    enabled: shaderPack.value === f.fileName,
+    fileName: f.fileName,
+    size: f.size,
+    hash: f.hash,
+    modrinth: f.metadata.modrinth,
+    curseforge: f.metadata.curseforge,
+  } as InstanceShaderFile)) || [])
   const linked = ref(false)
-  const { refresh, refreshing } = useRefreshable<string>(async (path) => {
+  const { refresh: refreshLinkedStatus, refreshing } = useRefreshable<string>(async (path) => {
     if (!path) return
     linked.value = await link(path)
-
-    if (!linked.value) {
-      await scan(path)
-    }
   })
   const shaderMod = computed(() => {
     if (runtime.value.optifine) {
@@ -40,14 +51,15 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
       }
     }
     const shader = mods.value.find(m => {
-      const forge = m.resource.metadata.forge
-      const fabric = m.resource.metadata.fabric
+      if (!m.enabled) return false
+      const forge = m.forge
+      const fabric = m.fabric
       if (forge) {
         // optifine in forge
-        if (forge.modid === 'optifine') {
+        if (forge.modid.toLowerCase() === 'optifine') {
           return true
         }
-        return forge.modid === 'oculus'
+        return forge.modid.toLowerCase() === 'oculus'
       } else if (fabric) {
         if (fabric instanceof Array) {
           // optifine fabric or iris
@@ -76,14 +88,22 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
         }
       }
     }
-    return shader?.resource.metadata.forge
+    if (shader?.modId.toLowerCase() === 'optifine' && shader.forge) {
+      return {
+        id: 'optifine',
+        name: 'Optifine',
+        version: shader.forge.version,
+        icon: BuiltinImages.optifine,
+      }
+    }
+    return shader?.forge
       ? {
-        id: shader.resource.metadata.forge.modid,
-        name: shader.resource.metadata.forge.name,
-        version: shader.resource.metadata.forge.version,
+        id: shader.forge.modid,
+        name: shader.forge.name,
+        version: shader.forge.version,
         icon: shader.icon,
       }
-      : shader?.resource.metadata.fabric ? normalzieFabricResource(shader.resource.metadata.fabric, shader.icon) : undefined
+      : shader?.fabric ? normalzieFabricResource(shader.fabric, shader.icon) : undefined
   })
   const shaderPackPath = computed(() => {
     console.log('get shader pack path')
@@ -91,7 +111,7 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
   })
 
   const shaderPackStatus = ref(undefined as [string, string | undefined] | undefined)
-  const { refresh: mutate } = useRefreshable(async () => {
+  const { refresh: mutateShaderPackOptions } = useRefreshable(async () => {
     const mod = shaderMod.value
     const inst = instancePath.value
     if (mod?.id === 'optifine' || mod?.id === 'optifabric') {
@@ -115,9 +135,8 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     }
   })
 
-  const debounced = debounce(mutate, 300)
-
-  watch([shaderMod, shaderPackPath], () => debounced())
+  const debouncedMutateShaderPackOptions = debounce(mutateShaderPackOptions, 300)
+  watch([shaderMod, shaderPackPath], () => debouncedMutateShaderPackOptions())
 
   const shaderPack = computed({
     get() {
@@ -134,23 +153,29 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
         editIrisShaderOptions({
           instancePath: instancePath.value,
           shaderPack: v ?? '',
-        }).then(() => mutate())
+        }).then(() => mutateShaderPackOptions())
       } else if (shaderPackStatus.value?.[0] === 'oculus') {
         editOculusShaderOptions({
           instancePath: instancePath.value,
           shaderPack: v ?? '',
-        }).then(() => mutate())
+        }).then(() => mutateShaderPackOptions())
       }
     },
   })
 
-  watch(instancePath, refresh, { immediate: true })
+  function effect() {
+  }
+
+  watch(instancePath, refreshLinkedStatus, { immediate: true })
 
   return {
     linked,
     shaderMod,
     shaderPack,
-    refresh,
-    refreshing,
+    shaderPacks,
+    refresh: refreshLinkedStatus,
+    refreshing: computed(() => refreshing.value || isValidating.value),
+    error,
+    effect,
   }
 }

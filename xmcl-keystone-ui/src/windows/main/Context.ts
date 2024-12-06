@@ -1,8 +1,7 @@
-import { kFilterCombobox, kSemaphores, useExternalRoute, useFilterComboboxData, useI18nSync, useSemaphores } from '@/composables'
+import { kFilterCombobox, useExternalRoute, useFilterComboboxData, useI18nSync } from '@/composables'
 import { kCurseforgeCategories, useCurseforgeCategories } from '@/composables/curseforge'
 import { kDatabaseStatus, useDatabaseStatus } from '@/composables/databaseStatus'
 import { kDropHandler, useDropHandler } from '@/composables/dropHandler'
-import { kExceptionHandlers, useExceptionHandlers } from '@/composables/exception'
 import { kImageDialog, useImageDialog } from '@/composables/imageDialog'
 import { kInstance, useInstance } from '@/composables/instance'
 import { kInstanceDefaultSource, useInstanceDefaultSource } from '@/composables/instanceDefaultSource'
@@ -12,6 +11,7 @@ import { kInstanceLaunch, useInstanceLaunch } from '@/composables/instanceLaunch
 import { kInstanceModsContext, useInstanceMods } from '@/composables/instanceMods'
 import { kInstanceOptions, useInstanceOptions } from '@/composables/instanceOptions'
 import { kInstanceResourcePacks, useInstanceResourcePacks } from '@/composables/instanceResourcePack'
+import { kInstanceSave, useInstanceSaves } from '@/composables/instanceSave'
 import { kInstanceShaderPacks, useInstanceShaderPacks } from '@/composables/instanceShaderPack'
 import { kInstanceVersion, useInstanceVersion } from '@/composables/instanceVersion'
 import { kInstanceVersionInstall, useInstanceVersionInstallInstruction } from '@/composables/instanceVersionInstall'
@@ -21,10 +21,8 @@ import { kLaunchTask, useLaunchTask } from '@/composables/launchTask'
 import { kModsSearch, useModsSearch } from '@/composables/modSearch'
 import { kModUpgrade, useModUpgrade } from '@/composables/modUpgrade'
 import { kModrinthTags, useModrinthTags } from '@/composables/modrinth'
-import { kNotificationQueue, useNotificationQueue } from '@/composables/notifier'
 import { kPeerShared, usePeerConnections } from '@/composables/peers'
 import { kResourcePackSearch, useResourcePackSearch } from '@/composables/resourcePackSearch'
-import { kInstanceSave, useInstanceSaves } from '@/composables/instanceSave'
 import { kSaveSearch, useSavesSearch } from '@/composables/savesSearch'
 import { kServerStatusCache, useServerStatusCache } from '@/composables/serverStatus'
 import { kSettingsState, useSettingsState } from '@/composables/setting'
@@ -42,10 +40,7 @@ import { provide } from 'vue'
 
 export default defineComponent({
   setup(props, ctx) {
-    provide(kSemaphores, useSemaphores())
     provide(kServerStatusCache, useServerStatusCache())
-    const queue = useNotificationQueue()
-    provide(kNotificationQueue, queue)
 
     provide(kDropHandler, useDropHandler())
 
@@ -54,7 +49,7 @@ export default defineComponent({
     const localVersions = useLocalVersions()
     const instances = useInstances()
     const instance = useInstance(instances.selectedInstance, instances.instances)
-    provide(kPeerShared, usePeerConnections(queue))
+    provide(kPeerShared, usePeerConnections())
 
     const settings = useSettingsState()
     const instanceVersion = useInstanceVersion(instance.instance, localVersions.versions, localVersions.servers)
@@ -67,15 +62,15 @@ export default defineComponent({
     const shaderPacks = useInstanceShaderPacks(instance.path, instance.runtime, instanceMods.mods, options.gameOptions)
     const files = useInstanceFiles(instance.path)
     const task = useLaunchTask(instance.path, instance.runtime, instanceVersion.versionId)
-    const instanceLaunch = useInstanceLaunch(instance.instance, instanceVersion.versionId, instanceVersion.serverVersionId, instanceJava.java, user.userProfile, settings, instanceMods.enabledModCounts)
+    const instanceLaunch = useInstanceLaunch(instance.instance, instanceVersion.versionId, instanceVersion.serverVersionId, instanceJava.java, user.userProfile, settings, instanceMods.mods)
 
-    const modsSearch = useModsSearch(instance.runtime, instanceMods.mods, instanceMods.isValidating)
+    const modsSearch = useModsSearch(instance.path, instance.runtime, instanceMods.mods, instanceMods.isValidating, settings.state)
     const modUpgrade = useModUpgrade(instance.path, instance.runtime, modsSearch.all)
 
     const resourcePackSearch = useResourcePackSearch(instance.runtime, resourcePacks.enabled, resourcePacks.disabled, resourcePacks.enabledSet)
-    const shaderPackSearch = useShaderPackSearch(instance.runtime, shaderPacks.shaderPack)
+    const shaderPackSearch = useShaderPackSearch(instance.runtime, shaderPacks.shaderPacks)
 
-    const install = useInstanceVersionInstallInstruction(instance.path, instance.instances, instanceVersion.resolvedVersion, localVersions.versions, localVersions.servers, java.all)
+    const install = useInstanceVersionInstallInstruction(instance.path, instance.instances, instanceVersion.resolvedVersion, instanceVersion.refreshResolvedVersion, localVersions.versions, localVersions.servers, java.all)
 
     useTelemetryTrack(settings.state)
 

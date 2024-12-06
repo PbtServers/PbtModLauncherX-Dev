@@ -3,7 +3,6 @@ import { useService } from '@/composables'
 import { useLocalStorageCacheBool } from '@/composables/cache'
 import { getCurseforgeProjectFilesModel, getCurseforgeProjectModel } from '@/composables/curseforge'
 import { getCurseforgeChangelogModel } from '@/composables/curseforgeChangelog'
-import { useCurseforgeInstanceResource } from '@/composables/curseforgeInstaller'
 import { useDateString } from '@/composables/date'
 import { useDialog } from '@/composables/dialog'
 import { kInstance } from '@/composables/instance'
@@ -15,7 +14,7 @@ import { getCurseforgeFileGameVersions, getCursforgeFileModLoaders } from '@/uti
 import { injection } from '@/util/inject'
 import { getExpectedSize } from '@/util/size'
 import { getSWRV } from '@/util/swrvGet'
-import { CurseForgeServiceKey, CurseforgeUpstream } from '@xmcl/runtime-api'
+import { CurseforgeUpstream, ModpackServiceKey } from '@xmcl/runtime-api'
 import HomeUpstreamBase from './HomeUpstreamBase.vue'
 import { UpstreamHeaderProps } from './HomeUpstreamHeader.vue'
 import { ProjectVersionProps } from './HomeUpstreamVersion.vue'
@@ -100,7 +99,7 @@ const items = computed(() => {
     if (!result[date]) {
       result[date] = []
     }
-    result[date].push(reactive({
+    result[date].push(markRaw({
       id: d.id.toString(),
       name: d.displayName,
       versionType: d?.releaseType === 1 ? 'release' : d?.releaseType === 2 ? 'beta' : 'alpha',
@@ -127,30 +126,21 @@ watch(computed(() => state.bottom), (reached) => {
 })
 
 const { show } = useDialog(InstanceInstallDialog)
-const { installFile } = useService(CurseForgeServiceKey)
-const { getResourceByUpstream, getResourceByFile } = useCurseforgeInstanceResource()
+const { installModapckFromMarket } = useService(ModpackServiceKey)
 const updating = ref(false)
 async function onUpdate(v: ProjectVersionProps) {
   updating.value = true
 
   try {
-    const resource = await getResourceByUpstream(upstream.value)
-    const nextVersion = files.value?.data.find(d => d.id === Number(v.id))
-    if (!nextVersion) return
-    let newResource = await getResourceByFile(nextVersion)
-    if (!newResource) {
-      // download
-      const result = await installFile({
-        file: nextVersion,
-        type: 'modpacks',
-        icon: project.value?.logo.url || '',
-      })
-      newResource = result.resource
-    }
+    const instancePath = instance.value.path
+    const [modpack] = await installModapckFromMarket({
+      market: 1,
+      file: { fileId: Number(v.id), icon: project.value?.logo.url || '' },
+    })
     show({
-      type: 'curseforge',
-      currentResource: resource,
-      resource: newResource,
+      type: 'upstream',
+      modpack,
+      instancePath,
     })
   } finally {
     updating.value = false
@@ -162,19 +152,11 @@ const duplicating = ref(false)
 const onDuplicate = async (v: ProjectVersionProps) => {
   duplicating.value = true
   try {
-    const file = files.value?.data?.find(f => f.id.toString() === v.id)
-    if (!file) return
-    let newResource = await getResourceByFile(file)
-    if (!newResource) {
-      // download
-      const result = await installFile({
-        file,
-        type: 'modpacks',
-        icon: project.value?.logo.url || '',
-      })
-      newResource = result.resource
-    }
-    showAddInstanceDialog({ type: 'resource', resource: newResource })
+    const [modpack] = await installModapckFromMarket({
+      market: 1,
+      file: { fileId: Number(v.id), icon: project.value?.logo.url || '' },
+    })
+    showAddInstanceDialog({ type: 'modpack', path: modpack })
   } finally {
     duplicating.value = false
   }
@@ -196,6 +178,7 @@ const loadChangelog = async (v: ProjectVersionProps) => {
     :header="headerData"
     :duplicating="duplicating"
     :only-current-version.sync="onlyCurrentVersion"
+    :updating="updating"
     @duplicate="onDuplicate"
     @update="onUpdate"
     @changelog="loadChangelog"

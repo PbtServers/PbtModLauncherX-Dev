@@ -32,7 +32,6 @@ BaseSettingGeneral:
   title: General
 FeedTheBeast:
   search: Buscar en FTB
-FeedTheBeastCard: {}
 FeedTheBeastProject:
   changelog: Registro de cambios
   details: Detalles
@@ -265,6 +264,8 @@ diagnosis:
     name: >-
       Falta la libreria {name} | Falta la libreria {name} | Faltan {count}
       Librerias | Faltan {count} Librerias
+disable: Desactivar
+downloadUpdate: Descarga de la actualización
 env:
   select:
     all: Seleccionar todo
@@ -449,6 +450,8 @@ instance:
   changeIcon: Cambiar el ícono
   current: Instancia Actual
   delete: Eliminar juego
+  deleteFailed: No se pudo eliminar la instancia
+  deleteFailedPermission: Otro programa ocupó el archivo.
   deleteHint: >-
     Los datos de la instancia se eliminarán permanentemente del disco. ¿Estás
     seguro de hacer esto?
@@ -466,6 +469,10 @@ instance:
   lastPlayed: Última vez jugado
   launchArguments: Argumentos de Lanzamiento Previo
   launchServer: Iniciar el servidor localhost
+  linkFileDesc: |-
+    Esto sobrescribirá el {file} local de la instancia con el {file} global. 
+    ¿Estás seguro de vincularlo?
+  linkFileTitle: ¿Estás seguro de vincular {file}?
   mcOptions: Opciones de Minecraft
   mcOptionsHint: Argumentos adicionales de lanzamiento de Minecraft
   name: Nombre del Perfil
@@ -478,6 +485,12 @@ instance:
   prependCommandHint: Esto antepondrá este comando antes de todos los comandos de inicio.
   requireName: El nombre es obligatorio
   showInstance: Mostrar carpeta del juego
+  useSharedOptions: Usar configuración de juego compartida
+  useSharedOptionsDesc: >-
+    Esto vinculará el archivo options.txt a un archivo compartido entre
+    instancias.
+  useSharedServersList: Usar lista de servidores compartidos
+  useSharedServersListDesc: Esto vinculará servers.dat a un archivo compartido entre instancias.
   versionHint: La versión de Minecraft de este juego
   vmOptions: Opciones de JVM
   vmOptionsHint: Argumentos adicionales para pasar a la JVM
@@ -485,6 +498,9 @@ instanceAge:
   older: Más Antiguo
   threeDay: En Tres Días
   today: Hoy
+instanceDiscover:
+  gameFolder: Descubre {count} carpetas de juegos
+  instanceFolder: Se encontraron {count} instancias
 instanceFileOperation:
   add: Agregar
   backup-add: Reemplazar (Copia de Seguridad)
@@ -542,6 +558,7 @@ instances:
     Importa desde tu instancia .minecraft esto duplicará tu juego original
     en este launcher.
   choose: Selecciona un juego
+  fix: Reparar
   folderSetting: Configuración de carpeta
   importFolder: Importar desde Carpeta
   importFolderDescription: Importar Minecraft al Lanzador
@@ -572,6 +589,7 @@ labyMod:
   empty: LabyMod no soporta minecraft actual
 launch:
   killServer: Matar el servidor localhost
+  launchAnyway: Lanzar de todos modos
   cancel: Cancelar
   kill: Matar
   launch: Lanzar
@@ -726,14 +744,30 @@ mod:
   deletionRestHint: Y otros {rest} mods...
   denseView: Vista densa
   dropHint: Arrastra el archivo .jar/.litemod del mod aquí para importarlo.
+  duplicatedDetected: '{count} modificaciones duplicadas'
+  duplicatedDetectedDescription: >-
+    Mods encontrados con la misma identificación de mod pero archivos
+    diferentes. 
+
+    Esto podría causar que Minecraft falle. 
+
+    Seleccione el archivo que desea conservar.
   enabled: '{count} Mods habilitados'
   filter: Filtrar Mods
   groupInstalled: Mods Instalados en Grupo
   hasUpdate: ¡El Mod tiene una nueva versión!
   hideIncompatible: Ocultar Mods Incompatibles
   incompatible: Mod Incompatible.
+  incompatibleHint: Consulte su informe de compatibilidad de mods
+  incompatibleHintDescription: |-
+    Es posible que falten algunas dependencias de modificaciones. 
+    O algunas versiones de dependencias no coinciden.
   manage: Administrar Mods
   maybeCompatible: Posiblemente Compatible.
+  modloaderSelectHint: |-
+    El mod admite los siguientes cargadores de mod. 
+    Seleccione uno para instalar.
+  modloaderSelectNotSupported: No encontrado {modloader} para Minecraft {minecraft}
   mods: '{count} modificaciones'
   name: Mod | Mods
   noModLoaderHint: ¡No olvides habilitar un modloader para usar mods!
@@ -767,6 +801,7 @@ modInstall:
   recommendation: ¡Explora las modificaciones {first} o {second} en {modrinth} y {curseforge}!
   search: Resultado de la Búsqueda
   searchHint: Buscar y seleccionar proyecto
+  skipVersion: Salta los Mods con diferentes versiones de Minecraft
   source: Fuente de Mods
   switch: Cambiar Versión
   upgrade: Actualizar Mods
@@ -775,6 +810,11 @@ modSearchType:
   local: Locales
   explore: ModPacks
   installed: Instalados
+modUpgradePolicy:
+  curseforge: CurseForge primero
+  curseforgeOnly: Sólo CurseForge
+  modrinth: Modrinth primero
+  modrinthOnly: Sólo Modrinth
 modified:
   reset: Restablecer
   save: Guardar
@@ -830,8 +870,8 @@ modrinth:
     bukkit: Bukkit
     bungeecord: Bungeecord
     canvas: Canvas
-    categories: Categorías
     cartoon: Estilo Cartoony
+    categories: Categorías
     challenging: Desafiante
     colored-lighting: Iluminación de Colores
     combat: Combate
@@ -1319,6 +1359,7 @@ setting:
     Limita el número máximo de conexiones por anfitrión o en total para todos
     los anfitriones. 0 significa sin límite.
   maxSocketsTitle: Máximo de Conexiones HTTP
+  migrateFromOther: Importar desde otro lanzador
   name: Configuración Global | Configuraciones Globales
   network: Configuración de la red
   officialWebsite: Sitio Web Oficial
@@ -1407,7 +1448,7 @@ setup:
     language: Idioma
     name: Establecer Idioma
   path: Ruta Actual
-  title: 'Bienvenido! esto es PbtModLauncherX. Antes de comenzar, necesitamos que '
+  title: 'Bienvenido/a! esto es PbtModLauncherX. Antes de comenzar, necesitamos que '
 shaderPack:
   deletion: Eliminar Pack de Shaders
   deletionHint: Esto eliminará el archivo del pack de shaders {path} y no se podrá deshacer.
@@ -1420,10 +1461,17 @@ shaderPack:
   name: Pack de Shaders
   searchHint: Buscar pack de shaders
   selectSearchHint: Busca y elige un pack de shaders
+  noShaderMod: No hay ningún mod de sombreado instalado
+  noShaderModHint: No puedes usar sombreador sin un mod de sombreado
+  noShaderModInstallHint: >-
+    Debe instalar uno de los siguientes mods para cargar el paquete de
+    sombreadores.
   showDirectory: Mostrar directorio de packs de shaders
   showFile: Mostrar este pack de shaders en la carpeta
 shared:
   accept: Aceptar
+  keepSelected: Mantener seleccionado
+  skipForNow: Saltar por ahora
 store:
   explore: Explorar
   latestMinecraft: Versión de Minecraft Reciente

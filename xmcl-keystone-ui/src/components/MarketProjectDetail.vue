@@ -43,10 +43,10 @@
             target="browser"
             :href="detail.url"
           >
-            {{ detail.title }}
+            {{ titleToDisplay }}
           </a>
           <template v-else>
-            {{ detail.title }}
+            {{ titleToDisplay }}
           </template>
 
           <v-btn
@@ -60,6 +60,14 @@
               sync
             </v-icon>
           </v-btn>
+
+          <div class="flex-grow" />
+          <AppCopyChip
+            v-if="(currentTarget === 'curseforge' ? curseforge : modrinth)"
+            label
+            :value="(currentTarget === 'curseforge' ? curseforge : modrinth)?.toString() || ''"
+            outlined
+          />
         </span>
         <div class="ml-1 flex flex-grow-0 items-center gap-2 pt-1">
           <template v-if="loading">
@@ -108,11 +116,11 @@
             v-if="loading"
             type="text, text"
           />
-          <template v-else-if="detail.description.includes('§')">
-            <TextComponent :source="detail.description" />
+          <template v-else-if="descriptionToDisplay.includes('§')">
+            <TextComponent :source="descriptionToDisplay" />
           </template>
           <template v-else>
-            {{ detail.description }}
+            {{ descriptionToDisplay }}
           </template>
         </div>
         <div
@@ -236,8 +244,8 @@
               >
                 <v-list-item
                   v-for="(item, index) in versions"
-                  :key="index"
-                  :class="{ 'v-list-item--active': item === selectedVersion }"
+                  :key="item.id + index"
+                  :class="{ 'v-list-item--active': item.id === selectedVersion?.id }"
                   :value="item.installed"
                   @click="selectedVersion = item"
                 >
@@ -320,7 +328,7 @@
                   <template v-else>
                     <v-list-item
                       v-for="dep of dependencies"
-                      :key="dep.id"
+                      :key="dep.id + dep.parent"
                       @click="emit('open-dependency', dep)"
                     >
                       <v-list-item-avatar>
@@ -401,7 +409,7 @@
             class="markdown-body select-text whitespace-normal"
             :class="{ 'project-description': curseforge }"
             @click="onDescriptionDivClicked"
-            v-html="detail.htmlContent"
+            v-html="(isEnabled && detail.localizedHtmlContent) || detail.htmlContent"
           />
           <template v-else-if="detail.description.includes('§')">
             <TextComponent :source="detail.description" />
@@ -689,6 +697,7 @@ import { clientCurseforgeV1 } from '@/util/clients'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { vFallbackImg } from '@/directives/fallbackImage'
 import { BuiltinImages } from '@/constant'
+import { kLocalizedContent, useLocalizedContentControl } from '@/composables/localizedContent'
 
 const props = defineProps<{
   detail: ProjectDetail
@@ -765,6 +774,7 @@ export interface ModGallery {
   description: string
   date?: string
   url: string
+  rawUrl?: string
 }
 export interface CategoryItem {
   id: string
@@ -788,7 +798,9 @@ export interface ProjectDetail {
   id: string
   icon: string
   title: string
+  localizedTitle?: string
   description: string
+  localizedDescription?: string
   author: string
   downloadCount: number
   follows: number
@@ -796,6 +808,7 @@ export interface ProjectDetail {
   categories: CategoryItem[]
   modLoaders: string[]
   htmlContent: string
+  localizedHtmlContent?: string
   externals: ExternalResource[]
   galleries: ModGallery[]
   info: Info[]
@@ -809,6 +822,9 @@ const _enabled = computed({
     emit('enable', v)
   },
 })
+
+const titleToDisplay = computed(() => (isEnabled.value && props.detail.localizedTitle) || props.detail.title)
+const descriptionToDisplay = computed(() => (isEnabled.value && props.detail.localizedDescription) || props.detail.description)
 
 const detailsHeaders = computed(() => {
   const result: Array<{
@@ -862,7 +878,7 @@ watch(selectedVersion, (v, o) => {
   if (v !== o && v) {
     emit('load-changelog', v)
   }
-})
+}, { immediate: true })
 const { t } = useI18n()
 watch(() => props.detail, (d, o) => {
   if (d?.id !== o?.id) {
@@ -906,7 +922,7 @@ const onScroll = (e: Event) => {
 // Image
 const imageDialog = injection(kImageDialog)
 const onShowImage = (img: ModGallery) => {
-  imageDialog.show(img.url, { description: img.description, date: img.date })
+  imageDialog.show(img.rawUrl || img.url, { description: img.description, date: img.date })
 }
 
 // Content clicked
@@ -934,11 +950,15 @@ const iconMapping = {
   quilt: '$vuetify.icons.quilt',
   optifine: '$vuetify.icons.optifine',
   neoforge: '$vuetify.icons.neoForged',
+  iris: '$vuetify.icons.iris',
+  oculus: '$vuetify.icons.oculus',
 } as Record<string, string>
 
 const validModLoaders = computed(() => {
   return props.detail.modLoaders.filter(l => iconMapping[l])
 })
+
+const { isEnabled } = inject(kLocalizedContent, useLocalizedContentControl())
 
 function onDescriptionLinkClicked(e: MouseEvent, href: string) {
   const url = new URL(href)

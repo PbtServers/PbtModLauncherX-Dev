@@ -63,7 +63,6 @@
         :categories="modrinthCategories"
         :all-files="files"
         :curseforge="selectedItem?.curseforge?.id || selectedCurseforgeId"
-        @install="onInstall"
         @uninstall="onUninstall"
         @enable="onEnable"
         @disable="onDisable"
@@ -79,7 +78,6 @@
         :category="curseforgeCategory"
         :all-files="files"
         :modrinth="selectedItem?.modrinth?.project_id || selectedModrinthId"
-        @install="onInstall"
         @uninstall="onUninstall"
         @enable="onEnable"
         @disable="onDisable"
@@ -110,9 +108,12 @@ import Hint from '@/components/Hint.vue'
 import MarketBase from '@/components/MarketBase.vue'
 import MarketProjectDetailCurseforge from '@/components/MarketProjectDetailCurseforge.vue'
 import MarketProjectDetailModrinth from '@/components/MarketProjectDetailModrinth.vue'
+import MarketRecommendation from '@/components/MarketRecommendation.vue'
+import SimpleDialog from '@/components/SimpleDialog.vue'
 import { useService } from '@/composables'
+import { useLocalStorageCacheBool } from '@/composables/cache'
 import { kCurseforgeInstaller, useCurseforgeInstaller } from '@/composables/curseforgeInstaller'
-import { useDrop } from '@/composables/dropHandler'
+import { useGlobalDrop } from '@/composables/dropHandler'
 import { kInstance } from '@/composables/instance'
 import { InstanceResourcePack, kInstanceResourcePacks } from '@/composables/instanceResourcePack'
 import { kModrinthInstaller, useModrinthInstaller } from '@/composables/modrinthInstaller'
@@ -121,15 +122,12 @@ import { useProjectInstall } from '@/composables/projectInstall'
 import { ResourcePackProject, kResourcePackSearch } from '@/composables/resourcePackSearch'
 import { kCompact } from '@/composables/scrollTop'
 import { useToggleCategories } from '@/composables/toggleCategories'
+import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
 import { ProjectEntry, ProjectFile } from '@/util/search'
-import { Resource, ResourceDomain, ResourceServiceKey } from '@xmcl/runtime-api'
+import { InstanceResourcePacksServiceKey } from '@xmcl/runtime-api'
 import ResourcePackDetailResource from './ResourcePackDetailResource.vue'
 import ResourcePackItem from './ResourcePackItem.vue'
-import SimpleDialog from '@/components/SimpleDialog.vue'
-import MarketRecommendation from '@/components/MarketRecommendation.vue'
-import { useLocalStorageCacheBool } from '@/composables/cache'
-import { vSharedTooltip } from '@/directives/sharedTooltip'
 
 const { runtime, path } = injection(kInstance)
 const { files, enable, disable, insert } = injection(kInstanceResourcePacks)
@@ -200,17 +198,14 @@ const modrinthLoaders = computed(() => {
 })
 
 // Enable disable install uninstall
-const { removeResources } = useService(ResourceServiceKey)
-const onInstall = (r: Resource[]) => {
-  enable(r.map(r => `file/${r.fileName}`))
-}
 const onUninstall = (v: ProjectFile[]) => {
   const packs = v as InstanceResourcePack[]
-  removeResources(v.map(f => (f as InstanceResourcePack).resource.hash))
   disable(packs)
+  uninstall(path.value, packs.map(p => p.path))
 }
 const onEnable = (f: ProjectFile) => {
   enable([f as InstanceResourcePack])
+  install(path.value, [f.path])
 }
 const onDisable = (f: ProjectFile) => {
   disable([f as InstanceResourcePack])
@@ -248,23 +243,26 @@ onMounted(() => {
   compact.value = true
 })
 
+const { installFromMarket, uninstall, install } = useService(InstanceResourcePacksServiceKey)
+
 // Drop
-const { importResources } = useService(ResourceServiceKey)
-const { dragover } = useDrop(() => { }, async (t) => {
-  const paths = [] as string[]
-  for (const f of t.files) {
-    paths.push(f.path)
-  }
-  const resources = await importResources(paths.map(p => ({ path: p, domain: ResourceDomain.ResourcePacks })))
-  enable(resources.map(r => `file/${r.fileName}`))
-}, () => { })
+const { dragover } = useGlobalDrop({
+  onDrop: async (t) => {
+    const paths = [] as string[]
+    for (const f of t.files) {
+      paths.push(f.path)
+    }
+    const installed = await install(path.value, paths)
+    await enable(installed)
+  },
+})
 
 // modrinth installer
 const modrinthInstaller = useModrinthInstaller(
   path,
   runtime,
   files,
-  onInstall,
+  installFromMarket,
   onUninstall,
 )
 provide(kModrinthInstaller, modrinthInstaller)
@@ -274,9 +272,8 @@ const curseforgeInstaller = useCurseforgeInstaller(
   path,
   runtime,
   files,
-  onInstall,
+  installFromMarket,
   onUninstall,
-  'texture-packs',
 )
 provide(kCurseforgeInstaller, curseforgeInstaller)
 
@@ -285,6 +282,10 @@ const onInstallProject = useProjectInstall(
   modrinthLoaders,
   curseforgeInstaller,
   modrinthInstaller,
+  (f) => {
+    install(path.value, [f.path])
+    enable([f.path])
+  },
 )
 
 const getInstalledModrinth = (projectId: string) => {
@@ -297,7 +298,6 @@ const getInstalledCurseforge = (modId: number | undefined) => {
 // dense
 const denseView = useLocalStorageCacheBool('resource-pack-dense-view', false)
 const itemHeight = computed(() => denseView.value ? 48 : 76)
-
 </script>
 
 <style scoped>

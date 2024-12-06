@@ -7,12 +7,13 @@ import { useModrinthProject } from '@/composables/modrinthProject'
 import { useModrinthProjectDetailData, useModrinthProjectDetailVersions } from '@/composables/modrinthProjectDetailData'
 import { getModrinthVersionModel, useModrinthTask } from '@/composables/modrinthVersions'
 import { useProjectDetailEnable, useProjectDetailUpdate } from '@/composables/projectDetail'
+import { useService } from '@/composables/service'
 import { useLoading, useSWRVModel } from '@/composables/swrv'
 import { kSWRVConfig } from '@/composables/swrvConfig'
 import { injection } from '@/util/inject'
 import { ProjectFile } from '@/util/search'
 import { SearchResultHit } from '@xmcl/modrinth'
-import { Resource } from '@xmcl/runtime-api'
+import { ProjectMapping, ProjectMappingServiceKey } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   modrinth?: SearchResultHit
@@ -28,7 +29,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (event: 'category', cat: string): void
-  (event: 'install', file: Resource[]): void
   (event: 'uninstall', files: ProjectFile[]): void
   (event: 'enable', file: ProjectFile): void
   (event: 'disable', file: ProjectFile): void
@@ -37,7 +37,16 @@ const emit = defineEmits<{
 // Project
 const projectId = computed(() => props.projectId)
 const { project, isValidating: isValidatingModrinth, refresh } = useModrinthProject(projectId)
-const model = useModrinthProjectDetailData(projectId, project, computed(() => props.modrinth))
+const { lookupByModrinth } = useService(ProjectMappingServiceKey)
+
+const mapping = shallowRef(undefined as ProjectMapping | undefined)
+
+watch(projectId, async (id) => {
+  const result = await lookupByModrinth(id).catch(() => undefined)
+  mapping.value = result
+}, { immediate: true })
+
+const model = useModrinthProjectDetailData(projectId, project, computed(() => props.modrinth), mapping)
 const loading = useLoading(isValidatingModrinth, project, projectId)
 
 // Versions
@@ -106,15 +115,11 @@ watch(() => props.installed, () => {
 
 // Install
 const installing = ref(false)
-const { installWithDependencies, install } = injection(kModrinthInstaller)
+const { install, installWithDependencies } = injection(kModrinthInstaller)
 const onInstall = async (v: ProjectDetailVersion) => {
-  const version = versions.value?.find(ver => ver.id === v.id)
-  if (!version) return
   try {
     installing.value = true
-    if (project.value) {
-      await installWithDependencies(project.value, version, props.installed, deps.value ?? [])
-    }
+    await installWithDependencies(v.id, v.loaders, project.value?.icon_url, props.installed, deps.value ?? [])
   } finally {
     installing.value = false
   }
@@ -133,7 +138,7 @@ const onInstallDependency = async (dep: ProjectDependency) => {
         }
       }
     }
-    await install(resolvedDep.project, version)
+    await install({ versionId: version.id, icon: resolvedDep.project.icon_url })
     if (files.length > 0) {
       emit('uninstall', files)
     }
@@ -160,11 +165,14 @@ const onOpenDependency = (dep: ProjectDependency) => {
   push({ query: { ...currentRoute.query, id: `modrinth:${dep.id}` } })
 }
 
-const curseforgeId = computed(() => props.curseforge || props.allFiles.find(v => v.modrinth?.projectId === props.projectId && v.curseforge)?.curseforge?.projectId)
+const curseforgeId = computed(() => props.curseforge ||
+  props.allFiles.find(v => v.modrinth?.projectId === props.projectId && v.curseforge)?.curseforge?.projectId ||
+  mapping.value?.curseforgeId)
 
 const archived = computed(() => {
   return project.value?.status === 'archived'
 })
+
 // watchEffect(() => {
 //   console.log(project.value.status)
 // })

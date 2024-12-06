@@ -21,6 +21,7 @@
       <ErrorView :error="error" />
       <div
         v-if="upgrade && !refreshing"
+        ref="scrollRef"
         class="visible-scroll mx-0 max-h-screen items-center justify-center overflow-y-auto overflow-x-hidden px-6 py-2"
       >
         <template v-if="upgrade && upgrade.instance">
@@ -116,18 +117,25 @@
           </v-alert>
         </template>
 
-        <v-subheader>
-          {{ t('instanceUpdate.files') }}
-        </v-subheader>
+        <div>
+          <v-subheader>
+            {{ t('instanceUpdate.files') }}
+          </v-subheader>
+          <!--<v-text-field v-model="search" />-->
+        </div>
+
         <InstanceManifestFileTree
           v-model="selected"
+          :search="search"
           open-all
           selectable
           :multiple="false"
+          :scroll-element="scrollRef"
         >
           <template #default="{ item }">
             <v-chip
               v-if="item.data"
+              class="pointer-events-none"
               label
               outlined
               :color="cOperations[item.data.operation]"
@@ -177,13 +185,15 @@ import { useVuetifyColor } from '@/composables/vuetify'
 import { basename } from '@/util/basename'
 import { getFTBTemplateAndFile } from '@/util/ftb'
 import { injection } from '@/util/inject'
-import { resolveModpackInstanceConfig } from '@/util/modpackFilesResolver'
-import { getUpstreamFromResource } from '@/util/upstream'
-import { EditInstanceOptions, InstanceData, InstanceFileOperation, InstanceFileUpdate, InstanceInstallServiceKey, InstanceUpdateServiceKey } from '@xmcl/runtime-api'
+import { EditInstanceOptions, InstanceFileOperation, InstanceFileUpdate, InstanceInstallServiceKey, InstanceUpdateServiceKey } from '@xmcl/runtime-api'
 import { useDialog } from '../composables/dialog'
 import { BuiltinImages } from '../constant'
 
 const selected = ref([] as string[])
+const search = ref('')
+
+// ref for virtual scrolling
+const scrollRef = ref<HTMLElement | null>(null)
 
 const { isShown } = useDialog(InstanceInstallDialog, (parm) => {
   refresh(parm)
@@ -236,7 +246,7 @@ type FileOperationNode = InstanceFileNode<{ operation: InstanceFileUpdate['opera
 
 function getFileNode(f: InstanceFileUpdate): FileOperationNode {
   return {
-    name: basename(f.file.path),
+    name: basename(f.file.path, '/'),
     path: f.file.path,
     size: f.file.size ?? 0,
     style: {
@@ -261,7 +271,7 @@ watch(upgrade, (newVal) => {
   }
 })
 
-provideFileNodes(result, false)
+provideFileNodes(result)
 
 const { runtime: oldRuntime, path: instancePath } = injection(kInstance)
 
@@ -290,18 +300,14 @@ const { refresh, refreshing, error } = useRefreshable<InstanceInstallOptions>(as
         newVersionFiles,
       })),
     }
-  } else if (param.type === 'modrinth' || param.type === 'curseforge') {
-    const oldResource = param.currentResource
-    const res = param.resource
+  } else if (param.type === 'upstream') {
+    const instancePath = param.instancePath
+    const modpack = param.modpack
 
-    const config = resolveModpackInstanceConfig(res) as EditInstanceOptions
-
-    const files = await getInstanceUpdateProfile({
-      instancePath: instancePath.value,
-      oldModpack: oldResource && 'path' in oldResource ? oldResource.path : undefined,
-      newModpack: res.path,
+    const { config, files } = await getInstanceUpdateProfile({
+      instancePath,
+      modpack,
     })
-    config.upstream = getUpstreamFromResource(res)
 
     upgrade.value = {
       instance: config,

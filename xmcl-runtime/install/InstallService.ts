@@ -1,23 +1,24 @@
 import { checksum, MinecraftFolder, ResolvedLibrary, Version } from '@xmcl/core'
 import { DownloadBaseOptions } from '@xmcl/file-transfer'
-import { DEFAULT_FORGE_MAVEN, DEFAULT_RESOURCE_ROOT_URL, DownloadTask, InstallForgeOptions, InstallJarTask, InstallProfile, LiteloaderVersion, MinecraftVersion, Options, installAssetsTask, installByProfileTask, installFabric, installForgeTask, installLabyMod4Task, installLibrariesTask, installLiteloaderTask, installNeoForgedTask, installOptifineTask, installQuiltVersion, installResolvedAssetsTask, installResolvedLibrariesTask, installVersionTask } from '@xmcl/installer'
-import { Asset, InstallService as IInstallService, InstallFabricOptions, InstallLabyModOptions, InstallNeoForgedOptions, InstallOptifineOptions, InstallQuiltOptions, InstallServiceKey, InstallableLibrary, LockKey, MutableState, Resource, ResourceDomain, Settings, InstallForgeOptions as _InstallForgeOptions, isFabricLoaderLibrary, isForgeLibrary } from '@xmcl/runtime-api'
+import { DEFAULT_FORGE_MAVEN, DEFAULT_RESOURCE_ROOT_URL, DownloadTask, installAssetsTask, installByProfileTask, installFabric, InstallForgeOptions, installForgeTask, InstallJarTask, InstallJsonTask, installLabyMod4Task, installLibrariesTask, installLiteloaderTask, installNeoForgedTask, installOptifineTask, InstallProfile, installQuiltVersion, installResolvedAssetsTask, installResolvedLibrariesTask, installVersionTask, LiteloaderVersion, MinecraftVersion, Options, PostProcessFailedError } from '@xmcl/installer'
+import { InstallForgeOptions as _InstallForgeOptions, Asset, InstallService as IInstallService, InstallableLibrary, InstallFabricOptions, InstallLabyModOptions, InstallNeoForgedOptions, InstallOptifineAsModOptions, InstallOptifineOptions, InstallQuiltOptions, InstallServiceKey, isFabricLoaderLibrary, isForgeLibrary, LockKey, MutableState, OptifineVersion, Settings } from '@xmcl/runtime-api'
 import { CancelledError, task } from '@xmcl/task'
 import { spawn } from 'child_process'
 import { existsSync } from 'fs'
-import { ensureFile, readFile, readFileSync, unlink, writeFile } from 'fs-extra'
-import { Inject, LauncherApp, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
-import { GFW } from '~/gfw'
+import { ensureFile, readFile, stat, unlink, writeFile } from 'fs-extra'
+import { join } from 'path'
+import { Inject, kGameDataPath, LauncherApp, LauncherAppKey, PathResolver } from '~/app'
+import { GFW, kGFW } from '~/gfw'
 import { JavaService } from '~/java'
 import { kDownloadOptions } from '~/network'
-import { ResourceService } from '~/resource'
 import { AbstractService, ExposeServiceKey, Lock, Singleton } from '~/service'
 import { getApiSets, kSettings, shouldOverrideApiSet } from '~/settings'
-import { TaskFn, kTaskExecutor } from '~/task'
+import { kTaskExecutor, TaskFn } from '~/task'
+import { linkOrCopyFile } from '~/util/fs'
 import { joinUrl, replaceHost } from '~/util/url'
 import { VersionService } from '~/version'
 import { AnyError } from '../util/error'
-import { missing } from '../util/fs'
+import { kOptifineInstaller } from './optifine'
 
 /**
  * Version install service provide some functions to install Minecraft/Forge/Liteloader, etc. version
@@ -26,10 +27,9 @@ import { missing } from '../util/fs'
 export class InstallService extends AbstractService implements IInstallService {
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
     @Inject(VersionService) private versionService: VersionService,
-    @Inject(ResourceService) private resourceService: ResourceService,
     @Inject(JavaService) private javaService: JavaService,
     @Inject(kGameDataPath) private getPath: PathResolver,
-    @Inject(GFW) private gfw: GFW,
+    @Inject(kGFW) private gfw: GFW,
     @Inject(kSettings) private settings: MutableState<Settings>,
     @Inject(kDownloadOptions) private downloadOptions: DownloadBaseOptions,
     @Inject(kTaskExecutor) private submit: TaskFn,
@@ -70,19 +70,18 @@ export class InstallService extends AbstractService implements IInstallService {
             }
           }
         }
-        const task = parsedArgs.task
+        const task = parsedArgs['--task']
 
         if (task !== 'DOWNLOAD_MOJMAPS') return false
-        if (!parsedArgs.version || !parsedArgs.side || !parsedArgs.output) return false
+        if (!parsedArgs['--version'] || !parsedArgs['--side'] || !parsedArgs['--output']) return false
 
-        const versionContent = await readFile(this.getPath('versions', parsedArgs.version, `${parsedArgs.version}.json`), 'utf-8').catch(() => '')
+        const versionContent = await readFile(this.getPath('versions', parsedArgs['--version'], `${parsedArgs['--version']}.json`), 'utf-8').catch(() => '')
         if (!versionContent) return false
 
         const version: Version = JSON.parse(versionContent)
-        const mapping = version.downloads?.[`${parsedArgs.side}_mappings`]
+        const mapping = version.downloads?.[`${parsedArgs['--side']}_mappings`]
         if (!mapping) return false
-
-        const output = parsedArgs.output
+        const output = parsedArgs['--output']
         const url = new URL(mapping.url)
         const urls = allSets.map(api => {
           if (api.name === 'mojang') {
@@ -90,7 +89,7 @@ export class InstallService extends AbstractService implements IInstallService {
           }
           return replaceHost(url, api.url)
         })
-        const sha1 = await checksum(output, 'sha1')
+        const sha1 = await checksum(output, 'sha1').catch(() => undefined)
         if (sha1 === mapping.sha1) {
           return true
         }
@@ -126,6 +125,7 @@ export class InstallService extends AbstractService implements IInstallService {
       assetsDownloadConcurrency: 16,
       ...this.downloadOptions,
       side: 'client',
+      useHashForAssetsIndex: true,
     }
 
     const allSets = getApiSets(this.settings)
@@ -195,45 +195,24 @@ export class InstallService extends AbstractService implements IInstallService {
     const option = this.getInstallOptions()
     const location = MinecraftFolder.from(this.getPath())
     try {
-      // This special logic is handling the asset index outdate issue.
-      // The asset index is not updated when the minecraft version is updated.
-      let resolvedVersion = await Version.parse(location, version)
-      let versionMeta = fallbackVersionMetadata.find(v => v.id === resolvedVersion.minecraftVersion)
-      let unofficial = false
-      if (!versionMeta) {
-        versionMeta = fallbackVersionMetadata.find(v => v.id === resolvedVersion.assets)
-        unofficial = true
-      }
-      if (versionMeta) {
-        let sourceMinecraftVersion = version === resolvedVersion.minecraftVersion ? resolvedVersion : await Version.parse(location, resolvedVersion.minecraftVersion)
-        if (!unofficial) {
-          if (new Date(versionMeta.releaseTime) > new Date(sourceMinecraftVersion.releaseTime)) {
-            // need update source version
-            await this.installMinecraft(versionMeta)
-            sourceMinecraftVersion = await Version.parse(location, versionMeta.id)
-          }
-          if (resolvedVersion.inheritances.length === 1 && resolvedVersion.inheritances[resolvedVersion.inheritances.length - 1] !== resolvedVersion.minecraftVersion) {
-            // special packed version like PCL
-            const jsonPath = location.getVersionJson(version)
-            const rawContent = JSON.parse(await readFile(jsonPath, 'utf8'))
-            rawContent.assetIndex = sourceMinecraftVersion.assetIndex
-            await writeFile(jsonPath, JSON.stringify(rawContent))
-            resolvedVersion = await Version.parse(location, version)
-          }
-        } else if (!resolvedVersion.assetIndex) {
-          // custom
+      // This special logic is handling if the asset index info is missing.
+      const resolvedVersion = await Version.parse(location, version)
+      if (!resolvedVersion.assetIndex) {
+        const versionMeta =
+          fallbackVersionMetadata.find(v => v.id === resolvedVersion.minecraftVersion) ||
+          fallbackVersionMetadata.find(v => v.id === resolvedVersion.assets)
+        if (versionMeta) {
           let localVersion = await this.versionService.resolveLocalVersion(versionMeta.id).catch(() => undefined)
           if (!localVersion) {
-            await this.installMinecraft(versionMeta)
+            await this.submit(new InstallJsonTask(versionMeta, location, option)
+              .setName('installVersion', { id: versionMeta.id }))
             localVersion = await this.versionService.resolveLocalVersion(versionMeta.id)
           }
           resolvedVersion.assetIndex = localVersion.assetIndex
         }
       }
       this.log(`Install assets for ${version}:`)
-      const jsonPath = location.getPath('assets', 'indexes', resolvedVersion.assets + '.json')
-      const prevalidSizeOnly = existsSync(jsonPath)
-      await this.submit(installAssetsTask(resolvedVersion, { ...option, prevalidSizeOnly }).setName('installAssets', { id: version }))
+      await this.submit(installAssetsTask(resolvedVersion, { ...option, prevalidSizeOnly: true }).setName('installAssets', { id: version }))
     } catch (e) {
       this.warn(`An error ocurred during assets for ${version}:`)
       this.warn(e)
@@ -250,6 +229,12 @@ export class InstallService extends AbstractService implements IInstallService {
       await this.submit(installAssetsTask(resolvedVersion, option).setName('installAssets', { id: resolvedVersion.id }))
     } else {
       const resolvedVersion = await this.versionService.resolveServerVersion(version)
+
+      if (resolvedVersion.libraries.length === 0) {
+        const clientVersion = await this.versionService.resolveLocalVersion(version)
+        resolvedVersion.libraries = clientVersion.libraries
+      }
+
       await this.submit(installLibrariesTask({
         libraries: resolvedVersion.libraries,
         minecraftDirectory: location,
@@ -260,7 +245,7 @@ export class InstallService extends AbstractService implements IInstallService {
   @Lock((v) => [LockKey.version(v.minecraftVersion)])
   async installLabyModVersion(options: InstallLabyModOptions) {
     const location = this.getPath()
-    const task = installLabyMod4Task(options.manifest, options.minecraftVersion, location, this.getInstallOptions()).setName('installLabyMod', { version: options.manifest.labyModVersion })
+    const task = installLabyMod4Task(options.manifest, options.minecraftVersion, location, { ...this.getInstallOptions(), fetch: this.app.fetch }).setName('installLabyMod', { version: options.manifest.labyModVersion })
     const version = await this.submit(task)
     return version
   }
@@ -375,7 +360,17 @@ export class InstallService extends AbstractService implements IInstallService {
     for (const java of validJavaPaths) {
       try {
         this.log(`Start to install neoforge ${options.version} on ${options.minecraft} by ${java.path}`)
-        version = await this.submit(installNeoForgedTask(options.version.startsWith(options.minecraft) ? 'forge' : 'neoforge', options.version, this.getPath(), {
+        let target: 'forge' | 'neoforge'
+        let neoforgeVersion: string
+        if (options.version.startsWith('47.')) {
+          // Fix the neoforge version url
+          neoforgeVersion = `${options.minecraft}-${options.version}`
+          target = 'forge'
+        } else {
+          neoforgeVersion = options.version
+          target = options.version.startsWith(options.minecraft) ? 'forge' : 'neoforge'
+        }
+        version = await this.submit(installNeoForgedTask(target, neoforgeVersion, this.getPath(), {
           ...installOptions,
           java: java.path,
           inheritsFrom: options.minecraft,
@@ -405,6 +400,10 @@ export class InstallService extends AbstractService implements IInstallService {
     const validJavaPaths = this.javaService.state.all.filter(v => v.valid)
     const installOptions = this.getForgeInstallOptions()
     const side = options.side ?? 'client'
+
+    if (!validJavaPaths.length) {
+      throw new AnyError('ForgeInstallError', 'No valid java found!')
+    }
 
     validJavaPaths.sort((a, b) => a.majorVersion === 8 ? -1 : b.majorVersion === 8 ? 1 : -1)
     const setting = await this.app.registry.get(kSettings)
@@ -443,6 +442,26 @@ export class InstallService extends AbstractService implements IInstallService {
         if (err instanceof Error) {
           if (err.message.indexOf('sun.security.validator.ValidatorException') !== -1) {
             continue
+          }
+          if (err.message.indexOf('java.util.zip.ZipException: invalid entry size') !== -1) {
+            // Some file are not downloaded completely
+            if (err instanceof PostProcessFailedError) {
+              if (err.jarPath.indexOf('jarsplitter') !== -1) {
+                // remove slim, extra and srg if present to force it to rework
+                const slim = err.commands[err.commands.indexOf('--slim') + 1]
+                const extra = err.commands[err.commands.indexOf('--extra') + 1]
+                const srg = err.commands[err.commands.indexOf('--srg') + 1]
+                if (existsSync(slim)) {
+                  await unlink(slim)
+                }
+                if (existsSync(extra)) {
+                  await unlink(extra)
+                }
+                if (existsSync(srg)) {
+                  await unlink(srg)
+                }
+              }
+            }
           }
         }
         this.warn(`An error ocurred during download version ${options.version}@${options.mcversion}`)
@@ -538,29 +557,42 @@ export class InstallService extends AbstractService implements IInstallService {
     return version
   }
 
-  async installOptifineAsResource(options: InstallOptifineOptions) {
+  async getOptifineDownloadUrl(version: OptifineVersion) {
+    const installer = await this.app.registry.getIfPresent(kOptifineInstaller)
+    if (installer) {
+      return installer(version)
+    }
+    return `https://bmclapi2.bangbang93.com/optifine/${version.mcversion}/${version.type}/${version.patch}`
+  }
+
+  async installOptifineAsMod(options: InstallOptifineAsModOptions) {
     const optifineVersion = `${options.type}_${options.patch}`
     const version = `${options.mcversion}_${optifineVersion}`
     const path = new MinecraftFolder(this.getPath()).getLibraryByPath(`/optifine/OptiFine/${version}/OptiFine-${version}-universal.jar`)
-    const resourceService = this.resourceService
-    if (await missing(path)) {
-      const urls = [] as string[]
-      if (getApiSets(this.settings)[0].name === 'bmcl') {
-        urls.push(
-          `https://bmclapi2.bangbang93.com/optifine/${options.mcversion}/${options.type}/${options.patch}`,
-        )
+    const url = await this.getOptifineDownloadUrl(options)
+    try {
+      const response = await this.app.fetch(url, { method: 'HEAD' })
+      const contentLength = parseInt(response.headers.get('content-length') ?? '0', 10)
+      if (isNaN(contentLength)) {
+        throw new Error()
       }
+      const localLength = (await stat(path).catch(() => ({ size: 0 }))).size
+      if (contentLength !== localLength) {
+        throw new Error()
+      }
+    } catch {
       const downloadOptions = this.downloadOptions
       await this.submit(task('installOptifine', async function () {
         await this.yield(new DownloadTask({
           ...downloadOptions,
-          url: urls,
+          url,
           destination: path,
         }).setName('download'))
       }))
     }
-    const [resource] = await resourceService.importResources([{ path, domain: ResourceDomain.Mods }])
-    return resource
+    await linkOrCopyFile(path, join(options.instancePath, 'mods', `OptiFine-${version}.jar`)).catch((e) => {
+      throw new AnyError('OptifineInstallError', `Failed to copy OptiFine to mods folder. ${e.code}`)
+    })
   }
 
   @Lock((v: InstallOptifineOptions) => LockKey.version(`optifine-${v.mcversion}-${v.type}_${v.patch}`))
@@ -589,26 +621,17 @@ export class InstallService extends AbstractService implements IInstallService {
     }
 
     const java = this.javaService.getPreferredJava()?.path
-    const resourceService = this.resourceService
-    const error = this.error
 
-    const urls = [] as string[]
-    if (getApiSets(this.settings)[0].name === 'mcbbs') {
-      urls.push(
-        `https://bmclapi2.bangbang93.com/optifine/${options.mcversion}/${options.type}/${options.patch}`,
-      )
-    } else {
-      urls.push(
-        `https://bmclapi2.bangbang93.com/optifine/${options.mcversion}/${options.type}/${options.patch}`,
-      )
-    }
+    const urls = [
+      await this.getOptifineDownloadUrl(options),
+    ] as string[]
+
     const result = await this.submit(task('installOptifine', async function () {
       await this.yield(new DownloadTask({
         ...downloadOptions,
         url: urls,
         destination: path,
       }).setName('download'))
-      const resources = await resourceService.importResources([{ path, domain: ResourceDomain.Mods }])
       let id: string = await this.concat(installOptifineTask(path, minecraft, { java }))
 
       if (options.inheritFrom) {
@@ -625,7 +648,7 @@ export class InstallService extends AbstractService implements IInstallService {
         await writeFile(dest, JSON.stringify(json, null, 4))
         id = json.id
       }
-      return [id, resources[0]] as [string, Resource]
+      return id
     }, { id: optifineVersion }))
 
     this.log(`Succeed to install optifine ${version} on ${options.inheritFrom ?? options.mcversion}. ${result[0]}`)
@@ -651,15 +674,22 @@ export class InstallService extends AbstractService implements IInstallService {
       if (err instanceof CancelledError) {
         return
       }
-      const forgeVersion = profile.version.indexOf('-forge-') !== -1
+      if (profile.profile === 'NeoForge') {
+        await this.installNeoForged({
+          minecraft: profile.minecraft,
+          version: profile.version.substring('neoforge-'.length),
+        })
+      } else {
+        const forgeVersion = profile.version.indexOf('-forge-') !== -1
         ? profile.version.replace(/-forge-/, '-')
         : profile.version.indexOf('-forge') !== -1
-          ? profile.version.replace(/-forge/, '-')
-          : profile.version
-      await this.installForge({
-        version: forgeVersion,
-        mcversion: profile.minecraft,
-      })
+        ? profile.version.replace(/-forge/, '-')
+        : profile.version
+        await this.installForge({
+          version: forgeVersion,
+          mcversion: profile.minecraft,
+        })
+      }
       this.warn(err)
     }
   }

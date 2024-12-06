@@ -2,6 +2,7 @@
   <v-chip
     v-shared-tooltip="value"
     v-ripple
+    :label="label"
     color="dark:(grey darken-4)"
     class="cursor-pointer"
     :small="!large"
@@ -28,13 +29,14 @@ import { vSharedTooltip } from '@/directives/sharedTooltip'
 defineProps<{
   value: string
   large?: boolean
+  label?: boolean
   outlined?: boolean
 }>()
 
 const clicked = ref(false)
 
 const onInfoClicked = (value: string) => {
-  navigator.clipboard.writeText(value)
+  windowController.writeClipboard(value)
   clicked.value = true
 }
 </script>

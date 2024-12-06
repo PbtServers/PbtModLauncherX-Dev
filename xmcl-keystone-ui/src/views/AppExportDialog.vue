@@ -27,6 +27,7 @@
         </v-btn>
       </v-toolbar>
       <div
+        ref="scrollElement"
         class="visible-scroll mx-0 max-h-[100vh] items-center justify-center overflow-y-auto overflow-x-hidden px-6 py-2"
       >
         <v-subheader>{{ t('modpack.general') }}</v-subheader>
@@ -70,17 +71,20 @@
           <v-checkbox
             v-model="data.emitCurseforge"
             :label="t('modpack.emitCurseforge')"
+            class="z-10"
             prepend-icon="$vuetify.icons.curseforge"
             hide-details
           />
           <v-checkbox
             v-model="data.emitMcbbs"
             :label="t('modpack.emitMcbbs')"
+            class="z-10"
             hide-details
           />
           <v-checkbox
             v-model="data.emitModrinth"
             :label="t('modpack.emitModrinth')"
+            class="z-10"
             hide-details
             prepend-icon="$vuetify.icons.modrinth"
           />
@@ -89,6 +93,7 @@
             v-if="data.emitModrinth"
             v-model="data.emitModrinthStrict"
             :label="t('modpack.emitModrinthStrict')"
+            class="z-10"
             hide-details
             prepend-icon="$vuetify.icons.modrinth"
           >
@@ -133,12 +138,14 @@
             <v-checkbox
               v-model="data.includeAssets"
               :label="t('modpack.includeAssets')"
+              class="z-10"
               prepend-icon="texture"
               hide-details
             />
             <v-checkbox
               v-model="data.includeLibraries"
               :label="t('modpack.includeLibraries')"
+              class="z-10"
               prepend-icon="camera_roll"
               hide-details
             />
@@ -171,6 +178,7 @@
           <InstanceManifestFileTree
             v-model="data.selected"
             selectable
+            :scroll-element="scrollElement"
             :search="filterText"
             :multiple="false"
           >
@@ -289,6 +297,8 @@ const zipFilter = useZipFilter()
 const modrinthFilter = useModrinthFilter()
 const baseVersion = modpackVersion.value || '0.0.0'
 const localVersions = computed(() => _locals.value.map((v) => v.id))
+
+const scrollElement = ref<HTMLElement | null>(null)
 
 function getEnvText(env: string) {
   if (env === 'required') return t('modrinth.environments.required')

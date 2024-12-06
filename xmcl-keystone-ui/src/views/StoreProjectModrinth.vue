@@ -1,11 +1,11 @@
-<script lang="ts"  setup>
+<script lang="ts" setup>
 import StoreProjectBase, { StoreProject } from '@/components/StoreProject.vue'
-import { StoreProjectVersion } from '@/components/StoreProjectInstallVersionDialog.vue'
+import { StoreProjectVersion, StoreProjectVersionDetail } from '@/components/StoreProjectInstallVersionDialog.vue'
 import { TeamMember } from '@/components/StoreProjectMembers.vue'
 import { kInstances } from '@/composables/instances'
 import { useMarkdown } from '@/composables/markdown'
+import { useModpackInstaller } from '@/composables/modpackInstaller'
 import { kModrinthTags } from '@/composables/modrinth'
-import { useModrinthInstallModpack } from '@/composables/modrinthInstaller'
 import { useModrinthProject } from '@/composables/modrinthProject'
 import { useModrinthVersions } from '@/composables/modrinthVersions'
 import { useNotifier } from '@/composables/notifier'
@@ -14,7 +14,6 @@ import { kSWRVConfig } from '@/composables/swrvConfig'
 import { useTasks } from '@/composables/task'
 import { clientModrinthV2 } from '@/util/clients'
 import { injection } from '@/util/inject'
-import { ProjectVersion } from '@xmcl/modrinth'
 import { TaskState } from '@xmcl/runtime-api'
 import useSWRV from 'swrv'
 
@@ -97,6 +96,7 @@ const project = computed(() => {
     info,
     htmlDescription: render(p.body),
     gallery: p.gallery.map(g => ({
+      rawUrl: g.raw_url,
       url: g.url,
       description: g.description,
     })),
@@ -108,9 +108,8 @@ const { versions, error } = useModrinthVersions(computed(() => props.id))
 const _installing = ref(false)
 const { notify } = useNotifier()
 const onInstall = (v: StoreProjectVersion) => {
-  const ver = v as ProjectVersion
   _installing.value = true
-  installModpack(ver).catch((e) => {
+  installModpack({ projectId: proj.value!.id, versionId: v.id, icon: project.value?.iconUrl, market: 0 }).catch((e) => {
     notify({ level: 'error', title: e.message })
   }).finally(() => {
     _installing.value = false
@@ -135,7 +134,7 @@ const tasks = useTasks((t) => {
   return false
 })
 const isDownloading = computed(() => tasks.value.length > 0)
-const { installModpack } = useModrinthInstallModpack(computed(() => project.value?.iconUrl))
+const installModpack = useModpackInstaller()
 
 const { isValidating: loadingMembers, error: teamError, data } = useSWRV(computed(() => `/modrinth/team/${props.id}`),
   () => clientModrinthV2.getProjectTeamMembers(props.id),
@@ -155,6 +154,26 @@ const members = computed(() => {
   return result
 })
 
+async function getVersionDetail(version: StoreProjectVersion) {
+  const target = versions.value.find(v => v.id === version.id)
+  if (!target) return { changelog: '', dependencies: [], version }
+  const projects = target.dependencies.map(v => v.project_id).filter(v => !!v)
+  const lookup = Object.fromEntries(target.dependencies.map(p => [p.project_id, p.dependency_type]))
+  const matched = await clientModrinthV2.getProjects(projects)
+  const dependencies = matched.map((p) => ({
+    title: p.title,
+    description: p.description,
+    icon: p.icon_url ?? '',
+    href: `https://modrinth.com/${p.project_type}/${p.slug}`,
+    dependencyType: lookup[p.id],
+  }))
+  return {
+    version,
+    changelog: target.changelog ?? '',
+    dependencies,
+  }
+}
+
 usePresence(computed(() => t('presence.modrinthProject', { name: project.value?.title || '' })))
 </script>
 <template>
@@ -169,6 +188,7 @@ usePresence(computed(() => t('presence.modrinthProject', { name: project.value?.
     :installed="!!existed"
     :loading-members="loadingMembers"
     :team-error="teamError"
+    :get-version-detail="getVersionDetail"
     @install="onInstall"
     @open="onOpen"
   />

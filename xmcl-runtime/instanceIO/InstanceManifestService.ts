@@ -1,22 +1,22 @@
 import { CurseforgeV1Client } from '@xmcl/curseforge'
 import { ModrinthV2Client } from '@xmcl/modrinth'
-import { GetManifestOptions, InstanceManifestService as IInstanceManifestService, InstanceFile, InstanceIOException, InstanceManifest, InstanceManifestServiceKey, Resource } from '@xmcl/runtime-api'
+import { GetManifestOptions, InstanceManifestService as IInstanceManifestService, InstanceFile, InstanceIOException, InstanceManifest, InstanceManifestServiceKey } from '@xmcl/runtime-api'
 import { task } from '@xmcl/task'
 import { join } from 'path'
 import { Inject, LauncherAppKey } from '~/app'
 import { InstanceService } from '~/instance'
-import { ResourceService, ResourceWorker, kResourceWorker } from '~/resource'
+import { ResourceManager, ResourceWorker, kResourceWorker } from '~/resource'
 import { AbstractService, ExposeServiceKey, Singleton } from '~/service'
 import { AnyError } from '~/util/error'
 import { LauncherApp } from '../app/LauncherApp'
 import { isNonnull } from '../util/object'
-import { decoareteInstanceFileFromResourceCache, discover } from './InstanceFileDiscover'
+import { decorateInstanceFiles, discover } from './InstanceFileDiscover'
 import { ResolveInstanceFileTask } from './ResolveInstanceFileTask'
 
 @ExposeServiceKey(InstanceManifestServiceKey)
 export class InstanceManifestService extends AbstractService implements IInstanceManifestService {
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
-    @Inject(ResourceService) private resourceService: ResourceService,
+    @Inject(ResourceManager) private resourceManager: ResourceManager,
     @Inject(kResourceWorker) private worker: ResourceWorker,
     @Inject(CurseforgeV1Client) private curseforgeClient: CurseforgeV1Client,
     @Inject(ModrinthV2Client) private modrinthClient: ModrinthV2Client,
@@ -26,8 +26,6 @@ export class InstanceManifestService extends AbstractService implements IInstanc
 
   @Singleton(p => JSON.stringify(p))
   async getInstanceManifest(options: GetManifestOptions): Promise<InstanceManifest> {
-    // Ensure the resource service is initialized...
-    await this.resourceService.initialize()
     const instancePath = options?.path
 
     const instanceService = await this.app.registry.get(InstanceService)
@@ -40,26 +38,35 @@ export class InstanceManifestService extends AbstractService implements IInstanc
 
     let files = [] as Array<InstanceFile>
     const undecorated = [] as Array<InstanceFile>
-    const undecoratedResources = new Map<InstanceFile, Resource>()
     const resolveTask = new ResolveInstanceFileTask(undecorated, this.curseforgeClient, this.modrinthClient)
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const logger = this
     const worker = this.worker
-    const resourceService = this.resourceService
-    await task('getInstanceManifest', async function () {
-      const _files = await discover(instancePath, logger)
+    const resourceManager = this.resourceManager
 
-      await Promise.all(
-        _files.map(([file, status]) => decoareteInstanceFileFromResourceCache(file, status, instancePath, worker, resourceService, undecorated, undecoratedResources, options?.hashes)
-          .catch((e) => {
-            logger.error(new AnyError('InstanceManifestResolveResourceError', 'Fail to get manifest data for instance file', { cause: e }, file))
-          })),
-      )
+    /**
+     * These files can update its resource metadata
+     */
+    const pendingResourceUpdates = new Set<InstanceFile>()
+    await task('getInstanceManifest', async function () {
+      const start = performance.now()
+      const fileWithStats = await discover(instancePath, logger)
+      const duration = performance.now() - start
+      logger.log(`Discover instance files in ${instancePath} in ${duration}ms`)
+
+      const decorateStart = performance.now()
+      try {
+        await decorateInstanceFiles(fileWithStats, instancePath, worker, resourceManager, pendingResourceUpdates)
+      } catch (e) {
+        logger.error(new AnyError('InstanceManifestResolveResourceError', 'Fail to get manifest data for instance file', { cause: e }))
+      }
+      logger.log(`Decorate instance files in ${instancePath} in ${performance.now() - decorateStart}ms`)
 
       if (options.hashes) {
+        const hashStart = performance.now()
         const hashes = options.hashes
-        await Promise.all(_files.filter(([f]) => {
+        await Promise.all(fileWithStats.filter(([f]) => {
           for (const h of hashes) {
             if (!f.hashes[h]) {
               return true
@@ -71,28 +78,29 @@ export class InstanceManifestService extends AbstractService implements IInstanc
             f.hashes[a] = await worker.checksum(join(instancePath, f.path), a)
           }
         }))))
+        logger.log(`Resolve hashes in ${instancePath} in ${performance.now() - hashStart}ms`)
       }
 
-      files = _files.map(([file]) => file)
+      files = fileWithStats.map(([file]) => file)
 
+      const resolveStart = performance.now()
       await this.yield(resolveTask).catch(() => undefined)
+      logger.log(`Resolve instance files in ${instancePath} in ${performance.now() - resolveStart}ms`)
     }).startAndWait()
 
-    const updates = undecorated.map((file) => {
-      const resource = undecoratedResources.get(file)
-      if (resource) {
-        return {
-          hash: file.hashes.sha1,
-          metadata: {
-            modrinth: file.modrinth,
-            curseforge: file.curseforge,
-          },
-          uri: file.downloads,
-        }
+    const updates = [...pendingResourceUpdates].map((file) => {
+      if (!file.hashes.sha1) return undefined
+      return {
+        hash: file.hashes.sha1,
+        metadata: {
+          modrinth: file.modrinth,
+          curseforge: file.curseforge,
+        },
+        uri: file.downloads,
       }
-      return undefined
     }).filter(isNonnull)
-    await this.resourceService.updateResources(updates).catch((e) => {
+
+    this.resourceManager.updateMetadata(updates).catch((e) => {
       this.warn('Fail to update the resources')
       this.warn(e)
     })

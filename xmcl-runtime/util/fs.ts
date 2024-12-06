@@ -3,13 +3,13 @@ import { isFileNoFound } from '@xmcl/runtime-api'
 import { AbortableTask, CancelledError } from '@xmcl/task'
 import { createHash } from 'crypto'
 import { constants } from 'fs'
-import { access, copyFile, ensureDir, link, readdir, stat, symlink, unlink } from 'fs-extra'
+import { access, copyFile, ensureDir, ensureFile, link, readdir, stat, symlink, unlink } from 'fs-extra'
 import { platform } from 'os'
-import { extname, join, resolve } from 'path'
+import { basename, extname, join, resolve } from 'path'
 import { Readable, pipeline } from 'stream'
 import { promisify } from 'util'
 import { Logger } from '~/logger'
-import { AnyError } from './error'
+import { AnyError, isSystemError } from './error'
 
 const pip = promisify(pipeline)
 
@@ -21,6 +21,10 @@ export function isPathDiskRootPath(path: string): boolean {
   } else {
     return path === '/'
   }
+}
+
+export function isNotFoundError(e: any) {
+  return isSystemError(e) && e.code === 'ENOENT'
 }
 
 export async function checksumFromStream(s: Readable, alg: string) {
@@ -158,14 +162,19 @@ export async function clearDirectoryNarrow(dir: string) {
   }))
 }
 
-export async function createSymbolicLink(srcPath: string, destPath: string, logger: Logger) {
+/**
+ * Perform symbolic link from `srcPath` to `destPath`.
+ */
+export async function linkDirectory(srcPath: string, destPath: string, logger: Logger) {
   try {
     await symlink(srcPath, destPath, 'dir')
     return true
   } catch (e) {
-    logger.warn(`Cannot create symbolic link ${srcPath} -> ${destPath} by dir, try junction: ${e}`)
-    if ((e as any).code === EPERM_ERROR && platform() === 'win32') {
-      await symlink(srcPath, destPath, 'junction')
+    if ((e as any).code === EPERM_ERROR && process.platform === 'win32') {
+      await symlink(srcPath, destPath, 'junction').catch(e => {
+        e.junction = true
+        throw e
+      })
       return false
     }
     throw e
@@ -177,8 +186,26 @@ export function swapExt(path: string, ext: string) {
   return path.substring(0, path.length - existedExt.length) + ext
 }
 
-export function linkOrCopy(from: string, to: string) {
-  return link(from, to).then(() => true, () => copyFile(from, to).then(() => false))
+/**
+ * Perform hard link or copy file from `from` to `to`.
+ */
+export function linkOrCopyFile(from: string, to: string) {
+  const onLinkFileError = async (e: unknown, copied: boolean) => {
+    if (isSystemError(e) && e.code === 'EEXIST') {
+      const extName = extname(to)
+      const fileName = basename(to, extName)
+      to = join(to, fileName + `-${Date.now()}` + extName)
+      await link(from, to).catch(e => onLinkFileError(e, false))
+    }
+    if (copied) {
+      throw e
+    } else {
+      await copyFile(from, to).catch(e => onLinkFileError(e, true))
+    }
+    return to
+  }
+
+  return link(from, to).then(() => to).catch((e) => onLinkFileError(e, false))
 }
 
 export function linkWithTimeout(from: string, to: string, timeout = 1500) {
@@ -224,3 +251,51 @@ export const ENOENT_ERROR = 'ENOENT'
  * elevated privileges.
  */
 export const EPERM_ERROR = 'EPERM'
+
+function handleOnlyNotFound(e: unknown) {
+  if (isSystemError(e) && e.code === 'ENOENT') {
+    return undefined
+  }
+  throw e
+}
+
+export async function isHardLinked(from: string, to: string) {
+  const rootStat = await stat(from).catch(handleOnlyNotFound)
+  const instanceStat = await stat(to).catch(handleOnlyNotFound)
+
+  return !!rootStat && !!instanceStat && rootStat.ino === instanceStat.ino
+}
+
+export async function hardLinkFiles(root: string, to: string) {
+  const rootStat = await stat(root).catch(handleOnlyNotFound)
+  const instanceStat = await stat(to).catch(handleOnlyNotFound)
+
+  if (!rootStat && instanceStat) {
+    // no root, copy current to root
+    return await linkOrCopyFile(to, root)
+  }
+
+  if (!instanceStat) {
+    await ensureFile(root)
+    // no instance, copy root to instance
+    return await linkOrCopyFile(root, to)
+  }
+
+  if (rootStat?.ino !== instanceStat.ino) {
+    // different, copy root to instance
+    await unlink(to).catch(handleOnlyNotFound)
+    return await linkOrCopyFile(root, to)
+  }
+
+  return to
+}
+
+export async function unHardLinkFiles(root: string, inst: string) {
+  const rootStat = await stat(root).catch(handleOnlyNotFound)
+  const instanceStat = await stat(inst).catch(handleOnlyNotFound)
+
+  if (rootStat?.ino === instanceStat?.ino) {
+    await unlink(inst).catch(handleOnlyNotFound)
+    await copyFile(root, inst)
+  }
+}

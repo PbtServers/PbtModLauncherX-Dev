@@ -12,9 +12,7 @@
     @load="onLoad"
   >
     <template #actions>
-      <v-subheader
-        class="min-h-[46px] w-full py-4 pl-2 pr-6"
-      >
+      <v-subheader class="min-h-[46px] w-full py-4 pl-2 pr-6">
         <v-btn
           text
           small
@@ -72,170 +70,197 @@
               </v-icon>
             </v-btn>
           </template>
-          <v-list
-            dense
-            nav
-          >
-            <v-list-item
-              class="mx-1"
-              @click="denseView = !denseView"
-            >
-              <v-list-item-icon>
-                <v-checkbox
-                  v-model="denseView"
-                  class="mt-0 pt-0"
-                  readonly
-                  hide-details
-                />
-              </v-list-item-icon>
-              <v-list-item-title>
-                {{ t('mod.denseView') }}
-              </v-list-item-title>
-            </v-list-item>
-            <v-list-item
-              class="mx-1"
-              @click="groupInstalled = !groupInstalled"
-            >
-              <v-list-item-icon>
-                <v-checkbox
-                  v-model="groupInstalled"
-                  class="mt-0 pt-0"
-                  readonly
-                  hide-details
-                />
-              </v-list-item-icon>
-              <v-list-item-title>
-                {{ t('mod.groupInstalled') }}
-              </v-list-item-title>
-            </v-list-item>
-            <v-divider class="my-2" />
-            <v-list-item-group v-model="defaultSourceModel">
-              <v-subheader>
-                {{ t('mod.switchDefaultSource') }}
-              </v-subheader>
-              <v-list-item key="curseforge">
-                <v-list-item-icon>
-                  <v-icon>
-                    $vuetify.icons.curseforge
-                  </v-icon>
-                </v-list-item-icon>
-                <v-list-item-title>
-                  Curseforge
-                </v-list-item-title>
-              </v-list-item>
-              <v-list-item key="modrinth">
-                <v-list-item-icon>
-                  <v-icon>
-                    $vuetify.icons.modrinth
-                  </v-icon>
-                </v-list-item-icon>
-                <v-list-item-title>
-                  Modrinth
-                </v-list-item-title>
-              </v-list-item>
-            </v-list-item-group>
-            <v-divider class="my-2" />
-
-            <v-list-item
+          <v-card>
+            <v-list
               dense
-              class="mx-1"
-              :disabled="mods.length === 0 || checkingUpgrade"
-              @click="checkUpgrade"
+              nav
             >
-              <template v-if="!checkedUpgrade">
+              <v-list-item
+                class="mx-1"
+                @click="denseView = !denseView"
+              >
                 <v-list-item-icon>
-                  <v-icon v-if="!checkingUpgrade">
-                    refresh
-                  </v-icon>
-                  <v-progress-circular
-                    v-else
-                    small
-                    size="22"
-                    width="2"
-                    indeterminate
+                  <v-checkbox
+                    v-model="denseView"
+                    class="mt-0 pt-0"
+                    readonly
+                    hide-details
                   />
                 </v-list-item-icon>
-                <v-list-item-title class="flex items-center">
-                  {{ t('modInstall.checkUpgrade') }}
+                <v-list-item-title>
+                  {{ t('mod.denseView') }}
                 </v-list-item-title>
-              </template>
-              <template v-else>
+              </v-list-item>
+              <v-list-item
+                class="mx-1"
+                @click="groupInstalled = !groupInstalled"
+              >
                 <v-list-item-icon>
-                  <v-icon color="primary">
-                    check
-                  </v-icon>
-                </v-list-item-icon>
-                <v-list-item-title class="flex items-center">
-                  {{ t('modInstall.checkedUpgrade') }}
-                </v-list-item-title>
-              </template>
-            </v-list-item>
-            <v-list-item
-              dense
-              class="mx-1"
-              :loading="upgrading"
-              :disabled="Object.keys(plans).length === 0"
-              @click="upgrade"
-            >
-              <v-list-item-icon>
-                <v-icon>upgrade</v-icon>
-              </v-list-item-icon>
-              <v-list-item-title class="flex items-center">
-                {{ t('modInstall.upgrade') }}
-              </v-list-item-title>
-            </v-list-item>
-
-            <v-list-item
-              dense
-              class="mx-1"
-              :disabled="mods.length === 0 || checkingDependencies"
-              @click="checkDependencies"
-            >
-              <template v-if="!checkedDependencies">
-                <v-list-item-icon>
-                  <v-icon v-if="!checkingDependencies">
-                    restart_alt
-                  </v-icon>
-                  <v-progress-circular
-                    v-else
-                    small
-                    size="22"
-                    width="2"
-                    indeterminate
+                  <v-checkbox
+                    v-model="groupInstalled"
+                    class="mt-0 pt-0"
+                    readonly
+                    hide-details
                   />
                 </v-list-item-icon>
-                <v-list-item-title class="flex items-center">
-                  {{ t('modInstall.checkDependencies') }}
+                <v-list-item-title>
+                  {{ t('mod.groupInstalled') }}
                 </v-list-item-title>
-              </template>
-              <template v-else>
+              </v-list-item>
+              <v-divider class="my-2" />
+              <v-list-item-group v-model="defaultSourceModel">
+                <v-subheader>
+                  {{ t('mod.switchDefaultSource') }}
+                </v-subheader>
+                <v-list-item key="curseforge">
+                  <v-list-item-icon>
+                    <v-icon>
+                      $vuetify.icons.curseforge
+                    </v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-title>
+                    Curseforge
+                  </v-list-item-title>
+                </v-list-item>
+                <v-list-item key="modrinth">
+                  <v-list-item-icon>
+                    <v-icon>
+                      $vuetify.icons.modrinth
+                    </v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-title>
+                    Modrinth
+                  </v-list-item-title>
+                </v-list-item>
+              </v-list-item-group>
+              <v-divider class="my-2" />
+
+              <v-list-item
+                dense
+                class="mx-1"
+                :disabled="mods.length === 0 || checkingDependencies"
+                @click="checkDependencies"
+              >
+                <template v-if="!checkedDependencies">
+                  <v-list-item-icon>
+                    <v-icon v-if="!checkingDependencies">
+                      restart_alt
+                    </v-icon>
+                    <v-progress-circular
+                      v-else
+                      small
+                      size="22"
+                      width="2"
+                      indeterminate
+                    />
+                  </v-list-item-icon>
+                  <v-list-item-title class="flex items-center">
+                    {{ t('modInstall.checkDependencies') }}
+                  </v-list-item-title>
+                </template>
+                <template v-else>
+                  <v-list-item-icon>
+                    <v-icon color="primary">
+                      check
+                    </v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-title class="flex items-center">
+                    {{ t('modInstall.checkedDependencies') }}
+                  </v-list-item-title>
+                </template>
+              </v-list-item>
+              <v-list-item
+                dense
+                class="mx-1"
+                :loading="installingDependencies"
+                :disabled="dependenciesToUpdate.length === 0"
+                @click="installDependencies"
+              >
                 <v-list-item-icon>
-                  <v-icon color="primary">
-                    check
+                  <v-icon class="material-icons-outlined">
+                    file_download
                   </v-icon>
                 </v-list-item-icon>
                 <v-list-item-title class="flex items-center">
-                  {{ t('modInstall.checkedDependencies') }}
+                  {{ t('modInstall.installDependencies') }}
                 </v-list-item-title>
-              </template>
-            </v-list-item>
-            <v-list-item
-              dense
-              class="mx-1"
-              :loading="installingDependencies"
-              :disabled="dependenciesToUpdate.length === 0"
-              @click="installDependencies"
-            >
-              <v-list-item-icon>
-                <v-icon class="material-icons-outlined">
-                  file_download
+              </v-list-item>
+            </v-list>
+            <v-divider />
+            <v-subheader>
+              <template
+                v-if="checkedUpgrade"
+              >
+                <v-icon
+                  left
+                  color="primary"
+                >
+                  check
                 </v-icon>
-              </v-list-item-icon>
-              <v-list-item-title class="flex items-center">
-                {{ t('modInstall.installDependencies') }}
-              </v-list-item-title>
-            </v-list-item>
-          </v-list>
+                {{ t('modInstall.checkedUpgrade') }}
+              </template>
+              <template v-else>
+                {{ t('modInstall.checkUpgrade') }}
+              </template>
+            </v-subheader>
+            <v-card-text class="pt-2">
+              <div>
+                {{ t(`modUpgradePolicy.${upgradePolicy}`) }}
+              </div>
+              <v-btn-toggle
+                v-model="upgradePolicy"
+                mandatory
+                color="primary"
+                group
+              >
+                <v-btn value="modrinth">
+                  <v-icon>$vuetify.icons.modrinth</v-icon>
+                  <v-icon>$vuetify.icons.curseforge</v-icon>
+                </v-btn>
+                <v-btn value="curseforge">
+                  <v-icon>$vuetify.icons.curseforge</v-icon>
+                  <v-icon>$vuetify.icons.modrinth</v-icon>
+                </v-btn>
+
+                <v-btn value="modrinthOnly">
+                  <v-icon>$vuetify.icons.modrinth</v-icon>
+                </v-btn>
+
+                <v-btn value="curseforgeOnly">
+                  <v-icon>$vuetify.icons.curseforge</v-icon>
+                </v-btn>
+              </v-btn-toggle>
+              <v-checkbox
+                v-model="skipVersion"
+                hide-details
+                :label="t('modInstall.skipVersion')"
+              />
+            </v-card-text>
+            <v-card-actions>
+              <v-btn
+                text
+                :loading="checkingUpgrade"
+                @click="onCheckUpgrade"
+              >
+                <v-icon left>
+                  refresh
+                </v-icon>
+                {{ t('modInstall.checkUpgrade') }}
+              </v-btn>
+              <v-spacer />
+              <v-btn
+                text
+                :loading="upgrading"
+                :disabled="Object.keys(plans).length === 0"
+                @click="upgrade"
+              >
+                <v-icon left>
+                  upgrade
+                </v-icon>
+                {{ t('modInstall.upgrade') }}
+              </v-btn>
+            </v-card-actions>
+          </v-card>
         </v-menu>
       </v-subheader>
       <v-alert
@@ -244,6 +269,24 @@
         type="error"
       >
         {{ updateErrorMessage }}
+      </v-alert>
+      <v-alert
+        v-if="Object.keys(conflicted).length > 0"
+        dense
+        class="cursor-pointer error"
+        type="error"
+        @click="showDuplicatedDialog"
+      >
+        {{ t('mod.duplicatedDetected', { count: Object.keys(conflicted).length }) }}
+      </v-alert>
+      <v-alert
+        v-if="incompatible"
+        type="info"
+        dense
+        class="cursor-pointer info"
+        @click="showIncompatibleDialog"
+      >
+        {{ t('mod.incompatibleHint') }}
       </v-alert>
     </template>
     <template #item="{ item, hasUpdate, checked, selectionMode, selected, on }">
@@ -294,7 +337,6 @@
         :updating="updating"
         :game-version="gameVersion"
         :curseforge="selectedItem?.curseforge?.id || selectedCurseforgeId"
-        @install="onInstall"
         @uninstall="onUninstall"
         @enable="onEnable"
         @disable="onDisable"
@@ -336,6 +378,54 @@
         @curseforge="curseforgeCategory = $event.id"
       />
     </template>
+    <v-dialog
+      v-model="model"
+      width="600"
+    >
+      <v-card>
+        <v-card-title>
+          {{ t('mod.noModLoaderHint') }}
+        </v-card-title>
+        <v-card-text>
+          {{ t('mod.modloaderSelectHint') }}
+          <v-list nav>
+            <v-list-item
+              v-for="i of wizardModItems"
+              :key="i.title"
+              @click="i.onSelect"
+            >
+              <v-list-item-avatar>
+                <img :src="i.icon">
+              </v-list-item-avatar>
+              <v-list-item-content>
+                <v-list-item-title>
+                  {{ i.title }}
+                </v-list-item-title>
+                <v-list-item-subtitle>
+                  <a
+                    :href="i.url"
+                    @click.stop
+                  >{{ i.url }}</a>
+                </v-list-item-subtitle>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list>
+          <v-alert
+            v-if="wizardError"
+            type="error"
+          >
+            <span v-if="'loader' in wizardError">
+              {{ t('mod.modloaderSelectNotSupported', { loader: wizardError.loader, minecraft: wizardError.minecraft }) }}
+            </span>
+            <div v-else>
+              {{ wizardError.message }}
+            </div>
+          </v-alert>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+    <ModDuplicatedDialog />
+    <ModIncompatibileDialog />
   </MarketBase>
 </template>
 
@@ -346,29 +436,36 @@ import MarketProjectDetailCurseforge from '@/components/MarketProjectDetailCurse
 import MarketProjectDetailModrinth from '@/components/MarketProjectDetailModrinth.vue'
 import MarketRecommendation from '@/components/MarketRecommendation.vue'
 import { useService } from '@/composables'
-import { useLocalStorageCacheBool } from '@/composables/cache'
+import { useLocalStorageCacheBool, useLocalStorageCacheStringValue } from '@/composables/cache'
+import { ContextMenuItem } from '@/composables/contextMenu'
 import { kCurseforgeInstaller, useCurseforgeInstaller } from '@/composables/curseforgeInstaller'
-import { useDrop } from '@/composables/dropHandler'
+import { useDialog, useSimpleDialog } from '@/composables/dialog'
+import { useGlobalDrop } from '@/composables/dropHandler'
 import { kInstance } from '@/composables/instance'
 import { kInstanceDefaultSource } from '@/composables/instanceDefaultSource'
+import { useInstanceModLoaderDefault } from '@/composables/instanceModLoaderDefault'
 import { kInstanceModsContext } from '@/composables/instanceMods'
+import { useModDependenciesCheck } from '@/composables/modDependenciesCheck'
 import { kModsSearch } from '@/composables/modSearch'
 import { kModUpgrade } from '@/composables/modUpgrade'
-import { useModDependenciesCheck } from '@/composables/modDependenciesCheck'
 import { kModrinthInstaller, useModrinthInstaller } from '@/composables/modrinthInstaller'
 import { usePresence } from '@/composables/presence'
 import { useProjectInstall } from '@/composables/projectInstall'
 import { kCompact } from '@/composables/scrollTop'
 import { useToggleCategories } from '@/composables/toggleCategories'
 import { useTutorial } from '@/composables/tutorial'
+import { BuiltinImages } from '@/constant'
 import { injection } from '@/util/inject'
+import { isNoModLoader } from '@/util/isNoModloader'
 import { ModFile } from '@/util/mod'
 import { ProjectEntry, ProjectFile } from '@/util/search'
-import { InstanceModsServiceKey, Resource, ResourceDomain, ResourceServiceKey, TaskState } from '@xmcl/runtime-api'
+import { notNullish } from '@vueuse/core'
+import { createPromiseSignal, InstanceModsServiceKey, PromiseSignal, RuntimeVersions } from '@xmcl/runtime-api'
 import ModDetailOptifine from './ModDetailOptifine.vue'
 import ModDetailResource from './ModDetailResource.vue'
+import ModDuplicatedDialog from './ModDuplicatedDialog.vue'
+import ModIncompatibileDialog from './ModIncompatibileDialog.vue'
 import ModItem from './ModItem.vue'
-import { ContextMenuItem } from '@/composables/contextMenu'
 
 const { runtime, path } = injection(kInstance)
 
@@ -406,8 +503,8 @@ const groupedItems = computed(() => {
         const aInstalled = a.installed[0]
         const bInstalled = b.installed[0]
         if (!aInstalled || !bInstalled) return 0
-        if (sort.endsWith('asc')) return aInstalled.resource.mtime - bInstalled.resource.mtime
-        return bInstalled.resource.mtime - aInstalled.resource.mtime
+        if (sort.endsWith('asc')) return aInstalled.mtime - bInstalled.mtime
+        return bInstalled.mtime - aInstalled.mtime
       })
     } else if (sort.startsWith('alpha')) {
       result.sort((a, b) => {
@@ -443,6 +540,15 @@ const isOptifineProject = (v: ProjectEntry<ProjectFile> | undefined): v is Proje
 
 // Upgrade
 const { plans, error: upgradeError, refresh: checkUpgrade, refreshing: checkingUpgrade, checked: checkedUpgrade, upgrade, upgrading } = injection(kModUpgrade)
+const skipVersion = useLocalStorageCacheBool(computed(() => `modsUpgradeSkipVersion:${path.value}`), false)
+const upgradePolicy = useLocalStorageCacheStringValue(computed(() => `modsUpgradePolicy:${path.value}`), 'modrinth')
+function onCheckUpgrade() {
+  const policy = upgradePolicy.value as any
+  checkUpgrade({
+    skipVersion: skipVersion.value,
+    policy,
+  })
+}
 
 // Dependencies check
 const { updates: dependenciesToUpdate, refresh: checkDependencies, refreshing: checkingDependencies, checked: checkedDependencies, apply: installDependencies, installing: installingDependencies } = useModDependenciesCheck(path, runtime)
@@ -461,6 +567,9 @@ const defaultSourceModel = computed({
   set(i: number) { defaultSource.value = i === 0 ? 'curseforge' : 'modrinth' },
 })
 const shouldShowModrinth = (selectedItem: undefined | ProjectEntry, selectedModrinthId: string, selectedCurseforgeId: number | undefined) => {
+  if (selectedItem?.modrinth) {
+    return true
+  }
   const hasModrinth = selectedItem?.modrinth || selectedModrinthId
   if (!hasModrinth) return false
   const hasCurseforge = selectedItem?.curseforge || selectedCurseforgeId
@@ -470,6 +579,9 @@ const shouldShowModrinth = (selectedItem: undefined | ProjectEntry, selectedModr
   return true
 }
 const shouldShowCurseforge = (selectedItem: undefined | ProjectEntry, selectedModrinthId: string, selectedCurseforgeId: number | undefined) => {
+  if (selectedItem?.curseforge) {
+    return true
+  }
   const hasCurseforge = selectedItem?.curseforge || selectedCurseforgeId
   if (!hasCurseforge) return false
   const hasModrinth = selectedItem?.modrinth || selectedModrinthId
@@ -479,7 +591,11 @@ const shouldShowCurseforge = (selectedItem: undefined | ProjectEntry, selectedMo
   return true
 }
 
-const { mods, revalidate } = injection(kInstanceModsContext)
+const { mods, conflicted, revalidate, incompatible } = injection(kInstanceModsContext)
+
+const { show: showDuplicatedDialog } = useDialog('mod-duplicated')
+const { show: showIncompatibleDialog } = useDialog('mod-incompatible')
+
 const getInstalledModrinth = (projectId: string) => {
   return mods.value.filter((m) => m.modrinth?.projectId === projectId)
 }
@@ -498,24 +614,29 @@ const onLoad = () => {
 }
 
 // install / uninstall / enable / disable
-const { install, uninstall, enable, disable } = useService(InstanceModsServiceKey)
-const onInstall = (f: Resource[], _path?: string) => {
-  install({ path: _path ?? path.value, mods: f }).then(() => {
-    setTimeout(revalidate, 1500)
-  })
-}
+const { install, uninstall, enable, disable, installFromMarket } = useService(InstanceModsServiceKey)
 const onUninstall = (f: ProjectFile[], _path?: string) => {
-  uninstall({ path: _path ?? path.value, mods: f.map(f => (f as ModFile).resource) }).then(() => {
+  uninstall({ path: _path ?? path.value, mods: f.map(f => f.path) }).then(() => {
     setTimeout(revalidate, 1500)
   })
 }
-const onEnable = (f: ProjectFile, _path?: string) => {
-  enable({ path: _path ?? path.value, mods: [(f as ModFile).resource] }).then(() => {
+const onEnable = async (f: ProjectFile, _path?: string) => {
+  if (noModloaders.value) {
+    const success = await showInstallModloadersWizard({
+      loaders: (f as ModFile).modLoaders,
+      instance: _path || path.value,
+      runtime: runtime.value,
+    })
+    if (!success) {
+      return
+    }
+  }
+  enable({ path: _path ?? path.value, mods: [f.path] }).then(() => {
     setTimeout(revalidate, 1500)
   })
 }
 const onDisable = (f: ProjectFile, _path?: string) => {
-  disable({ path: _path ?? path.value, mods: [(f as ModFile).resource] }).then(() => {
+  disable({ path: _path ?? path.value, mods: [f.path] }).then(() => {
     setTimeout(revalidate, 1500)
   })
 }
@@ -525,7 +646,7 @@ const toggleCategory = useToggleCategories(modrinthCategories)
 
 // View
 const denseView = useLocalStorageCacheBool('mod-dense-view', false)
-const sortBy = ref('' as '' | 'alpha_asc' | 'alpha_desc' | 'time_asc' | 'time_desc')
+const sortBy = useLocalStorageCacheStringValue('modSort', '' as '' | 'alpha_asc' | 'alpha_desc' | 'time_asc' | 'time_desc')
 function onSortClick(type: 'alpha' | 'time') {
   if (sortBy.value === type + '_asc') {
     sortBy.value = type + '_desc' as any
@@ -544,7 +665,7 @@ const getContextMenuItems = () => {
   const selected = new Set(Object.keys(selections.value).filter((k) => selections.value[k]))
   const files = items.value.filter(i => selected.has(i.id)).map(v => v.installed).flat()
   const allEnabled = files.every(v => v.enabled)
-  const mods = files.map(v => v.resource)
+  const mods = files.map(v => v.path)
   const text = t('mod.mods', { count: selected.size })
   // delete and disable items
   result.push({
@@ -585,23 +706,118 @@ onUnmounted(() => {
 })
 
 // Drop
-const { resolveResources } = useService(ResourceServiceKey)
-const { dragover } = useDrop(() => { }, async (t) => {
-  const paths = [] as string[]
-  for (const f of t.files) {
-    paths.push(f.path)
-  }
-  const resources = await resolveResources(paths.map(p => ({ path: p, domain: ResourceDomain.Mods })))
-  await install({ path: path.value, mods: resources })
-}, () => { })
+const { dragover } = useGlobalDrop({
+  onDrop: async (t) => {
+    const paths = [] as string[]
+    for (const f of t.files) {
+      paths.push(f.path)
+    }
+    await install({ path: path.value, mods: paths })
+  },
+})
 
+// Install modloader wizard
+interface WizardOptions {
+  loaders: string[]
+  instance: string
+  runtime: RuntimeVersions
+}
+
+const { model, show: _showInstallModloadersWizard, target } = useSimpleDialog<WizardOptions>(() => { })
+
+let signal: PromiseSignal<boolean> | undefined
+function showInstallModloadersWizard(o: WizardOptions) {
+  signal = createPromiseSignal()
+  _showInstallModloadersWizard(o)
+  return signal.promise
+}
+
+watch(model, (v) => {
+  if (!v) {
+    signal?.resolve(false)
+  }
+})
+
+const wizardError = ref(undefined as Error | { loader: string; minecraft: string } | undefined)
+const wizardModItems = computed(() => {
+  if (!target.value) return []
+  const { loaders, instance, runtime } = target.value
+  const onSelect = async (loader: string) => {
+    const result = await installModRuntime(instance, runtime, [loader]).catch((v) => v)
+    if (typeof result === 'boolean') {
+      signal?.resolve(result)
+      if (result) {
+        model.value = false
+      } else {
+        wizardError.value = {
+          loader,
+          minecraft: runtime.minecraft,
+        }
+      }
+    } else {
+      signal?.resolve(false)
+      wizardError.value = result
+    }
+  }
+  return loaders.map((v) => {
+    if (v === 'forge') {
+      return {
+        title: 'Forge',
+        icon: BuiltinImages.forge,
+        url: 'https://files.minecraftforge.net/',
+        onSelect: () => { onSelect('forge') },
+      }
+    }
+    if (v === 'fabric') {
+      return {
+        title: 'Fabric',
+        icon: BuiltinImages.fabric,
+        url: 'https://fabricmc.net/use/',
+        onSelect: () => { onSelect('fabric') },
+      }
+    }
+    if (v === 'quilt') {
+      return {
+        title: 'Quilt',
+        icon: BuiltinImages.quilt,
+        url: 'https://quiltmc.org/',
+        onSelect: () => { onSelect('quilt') },
+      }
+    }
+    if (v === 'neoforge') {
+      return {
+        title: 'NeoForge',
+        icon: BuiltinImages.neoForged,
+        url: 'https://neoforge.org/',
+        onSelect: () => { onSelect('neoforge') },
+      }
+    }
+    return undefined
+  }).filter(notNullish)
+})
+
+const noModloaders = computed(() => isNoModLoader(runtime.value))
+
+const installModRuntime = useInstanceModLoaderDefault()
+
+async function onInstallModRuntime(...args: Parameters<typeof installModRuntime>) {
+  if (noModloaders.value) {
+    return await showInstallModloadersWizard({
+      loaders: args[2],
+      instance: args[0],
+      runtime: args[1],
+    })
+  }
+  return true
+}
 // modrinth installer
 const modrinthInstaller = useModrinthInstaller(
   path,
   runtime,
   mods,
-  onInstall,
+  installFromMarket,
   onUninstall,
+  onInstallModRuntime,
 )
 provide(kModrinthInstaller, modrinthInstaller)
 
@@ -610,9 +826,9 @@ const curseforgeInstaller = useCurseforgeInstaller(
   path,
   runtime,
   mods,
-  onInstall,
+  installFromMarket,
   onUninstall,
-  'mc-mods',
+  onInstallModRuntime,
 )
 provide(kCurseforgeInstaller, curseforgeInstaller)
 
@@ -621,6 +837,9 @@ const onInstallProject = useProjectInstall(
   modLoaderFilters,
   curseforgeInstaller,
   modrinthInstaller,
+  (file) => {
+    install({ path: path.value, mods: [file.path] })
+  },
 )
 
 useTutorial(computed(() => [{
@@ -654,22 +873,51 @@ usePresence(computed(() => t('presence.mod')))
 </script>
 
 <style scoped>
-
 .large-button {
   display: none;
 }
+
 .icon-large {
   margin-left: 0px !important;
   margin-right: 0px !important;
 }
+
 @container (min-width: 300px) {
   .large-button {
     display: block;
   }
+
   .icon-large {
     margin-left: -4px !important;
     margin-right: 8px !important;
   }
 }
 
+.v-application .info {
+  background-color: rgba(33, 150, 243, 0.8) !important;
+  border-color: rgba(33, 150, 243, 0.8) !important;
+}
+
+.v-application .error {
+  background-color: rgba(255, 82, 82, 0.8) !important;
+  border-color: rgba(255, 82, 82, 0.8) !important;
+}
+
+.dark.v-application .info {
+  background-color: rgba(33, 150, 243, 0.5) !important;
+  border-color: rgba(33, 150, 243, 0.5) !important;
+}
+
+.dark.v-application .error {
+  background-color: rgba(255, 82, 82, 0.5) !important;
+  border-color: rgba(255, 82, 82, 0.5) !important;
+}
+
+.v-sheet.v-alert:last-child {
+    margin: 0px 4px 8px 4px !important;
+}
+
+.v-sheet.v-alert {
+    margin: 0px 4px 4px 4px !important;
+}
 </style>

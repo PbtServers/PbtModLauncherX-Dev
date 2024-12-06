@@ -1,16 +1,20 @@
-<script lang="ts"  setup>
+<script lang="ts" setup>
 import StoreProject, { StoreProject as IStoreProject } from '@/components/StoreProject.vue'
 import { StoreProjectVersion } from '@/components/StoreProjectInstallVersionDialog.vue'
 import { TeamMember } from '@/components/StoreProjectMembers.vue'
 import { getCurseforgeProjectDescriptionModel, getCurseforgeProjectFilesModel, getCurseforgeProjectModel, useCurseforgeCategoryI18n } from '@/composables/curseforge'
-import { useCurseforgeInstallModpack } from '@/composables/curseforgeInstaller'
+import { getCurseforgeChangelogModel } from '@/composables/curseforgeChangelog'
 import { useDateString } from '@/composables/date'
 import { kInstances } from '@/composables/instances'
+import { useModpackInstaller } from '@/composables/modpackInstaller'
 import { useSWRVModel } from '@/composables/swrv'
 import { kSWRVConfig } from '@/composables/swrvConfig'
 import { useTasks } from '@/composables/task'
+import { clientCurseforgeV1 } from '@/util/clients'
 import { getCurseforgeFileGameVersions, getCursforgeFileModLoaders } from '@/util/curseforge'
 import { injection } from '@/util/inject'
+import { getSWRV } from '@/util/swrvGet'
+import { FileRelationType } from '@xmcl/curseforge'
 import { TaskState } from '@xmcl/runtime-api'
 
 const props = defineProps<{ id: number }>()
@@ -94,7 +98,8 @@ const project = computed(() => {
     info,
     htmlDescription: computed(() => description.data.value || ''),
     gallery: p.screenshots.map(g => ({
-      url: g.url,
+      rawUrl: g.url,
+      url: g.thumbnailUrl,
       description: g.description,
     })),
   })
@@ -135,11 +140,8 @@ const members = computed(() => {
 const _installing = ref(false)
 const onInstall = (v: StoreProjectVersion) => {
   if (!proj.value) return
-  const files = (allVersions.data.value?.data || proj.value.latestFiles)
-  const file = files.find(f => f.id.toString() === v.id)
-  if (!file) return
   _installing.value = true
-  installModpack(file).finally(() => {
+  installModpack({ modId: proj.value!.id, fileId: Number(v.id), icon: project.value?.iconUrl, market: 1 }).finally(() => {
     _installing.value = false
   })
 }
@@ -162,7 +164,40 @@ const tasks = useTasks((t) => {
   return false
 })
 const isDownloading = computed(() => tasks.value.length > 0)
-const installModpack = useCurseforgeInstallModpack(computed(() => project.value?.iconUrl))
+const installModpack = useModpackInstaller()
+const config = injection(kSWRVConfig)
+
+async function getVersionDetail(version: StoreProjectVersion) {
+  const target = allVersions.data.value?.data.find(v => v.id === Number(version.id))
+  if (!target) return { changelog: '', dependencies: [], version }
+
+  const mapping = {
+    [FileRelationType.EmbeddedLibrary]: 'embedded',
+    [FileRelationType.Include]: 'embedded',
+    [FileRelationType.RequiredDependency]: 'required',
+    [FileRelationType.OptionalDependency]: 'optional',
+    [FileRelationType.Tool]: 'optional',
+    [FileRelationType.Incompatible]: 'incompatible',
+  }
+  const lookup = Object.fromEntries(target.dependencies.map(p => [p.modId, mapping[p.relationType]]))
+  const detail =
+    target.dependencies.length > 0
+      ? await clientCurseforgeV1.getMods(target.dependencies.map(d => d.modId))
+      : []
+  const dependencies = detail.map(d => ({
+    title: d.name,
+    description: d.summary,
+    icon: d.logo.url,
+    href: d?.links.websiteUrl ?? '',
+    dependencyType: lookup[d.id],
+  }))
+  const changelog = await getSWRV(getCurseforgeChangelogModel(target.modId, target.id), config)
+  return {
+    changelog,
+    dependencies,
+    version,
+  }
+}
 
 </script>
 <template>
@@ -176,6 +211,7 @@ const installModpack = useCurseforgeInstallModpack(computed(() => project.value?
     :installed="!!existed"
     :loading-members="false"
     :team-error="undefined"
+    :get-version-detail="getVersionDetail"
     @install="onInstall"
     @open="onOpen"
   />

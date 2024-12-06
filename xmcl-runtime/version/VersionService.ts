@@ -10,7 +10,7 @@ import { ResourceWorker, kResourceWorker } from '~/resource'
 import { ExposeServiceKey, ServiceStateManager, Singleton, StatefulService } from '~/service'
 import { TaskFn, kTaskExecutor } from '~/task'
 import { LauncherApp } from '../app/LauncherApp'
-import { isDirectory, missing, readdirEnsured } from '../util/fs'
+import { copyPassively, isDirectory, linkOrCopyFile, missing, readdirEnsured } from '../util/fs'
 import { isNonnull } from '../util/object'
 
 export interface VersionResolver {
@@ -99,10 +99,10 @@ export class VersionService extends StatefulService<LocalVersions> implements IV
     if (mcPath === root) return
     this.log(`Try to migrate the version from ${mcPath}`)
     const copyTask = task('cloneMinecraft', async () => {
-      await this.worker.copyPassively([
-        { src: join(mcPath, 'libraries'), dest: join(root, 'libraries') },
-        { src: join(mcPath, 'assets'), dest: join(root, 'assets') },
-        { src: join(mcPath, 'versions'), dest: join(root, 'versions') },
+      await Promise.all([
+        copyPassively(join(mcPath, 'libraries'), join(root, 'libraries')),
+        copyPassively(join(mcPath, 'assets'), join(root, 'assets')),
+        copyPassively(join(mcPath, 'versions'), join(root, 'versions')),
       ])
     })
     Reflect.set(copyTask, '_from', mcPath)
@@ -227,6 +227,20 @@ export class VersionService extends StatefulService<LocalVersions> implements IV
         const realPath = join(dir, versionId)
         if (await isDirectory(realPath)) {
           const version = await this.resolveLocalVersion(versionId)
+
+          if (version.assetIndex) {
+            const assetIndexPath = this.getPath('assets', 'indexes', `${version.assetIndex.id}.json`)
+            const hashIndexPath = this.getPath('assets', 'indexes', `${version.assetIndex.sha1}.json`)
+            missing(hashIndexPath).then(isMissing => {
+              if (isMissing) {
+                return linkOrCopyFile(assetIndexPath, hashIndexPath).catch((e) => {
+                  this.warn(`Failed to link asset index ${version.assetIndex?.id} to ${version.assetIndex?.sha1}.json`)
+                  this.warn(e)
+                })
+              }
+            })
+          }
+
           this.refreshServerVersion(versionId)
           return version
         }

@@ -27,7 +27,6 @@ export function useCurseforge(
   pageSize: MaybeRef<number> = 10,
 ) {
   const data = reactive({
-    page: 0,
     pages: 5,
     totalCount: 0,
     projects: [] as Mod[],
@@ -60,7 +59,7 @@ export function useCurseforge(
 
   watch(_data, (v) => {
     if (v) {
-      data.projects = markRaw(v.data)
+      data.projects = markRaw(v.data.map(markRaw))
       v.pagination.totalCount = Math.min(1_0000, v.pagination.totalCount)
       data.totalCount = v.pagination.totalCount
       data.pages = Math.ceil(v.pagination.totalCount / get(pageSize))
@@ -76,6 +75,7 @@ export function useCurseforge(
 
 export enum CurseforgeBuiltinClassId {
   mod = 6,
+  shaderPack = 6552,
   modpack = 4471,
   resourcePack = 12,
   world = 17,
@@ -151,7 +151,7 @@ export function useCurseforgeProjectFiles(projectId: Ref<number>, gameVersion: R
     }, inject(kSWRVConfig))
   watch(_data, (f) => {
     if (f) {
-      files.value = markRaw(f.data)
+      files.value = markRaw(f.data.map(markRaw))
       data.index = f.pagination.index
       data.pageSize = f.pagination.pageSize
       data.totalCount = f.pagination.totalCount
@@ -176,6 +176,12 @@ export function getCurseforgeProjectFilesModel(projectId: Ref<number>, gameVersi
       modId: projectId.value,
       gameVersion: gameVersion.value,
       modLoaderType: modLoaderType.value === 0 ? undefined : modLoaderType.value,
+    }).then(v => {
+      for (const d of v.data) {
+        markRaw(d)
+      }
+      markRaw(v)
+      return v
     }),
   }
 }
@@ -217,7 +223,8 @@ export function getCurseforgeProjectModel(projectId: Ref<number>) {
 
 export function useCurseforgeCategories() {
   const { error, isValidating: refreshing, mutate: refresh, data: categories } = useSWRV('/curseforge/categories', async () => {
-    return markRaw(await clientCurseforgeV1.getCategories())
+    const result = markRaw(await clientCurseforgeV1.getCategories()).map(markRaw)
+    return result
   }, inject(kSWRVConfig))
   return { categories, refreshing, refresh, error }
 }

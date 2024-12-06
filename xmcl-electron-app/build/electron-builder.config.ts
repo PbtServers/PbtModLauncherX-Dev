@@ -35,15 +35,15 @@ export const config = {
   artifactName: 'pbtmodlauncherx-${version}-${platform}-${arch}.${ext}',
   appx: {
     displayName: 'PbtModLauncherX (Beta)',
-    applicationId: 'CI010.XMCL',
-    identityName: '22961CI010.XMCL',
+    applicationId: 'pbtmodlauncherx',
+    identityName: 'pbtmodlauncherx',
     backgroundColor: 'transparent',
-    publisher: 'CN=DAFB9390-F5BD-4F94-828C-242F8DAA6FDE',
+    publisher: 'process.env.PUBLISHER',
     publisherDisplayName: 'CI010',
     setBuildNumber: true,
   },
   dmg: {
-    artifactName: 'pbtmodlauncherx-${version}.${ext}',
+    artifactName: 'pbtmodlauncherx-${version}-${arch}.${ext}',
     contents: [
       {
         x: 410,
@@ -63,14 +63,16 @@ export const config = {
     darkModeSupport: true,
     target: [
       {
-        target: 'zip',
-        arch: ['x64', 'arm64'],
-      },
-      {
         target: 'dmg',
-        arch: ['x64'],
+        arch: ['arm64', 'x64'],
       },
     ],
+    extendInfo: {
+      NSMicrophoneUsageDescription: 'A Minecraft mod wants to access your microphone.',
+      NSCameraUsageDescription: 'Please give us access to your camera',
+      'com.apple.security.device.audio-input': true,
+      'com.apple.security.device.camera': true,
+    },
   },
   win: {
     certificateFile: undefined as string | undefined,

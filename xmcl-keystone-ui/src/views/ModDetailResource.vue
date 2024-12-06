@@ -4,14 +4,13 @@ import { ProjectVersion } from '@/components/MarketProjectDetailVersion.vue'
 import { useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
 import { useProjectDetailEnable, useProjectDetailUpdate } from '@/composables/projectDetail'
-import { clientModrinthV2 } from '@/util/clients'
 import { injection } from '@/util/inject'
 import { useInstanceModLoaderDefault } from '@/composables/instanceModLoaderDefault'
 import { isNoModLoader } from '@/util/isNoModloader'
 import { ModFile } from '@/util/mod'
 import { ProjectEntry } from '@/util/search'
 import { getExpectedSize } from '@/util/size'
-import { InstanceModsServiceKey, ResourceServiceKey, RuntimeVersions } from '@xmcl/runtime-api'
+import { InstanceModsServiceKey, RuntimeVersions } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   mod: ProjectEntry<ModFile>
@@ -22,17 +21,18 @@ const props = defineProps<{
 
 const versions = computed(() => {
   const files = props.files
-  const all: ProjectVersion[] = files.map((f) => {
+  const all: ProjectVersion[] = files.filter(f => f.forge).map((f) => {
+    const installed = props.installed.some(i => i.path === f.path)
     const version: ProjectVersion = {
       id: f.path,
-      name: f.resource.fileName,
+      name: f.fileName,
       version: f.version,
       downloadCount: 0,
-      installed: true,
+      installed: props.installed.some(i => i.path === f.path),
       loaders: f.modLoaders,
       minecraftVersion: f.dependencies.find((d) => d.modId === 'minecraft')?.semanticVersion as string,
       type: 'release',
-      disabled: false,
+      disabled: installed && f.path.endsWith('.disabled'),
     }
     return version
   })
@@ -98,15 +98,14 @@ const model = computed(() => {
     if (file.license) {
       result.push({ icon: 'description', name: t('modrinth.license'), value: file.license.name, url: file.license.url })
     }
-    const resource = file.resource
     result.push({
       icon: '123',
       name: t('fileDetail.fileSize'),
-      value: getExpectedSize(resource.size),
+      value: getExpectedSize(file.size),
     }, {
       icon: 'tag',
       name: t('fileDetail.hash'),
-      value: resource.hash,
+      value: file.hash,
     })
     return result
   })
@@ -138,31 +137,17 @@ const { enabled, installed, hasInstalledVersion } = useProjectDetailEnable(
   selectedVersion,
   computed(() => props.installed),
   updating,
-  (f) => enable({ path: path.value, mods: [f.resource] }),
-  (f) => disable({ path: path.value, mods: [f.resource] }),
+  (f) => enable({ path: path.value, mods: [f.path] }),
+  (f) => disable({ path: path.value, mods: [f.path] }),
 )
 const { path } = injection(kInstance)
-
-const { updateResources } = useService(ResourceServiceKey)
-watch(() => props.mod, async () => {
-  updating.value = false
-
-  const versions = await clientModrinthV2.getProjectVersionsByHash(props.files.map(f => f.hash), 'sha1')
-
-  const options = Object.entries(versions).map(([hash, version]) => {
-    const f = props.files.find(f => f.hash === hash)
-    if (f) return { hash: f.hash, metadata: { modrinth: { projectId: version.project_id, versionId: version.id } } }
-    return undefined
-  }).filter((v): v is any => !!v)
-  updateResources(options)
-})
 
 const installDefaultModLoader = useInstanceModLoaderDefault()
 const onDelete = async () => {
   updating.value = true
   const file = props.files.find(f => f.path === selectedVersion.value.id)
   if (file) {
-    await uninstall({ path: path.value, mods: [file.resource] })
+    await uninstall({ path: path.value, mods: [file.path] })
   }
 }
 
@@ -178,7 +163,7 @@ const onInstall = async () => {
       await installDefaultModLoader(_path, runtime, file.modLoaders)
     }
 
-    await install({ path: _path, mods: [file.resource] })
+    await install({ path: _path, mods: [file.path] })
   }
 }
 

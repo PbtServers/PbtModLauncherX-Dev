@@ -24,29 +24,29 @@ import { Shell } from './Shell'
 import { kGameDataPath, kTempDataPath } from './gameDataPath'
 import { InjectionKey, ObjectFactory } from './objectRegistry'
 
-export const LauncherAppKey: InjectionKey<LauncherApp> = Symbol('LauncherAppKeyunchAppKey')
+export const LauncherAppKey: InjectionKey<LauncherApp> = Symbol('LauncherAppKey')
 
 export interface LauncherApp {
   on(channel: 'app-booted', listener: (manifest: InstalledAppManifest) => void): this
   on(channel: 'window-all-closed', listener: () => void): this
-  on(channel: 'engine-ready', listener: () => void): this
   on(channel: 'root-migrated', listener: (newRoot: string) => void): this
   on(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean) => void): this
   on(channel: 'service-state-init', listener: (stateKey: string) => void): this
+  on(channel: 'download-cdn', listener: (reason: string, file: string) => void): this
 
   once(channel: 'app-booted', listener: (manifest: InstalledAppManifest) => void): this
   once(channel: 'window-all-closed', listener: () => void): this
-  once(channel: 'engine-ready', listener: () => void): this
   once(channel: 'root-migrated', listener: (newRoot: string) => void): this
   once(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean) => void): this
   once(channel: 'service-state-init', listener: (stateKey: string) => void): this
+  once(channel: 'download-cdn', listener: (reason: string, file: string) => void): this
 
   emit(channel: 'app-booted', manifest: InstalledAppManifest): this
   emit(channel: 'service-call-end', serviceName: string, serviceMethod: string, duration: number, success: boolean): this
   emit(channel: 'window-all-closed'): boolean
-  emit(channel: 'engine-ready'): boolean
   emit(channel: 'root-migrated', root: string): this
   emit(channel: 'service-state-init', stateKey: string): this
+  emit(channel: 'download-cdn', reason: string, file: string): this
 }
 
 export interface LogEmitter extends EventEmitter {
@@ -152,7 +152,7 @@ export class LauncherApp extends EventEmitter {
   /**
    * The disposers to dispose when the app is going to quit.
    */
-  #disposers: (() => Promise<void>)[] = []
+  #disposers: (() => (Promise<void> | void))[] = []
 
   protected logger: Logger = this.getLogger('App')
 
@@ -210,12 +210,16 @@ export class LauncherApp extends EventEmitter {
     return createDummyLogger(tag, destination, this.logEmitter)
   }
 
-  registryDisposer(disposer: () => Promise<void>) {
+  /**
+   * Reigster the disposer. The disposer will be called when the app is going to quit.
+   * @param disposer The function to dispose the resource
+   */
+  registryDisposer(disposer: () => Promise<void> | void) {
     this.#disposers.push(disposer)
   }
 
   async dispose() {
-    await Promise.all(this.#disposers.map(m => m().catch(() => { })))
+    await Promise.allSettled(this.#disposers.map(m => m()))
   }
 
   /**
@@ -231,6 +235,9 @@ export class LauncherApp extends EventEmitter {
       ])
     } finally {
       this.host.quit()
+      setTimeout(10_000).then(() => {
+        this.host.exit(1)
+      })
     }
   }
 
@@ -252,10 +259,7 @@ export class LauncherApp extends EventEmitter {
   async start(): Promise<void> {
     await Promise.all([
       this.setup(),
-      this.host.whenReady().then(() => {
-        this.emit('engine-ready')
-        return this.onEngineReady()
-      }),
+      this.host.whenReady().then(() => this.onEngineReady()),
     ])
   }
 

@@ -16,20 +16,13 @@ export default function createPreloadPlugin(preloadSrc: string): Plugin {
       build.onLoad({ filter: /^.+\?preload$/g }, async ({ path }) => {
         const absoltePath = cleanUrl(path)
         const result = await esbuild({
+          ...build.initialOptions,
           bundle: true,
           metafile: true,
-          define: build.initialOptions.define,
           entryNames: '[dir]/[name]-preload',
           entryPoints: [absoltePath],
           treeShaking: true,
           write: true,
-          outdir: build.initialOptions.outdir,
-          absWorkingDir: build.initialOptions.outdir,
-          platform: 'node',
-          external: build.initialOptions.external,
-          sourceRoot: build.initialOptions.sourceRoot,
-          sourcemap: build.initialOptions.sourcemap,
-          format: build.initialOptions.format,
         })
         const resultFile = Object.keys(result.metafile?.outputs || {}).filter(v => v.endsWith('.js'))[0]
         const watching = Object.keys(result.metafile?.inputs || {})

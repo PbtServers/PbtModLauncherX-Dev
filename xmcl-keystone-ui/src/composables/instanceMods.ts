@@ -1,15 +1,17 @@
+import { ReactiveResourceState } from '@/util/ReactiveResourceState'
 import { ModFile, getModFileFromResource } from '@/util/mod'
+import { CompatibleDetail, getModsCompatiblity, resolveDepsCompatible } from '@/util/modCompatible'
 import { useEventListener } from '@vueuse/core'
-import { InstanceModUpdatePayloadAction, InstanceModsServiceKey, InstanceModsState, JavaRecord, MutableState, PartialResourceHash, Resource, RuntimeVersions, applyUpdateToResource } from '@xmcl/runtime-api'
+import { InstanceModsServiceKey, JavaRecord, MutableState, Resource, ResourceState, RuntimeVersions } from '@xmcl/runtime-api'
 import debounce from 'lodash.debounce'
-import { InjectionKey, Ref, set } from 'vue'
+import { InjectionKey, Ref } from 'vue'
 import { useLocalStorageCache } from './cache'
 import { useService } from './service'
 import { useState } from './syncableState'
 
 export const kInstanceModsContext: InjectionKey<ReturnType<typeof useInstanceMods>> = Symbol('instance-mods')
 
-function useInstanceModsMetadataRefresh(instancePath: Ref<string>, state: Ref<MutableState<InstanceModsState> | undefined>) {
+function useInstanceModsMetadataRefresh(instancePath: Ref<string>, state: Ref<MutableState<ResourceState> | undefined>) {
   const lastUpdateMetadata = useLocalStorageCache<Record<string, number>>('instanceModsLastRefreshMetadata', () => ({}), JSON.stringify, JSON.parse)
   const { refreshMetadata } = useService(InstanceModsServiceKey)
   const expireTime = 1000 * 30 * 60 // 0.5 hour
@@ -30,10 +32,10 @@ function useInstanceModsMetadataRefresh(instancePath: Ref<string>, state: Ref<Mu
 
   watch(state, (s) => {
     if (!s) return
-    s.subscribe('instanceModUpdates', () => {
+    s.subscribe('filesUpdates', () => {
       debounced()
     })
-    if (s.mods.length > 0) {
+    if (s.files.length > 0) {
       checkAndUpdate()
     }
   }, { immediate: true })
@@ -54,50 +56,15 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
     console.time('[watchMods] ' + inst)
     const mods = await watchMods(inst)
     console.timeEnd('[watchMods] ' + inst)
-    mods.mods = mods.mods.map(m => markRaw(m))
+    mods.files = mods.files.map(m => markRaw(m))
     return mods as any
-  }, class extends InstanceModsState {
-    override instanceModUpdates(ops: [Resource, number][]) {
-      for (const o of ops) {
-        markRaw(o[0])
-      }
-      const mods = [...this.mods]
-      for (const [r, a] of ops) {
-        if (a === InstanceModUpdatePayloadAction.Upsert) {
-          const index = mods.findIndex(m => m?.path === r?.path || m.hash === r.hash)
-          if (index === -1) {
-            mods.push(r)
-          } else {
-            const existed = mods[index]
-            if (existed.path !== r.path) {
-              mods[index] = r
-            } else if (process.env.NODE_ENV === 'development') {
-              // eslint-disable-next-line no-debugger
-              console.debug(`The mod ${r.path} is already in the list!`)
-            }
-          }
-        } else if (a === InstanceModUpdatePayloadAction.Remove) {
-          const index = mods.findIndex(m => m?.path === r?.path || m.hash === r.hash)
-          if (index !== -1) mods.splice(index, 1)
-        } else {
-          for (const update of r as any as PartialResourceHash[]) {
-            for (const m of mods) {
-              if (m.hash === update.hash) {
-                applyUpdateToResource(m, update)
-              }
-            }
-          }
-        }
-      }
-      set(this, 'mods', mods)
-    }
-  })
+  }, ReactiveResourceState)
 
   const mods: Ref<ModFile[]> = shallowRef([])
   const modsIconsMap: Ref<Record<string, string>> = shallowRef({})
   const provideRuntime: Ref<Record<string, string>> = shallowRef({})
 
-  const enabledModCounts = computed(() => mods.value.filter(v => v.enabled).length)
+  const enabledMods = computed(() => mods.value.filter(v => v.enabled))
 
   function reset() {
     mods.value = []
@@ -109,21 +76,21 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
       reset()
     }
   })
-  watch([computed(() => state.value?.mods), java], () => {
-    if (!state.value?.mods) {
+  watch([computed(() => state.value?.files), java], () => {
+    if (!state.value?.files) {
       reset()
       return
     }
     console.log('[instanceMods] update by state')
-    updateItems(state.value?.mods, instanceRuntime.value)
+    updateItems(state.value?.files, instanceRuntime.value)
   })
   watch(instanceRuntime, () => {
-    if (!state.value?.mods) {
+    if (!state.value?.files) {
       reset()
       return
     }
     console.log('[instanceMods] update by runtime')
-    updateItems(state.value?.mods, instanceRuntime.value)
+    updateItems(state.value?.files, instanceRuntime.value)
   }, { deep: true })
 
   function updateItems(resources: Resource[], runtimeVersions: RuntimeVersions) {
@@ -132,6 +99,7 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
     const runtime: Record<string, string> = {
       ...runtimeVersions,
       java: java.value?.version.toString() ?? '',
+      neoforge: runtimeVersions.neoForged ?? '',
       fabricloader: runtimeVersions.fabricLoader ?? '',
     }
 
@@ -145,21 +113,71 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
       }
     }
 
-    modsIconsMap.value = newIconMap
-    mods.value = newItems
-    provideRuntime.value = runtime
+    modsIconsMap.value = markRaw(newIconMap)
+    mods.value = markRaw(newItems.map(markRaw))
+    provideRuntime.value = markRaw(runtime)
   }
 
+  // mod duplication detect
+  const conflicted = computed(() => {
+    const dict: Record<string, ModFile[]> = {}
+
+    for (const mod of mods.value) {
+      const id = mod.modId
+      if (!mod.enabled) continue
+      if (!dict[id]) {
+        dict[id] = []
+      }
+      dict[id].push(mod)
+    }
+
+    // remove all the key with only one value
+    for (const key in dict) {
+      if (dict[key].length === 1) {
+        delete dict[key]
+      }
+    }
+
+    return markRaw(dict)
+  })
+
+  const compatibility = computed(() => {
+    const runtime = provideRuntime.value
+
+    const result: Record<string, CompatibleDetail[]> = {}
+    for (const i of mods.value) {
+      if (!i.enabled) continue
+      const details = getModsCompatiblity(i.dependencies, runtime)
+      result[i.modId] = details
+    }
+
+    return markRaw(result)
+  })
+
+  const incompatible = computed(() => {
+    const com = compatibility.value
+    for (const key in com) {
+      if (!resolveDepsCompatible(com[key])) {
+        return true
+      }
+    }
+    return false
+  })
+
   const { update: updateMetadata } = useInstanceModsMetadataRefresh(instancePath, state)
+  const { t } = useI18n()
 
   return {
     mods,
+    conflicted,
     modsIconsMap,
     provideRuntime,
-    enabledModCounts,
+    compatibility,
+    incompatible,
+    enabledMods,
     isValidating,
     updateMetadata,
-    error,
+    error: computed(() => Object.keys(conflicted.value).length ? t('mod.duplicatedDetected', { count: Object.keys(conflicted.value).length }) : error.value),
     revalidate,
   }
 }

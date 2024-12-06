@@ -7,11 +7,26 @@ import { injection } from '@/util/inject'
 import { ModFile } from '@/util/mod'
 import { ProjectFile } from '@/util/search'
 import { Category, Project, ProjectVersion, SearchResultHit } from '@xmcl/modrinth'
+import { ProjectMapping } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
+import { kFlights, useI18nSearchFlights } from './flights'
+import { useAutoI18nCommunityContent } from './i18n'
 
-export function useModrinthProjectDetailData(projectId: Ref<string>, project: Ref<Project | undefined>, search: Ref<SearchResultHit | undefined>) {
+export function useModrinthProjectDetailData(projectId: Ref<string>, project: Ref<Project | undefined>, search: Ref<SearchResultHit | undefined>, mapping: Ref<ProjectMapping | undefined>) {
   const { render } = useMarkdown()
   const { categories } = injection(kModrinthTags)
+
+  const is18nSearch = useI18nSearchFlights()
+  const localizedBody = ref('')
+  if (is18nSearch) {
+    const { getContent } = useAutoI18nCommunityContent(is18nSearch)
+    watch(projectId, async (id) => {
+      localizedBody.value = ''
+      const result = await getContent('modrinth', id)
+      localizedBody.value = result
+    }, { immediate: true })
+  }
+
   const { t } = useI18n()
   const getEnv = (v: string) => {
     if (v === 'required') return t('modrinth.environments.required')
@@ -87,12 +102,13 @@ export function useModrinthProjectDetailData(projectId: Ref<string>, project: Re
           description: g.description,
           date: g.created,
           url: g.url,
+          rawUrl: g.raw_url,
         })
       }
     }
     const getCategories = (cats: string[]) => cats.map(id => categories.value.find(c => c.name === id))
       .filter((v): v is Category => !!v).map(v => ({ id: v.name, name: t(`modrinth.categories.${v.name}`) as string, iconHTML: v.icon }))
-    const detail: ProjectDetail = {
+    const detail: ProjectDetail = markRaw({
       icon: project.value?.icon_url ?? search.value?.icon_url ?? '',
       id: projectId.value,
       title: project.value?.title ?? search.value?.title ?? '',
@@ -108,7 +124,18 @@ export function useModrinthProjectDetailData(projectId: Ref<string>, project: Re
       galleries,
       info,
       archived: project.value?.status === 'archived',
+    })
+
+    if (mapping.value && mapping.value.modrinthId === projectId.value) {
+      const map = mapping.value
+      detail.localizedTitle = map.name
+      detail.localizedDescription = map.description
     }
+
+    if (localizedBody.value) {
+      detail.localizedHtmlContent = render(localizedBody.value)
+    }
+
     return detail
   })
 

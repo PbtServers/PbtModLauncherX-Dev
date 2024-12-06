@@ -1,20 +1,20 @@
 import { getFTBTemplateAndFile } from '@/util/ftb'
 import { resolveModpackInstanceConfig } from '@/util/modpackFilesResolver'
-import { CachedFTBModpackVersionManifest, InstanceFile, InstanceManifest, JavaRecord, ModpackInstallProfile, ModpackServiceKey, Peer, Resource } from '@xmcl/runtime-api'
+import { CachedFTBModpackVersionManifest, InstanceFile, InstanceManifest, JavaRecord, ModpackInstallProfile, ModpackServiceKey, Peer, Resource, waitModpackFiles } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
 import { DialogKey } from './dialog'
 import { useService } from './service'
 import { renderMinecraftPlayerTextHead } from '@/util/avatarRenderer'
 
 export type AddInstanceDialogParameter = {
-  type: 'resource'
-  resource: Resource
-} | {
   type: 'ftb'
   manifest: CachedFTBModpackVersionManifest
 } | {
   type: 'manifest'
   manifest: InstanceManifest
+} | {
+  type: 'modpack'
+  path: string
 }
 
 export const AddInstanceDialogKey: DialogKey<AddInstanceDialogParameter> = 'add-instance-dialog'
@@ -30,7 +30,7 @@ export interface Template {
 
 export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
   const { t } = useI18n()
-  const { getModpackInstallFiles } = useService(ModpackServiceKey)
+  const { openModpack } = useService(ModpackServiceKey)
 
   const getTemplates = (modpackResources: Resource[], peers: Peer[], ftb: CachedFTBModpackVersionManifest[]) => {
     const all = [] as Array<Template>
@@ -43,15 +43,15 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
           : resource.metadata['mcbbs-modpack'] ? 'mcbbs' : 'modpack'
       if (config) {
         let promise: Promise<InstanceFile[]> | undefined
-        const result: Template = reactive({
+        const result: Template = markRaw({
           filePath: resource.path,
           name: config.name,
           instance: markRaw(config),
-          description: computed(() => getActionText(type)),
+          description: getActionText(type),
           type,
           loadFiles: () => {
             if (!promise) {
-              promise = getModpackInstallFiles(resource.path)
+              promise = openModpack(resource.path).then(state => waitModpackFiles(state))
             }
             return promise
           },
@@ -81,7 +81,7 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
   }
 
   function getPeerTemplate(id: string, name: string, icon: string, man: InstanceManifest) {
-    const result: Template = reactive({
+    const result: Template = markRaw({
       filePath: id,
       name: `${man.name ?? 'Instance'}@${name}`,
       description: '',
@@ -104,7 +104,7 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
         minMemory: man.minMemory,
         maxMemory: man.maxMemory,
       },
-      loadFiles: () => Promise.resolve(man.files),
+      loadFiles: () => Promise.resolve(markRaw(man.files.map(markRaw))),
       type: 'peer',
     })
 
@@ -117,13 +117,12 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
 
   function getFtbTemplate(man: CachedFTBModpackVersionManifest): Template {
     const [instanceConfig, files] = getFTBTemplateAndFile(man, javas.value)
-    return reactive({
+    return markRaw({
       filePath: `${man.parent}-${man.id.toString()}`,
       name: `${man.projectName}-${man.name}`,
-      description: computed(() => t('instanceTemplate.ftb')),
+      description: t('instanceTemplate.ftb'),
       instance: markRaw(instanceConfig),
-      loadingFiles: false,
-      loadFiles: () => Promise.resolve(files),
+      loadFiles: () => Promise.resolve(markRaw(files.map(markRaw))),
       type: 'ftb',
     })
   }

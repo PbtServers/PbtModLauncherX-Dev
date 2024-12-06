@@ -2,7 +2,7 @@
     "name": "PbtModLauncherX",
     "private": true,
     "main": "./index.js",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "author": "pbtservers <pbt@pbtservers.com>",
     "description": "La version del launcher X de PbtServers adaptada y mejorada para su uso simplificado y offline",
     "license": "MIT",
@@ -19,6 +19,7 @@
         "build": "cross-env NODE_ENV=production tsx build.ts",
         "build:all": "cross-env NODE_ENV=production cross-env BUILD_TARGET=all tsx build.ts",
         "postinstall": "tsx postinstall.ts",
+        "postsign": "tsx postsign.ts",
         "check": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project preload/tsconfig.json",
         "dev": "cross-env NODE_ENV=development tsx dev.ts",
         "lint": "eslint --ext .ts .",
@@ -70,7 +71,7 @@
         "node-abi": "3.60.0",
         "tslib": "^2.5.0",
         "tsx": "^3.13.0",
-        "typescript": "^5.2.2",
+        "typescript": "5.4.5",
         "undici": "6.19.4"
     }
 }

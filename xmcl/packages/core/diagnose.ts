@@ -128,11 +128,16 @@ export async function diagnoseFile<T extends string>({ file, expectedChecksum, r
   if (!fileExisted) {
     issue = true
   } else if (expectedChecksum !== '') {
-    receivedChecksum = await checksumFunc(file, algorithm)
+    receivedChecksum = await checksumFunc(file, algorithm).catch(e => {
+      if (e.code === 'ENOENT') {
+        return ''
+      }
+      throw e
+    })
     if (signal?.aborted) return
     issue = receivedChecksum !== expectedChecksum
   } else {
-    const fstat = await stat(file)
+    const fstat = await stat(file).catch(() => ({ size: 0 }))
     if (fstat.size === 0) {
       issue = true
     }
@@ -282,8 +287,8 @@ export async function diagnoseLibraries(resolvedVersion: ResolvedVersion, minecr
   return issues.filter(isNotNull)
 }
 
-export async function diagnoseAssetIndex(resolvedVersion: ResolvedVersion, minecraft: MinecraftFolder): Promise<AssetIndexIssue | undefined> {
-  const assetsIndexPath = minecraft.getAssetsIndex(resolvedVersion.assets)
+export async function diagnoseAssetIndex(resolvedVersion: ResolvedVersion, minecraft: MinecraftFolder, useHash = false): Promise<AssetIndexIssue | undefined> {
+  const assetsIndexPath = minecraft.getAssetsIndex(useHash ? resolvedVersion.assetIndex?.sha1 ?? resolvedVersion.assets : resolvedVersion.assets)
   const issue = await diagnoseFile(
     { file: assetsIndexPath, expectedChecksum: resolvedVersion.assetIndex?.sha1 ?? '', role: 'assetIndex', hint: 'Problem on assets index file! Please consider to use Installer.installAssets to fix.' })
   if (issue) {

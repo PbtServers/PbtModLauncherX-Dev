@@ -6,7 +6,14 @@ if (!existsSync(join(__dirname, 'dist'))) {
 }
 
 if (!existsSync(join(__dirname, '.env'))) {
-  writeFileSync(join(__dirname, '.env'), 'CURSEFORGE_API_KEY=$2a$10$5BgCleD8.rLQ5Ix17Xm2lOjgfoeTJV26a1BXmmpwrOemgI517.nuC')
+  writeFileSync(join(__dirname, '.env'), 'CURSEFORGE_API_KEY=')
+}
+
+if (process.platform === 'win32') {
+  const appxManifestFilePath = './node_modules/app-builder-lib/templates/appx/appxmanifest.xml'
+  writeFileSync(appxManifestFilePath, readFileSync(appxManifestFilePath, 'utf-8')
+    // eslint-disable-next-line no-template-curly-in-string
+    .replace("Publisher='${publisher}'", 'Publisher="${publisher}"'), 'utf-8')
 }
 
 if (process.platform === 'linux' || process.platform === 'openbsd' || process.platform === 'freebsd') {

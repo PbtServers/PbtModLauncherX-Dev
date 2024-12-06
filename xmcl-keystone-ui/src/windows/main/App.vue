@@ -21,7 +21,7 @@
         </transition>
       </main>
     </div>
-    <AppDropDialog />
+    <!-- <AppDropDialog /> -->
     <AppContextMenu />
     <AppNotifier />
     <AppFeedbackDialog />
@@ -35,6 +35,7 @@
     <AppImageDialog />
     <AppLaunchServerDialog />
     <AppSharedTooltip />
+    <AppMigrateWizardDialog />
   </v-app>
   <v-app
     v-else
@@ -61,6 +62,8 @@ import AppSharedTooltip from '@/components/AppSharedTooltip.vue'
 import { useAuthProfileImportNotification } from '@/composables/authProfileImport'
 import { useLocalStorageCacheBool } from '@/composables/cache'
 import { useDefaultErrorHandler } from '@/composables/errorHandler'
+import { kLaunchButton, useLaunchButton } from '@/composables/launchButton'
+import { kLocalizedContent, useLocalizedContentControl } from '@/composables/localizedContent'
 import { useNotifier } from '@/composables/notifier'
 import { kSettingsState } from '@/composables/setting'
 import { kTheme } from '@/composables/theme'
@@ -69,25 +72,25 @@ import { injection } from '@/util/inject'
 import AppAddInstanceDialog from '@/views/AppAddInstanceDialog.vue'
 import AppBackground from '@/views/AppBackground.vue'
 import AppContextMenu from '@/views/AppContextMenu.vue'
-import AppDropDialog from '@/views/AppDropDialog.vue'
 import AppExportDialog from '@/views/AppExportDialog.vue'
 import AppFeedbackDialog from '@/views/AppFeedbackDialog.vue'
 import AppGameExitDialog from '@/views/AppGameExitDialog.vue'
 import AppInstanceDeleteDialog from '@/views/AppInstanceDeleteDialog.vue'
 import AppLaunchBlockedDialog from '@/views/AppLaunchBlockedDialog.vue'
-import AppNotifier from '@/views/AppNotifier.vue'
 import AppLaunchServerDialog from '@/views/AppLaunchServerDialog.vue'
+import AppMigrateWizardDialog from '@/views/AppMigrateWizardDialog.vue'
+import AppNotifier from '@/views/AppNotifier.vue'
 import AppShareInstanceDialog from '@/views/AppShareInstanceDialog.vue'
 import AppSideBar from '@/views/AppSideBar.vue'
 import AppSystemBar from '@/views/AppSystemBar.vue'
 import AppTaskDialog from '@/views/AppTaskDialog.vue'
 import Setup from '@/views/Setup.vue'
-import { kLaunchButton, useLaunchButton } from '@/composables/launchButton'
 
 const showSetup = ref(location.search.indexOf('bootstrap') !== -1)
 const { state } = injection(kSettingsState)
 
 provide('streamerMode', useLocalStorageCacheBool('streamerMode', false))
+provide(kLocalizedContent, useLocalizedContentControl())
 
 provide(kLaunchButton, useLaunchButton())
 

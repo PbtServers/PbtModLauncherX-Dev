@@ -158,7 +158,8 @@
             class="pt-2 px-2"
           >
             <v-data-table
-              v-model="selected"
+              v-model="selectedMods"
+              :disabled="loadingSelectedMods"
               item-key="path"
               show-select
               :search="search"
@@ -289,6 +290,7 @@ let lastPath = ''
 const { isShown } = useDialog('launch-server', () => {
   if (lastPath === path.value) return
   lastPath = path.value
+  revalidate()
   getServerProperties(path.value).then((p) => {
     const parsedPort = parseInt(p.port, 10)
     port.value = isNaN(parsedPort) ? 25565 : parsedPort
@@ -306,25 +308,29 @@ const { isShown } = useDialog('launch-server', () => {
     rawWorldExists.value = v !== undefined && v !== ''
     linkedWorld.value = v ?? ''
   })
+  loadingSelectedMods.value = true
+  selectNone()
   getServerInstanceMods(path.value).then((mods) => {
     const all = enabled.value
     if (mods.length > 0) {
-      selected.value = all.filter(m => mods.some(a => a.ino === m.resource.ino))
+      selectedMods.value = all.filter(m => mods.some(a => a.ino === m.ino))
     } else {
-      selected.value = all
+      selectedMods.value = all
     }
+  }).finally(() => {
+    loadingSelectedMods.value = false
   })
 })
 const { t } = useI18n()
 
 const { runtime, path } = injection(kInstance)
-const { saves } = injection(kInstanceSave)
+const { saves, revalidate } = injection(kInstanceSave)
 const { mods } = injection(kInstanceModsContext)
 const enabled = computed(() => mods.value.filter(m => m.enabled))
 const search = ref('')
 
 function getSide(mod: ModFile) {
-  const fabric = mod.resource.metadata.fabric
+  const fabric = mod.fabric
   if (fabric) {
     let env: 'client' | 'server' | '*' | undefined
     if (fabric instanceof Array) {
@@ -356,14 +362,15 @@ const headers = computed(() => [
   },
 ])
 
-const selected = ref<ModFile[]>([])
+const loadingSelectedMods = ref(false)
+const selectedMods = shallowRef<ModFile[]>([])
 
 const { installDependencies, installMinecraftJar } = useService(InstallServiceKey)
 const { installToServerInstance, getServerInstanceMods } = useService(InstanceModsServiceKey)
 
 function selectFit() {
   const filtered = enabled.value.filter(v => {
-    const fabric = v.resource.metadata.fabric
+    const fabric = v.fabric
     if (fabric) {
       let env: 'client' | 'server' | '*' | undefined
       if (fabric instanceof Array) {
@@ -377,15 +384,15 @@ function selectFit() {
     }
     return true
   })
-  selected.value = filtered
+  selectedMods.value = filtered
 }
 
 function selectAll() {
-  selected.value = enabled.value
+  selectedMods.value = enabled.value
 }
 
 function selectNone() {
-  selected.value = []
+  selectedMods.value = []
 }
 
 const { refresh: onPlay, refreshing: loading, error } = useRefreshable(async () => {
@@ -397,12 +404,14 @@ const { refresh: onPlay, refreshing: loading, error } = useRefreshable(async () 
   const _motd = motd.value
   const _onlineMode = onlineMode.value
   const _nogui = nogui.value
-  const _mods = selected.value
+  const _mods = selectedMods.value
 
   if (!_eula) {
+    console.log('eula')
     await setEULA(instPath, true)
   }
   if (_serverProperties) {
+    console.log('serverProperties')
     await setServerProperties(instPath, {
       ..._serverProperties,
       port: _port ?? 25565,
@@ -412,25 +421,32 @@ const { refresh: onPlay, refreshing: loading, error } = useRefreshable(async () 
     })
   }
   if (!version) {
+    console.log('installServer')
     const versionIdToInstall = await installServer(runtimeValue, instPath, version)
     await installMinecraftJar(runtimeValue.minecraft, 'server')
     await installDependencies(versionIdToInstall, 'server')
     version = versionIdToInstall
   } else {
+    console.log('installDependencies')
     await installMinecraftJar(runtimeValue.minecraft, 'server')
     await installDependencies(version, 'server')
   }
   if (linkedWorld.value) {
+    console.log('linkSaveAsServerWorld', linkedWorld.value)
     await linkSaveAsServerWorld({
       instancePath: instPath,
       saveName: linkedWorld.value,
     })
   }
+  console.log('installToServerInstance')
   await installToServerInstance({
     path: instPath,
-    mods: _mods.map(v => v.resource),
+    mods: _mods.map(v => v.path),
   })
+  console.log('launch')
   await launch('server', { nogui: _nogui, version })
+
+  isShown.value = false
 })
 
 </script>

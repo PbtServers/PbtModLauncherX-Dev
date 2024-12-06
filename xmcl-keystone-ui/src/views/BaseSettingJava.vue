@@ -1,7 +1,6 @@
 <template>
   <v-list
     two-line
-    subheader
     style="background: transparent; width: 100%"
   >
     <v-subheader style="padding-right: 2px">
@@ -10,8 +9,8 @@
       <v-btn
         v-shared-tooltip.left="_ => t('java.refresh')"
         icon
-        :loading="refreshingLocalJava"
-        @click="refreshLocalJava"
+        :loading="refreshing"
+        @click="refresh"
       >
         <v-icon>refresh</v-icon>
       </v-btn>
@@ -27,7 +26,6 @@
     <v-list-group
       id="java-list"
       no-action
-      :value="true"
     >
       <template #activator>
         <v-list-item
@@ -54,7 +52,7 @@
       />
     </v-list-group>
     <v-list-item>
-      <div class="mt-2 flex flex-col gap-2 px-[16px] py-[8px]">
+      <div class="mt-2 flex flex-col gap-2 py-[8px]">
         <div class="flex flex-row items-center">
           {{ t("java.memory") }}
           <BaseSettingGlobalLabel
@@ -128,7 +126,9 @@
 </template>
 
 <script lang=ts setup>
-import { useService, useServiceBusy } from '@/composables'
+import { useService } from '@/composables'
+import { kInstanceJava } from '@/composables/instanceJava'
+import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
 import { JavaRecord, JavaServiceKey } from '@xmcl/runtime-api'
 import { InstanceEditInjectionKey } from '../composables/instanceEdit'
@@ -137,15 +137,12 @@ import BaseSettingGlobalLabel from './BaseSettingGlobalLabel.vue'
 import JavaList from './BaseSettingJavaList.vue'
 import SettingJavaMemory from './SettingJavaMemory.vue'
 import SettingJavaMemoryAssign from './SettingJavaMemoryAssign.vue'
-import { vSharedTooltip } from '@/directives/sharedTooltip'
-import { kInstanceJava } from '@/composables/instanceJava'
 
 const { t } = useI18n()
 const { showOpenDialog } = windowController
-const { all: javas, remove: removeJava } = injection(kJavaContext)
+const { all: javas, remove: removeJava, refreshing, refresh } = injection(kJavaContext)
 const { java: selectedJava } = injection(kInstanceJava)
-const { resolveJava: add, refreshLocalJava } = useService(JavaServiceKey)
-const refreshingLocalJava = useServiceBusy(JavaServiceKey, 'refreshLocalJava')
+const { resolveJava: add } = useService(JavaServiceKey)
 
 const {
   isGlobalAssignMemory,
@@ -159,13 +156,13 @@ const {
   maxMemory: maxMem,
   vmOptions,
   minMemory: minMem,
-  data,
+  javaPath,
 } = injection(InstanceEditInjectionKey)
 
 const java = computed({
-  get: () => javas.value.find(v => v.path === data.javaPath) || { path: '', valid: false, majorVersion: 0, version: '' },
+  get: () => javas.value.find(v => v.path === javaPath.value) || { path: '', valid: false, majorVersion: 0, version: '' },
   set: (v: JavaRecord | undefined) => {
-    data.javaPath = v?.path ?? ''
+    javaPath.value = v?.path ?? ''
   },
 })
 
@@ -192,5 +189,9 @@ async function browseFile() {
 <style>
 .v-textarea.v-text-field--enclosed .v-text-field__slot textarea {
   word-break: break-all;
+}
+
+#java-list .v-list-group__header:before {
+  opacity: 0.08;
 }
 </style>

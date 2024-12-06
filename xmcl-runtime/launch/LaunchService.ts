@@ -1,9 +1,10 @@
-import { MinecraftFolder, LaunchOption as ResolvedLaunchOptions, ResolvedVersion, ServerOptions, createMinecraftProcessWatcher, generateArguments, launch, launchServer } from '@xmcl/core'
-import { AUTHORITY_DEV, GameProcess, LaunchService as ILaunchService, LauncherProfileState, LaunchException, LaunchOptions, LaunchServiceKey, ReportOperationPayload, ResolvedServerVersion } from '@xmcl/runtime-api'
+import { MinecraftFolder, LaunchOption as ResolvedLaunchOptions, ResolvedVersion, ServerOptions, createMinecraftProcessWatcher, generateArguments, generateArgumentsServer, launch, launchServer } from '@xmcl/core'
+import { AUTHORITY_DEV, GameProcess, LaunchService as ILaunchService, LaunchException, LaunchOptions, LaunchServiceKey, ReportOperationPayload, ResolvedServerVersion } from '@xmcl/runtime-api'
 import { offline } from '@xmcl/user'
 import { ChildProcess } from 'child_process'
 import { randomUUID } from 'crypto'
-import { existsSync } from 'fs-extra'
+import { constants } from 'fs'
+import { access } from 'fs-extra'
 import { EOL } from 'os'
 import { dirname, join } from 'path'
 import { setTimeout } from 'timers/promises'
@@ -40,23 +41,32 @@ export class LaunchService extends AbstractService implements ILaunchService {
     return (Object.keys(this.processes).map(v => Number(v)))
   }
 
-  #generateServerOptions(options: LaunchOptions, version: ResolvedServerVersion) {
+  async #isValidAndExeucatable(javaPath: string) {
+    return await access(javaPath, constants.X_OK).then(() => true).catch(() => false)
+  }
+
+  async #generateServerOptions(options: LaunchOptions, version: ResolvedServerVersion) {
     let javaPath = options.java
 
     if (javaPath.endsWith('java.exe')) {
-      // use javaw.exe
-      javaPath = javaPath.substring(0, javaPath.length - 4) + 'w.exe'
+      // use javaw.exe if javaw exists and has permission to execute
+      const javawPath = javaPath.substring(0, javaPath.length - 4) + 'w.exe'
+      if (await this.#isValidAndExeucatable(javawPath)) {
+        javaPath = javawPath
+      }
     } else if (javaPath.endsWith('java')) {
-      // use javaw
-      javaPath = javaPath + 'w'
+      const javawPath = javaPath + 'w'
+      if (await this.#isValidAndExeucatable(javawPath)) {
+        javaPath = javawPath
+      }
     }
 
     const yggdrasilAgent = options.yggdrasilAgent
 
     const minecraftFolder = new MinecraftFolder(options.gameDirectory)
 
-    const minMemory: number | undefined = options.maxMemory
-    const maxMemory: number | undefined = options.minMemory
+    const minMemory: number | undefined = options.minMemory
+    const maxMemory: number | undefined = options.maxMemory
     const jvmArgs = [...version.arguments.jvm]
     if (options.vmOptions) {
       jvmArgs.push(...options.vmOptions)
@@ -100,7 +110,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
     return launchOptions
   }
 
-  #generateOptions(options: LaunchOptions, version: ResolvedVersion, accessToken?: string) {
+  async #generateOptions(options: LaunchOptions, version: ResolvedVersion, accessToken?: string) {
     const user = options.user
     const gameProfile = user.profiles[user.selectedProfile] ?? offline('Steve').selectedProfile
     const javaPath = options.java
@@ -112,7 +122,8 @@ export class LaunchService extends AbstractService implements ILaunchService {
     const maxMemory: number | undefined = options.maxMemory
 
     const launcherName = `X Minecraft Launcher (${this.app.version})`
-    const javawPath = join(dirname(javaPath), process.platform === 'win32' ? 'javaw.exe' : 'java')
+    const javawPath = join(dirname(javaPath), process.platform === 'win32' ? 'javaw.exe' : 'javaw')
+    const validJavaPath = await this.#isValidAndExeucatable(javawPath) ? javawPath : javaPath
     /**
      * Build launch condition
      */
@@ -122,7 +133,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
       properties: {},
       gamePath: minecraftFolder.root,
       resourcePath: this.getPath(),
-      javaPath: existsSync(javawPath) ? javawPath : javaPath,
+      javaPath: validJavaPath,
       minMemory,
       maxMemory,
       version,
@@ -142,6 +153,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
       launcherName: options?.launcherName ?? launcherName,
       prependCommand: options.prependCommand,
       yggdrasilAgent,
+      useHashAssetsIndex: true,
       platform: {
         arch: process.arch,
         name: this.app.platform.os,
@@ -188,37 +200,44 @@ export class LaunchService extends AbstractService implements ILaunchService {
 
   async generateArguments(options: LaunchOptions) {
     try {
-      const user = options.user
-      const javaPath = options.java
+      if (options.side === 'client') {
+        const user = options.user
+        const javaPath = options.java
 
-      let version: ResolvedVersion | undefined
+        let version: ResolvedVersion | undefined
 
-      if (options.version) {
-        this.log(`Override the version: ${options.version}`)
-        try {
-          version = await this.versionService.resolveLocalVersion(options.version)
-        } catch (e) {
-          this.warn(`Cannot use override version: ${options.version}`)
-          this.warn(e)
+        if (options.version) {
+          this.log(`Override the version: ${options.version}`)
+          try {
+            version = await this.versionService.resolveLocalVersion(options.version)
+          } catch (e) {
+            this.warn(`Cannot use override version: ${options.version}`)
+            this.warn(e)
+          }
         }
+
+        if (!version) {
+          throw new LaunchException({
+            type: 'launchNoVersionInstalled',
+            options,
+          })
+        }
+
+        if (!javaPath) {
+          throw new LaunchException({ type: 'launchNoProperJava', javaPath: javaPath || '' }, 'Cannot launch without a valid java')
+        }
+
+        const accessToken = user ? await this.userTokenStorage.get(user).catch(() => undefined) : undefined
+        const _options = await this.#generateOptions(options, version, accessToken)
+        const args = await generateArguments(_options)
+
+        return args
+      } else {
+        const version = await this.versionService.resolveServerVersion(options.version)
+        const launchOptions = await this.#generateServerOptions(options, version)
+        const args = await generateArgumentsServer(launchOptions)
+        return args
       }
-
-      if (!version) {
-        throw new LaunchException({
-          type: 'launchNoVersionInstalled',
-          options,
-        })
-      }
-
-      if (!javaPath) {
-        throw new LaunchException({ type: 'launchNoProperJava', javaPath: javaPath || '' }, 'Cannot launch without a valid java')
-      }
-
-      const accessToken = user ? await this.userTokenStorage.get(user).catch(() => undefined) : undefined
-      const _options = this.#generateOptions(options, version, accessToken)
-      const args = await generateArguments(_options)
-
-      return args
     } catch (e) {
       if (e instanceof LaunchException) {
         throw e
@@ -277,7 +296,8 @@ export class LaunchService extends AbstractService implements ILaunchService {
       let launchOptions: (ResolvedLaunchOptions | ServerOptions)
       if ('inheritances' in version) {
         const accessToken = user ? await this.#track(this.userTokenStorage.get(user).catch(() => undefined), 'get-user-token', operationId) : undefined
-        const op = this.#generateOptions(options, version, accessToken)
+        const op = await this.#generateOptions(options, version, accessToken)
+        launchOptions = op
         for (const plugin of this.middlewares) {
           try {
             await this.#track(plugin.onBeforeLaunch(options, { version, options: op, side: 'client' }, context), plugin.name, operationId)
@@ -293,9 +313,16 @@ export class LaunchService extends AbstractService implements ILaunchService {
 
         this.log('Launching client with these option...')
         this.log(JSON.stringify(op, (k, v) => (k === 'accessToken' ? '***' : v), 2))
-        process = await this.#track(launch(op), 'spawn-minecraft-process', operationId)
+        try {
+          process = await this.#track(launch(op), 'spawn-minecraft-process', operationId)
+        } catch (e) {
+          if (isSystemError(e) && e.code === 'EPERM') {
+            throw new LaunchException({ type: 'launchJavaNoPermission', javaPath: op.javaPath }, 'Fail to spawn process')
+          }
+          throw e
+        }
       } else {
-        launchOptions = this.#generateServerOptions(options, version)
+        launchOptions = await this.#generateServerOptions(options, version)
         for (const plugin of this.middlewares) {
           try {
             await this.#track(plugin.onBeforeLaunch(options, { side: 'server', version, options: launchOptions }, context), plugin.name, operationId)

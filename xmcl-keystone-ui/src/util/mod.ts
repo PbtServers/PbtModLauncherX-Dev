@@ -1,5 +1,5 @@
 import { FabricModMetadata, ForgeModMetadata, LiteloaderModMetadata, QuiltModMetadata } from '@xmcl/mod-parser'
-import { ForgeModCommonMetadata, Resource, ResourceSourceCurseforge, ResourceSourceModrinth, RuntimeVersions } from '@xmcl/runtime-api'
+import { ForgeModCommonMetadata, NeoforgeMetadata, Resource, ResourceSourceCurseforge, ResourceSourceModrinth, RuntimeVersions } from '@xmcl/runtime-api'
 import { ModDependencies, getModDependencies, getModProvides } from './modDependencies'
 import { ProjectFile } from './search'
 
@@ -36,6 +36,10 @@ export interface ModFile extends ModMetadata, ProjectFile {
    * Mod display name
    */
   name: string
+  /**
+   * The file name
+   */
+  fileName: string
   /**
    * Mod version
    */
@@ -80,17 +84,27 @@ export interface ModFile extends ModMetadata, ProjectFile {
    * If this mod is enabled. This is computed from the path suffix.
    */
   enabled: boolean
-
-  curseforge?: ResourceSourceCurseforge
-  modrinth?: ResourceSourceModrinth
   /**
-   * The backed resource
+   * Curseforge metadata
    */
-  resource: Resource
+  curseforge?: ResourceSourceCurseforge
+  /**
+   * Modrinth metadata
+   */
+  modrinth?: ResourceSourceModrinth
+  forge?: ForgeModCommonMetadata
+  fabric?: FabricModMetadata | FabricModMetadata[]
+  quilt?: QuiltModMetadata
+  neoforge?: NeoforgeMetadata
+
+  ino: number
+  size: number
+  mtime: number
 }
 
 function getUrl(resource: Resource) {
-  return resource.uris.find(u => u?.startsWith('http')) ?? ''
+  return ''
+  // return resource.uris.find(u => u?.startsWith('http')) ?? ''
 }
 
 function getForgeModLinks(metadata: ForgeModMetadata) {
@@ -150,7 +164,7 @@ function getFabricLikeModLinks(contact?: FabricModMetadata['contact'] & { source
 }
 
 export function getModFileFromResource(resource: Resource, runtime: RuntimeVersions): ModFile {
-  const modItem: ModFile = ({
+  const modItem: ModFile = markRaw({
     path: resource.path,
     modId: '',
     name: resource.fileName,
@@ -162,15 +176,26 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
     provideRuntime: markRaw(getModProvides(resource)),
     icon: resource.icons?.at(-1) ?? '',
     dependencies: runtime.fabricLoader
-      ? (getModDependencies(resource, true).map(markRaw))
-      : (getModDependencies(resource, false).map(markRaw)),
-    url: getUrl(resource),
+      ? (getModDependencies(resource, 'fabric').map(markRaw))
+      : runtime.neoForged
+      ? (getModDependencies(resource, 'neoforge').map(markRaw))
+      : (getModDependencies(resource, 'forge').map(markRaw)),
+    url: '',
     hash: resource.hash,
-    tags: resource.tags,
+    tags: [],
     enabled: !resource.path.endsWith('.disabled'),
     curseforge: resource.metadata.curseforge && markRaw(resource.metadata.curseforge),
     modrinth: resource.metadata.modrinth && markRaw(resource.metadata.modrinth),
-    resource: markRaw(resource),
+
+    fabric: resource.metadata.fabric,
+    forge: resource.metadata.forge,
+    quilt: resource.metadata.quilt,
+    neoforge: resource.metadata.neoforge,
+
+    ino: resource.ino,
+    size: resource.size,
+    mtime: resource.mtime,
+    fileName: resource.fileName,
   })
   if (resource.metadata.forge) {
     modItem.modLoaders.push('forge')

@@ -1,6 +1,5 @@
 import type { ResolvedLibrary, Version } from '@xmcl/core'
 import type { InstallProfile, LabyModManifest, LiteloaderVersion, MinecraftVersion } from '@xmcl/installer'
-import { Resource } from '../entities/resource'
 import { OptifineVersion } from '../entities/version'
 import { ServiceKey } from './Service'
 
@@ -10,6 +9,10 @@ export interface InstallOptifineOptions extends OptifineVersion {
    */
   forgeVersion?: string
   inheritFrom?: string
+}
+
+export interface InstallOptifineAsModOptions extends OptifineVersion {
+  instancePath: string
 }
 
 export interface InstallQuiltOptions {
@@ -163,11 +166,11 @@ export interface InstallService {
   /**
    * Install the optifine to the minecraft
    */
-  installOptifine(options: InstallOptifineOptions): Promise<[string, Resource]>
+  installOptifine(options: InstallOptifineOptions): Promise<string>
   /**
-   * Install the optifine uniersal jar as a resource
+   * Install the optifine uniersal jar as a mod
    */
-  installOptifineAsResource(options: InstallOptifineOptions): Promise<Resource>
+  installOptifineAsMod(options: InstallOptifineAsModOptions): Promise<void>
   /**
    * Install a specific liteloader version
    */

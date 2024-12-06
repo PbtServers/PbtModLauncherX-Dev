@@ -8,12 +8,11 @@ import { Inject, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
 import { ImageStorage } from '~/imageStore'
 import { VersionMetadataService } from '~/install'
 import { readLaunchProfile } from '~/launchProfile'
-import { ResourceWorker, kResourceWorker } from '~/resource'
 import { ExposeServiceKey, ServiceStateManager, Singleton, StatefulService } from '~/service'
-import { AnyError } from '~/util/error'
+import { AnyError, isSystemError } from '~/util/error'
 import { validateDirectory } from '~/util/validate'
 import { LauncherApp } from '../app/LauncherApp'
-import { exists, isDirectory, isPathDiskRootPath, linkWithTimeoutOrCopy, readdirEnsured } from '../util/fs'
+import { copyPassively, ENOENT_ERROR, exists, isDirectory, isPathDiskRootPath, linkWithTimeoutOrCopy, missing, readdirEnsured } from '../util/fs'
 import { assignShallow, requireObject, requireString } from '../util/object'
 import { SafeFile, createSafeFile, createSafeIO } from '../util/persistance'
 
@@ -26,11 +25,11 @@ const INSTANCES_FOLDER = 'instances'
 export class InstanceService extends StatefulService<InstanceState> implements IInstanceService {
   protected readonly instancesFile: SafeFile<InstancesSchema>
   protected readonly instanceFile = createSafeIO(InstanceSchema, this)
+  #removeHandlers: Record<string, (WeakRef<() => Promise<void> | void>)[]> = {}
 
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
     @Inject(ServiceStateManager) store: ServiceStateManager,
     @Inject(VersionMetadataService) private versionMetadataService: VersionMetadataService,
-    @Inject(kResourceWorker) private worker: ResourceWorker,
     @Inject(kGameDataPath) private getPath: PathResolver,
     @Inject(ImageStorage) private imageStore: ImageStorage,
   ) {
@@ -85,11 +84,6 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       // }
 
       this.state
-        .subscribe('instanceAdd', async (payload: Instance) => {
-          await this.instanceFile.write(join(payload.path, 'instance.json'), payload)
-          // await this.instancesFile.write({ instances: Object.keys(this.state.all).map(normalizeInstancePath), selectedInstance: normalizeInstancePath(this.state.path) })
-          this.log(`Saved new instance ${payload.path}`)
-        })
         .subscribe('instanceEdit', async ({ path }) => {
           const inst = this.state.all[path]
           await this.instanceFile.write(join(path, 'instance.json'), inst)
@@ -126,6 +120,9 @@ export class InstanceService extends StatefulService<InstanceState> implements I
   async loadInstance(path: string) {
     requireString(path)
 
+    // Fix the wrong path if user set the name start/end with space
+    path = path.trim()
+
     if (!isAbsolute(path)) {
       path = this.getPathUnder(path)
     }
@@ -143,6 +140,9 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       this.warn(e)
       return false
     }
+
+    // Fix the wrong path if user set the name start/end with space
+    option.name = option.name.trim()
 
     const name = option.name
     const expectPath = this.getPathUnder(filenamify(name))
@@ -233,6 +233,8 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       instance.server = payload.server
     }
 
+    payload.name = payload.name.trim()
+
     if (!payload.path) {
       instance.path = this.getCandidatePath(payload.name)
     }
@@ -248,14 +250,16 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     instance.icon = payload.icon ?? ''
 
     if (!isPathDiskRootPath(instance.path)) {
-      await ensureDir(instance.path)
+      await ensureDir(instance.path).catch(() => undefined)
     }
     if (payload.resourcepacks) {
-      await ensureDir(join(instance.path, 'resourcepacks'))
+      await ensureDir(join(instance.path, 'resourcepacks')).catch(() => undefined)
     }
     if (payload.shaderpacks) {
-      await ensureDir(join(instance.path, 'shaderpacks'))
+      await ensureDir(join(instance.path, 'shaderpacks')).catch(() => undefined)
     }
+
+    await this.instanceFile.write(join(instance.path, 'instance.json'), instance)
     this.state.instanceAdd(instance)
 
     this.log('Created instance with option')
@@ -348,11 +352,38 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     requireString(path)
 
     const isManaged = this.isUnderManaged(path)
+    const lock = this.semaphoreManager.getLock(`remove://${path}`)
     if (isManaged && await exists(path)) {
-      await rm(path, { recursive: true, force: true })
+      await lock.write(async () => {
+        const oldHandlers = this.#removeHandlers[path]
+        for (const handlerRef of oldHandlers || []) {
+          handlerRef.deref()?.()
+        }
+        try {
+          await rm(path, { recursive: true, force: true, maxRetries: 3 })
+        } catch (e) {
+          if (isSystemError(e) && e.code === ENOENT_ERROR) {
+            this.warn(`Fail to remove instance ${path}`)
+          } else {
+            if ((e as any).name === 'Error') {
+              (e as any).name = 'InstanceDeleteError'
+            }
+            throw e
+          }
+        }
+
+        this.#removeHandlers[path] = []
+      })
     }
 
     this.state.instanceRemove(path)
+  }
+
+  registerRemoveHandler(path: string, handler: () => Promise<void> | void) {
+    if (!this.#removeHandlers[path]) {
+      this.#removeHandlers[path] = []
+    }
+    this.#removeHandlers[path].push(new WeakRef(handler))
   }
 
   /**
@@ -551,9 +582,9 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     }
 
     // copy assets, library and versions
-    await this.worker.copyPassively([
-      { src: resolve(path, 'libraries'), dest: this.getPath('libraries') },
-      { src: resolve(path, 'assets'), dest: this.getPath('assets') },
+    await Promise.all([
+      copyPassively(resolve(path, 'libraries'), this.getPath('libraries')),
+      copyPassively(resolve(path, 'assets'), this.getPath('assets')),
     ])
 
     const versions = await readdir(resolve(path, 'versions')).catch(() => [])

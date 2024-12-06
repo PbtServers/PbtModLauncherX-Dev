@@ -1,6 +1,6 @@
 import { clientModrinthV2 } from '@/util/clients'
 import { ProjectEntry } from '@/util/search'
-import { InstanceData, ResourceServiceKey } from '@xmcl/runtime-api'
+import { InstanceData } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
 import { CurseforgeBuiltinClassId } from './curseforge'
 import { useCurseforgeSearch } from './curseforgeSearch'
@@ -8,8 +8,8 @@ import { InstanceResourcePack } from './instanceResourcePack'
 import { useMarketSort } from './marketSort'
 import { useModrinthSearch } from './modrinthSearch'
 import { searlizers, useQueryOverride } from './query'
-import { useService } from './service'
 import { useAggregateProjectsSplitted, useProjectsFilterSort } from './useAggregateProjects'
+import { TextComponent } from '@xmcl/text-component'
 
 export const kResourcePackSearch: InjectionKey<ReturnType<typeof useResourcePackSearch>> = Symbol('ResourcePackSearch')
 
@@ -26,8 +26,8 @@ function useLocalSearch(keyword: Ref<string>, enabled: Ref<InstanceResourcePack[
     const _disabled: ResourcePackProject[] = []
 
     const getFromResource = (m: InstanceResourcePack, enabled: boolean) => {
-      const curseforgeId = m.resource?.metadata.curseforge?.projectId
-      const modrinthId = m.resource?.metadata.modrinth?.projectId
+      const curseforgeId = m.curseforge?.projectId
+      const modrinthId = m.modrinth?.projectId
       const name = m.name.startsWith('file/') ? m.name.slice(5) : m.name
       const obj = indices[name] || (modrinthId && indices[modrinthId]) || (curseforgeId && indices[curseforgeId])
       if (obj) {
@@ -40,7 +40,8 @@ function useLocalSearch(keyword: Ref<string>, enabled: Ref<InstanceResourcePack[
           icon: m.icon,
           title: name,
           disabled: !enabled,
-          description: m.description as string,
+          description: typeof m.description === 'string' ? m.description : '',
+          descriptionTextComponent: typeof m.description === 'object' ? m.description as TextComponent : undefined,
           installed: [m],
           downloadCount: 0,
           followerCount: 0,
@@ -84,24 +85,24 @@ function useLocalSearch(keyword: Ref<string>, enabled: Ref<InstanceResourcePack[
   const _enabled = computed(() => result.value[1])
   const _all = computed(() => result.value[2].filter(v => v.title.toLowerCase().includes(keyword.value.toLowerCase())))
 
-  const { updateResources } = useService(ResourceServiceKey)
-  async function update(files: InstanceResourcePack[]) {
-    const absent = files.filter(f => !f.resource.metadata.modrinth)
-    const versions = await clientModrinthV2.getProjectVersionsByHash(absent.map(a => a.resource.hash))
-    const options = Object.entries(versions).map(([hash, version]) => {
-      const f = files.find(f => f.resource.hash === hash)
-      if (f && f.resource.hash) return { hash: f.resource.hash, metadata: { modrinth: { projectId: version.project_id, versionId: version.id } } }
-      return undefined
-    }).filter((v): v is any => !!v)
-    if (options.length > 0) {
-      console.log('update resource packs', options)
-      updateResources(options)
-    }
-  }
+  // const { updateResources } = useService(ResourceServiceKey)
+  // async function update(files: InstanceResourcePack[]) {
+  //   const absent = files.filter(f => !f.resource.metadata.modrinth)
+  //   const versions = await clientModrinthV2.getProjectVersionsByHash(absent.map(a => a.resource.hash))
+  //   const options = Object.entries(versions).map(([hash, version]) => {
+  //     const f = files.find(f => f.resource.hash === hash)
+  //     if (f && f.resource.hash) return { hash: f.resource.hash, metadata: { modrinth: { projectId: version.project_id, versionId: version.id } } }
+  //     return undefined
+  //   }).filter((v): v is any => !!v)
+  //   if (options.length > 0) {
+  //     console.log('update resource packs', options)
+  //     updateResources(options)
+  //   }
+  // }
 
   function effect() {
-    watch(enabled, update, { immediate: true })
-    watch(disabled, update, { immediate: true })
+  //   watch(enabled, update, { immediate: true })
+  //   watch(disabled, update, { immediate: true })
   }
 
   return {

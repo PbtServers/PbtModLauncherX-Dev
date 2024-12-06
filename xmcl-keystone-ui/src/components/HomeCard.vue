@@ -1,7 +1,13 @@
 <template>
   <v-card
-    class="flex h-full flex-col"
-    :color="error ? 'red' : cardColor"
+    class="flex h-full flex-col transition-colors transition-transform"
+    :class="{ highlighted: highlighted }"
+    style="box-sizing: border-box"
+    :color="highlighted ? 'yellow darken-2' : cardColor"
+    @dragover="emit('dragover', $event)"
+    @drop="emit('drop', $event); dragover = 0;"
+    @dragenter="dragover += 1"
+    @dragleave="dragover -= 1"
   >
     <v-progress-linear
       v-if="refreshing"
@@ -18,10 +24,25 @@
       <template v-if="refreshing && icons.length === 0">
         <v-skeleton-loader type="paragraph" />
       </template>
+      <template v-else-if="slots.default">
+        <slot />
+      </template>
       <template v-else>
-        {{ error ? (error.message || error) : text }}
+        <span v-if="!error">
+          {{ text }}
+        </span>
+        <span
+          v-else
+          class="color-red"
+        >
+          <v-icon
+            color="red"
+            small
+          > warning </v-icon>
+          {{ (error.message || error) }}
+        </span>
         <div
-          v-if="icons.length > 0"
+          v-if="!globalDragover && icons.length > 0"
           class="mt-4"
         >
           <v-avatar
@@ -53,6 +74,7 @@
   </v-card>
 </template>
 <script lang="ts" setup>
+import { kDropHandler } from '@/composables/dropHandler'
 import { kTheme } from '@/composables/theme'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { getColor } from '@/util/color'
@@ -68,6 +90,18 @@ defineProps<{
   error?: any
   icons: Array<{ name: string; icon?: string; color?: string }>
 }>()
-const emit = defineEmits(['navigate'])
-const { cardColor } = injection(kTheme)
+const emit = defineEmits(['navigate', 'drop', 'dragover', 'dragenter', 'dragleave'])
+const { cardColor, accentColor } = injection(kTheme)
+
+const slots = useSlots()
+
+const dragover = ref(0)
+const { dragover: globalDragover } = injection(kDropHandler)
+const highlighted = computed(() => globalDragover.value && dragover.value > 0)
 </script>
+
+<style scoped>
+.highlighted {
+  transform: scale(1.05);
+}
+</style>

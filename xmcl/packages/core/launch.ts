@@ -174,7 +174,10 @@ export interface LaunchOption {
    * The platform of this launch will run. By default, it will fetch the current machine info if this is absent.
    */
   platform?: Platform
-
+  /**
+   * Use hash assets index. This will use the assets index hash as the assets index name.
+   */
+  useHashAssetsIndex?: boolean
   /**
    * The launcher precheck functions. These will run before it run.
    *
@@ -234,7 +237,7 @@ export namespace LaunchPrecheck {
    * Link assets to the assets/virtual/legacy.
    */
   export async function linkAssets(resource: MinecraftFolder, version: ResolvedVersion, option: LaunchOption) {
-    if (version.assets !== 'legacy') {
+    if (version.assets !== 'legacy' && !version.assets.startsWith('pre-')) {
       return
     }
     const assetsIndexPath = resource.getAssetsIndex(version.assets)
@@ -355,7 +358,7 @@ export namespace LaunchPrecheck {
           if (fileName.indexOf('/') !== -1) {
             await mkdir(dirname(dest), {
               recursive: true,
-            }).catch((e) => {})
+            }).catch((e) => { })
           }
           extractedNatives.push({ file: fileName, name: n.name, sha1: '' })
           promises.push(promisify(pipeline)(await openEntryReadStream(zip, entry), createWriteStream(dest)))
@@ -573,13 +576,19 @@ export async function launch(options: LaunchOption): Promise<ChildProcess> {
  * Generate the argument for server
  */
 export async function generateArgumentsServer(options: ServerOptions) {
-  const { javaPath, minMemory = 1024, maxMemory = 1024, extraJVMArgs = [], extraMCArgs = [], extraExecOption = {} } = options
+  const { javaPath, minMemory, maxMemory, extraJVMArgs = [], extraMCArgs = [], extraExecOption = {} } = options
   const cmd = [
     javaPath,
-    `-Xms${(minMemory)}M`,
-    `-Xmx${(maxMemory)}M`,
-    ...extraJVMArgs,
   ]
+  if (minMemory) {
+    cmd.push(`-Xms${(minMemory)}M`)
+  }
+  if (maxMemory) {
+    cmd.push(`-Xmx${(maxMemory)}M`)
+  }
+  cmd.push(
+    ...extraJVMArgs,
+  )
 
   if (options.classPath && options.classPath.length > 0) {
     cmd.push('-cp', options.classPath.join(delimiter))
@@ -739,7 +748,7 @@ export async function generateArguments(options: LaunchOption) {
     version_type: versionType,
     assets_root: assetsDir,
     game_assets: join(assetsDir, 'virtual', version.assets),
-    assets_index_name: version.assets,
+    assets_index_name: options.useHashAssetsIndex ? version.assetIndex?.sha1 ?? version.assets : version.assets,
     auth_session: accessToken,
     game_directory: gamePath,
     auth_player_name: name,
