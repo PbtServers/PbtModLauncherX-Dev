@@ -42,22 +42,6 @@
     <AppSystemBarAvatar
       v-if="!noUser"
     />
-    <AppSystemBarBadge
-      v-if="tutor"
-      id="tutor-button"
-      icon="quiz"
-      :text="t('help')"
-      can-hide-text
-      @click="tutor.start()"
-    />
-    <AppSystemBarBadge
-      v-if="!noDebug"
-      id="feedback-button"
-      icon="bug_report"
-      :text="t('feedback.name')"
-      can-hide-text
-      @click="showFeedbackDialog"
-    />
 
     <span class="flex h-full shrink grow-0 p-0">
       <v-icon
