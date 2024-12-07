@@ -1,0 +1,44 @@
+# Registro de Archivos Modificados
+
+- latest_version.json (Cambiar versión anterior a la nueva v*.*.*)
+
+- package.json (Cambiar branding y versión a la nueva v*.*.*)
+
+- .gitignore (Agregar directorios no incluidos)
+
+- assets/formato-releases.txt (Formato de nuevas Releases para Publicar)
+
+- assets/locales.json (Locales Soportadas por el Launcher)
+
+- xmcl-keystone-ui/src/views (Eliminar [kTutorial, useTutorial, useTutorialModel])
+ - BaseSetting.vue
+ - HomeDefault.vue
+ - HomeFocus.vue
+ - Me.vue
+ - Mod.vue
+ - Multiplayer.vue
+ - StoreEntry.vue
+ 
+- xmcl-keystone-ui/src/windows/main (Eliminar [kTutorial, useTutorialModel])
+ - App.vue
+ - Context.ts
+
+- xmcl-keystone-ui/src/composables/tutorial.ts (Eliminar contenido de [useTutorialModel() y useTutorial()])
+
+- xmcl-keystone-ui/src/views (Eliminar AppSystemBarBadge piezas de [tutor-button y feedback-button])
+
+- xmcl-electron-app/postinstall.ts (Agregar API Key)
+
+- xmcl-keystone-ui/src/multiplayer.html (Arreglar Branding PbtModLauncherX)
+
+- ‎xmcl-runtime/launch/LaunchService.ts (Arreglar Branding PbtModLauncherX)
+
+- ‎xmcl-runtime/presence/PresenceService.ts (Arreglar Branding Discord 1213977247514361856)
+
+- xmcl-keystone-ui/locales/en.yaml (Actualizar Locales Principales...)
+
+- xmcl-keystone-ui/locales/es-ES.yaml (Actualizar Locales Principales...)
+
+- xmcl-electron-app/icons/ (Actualizar iconos de la aplicación)
+
+- xmcl-electron-app/main/utils/updater.ts (Modificar actualizador con servidores personalizados)
