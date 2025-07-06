@@ -1,6 +1,6 @@
-# PbtModLauncherX
+# PbtModLauncherX (v1.0.5)
 
-La versión del launcher X de PbtServers adaptada y mejorada para su uso simplificado y offline [🚀]
+La versión del launcher X de PbtServers adaptada para su uso mejorado y offline [🚀]
 
 ![pbtmodlauncherx](https://github.com/PbtServers/PbtModLauncherX-Dev/blob/master/xmcl-electron-app/icons/dark@256x256.png?raw=true)
 ![pbtmodlauncherx](https://github.com/PbtServers/PbtModLauncherX-Dev/blob/master/xmcl-electron-app/icons/dark@Square44x44Logo.targetsize-256.png?raw=true)
