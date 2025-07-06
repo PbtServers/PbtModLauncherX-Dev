@@ -12,6 +12,7 @@ Instalar Dependencias y Ejecutar Dev -->
 (Ejecutar Compilación habitual)
 
 `choco install python visualstudio2022-workload-vctools -y`
+`pip install setuptools`
 
 `pnpm install`                                                                                                                                                   
 `npm run dev:renderer`                                                                                                                                           
