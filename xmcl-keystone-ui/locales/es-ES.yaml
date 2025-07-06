@@ -52,7 +52,7 @@ HomeJavaIssueDialog:
   optionManualDownload: {}
   optionSelectJava:
     message: >-
-      Tal vez el launcher no encontró Java en tu computadora. Puedes decirle al
+      Tal vez el launcher no encontró Java en tu ordenador. Puedes decirle al
       launcher dónde está.
     name: Selecciona Java en tu ordenador
   optionSwitch:
@@ -297,6 +297,10 @@ errors:
     ¡El lanzador no funcionará correctamente! 
     Seleccione un directorio de datos al que pueda acceder el iniciador. 
     Puede intentar restablecer la raíz de datos en la página de configuración.
+  DiskIsFull: |-
+    ¡Tu disco está lleno! 
+    ¡No puedo escribir nada en el disco! 
+    ¡Todas las características pueden no ser funcionales!
   NotFoundError: 404 No encontrado
 eula:
   body: >-
@@ -359,6 +363,7 @@ feedback:
     Únete al grupo de QQ de comentarios y habla directamente con los autores.
     Número del grupo: {number}
   qqEnterGroup: Unirse
+filterLocalOnly: Mostrar solo instalado
 fileDetail:
   fileSize: Tamaño de Archivo
   hash: Hash
@@ -459,11 +464,14 @@ instance:
   fileApiHint: >-
     La URL para sincronizar archivos de instancia desde un servidor de
     configuración remoto.
+  fullscreen: Pantalla completa
   gameVersion: Versión del Juego
+  height: Altura
   icon: Icono de Perfil
   iconHint: El icono podría ser un archivo o un enlace URL de Internet.
   iconUrl: URL del Icono
   includeVersion: Incluir Versión | Incluir Versiones
+  installModpack: Actualizar instancia desde modpack
   lastPlayed: Última vez jugado
   launchArguments: Argumentos de Lanzamiento Previo
   launchServer: Iniciar el servidor localhost
@@ -482,6 +490,8 @@ instance:
   prependCommand: Anteponer comando
   prependCommandHint: Esto antepondrá este comando antes de todos los comandos de inicio.
   requireName: El nombre es obligatorio
+  resolution: Resolución de ventana
+  resolutionPreset: Resolución preestablecida
   showInstance: Mostrar carpeta del juego
   useSharedOptions: Usar configuración de juego compartida
   useSharedOptionsDesc: >-
@@ -492,6 +502,9 @@ instance:
   versionHint: La versión de Minecraft de este juego
   vmOptions: Opciones de JVM
   vmOptionsHint: Argumentos adicionales para pasar a la JVM
+  vmVar: Variables de entorno
+  vmVarHint: Haga clic en el botón para agregar variables ambientales
+  width: Ancho
 instanceAge:
   older: Más Antiguo
   threeDay: En Tres Días
@@ -505,6 +518,21 @@ instanceFileOperation:
   backup-remove: Eliminar (Copia de Seguridad)
   keep: Conservar
   remove: Eliminar
+instanceInstallSkip:
+  ignore: Ignorar
+  skip: Saltar
+  title: Posible fuente de archivo corrupto
+  warning: >-
+    Algunos archivos se descargan varias veces y la suma de comprobación no
+    coincide. 
+
+    Esto puede deberse al hecho de que la suma de verificación original es
+    incorrecta. 
+
+    Por favor, compruebe. 
+
+    Si confirma que los archivos actuales son válidos, puede omitir la
+    verificación de validación.
 instanceSetting:
   disableAuthlibInjector: Desactivar authlib injector
   disableAuthlibInjectorDescription: >-
@@ -535,6 +563,10 @@ instanceUpdate:
   loaderChanged: |-
     Se ha cambiado el cargador de mods de esta instancia. 
     El antiguo modloader es {modloader} y el nuevo modloader es {newModloader}.
+  summary: |-
+    Agregar archivos {add}. 
+    Eliminar los archivos {remove}. 
+    Keep {keep} archivos.
   title: Actualizar Instancia
   update: Iniciar Actualización
 instances:
@@ -549,7 +581,7 @@ instances:
     la instancia de Modrinth.
   addServer: Crear desde el servidor
   addServerDescription: Esto creará un juego que se iniciará directamente en el servidor.
-  addTemplate: Crear desde plantilla
+  addTemplate: Crear desde modpack descargado
   addTemplateDescription: Importar de modpack descargado
   addVanilla: Crear desde minecraft vanilla
   addVanillaDescription: >-
@@ -586,6 +618,7 @@ labyMod:
   disable: Deshabilitar labymod
   empty: LabyMod no soporta minecraft actual
 launch:
+  createShortcut: Crear atajo
   killServer: Matar el servidor localhost
   launchAnyway: Lanzar de todos modos
   cancel: Cancelar
@@ -732,6 +765,7 @@ minecraftVersion:
   snapshot: Versión Snapshot
 mod:
   acceptVersion: Aceptar {version}
+  applyGroupRules: Aplicar reglas de agrupación guardadas
   compatible: Mod Compatible.
   currentVersion: 'Versión Actual: {current}'
   deletion: Eliminar Mod
@@ -778,7 +812,18 @@ mod:
   showInCurseforge: Mostrar el mod en Curseforge
   showInModrinth: Mostrar {name} en Modrinth
   switchDefaultSource: Fuente de Mods por Defecto
+  syncGroupRules: Guardar reglas de agrupación
   toUpdate: '{count} para actualizar'
+  ungroup: Desagrupar
+modFilter:
+  clear: Filtro claro
+  dependenciesInstallOnly: Solo muestre modificaciones de dependencias perdidas
+  disabledOnly: Solo muestre modificaciones deshabilitadas
+  hasUpdateOnly: Solo Show tiene modificaciones de actualización
+  incompatibleOnly: >-
+    Solo muestran dependencias incompatibles o faltantes modificaciones
+    faltantes
+  unusedOnly: Solo muestran modificaciones de bibliotecas no utilizadas
 modInstall:
   archived: >-
     {name} ha sido archivado. 
@@ -791,12 +836,14 @@ modInstall:
   checkedUpgrade: Actualizaciones verificadas
   currentVersion: Versión Seleccionada
   dependencyHint: 'Otra versión instalada: {version}'
+  display: Pantalla de mods
   install: Instalar
   installDependencies: Instalar dependencias faltantes
   installHint: Se instalará el archivo {file} con {dependencies} dependencias
   installed: Instalado
   noVersionSupported: Mod solo es compatible con Minecraft {compatible}.
   recommendation: ¡Explora las modificaciones {first} o {second} en {modrinth} y {curseforge}!
+  removeUnusedLibraries: Eliminar modificaciones de bibliotecas no utilizadas
   search: Resultado de la Búsqueda
   searchHint: Buscar y seleccionar proyecto
   skipVersion: Salta los Mods con diferentes versiones de Minecraft
@@ -813,6 +860,7 @@ modUpgradePolicy:
   curseforgeOnly: Sólo CurseForge
   modrinth: Modrinth primero
   modrinthOnly: Sólo Modrinth
+  name: Política de actualización
 modified:
   reset: Restablecer
   save: Guardar
@@ -849,6 +897,11 @@ modpack:
   showInModrinth: Mostrar {name} en Modrinth
   url: URL
   urlHint: La página de inicio URL de tu modpack
+modpackImportConfirm:
+  description: |-
+    Detecte que suelte un archivo en el lanzador. 
+    ¿Estás tratando de importar un Modpack?
+  title: ¿Estás tratando de importar un Modpack?
 modrinth:
   browseUrl: Abrir en el Navegador {url}
   categories:
@@ -947,6 +1000,7 @@ modrinth:
   clientSide: Lado del Cliente
   copyTitle: Copiar Texto {title} al portapapeles
   createAt: Creado
+  createCollection: Crear colección
   description: Descripción
   downloads: Descargas
   environments:
@@ -959,6 +1013,7 @@ modrinth:
     unsupported: No Soportado
   externalResources: Recursos Externos
   featuredVersions: Versiones Destacadas
+  followedProjects: Proyectos seguidos
   followers: Seguidores
   gallery: Galería
   gameVersions:
@@ -971,6 +1026,12 @@ modrinth:
   license: Licencia
   licenses:
     name: Licencias
+  loginHint: >-
+    La operación requiere que el modrinth realice. 
+
+    El lanzador abrirá una ventana del navegador para iniciar sesión en
+    Modrinth.
+  loginTitle: Iniciar sesión en Modrinth
   modLoaders:
     name: Cargadores de Mods
   perPage: Por Página
@@ -982,6 +1043,7 @@ modrinth:
     name: Tipo de Proyecto
     resourcePack: Paquete de Recursos
     shader: Shader
+  projects: '{count} Proyectos'
   quickSearch: Búsqueda de {title}
   searchText: Buscar
   serverSide: Lado del Servidor
@@ -1133,7 +1195,7 @@ popular: Popularidad
 presence:
   curseforge: Viendo CurseForge
   curseforgeProject: Viendo {name} en CurseForge
-  instance: Inactiva en Instancia {instance}
+  instance: Launcher Inactivo en Instancia {instance}
   instanceSetting: 'Editar Configuración de la Instancia: {instance}'
   mod: Viendo Mods en {instance}
   modrinth: Viendo Modrinth
@@ -1230,15 +1292,30 @@ screenshots:
   name: Capturas de Pantalla
   playRandom: Juega aleatoriamente
   playSequence: Jugar en orden
+search:
+  favorate: Recopilación
 server:
   acceptingMinecraftVersion: Aceptando Versión de Minecraft
   creationHint: Por favor, completa la dirección del servidor y realiza un ping al servidor
   delete: {}
   error: {}
   expectedVersions: Versiones Soportadas
+  export: Exportar servidor
+  exportNoFilesHint: |-
+    No se encontraron archivos de servidor. 
+    Puede ejecutar Server en Local una vez para generar algunos archivos.
+  exportOption: Opciones de exportación de servidor
+  exportSSHAuthenticationFailed: |-
+    Todos los métodos de autenticación fallaron. 
+    Verifique el nombre de usuario/contraseña o la clave privada.
+  exportSSHOptions: Opciones SSH
+  exportSSHPrivateKeyPath: Ssh
+  exportSSHRemotePath: Ruta de servidor remoto
+  exportToFolder: Exportar a la carpeta
   filterVersion: Filtrar versión de Minecraft del servidor respondido
   host: Anfitrión
   hostHint: El anfitrión (con puerto) del servidor
+  hostRequired: Ingrese la dirección IP del servidor
   ipAddress: Dirección IP
   maxPlayers: Jugadores máximos
   motd: MOTD del Servidor
@@ -1253,6 +1330,7 @@ server:
   status: Estado del Servidor
   unknown: Servidor Desconocido
   unknownDescription: Servidor Desconocido. Por favor, actualiza.
+  upload: Servidor de carga
   version: El Servidor Requiere Versión
   versionHint: La Versión de Minecraft para hacer ping
 serverStatus:
@@ -1261,6 +1339,7 @@ serverStatus:
   refuse: §4¡El servidor lo ha rechazado!
   timeout: §4¡Conexión al servidor agotada!
 setting:
+  about: Acerca de
   allowPrerelease: Descargar Pre-lanzamientos
   allowPrereleaseDescription: Los pre-lanzamientos pueden no ser estables
   apiSets:
@@ -1274,6 +1353,7 @@ setting:
   autoDownloadDescription: Descargar actualizaciones automáticamente si están disponibles
   autoInstallOnAppQuit: Autoinstalar
   autoInstallOnAppQuitDescription: Autoinstalar la actualización al salir de la aplicación
+  backdropBlur: Flojo de telón de fondo
   backgroundColorAbove: Mostrar color de fondo como superposición
   backgroundColorAboveDescription: >-
     Esto hará que el color de fondo se muestre encima de la imagen o el vídeo de
@@ -1314,7 +1394,7 @@ setting:
     cardColor: Color de Tarjeta
     description: Cambiar los colores en el tema
     errorColor: Color de Error
-    name: Color del Tema
+    name: Color y desenfoque del tema
     primaryColor: Color Principal
     secondaryColor: Color Secundario
     sideBarColor: Color de la Barra Lateral
@@ -1470,6 +1550,11 @@ shared:
   accept: Aceptar
   keepSelected: Mantener seleccionado
   skipForNow: Saltar por ahora
+sortBy:
+  alphabetAsc: Ordenar por alfabeto (ascendente)
+  alphabetDesc: Ordenar por alfabeto (descendente)
+  timeAsc: Ordenar por tiempo de modificación (ascendente)
+  timeDesc: Ordenar por tiempo de modificación (descendente)
 store:
   explore: Explorar
   latestMinecraft: Versión de Minecraft Reciente
