@@ -56,7 +56,6 @@ export class DownloadAsarUpdateTask extends AbortableTask<void> {
     const gfw = await this.app.registry.get(kGFW)
     const urls = gfw.inside
       ? [
-        `https://files.0xc.cn/Soft_Mirrors/github-release/PbtServers/PbtModLauncherX-Dev/LatestRelease/${this.file}`,
         `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${this.version}/${this.file}`,
       ]
       : [
@@ -72,9 +71,6 @@ export class DownloadAsarUpdateTask extends AbortableTask<void> {
           return
         }
         const gzUrl = url + '.gz'
-        if (url.startsWith('https://files.0x.cn')) {
-          this.app.emit('download-cdn', 'asar', this.file)
-        }
         const gzResponse = await this.app.fetch(gzUrl, { signal: this.abortController.signal })
         const tracker = new PassThrough({
           transform: (chunk, encoding, callback) => {
@@ -177,8 +173,8 @@ export class DownloadFullUpdateTask extends AbortableTask<void> {
           [kPatched]: true,
           createRequest: (options: any, callback: any) => {
             if (gfw.inside) {
-              options.hostname = 'files.0xc.cn'
-              options.pathname = `/Soft_Mirrors/github-release/PbtServers/PbtModLauncherX-Dev/LatestRelease/${basename(options.pathname)}`
+              options.hostname = 'github.com'
+              options.pathname = `/PbtServers/PbtModLauncherX-Dev/LatestRelease/${basename(options.pathname)}`
               this.app.emit('download-cdn', 'electron', basename(options.pathname))
             }
             return createRequest(options, callback)

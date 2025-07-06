@@ -14,9 +14,7 @@ importers:
         specifier: ^1.6.0
         version: 1.10.0
 
-  .github/actions/get-build-number: {}
-
-  .github/actions/patch-release-note:
+  .github/actions/get-build-number:
     dependencies:
       '@actions/core':
         specifier: ^1.6.0
