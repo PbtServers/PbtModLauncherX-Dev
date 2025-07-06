@@ -18,6 +18,3 @@ En otra terminal (revisar proceso principal) -> `npm run dev:main`
 Compilar Producción -->                                                                                                                                          
 `pnpm build:renderer` (si se modifica xmcl-keystone-ui ejecutar otra vez)                                                                                        
 `pnpm build:all`
-
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T6T2CB7E1)
