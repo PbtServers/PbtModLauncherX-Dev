@@ -8,13 +8,14 @@
 
 - assets/locales.json (Locales Soportadas por el Launcher)
 
-- xmcl-keystone-ui/src/views (Eliminar [kTutorial, useTutorial, useTutorialModel])
+- xmcl-keystone-ui/src/views (Eliminar [kTutorial, useTutorial, useTutorialModel] / [SettingAbout])
  - BaseSetting.vue
  - Home.vue
  - Me.vue
  - Mod.vue
  - Multiplayer.vue
  - StoreEntry.vue
+ - Setting.vue
  
 - xmcl-keystone-ui/src/windows/main (Eliminar [kTutorial, useTutorialModel])
  - App.vue
