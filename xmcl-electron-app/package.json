@@ -2,12 +2,12 @@
     "name": "PbtModLauncherX",
     "private": true,
     "main": "./index.js",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "author": "pbtservers <pbt@pbtservers.com>",
     "description": "La version del launcher X de PbtServers adaptada y mejorada para su uso simplificado y offline",
     "license": "MIT",
     "engines": {
-        "node": ">=15.0.0"
+        "node": ">=20"
     },
     "repository": {
         "type": "git",
@@ -22,7 +22,7 @@
         "postsign": "tsx postsign.ts",
         "check": "tsc --noEmit --project tsconfig.json && tsc --noEmit --project preload/tsconfig.json",
         "dev": "cross-env NODE_ENV=development tsx dev.ts",
-        "lint": "eslint --ext .ts .",
+        "lint": "oxlint -c ./node_modules/@xmcl/oxlint-config/oxlintrc.json .",
         "lint:fix": "npm run lint -- --fix"
     },
     "devDependencies": {
@@ -33,7 +33,7 @@
         "@types/graceful-fs": "^4.1.5",
         "@types/lodash.debounce": "^4.0.7",
         "@types/lodash.throttle": "^4.1.7",
-        "@types/node": "~18",
+        "@types/node": "~20",
         "@types/semver": "^7.3.13",
         "@types/yauzl": "^2.10.0",
         "@types/yazl": "^2.4.2",
@@ -45,6 +45,7 @@
         "@xmcl/runtime": "workspace:*",
         "@xmcl/runtime-api": "workspace:*",
         "@xmcl/task": "workspace:*",
+        "@xmcl/oxlint-config": "workspace:*",
         "@xmcl/windows-utils": "^0.0.15",
         "builtin-modules": "^3.3.0",
         "chalk": "^4.1.2",
@@ -63,15 +64,16 @@
         "fs-extra": "^10.1.0",
         "graceful-fs": "^4.2.10",
         "lodash.debounce": "^4.0.8",
-        "node-datachannel": "0.9.1",
+        "node-datachannel": "0.26.0",
         "node-disk-info": "^1.3.0",
         "original-fs": "^1.2.0",
+        "oxlint": "^0.15.5",
         "semver": "^7.5.4",
         "source-map-support": "^0.5.21",
         "node-abi": "3.60.0",
         "tslib": "^2.5.0",
         "tsx": "^3.13.0",
         "typescript": "5.4.5",
-        "undici": "6.19.4"
+        "undici": "7.2.3"
     }
 }

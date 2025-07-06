@@ -1,14 +1,14 @@
 import { Session, session } from 'electron'
-import ElectronLauncherApp from './ElectronLauncherApp'
-import { UserService } from '@xmcl/runtime/user'
-import { HAS_DEV_SERVER, HOST } from './constant'
+import { existsSync } from 'fs'
+import { createReadStream } from 'fs-extra'
 import { join } from 'path'
 import { Readable } from 'stream'
-import { createReadStream } from 'fs-extra'
-import { existsSync } from 'fs'
+import ElectronLauncherApp from './ElectronLauncherApp'
+import { HAS_DEV_SERVER, HOST } from './constant'
 
 export class ElectronSession {
   private cached: Record<string, Session> = {}
+  private proxy: string = ''
 
   constructor(private app: ElectronLauncherApp) { }
 
@@ -24,6 +24,14 @@ export class ElectronSession {
     return session.fromPartition(`persist:${parsed.hostname}`)
   }
 
+  setProxy(proxy: string) {
+    this.proxy = proxy
+
+    for (const [, sess] of Object.entries(this.cached)) {
+      sess.setProxy(proxy ? { proxyRules: proxy } : { mode: 'system' })
+    }
+  }
+
   getSession(url: string) {
     if (this.cached[url]) {
       return this.cached[url]
@@ -33,6 +41,7 @@ export class ElectronSession {
     const sess = this.#resolve(url)
 
     sess.setUserAgent(ua)
+    sess.setProxy(this.proxy ? { proxyRules: this.proxy } : { mode: 'system' })
 
     if (sess !== session.defaultSession) {
       for (const e of session.defaultSession.getAllExtensions()) {
@@ -75,26 +84,15 @@ export class ElectronSession {
       }
       request.headers.append('User-Agent', ua)
 
-      if (request.url.startsWith('https://api.xmcl.app/translation') ||
-        request.url.startsWith('https://xmcl-web-api--dogfood.deno.dev') ||
-        request.url.startsWith('https://api.xmcl.app/rtc/official')
-      ) {
-        const userService = await this.app.registry.get(UserService)
-        const profile = await userService.getOfficialUserProfile().catch(() => undefined)
-        if (profile && profile.accessToken) {
-          request.headers.set('Authorization', `Bearer ${profile.accessToken}`)
-        }
-        if (request.url.startsWith('https://api.xmcl.app/translation')) {
-          request.headers.set('x-api-key', process.env.CURSEFORGE_API_KEY || '')
-        }
-      } else if (request.url.startsWith('https://api.curseforge.com')) {
-        request.headers.set('x-api-key', process.env.CURSEFORGE_API_KEY || '')
-      }
+      const headers = {} as Record<string, string>
+      request.headers.forEach((value, key) => {
+        headers[key] = value
+      })
 
       const response = await this.app.protocol.handle({
         url: new URL(url),
         method: request.method,
-        headers: request.headers,
+        headers: headers,
         body: request.body ? Readable.fromWeb(request.body as any) : request.body as any,
       })
 

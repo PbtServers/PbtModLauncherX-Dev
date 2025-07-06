@@ -10,7 +10,7 @@ const manifest: InstalledAppManifest = {
   url: HAS_DEV_SERVER ? defaultUrl : `http://${HOST}/index.html`,
   backgroundColor: '0x424242',
   minWidth: 800,
-  minHeight: 620,
+  minHeight: 400,
   vibrancy: false,
   iconSets: {
     icon: platform() === 'win32' ? lightIco : lightIcon,
@@ -34,6 +34,8 @@ const manifest: InstalledAppManifest = {
     dockIcon: lightIcon,
     darkDockIcon: darkIcon,
   },
+  defaultWidth: 800,
+  defaultHeight: 600
 }
 
 export default manifest

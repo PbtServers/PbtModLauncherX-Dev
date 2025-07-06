@@ -51,22 +51,59 @@ export default function createNativeModulePlugin(nodeModules: string): Plugin {
         },
       )
 
-      // Intercept node_modules\node-datachannel\polyfill\RTCPeerConnection.js
+      // Intercept node_modules\cpu-features\lib\index.js
       build.onLoad(
-        { filter: /^.+node-datachannel[\\/]polyfill[\\/]RTCPeerConnection\.js$/g },
+        { filter: /^.+cpu-features[\\/]lib[\\/]index\.js$/g },
+        async ({ path }) => ({
+          contents: `
+            module.exports = {
+              arch: process.arch === 'ia32' ? 'x86' : process.arch,
+            };
+            `,
+          loader: 'js',
+        }),
+      )
+
+      // node_modules\.pnpm\png2icons@2.0.1\node_modules\png2icons\lib\UPNG.js
+      build.onLoad(
+        { filter: /^.+png2icons[\\/]lib[\\/]UPNG\.js$/g },
+        async ({ path }) => {
+          let content = await readFile(path, 'utf-8')
+          content = content.replace(`if (typeof require == "function") {UZIP = require("./UZIP");}  else {UZIP = window.UZIP;}`, 'let UZIP = require("./UZIP");')
+          return {
+            contents: content,
+            loader: 'js',
+          }
+        }
+      )
+
+      // node_modules\.pnpm\yauzl@2.10.0\node_modules\yauzl\index.js
+      build.onLoad(
+        { filter: /^.+yauzl[\\/]index\.js$/g },
+        async ({ path }) => {
+          let content = await readFile(path, 'utf-8')
+          content = content.replace(
+            'var errorMessage = validateFileName(entry.fileName, self.validateFileNameOptions);',
+            `var errorMessage = self.validateFileName ? self.validateFileName(entry) : validateFileName(entry.fileName, self.validateFileNameOptions);`
+          )
+          return {
+            contents: content,
+            loader: 'js',
+          }
+        },
+      )
+
+      // Intercept node_modules\node-datachannel\dist\esm\polyfill\RTCPeerConnection.mjs
+      build.onLoad(
+        { filter: /^.+node-datachannel[\\/]dist[\\/]esm[\\/]polyfill[\\/]RTCPeerConnection\.mjs$/g },
         async ({ path }) => {
           let content = (await
             readFile(path, 'utf-8'))
 
-          // replace `constructor(init = {}) {` to `constructor(init = {}, NodeDataChannel) {`
-          content = content.replace('constructor(init = {}) {', 'constructor(init = {}, NodeDataChannel) {')
-          // remove the line `import NodeDataChannel from '../lib/index.js';`
-          content = content.replace(/import NodeDataChannel from '..\/lib\/index.js';/g, '')
-
-          content = content.replace('const [protocol, rest] = url.split(/:(.*)/);',
-            "const [protocol, hostname, port] = url.split(':');" +
-            'return { hostname, port, username: server.username, password: server.credential };\n',
-          )
+          // replace `constructor(init = {}) {` to `constructor(init = {}, PeerConnection) {`
+          content = content.replace('constructor(config = { iceServers: [], iceTransportPolicy: "all" }) {', 'constructor(config = { iceServers: [], iceTransportPolicy: "all" }, PeerConnection) {')
+          // remove the line `import { PeerConnection } from '../lib/index.mjs';`
+          content = content.replace(/import { PeerConnection } from '..\/lib\/index.mjs';/g, '')
 
           return {
             contents: content,
@@ -75,15 +112,27 @@ export default function createNativeModulePlugin(nodeModules: string): Plugin {
         },
       )
 
-      // Intercept node_modules\node-datachannel\lib\index.js
+      // Intercept node_modules\node-datachannel\dist\esm\lib\node-datachannel.mjs
       build.onLoad(
-        { filter: /^.+node-datachannel[\\/]lib[\\/]index\.c?js$/g },
+        { filter: /^.+node-datachannel[\\/]dist[\\/]esm[\\/]lib[\\/]node-datachannel\.mjs$/g },
         async ({ path }) => {
           return {
             contents: `
-            export {Audio,DataChannel,DescriptionType,PeerConnection,cleanup,initLogger,preload,setSctpSettings,RelayType,ReliabilityType,RtcpReceivingSession,Track,Video,Direction} from '../build/Release/node_datachannel.node';
-            export { default as DataChannelStream } from './datachannel-stream.js';
+            import mod from '../../../build/Release/node_datachannel.node';
+            export default mod;
             `,
+            loader: 'js',
+          }
+        },
+      )
+
+      // Intercept node_modules\node-datachannel\dist\esm\lib\index.mjs
+      // manually tree shaking
+      build.onLoad(
+        { filter: /^.+node-datachannel[\\/]dist[\\/]esm[\\/]lib[\\/]node-datachannel\.mjs$/g },
+        async ({ path }) => {
+          return {
+            contents: `import nodeDataChannel from './node-datachannel.mjs'; const PeerConnection = nodeDataChannel.PeerConnection; export { PeerConnection };`,
             loader: 'js',
           }
         },

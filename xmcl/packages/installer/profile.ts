@@ -1,13 +1,13 @@
 import { LibraryInfo, MinecraftFolder, MinecraftLocation, Version, Version as VersionJson } from '@xmcl/core'
-import { AbortableTask, CancelledError, task } from '@xmcl/task'
+import { AbortableTask, CancelledError, Task, task } from '@xmcl/task'
 import { filterEntries, open, readEntry, walkEntriesGenerator } from '@xmcl/unzip'
 import { spawn } from 'child_process'
 import { readFile, writeFile } from 'fs/promises'
-import { basename, delimiter, dirname, join, relative, sep } from 'path'
+import { delimiter, dirname, join, relative, sep } from 'path'
 import { ZipFile } from 'yauzl'
-import { InstallLibraryTask, InstallSideOption, LibraryOptions } from './minecraft'
-import { checksum, errorToString, missing, SpawnJavaOptions, waitProcess } from './utils'
 import { convertClasspathToMaven, parseManifest } from './manifest'
+import { InstallLibraryTask, InstallSideOption, LibraryOptions } from './minecraft'
+import { SpawnJavaOptions, checksum, missing, waitProcess } from './utils'
 
 export interface PostProcessor {
   /**
@@ -70,6 +70,9 @@ export interface PostProcessOptions extends SpawnJavaOptions {
    * Custom handlers to handle the post processor
    */
   handler?: (postProcessor: PostProcessor) => Promise<boolean>
+  onPostProcessFailed?: (proc: PostProcessor, jar: string, classPaths: string, mainClass: string, args: string[], error: unknown) => void
+  onPostProcessSuccess?: (proc: PostProcessor, jar: string, classPaths: string, mainClass: string, args: string[]) => void
+  customPostProcessTask?: (processor: PostProcessor[], minecraftFolder: MinecraftFolder, options: PostProcessOptions, originalTask: () => Task<void>) => Task<void>
 }
 
 export interface InstallProfileOption extends LibraryOptions, InstallSideOption, PostProcessOptions {
@@ -183,6 +186,68 @@ export function installByProfile(installProfile: InstallProfile, minecraft: Mine
   return installByProfileTask(installProfile, minecraft, options).startAndWait()
 }
 
+function parseArgumentsFromArgsFile(content: string, parentDir: string, serverProfile: Version) {
+  const args = content.split('\n').map(v => v.trim().split(' ')).flatMap(v => v).filter(v => v)
+  // find the Main class or -jar
+  let mainClass: string = ''
+  let jar: string | undefined
+  let found = false
+  for (let i = 0; i < args.length; i++) {
+    if (args[i].startsWith('-')) {
+      if (args[i] === '-jar') {
+        jar = join(parentDir, args[i + 1])
+        found = true
+        i++
+        continue
+      }
+    } else if (!mainClass) {
+      mainClass = args[i]
+      found = true
+      continue
+    }
+    if (!found) {
+      if (!args[i].startsWith('-D')) {
+        serverProfile.arguments!.jvm.push(args[i], args[i + 1])
+        i++
+      } else {
+        serverProfile.arguments!.jvm.push(args[i])
+      }
+    } else {
+      serverProfile.arguments!.game.push(args[i])
+    }
+  }
+
+  serverProfile.mainClass = mainClass
+
+  return jar
+}
+
+async function parseJar(minecraftFolder: MinecraftFolder, jar: string, installProfile: InstallProfile, serverVersion: Version) {
+  let zip: ZipFile | undefined
+  try {
+    const jsonContent: Version = JSON.parse(await readFile(minecraftFolder.getVersionJson(installProfile.version), 'utf-8'))
+    zip = await open(jar, { lazyEntries: true, autoClose: false })
+    const [entry] = await filterEntries(zip, ['META-INF/MANIFEST.MF'])
+    if (entry) {
+      const manifestContent = await readEntry(zip, entry).then((b) => b.toString())
+      const result = parseManifest(manifestContent)
+      serverVersion.mainClass = result.mainClass
+      const cp = [...result.classPath, relative(minecraftFolder.libraries, jar).replaceAll(sep, '/')]
+      serverVersion.libraries.push(...jsonContent.libraries.filter(l => !l.name.endsWith(':client')))
+      const mavenPaths = convertClasspathToMaven(cp)
+      for (const name of mavenPaths) {
+        if (serverVersion.libraries.find(l => l.name === name)) continue
+        if (name.startsWith(':')) continue
+        serverVersion.libraries.push({ name })
+      }
+    }
+  } catch (e) {
+    throw new PostProcessBadJarError(jar, e as any)
+  } finally {
+    zip?.close()
+  }
+}
+
 /**
  * Install by install profile. The install profile usually contains some preprocess should run before installing dependencies.
  *
@@ -194,15 +259,21 @@ export function installByProfileTask(installProfile: InstallProfile, minecraft: 
   return task('installByProfile', async function () {
     const minecraftFolder = MinecraftFolder.from(minecraft)
 
-    const processor = resolveProcessors(options.side || 'client', installProfile, minecraftFolder)
+    const side = options.side === 'server' ? 'server' : 'client'
+
+    const processor = resolveProcessors(side, installProfile, minecraftFolder)
 
     const installRequiredLibs = VersionJson.resolveLibraries(installProfile.libraries)
 
     await this.yield(new InstallLibraryTask(installRequiredLibs, minecraftFolder, options))
 
-    await this.yield(new PostProcessingTask(processor, minecraftFolder, options))
+    if (options.customPostProcessTask) {
+      await this.yield(options.customPostProcessTask(processor, minecraftFolder, options, () => new PostProcessingTask(processor, minecraftFolder, options)))
+    } else {
+      await this.yield(new PostProcessingTask(processor, minecraftFolder, options))
+    }
 
-    if (options.side === 'client') {
+    if (side === 'client') {
       const versionJson: VersionJson = await readFile(minecraftFolder.getVersionJson(installProfile.version)).then((b) => b.toString()).then(JSON.parse)
       const libraries = VersionJson.resolveLibraries(versionJson.libraries)
       await this.yield(new InstallLibraryTask(libraries, minecraftFolder, options))
@@ -214,89 +285,49 @@ export function installByProfileTask(installProfile: InstallProfile, minecraft: 
       let txtPath: string | undefined
       for (const p of installProfile.processors) {
         txtPath = p.args.find(a => a.startsWith('{ROOT}') && a.endsWith(argsText))
-        if (txtPath) break
-      }
-      if (!txtPath) { return }
-      txtPath = txtPath.replace('{ROOT}', minecraftFolder.root)
-
-      if (await missing(txtPath)) {
-        throw new Error(`No ${argsText} found in the forge jar`)
-      }
-
-      const content = await readFile(txtPath, 'utf-8')
-      const args = content.split('\n').map(v => v.trim().split(' ')).flatMap(v => v).filter(v => v)
-      // find the Main class or -jar
-      let mainClass: string = ''
-      let jar: string | undefined
-      const game = [] as string[]
-      const jvm = [] as string[]
-      let found = false
-      for (let i = 0; i < args.length; i++) {
-        if (args[i].startsWith('-')) {
-          if (args[i] === '-jar') {
-            jar = join(dirname(txtPath), args[i + 1])
-            found = true
-            i++
-            continue
+        if (txtPath) {
+          txtPath = txtPath.replace('{ROOT}', minecraftFolder.root)
+          if (await missing(txtPath)) {
+            throw new Error(`No ${argsText} found in the forge jar`)
           }
-        } else if (!mainClass) {
-          mainClass = args[i]
-          found = true
-          continue
-        }
-        if (!found) {
-          if (!args[i].startsWith('-D')) {
-            jvm.push(args[i], args[i + 1])
-            i++
-          } else {
-            jvm.push(args[i])
-          }
-        } else {
-          game.push(args[i])
+          break
         }
       }
-
-      const libraries: Version.Library[] = []
-      if (jar) {
-        // Open the jar and find the main class
-        let zip: ZipFile | undefined
-        try {
-          const jsonContent: Version = JSON.parse(await readFile(minecraftFolder.getVersionJson(installProfile.version), 'utf-8'))
-          zip = await open(jar, { lazyEntries: true, autoClose: false })
-          const [entry] = await filterEntries(zip, ['META-INF/MANIFEST.MF'])
-          if (entry) {
-            const manifestContent = await readEntry(zip, entry).then((b) => b.toString())
-            const result = parseManifest(manifestContent)
-            mainClass = result.mainClass
-            const cp = [...result.classPath, relative(minecraftFolder.libraries, jar).replaceAll(sep, '/')]
-            libraries.push(...jsonContent.libraries.filter(l => !l.name.endsWith(':client')))
-            for (const name of convertClasspathToMaven(cp)) {
-              if (libraries.find(l => l.name === name)) continue
-              libraries.push({ name })
-            }
-          }
-        } catch (e) {
-          throw new PostProcessBadJarError(jar, e as any)
-        } finally {
-          zip?.close()
-        }
-      }
-
       const serverProfile: Version = {
         id: installProfile.version,
-        libraries,
+        libraries: [],
         type: 'release',
         arguments: {
-          game,
-          jvm,
+          game: [],
+          jvm: [],
         },
-        jar: jar && !mainClass ? relative(minecraftFolder.libraries, jar).replaceAll(sep, '/') : undefined,
         releaseTime: new Date().toJSON(),
         time: new Date().toJSON(),
         minimumLauncherVersion: 13,
-        mainClass,
+        mainClass: '',
         inheritsFrom: installProfile.minecraft,
       }
+
+      let jar: string | undefined
+
+      if (!txtPath) {
+        // legacy
+        const info = LibraryInfo.resolve(installProfile.path)
+        const libPath = minecraftFolder.getLibraryByPath(info.path)
+        jar = libPath
+      } else {
+        const content = await readFile(txtPath, 'utf-8')
+        jar = parseArgumentsFromArgsFile(content, dirname(txtPath), serverProfile)
+      }
+
+      if (jar) {
+        await parseJar(minecraftFolder, jar, installProfile, serverProfile)
+      }
+
+      if (!serverProfile.mainClass) {
+        throw new PostProcessNoMainClassError(jar!)
+      }
+
       await writeFile(join(minecraftFolder.getVersionRoot(serverProfile.id), 'server.json'), JSON.stringify(serverProfile, null, 4))
 
       const resolvedLibraries = VersionJson.resolveLibraries(serverProfile.libraries)
@@ -327,6 +358,14 @@ export class PostProcessFailedError extends Error {
   }
 
   name = 'PostProcessFailedError'
+}
+
+export class PostProcessValidationFailedError extends PostProcessFailedError {
+  constructor(jarPath: string, commands: string[], message: string, readonly file: string, readonly expect: string, readonly actual: string) {
+    super(jarPath, commands, message)
+  }
+
+  name = 'PostProcessValidationFailedError'
 }
 
 const PAUSEED = Symbol('PAUSED')
@@ -381,12 +420,12 @@ export class PostProcessingTask extends AbortableTask<void> {
       if (!expect) {
         return false
       }
-      const sha1 = await checksum(file, 'sha1').catch((e) => '')
-      if (!sha1) return true // if file not exist, the file is not generated
-      if (!expect) return false // if expect is empty, we just need file exists
+      const sha1 = await checksum(file, 'sha1').catch((e) => '') as string
       const expected = expect.replace(/'/g, '')
+      if (!sha1) return [file, expected, sha1] as const // if file not exist, the file is not generated
+      if (!expect) return false // if expect is empty, we just need file exists
       if (expected !== sha1) {
-        return true
+        return [file, expected, sha1] as const
       }
     }
     return false
@@ -410,15 +449,23 @@ export class PostProcessingTask extends AbortableTask<void> {
           process.kill(1)
         }
       })
+      options.onPostProcessSuccess?.(proc, jarRealPath, cp, mainClass, proc.args)
     } catch (e) {
-      if (typeof e === 'string') {
-        throw new PostProcessFailedError(proc.jar, [options.java ?? 'java', ...cmd], e)
+      if (e !== PAUSEED) {
+        options.onPostProcessFailed?.(proc, jarRealPath, cp, mainClass, proc.args, e)
+      }
+      if (e instanceof Error && e.name === 'Error') {
+        throw new PostProcessFailedError(proc.jar, [options.java ?? 'java', ...cmd], e.message)
       }
       throw e
     }
-    if (proc.outputs && await this.isInvalid(proc.outputs)) {
-      throw new PostProcessFailedError(proc.jar, [options.java ?? 'java', ...cmd], 'Validate the output of process failed!')
-    }
+    // if (proc.outputs) {
+    //   const invalidation = await this.isInvalid(proc.outputs)
+    //   if (invalidation) {
+    //     const [file, expect, actual] = invalidation
+    //     throw new PostProcessValidationFailedError(proc.jar, [options.java ?? 'java', ...cmd], 'Validate the output of process failed!', file, expect, actual)
+    //   }
+    // }
   }
 
   protected async process(): Promise<void> {
@@ -443,7 +490,6 @@ export class PostProcessingTask extends AbortableTask<void> {
   }
 
   protected async abort(isCancelled: boolean): Promise<void> {
-    // this.activeProcess?.kill()
     this._abort()
   }
 

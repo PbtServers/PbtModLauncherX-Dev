@@ -17,6 +17,7 @@ declare module 'virtual:elevate.exe' {
   const content: string
   export default content
 }
+
 declare module '*.cs' {
   const content: string
   export default content

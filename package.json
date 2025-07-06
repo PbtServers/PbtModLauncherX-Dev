@@ -1,10 +1,10 @@
 {
-    "version": "1.0.4",
+    "version": "1.0.5",
     "private": true,
     "license": "MIT",
     "packageManager": "pnpm@9.3.0",
     "engines": {
-        "node": ">=16"
+        "node": ">=20"
     },
     "scripts": {
         "compile": "pnpm -r compile",
@@ -17,8 +17,5 @@
         "dev:renderer": "pnpm run --prefix=xmcl-keystone-ui dev",
         "lint": "pnpm run --prefix=xmcl-keystone-ui lint && pnpm run --prefix=xmcl-runtime lint && pnpm run --prefix=xmcl-runtime-api lint && pnpm run --prefix=xmcl-electron-app lint",
         "lint:fix": "pnpm run --prefix=xmcl-runtime-api lint:fix && pnpm run --prefix=xmcl-runtime lint:fix && pnpm run --prefix=xmcl-electron-app lint:fix && pnpm run --prefix=xmcl-keystone-ui lint:fix"
-    },
-    "dependencies": {
-        "terser": "^5.37.0"
     }
 }

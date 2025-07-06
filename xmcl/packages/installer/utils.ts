@@ -1,3 +1,4 @@
+/* eslint-disable n/no-unsupported-features/node-builtins */
 import { ChildProcess, ExecOptions, spawn, SpawnOptions } from 'child_process'
 import { Abortable } from 'events'
 import { access, mkdir, stat } from 'fs/promises'
@@ -67,10 +68,10 @@ export function waitProcess(process: ChildProcess) {
       reject(err)
     })
     process.on('close', (code) => {
-      if (code !== 0) { reject(errorMsg.join('')) } else { resolve() }
+      if (code !== 0) { reject(new Error(errorMsg.join(''))) } else { resolve() }
     })
     process.on('exit', (code) => {
-      if (code !== 0) { reject(errorMsg.join('')) } else { resolve() }
+      if (code !== 0) { reject(new Error(errorMsg.join(''))) } else { resolve() }
     })
     process.stdout?.setEncoding('utf-8')
     process.stdout?.on('data', (buf) => { })

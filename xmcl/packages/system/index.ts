@@ -21,7 +21,20 @@ export async function openFileSystem(basePath: string | Uint8Array): Promise<Fil
       return new NodeFileSystem(basePath)
     } else {
       const zip = await open(basePath)
-      const entries = await readAllEntries(zip)
+      Object.assign(zip, {
+        validateFileName: (e: Entry) => {
+          const fileName = e.fileName
+          if (/^[a-zA-Z]:/.test(fileName) || /^\//.test(fileName)) {
+            // absolute path convert to relative path
+            e.fileName = fileName.replace(/^[a-zA-Z]:/, '').replace(/^\//, '')
+          }
+          return null;
+        },
+      })
+      const entries = await readAllEntries(zip).then(es =>
+        // ignore entries with '..' in the path
+        es.filter(e => e.fileName.split("/").indexOf("..") === -1)
+      )
       const entriesRecord: Record<string, Entry> = {}
       for (const entry of entries) {
         entriesRecord[entry.fileName] = entry
@@ -142,7 +155,7 @@ class NodeZipFileSystem extends FileSystem {
   existsFile(name: string): Promise<boolean> {
     name = this.normalizePath(name)
     if (this.entries[name] ||
-            this.entries[name + '/']) { return Promise.resolve(true) }
+      this.entries[name + '/']) { return Promise.resolve(true) }
     // the root dir won't have entries
     // therefore we need to do an extra track here
     const entries = Object.keys(this.entries)

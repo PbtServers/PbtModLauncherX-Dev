@@ -1,6 +1,6 @@
 {
   "name": "@xmcl/task",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "main": "./index.ts",
   "author": {
     "name": "cijhn@hotmail.com"
@@ -23,9 +23,9 @@
   },
   "devDependencies": {
     "@types/node": "~18.15.11",
-    "@xmcl/eslint-config": "workspace:^*",
+    "@xmcl/oxlint-config": "workspace:^*",
     "esbuild": "^0.17.16",
-    "eslint": "^8.37.0",
+    "oxlint": "^0.15.5",
     "typescript": "^5.3.3"
   }
 }

@@ -16,26 +16,33 @@ export function resolveRangePolicy(rangeOptions?: RangePolicy | DefaultRangePoli
   if (isRangePolicy(rangeOptions)) {
     return rangeOptions
   }
-  return new DefaultRangePolicy(rangeOptions?.rangeThreshold ?? 2 * 1024 * 1024, 4)
+  return new DefaultRangePolicy(rangeOptions?.rangeThreshold ?? 1024 * 1024, 4)
 }
 
 export interface DefaultRangePolicyOptions {
   /**
-     * The minimum bytes a range should have.
-     * @default 2MB
-     */
+   * The minimum bytes a range should have.
+   * @default 2MB
+   */
   rangeThreshold?: number
 }
 
 export class DefaultRangePolicy implements RangePolicy {
-  constructor(readonly rangeThreshold: number, readonly concurrency: number) { }
+  constructor(
+    readonly rangeThreshold: number,
+    readonly concurrency: number
+  ) { }
+
+  getConcurrency() {
+    return this.concurrency
+  }
 
   computeRanges(total: number): Range[] {
-    const { rangeThreshold: chunkSize, concurrency } = this
-    if (total <= chunkSize) {
+    const { rangeThreshold: minChunkSize } = this
+    if (total <= minChunkSize) {
       return [{ start: 0, end: total }]
     }
-    const partSize = Math.max(chunkSize, Math.floor(total / concurrency))
+    const partSize = Math.max(minChunkSize, Math.floor(total / this.getConcurrency()))
     const ranges: Range[] = []
     for (let cur = 0, chunkSize = 0; cur < total; cur += chunkSize) {
       const remain = total - cur

@@ -1,10 +1,10 @@
 {
   "name": "@xmcl/resourcepack",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "main": "./index.ts",
   "description": "A Minecraft resource pack parser",
   "engines": {
-    "node": ">=16"
+    "node": ">=20"
   },
   "scripts": {
     "build:type": "tsc",

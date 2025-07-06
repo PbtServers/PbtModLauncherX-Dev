@@ -13,7 +13,6 @@ function getAppInstallerContent(version: string, publisher: string) {
           ProcessorArchitecture="x64"
            Uri="https://cdn.xmcl.app/releases/xmcl-${version}-win32-x64.appx" />
       <UpdateSettings>
-          <OnLaunch HoursBetweenUpdateChecks="0"/>
       </UpdateSettings>
   </AppInstaller>`
   return result.padEnd(1024, ' ')

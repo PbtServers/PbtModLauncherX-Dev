@@ -1,11 +1,11 @@
-import { fdatasync, close as sclose, open as sopen, rename as srename, stat as sstat, unlink as sunlink, write, mkdir as smkdir } from 'fs'
+import { fdatasync, close as sclose, mkdir as smkdir, open as sopen, rename as srename, stat as sstat, unlink as sunlink, write } from 'fs'
 import { dirname } from 'path'
 import { PassThrough, Writable, finished as sfinished } from 'stream'
-import { Agent, Dispatcher, errors, stream } from 'undici'
+import { Dispatcher, errors, stream } from 'undici'
 import { promisify } from 'util'
 // @ts-ignore
 import { parseRangeHeader } from 'undici/lib/core/util'
-import { getDefaultAgentOptions } from './agent'
+import { getDefaultAgent } from './agent'
 import { CheckpointHandler } from './checkpoint'
 import { ProgressController, resolveProgressController } from './progress'
 import { DefaultRangePolicy, Range, RangePolicy } from './rangePolicy'
@@ -27,7 +27,6 @@ export function getDownloadBaseOptions<T extends DownloadBaseOptions>(options?: 
     rangePolicy: options.rangePolicy,
     dispatcher: options.dispatcher,
     checkpointHandler: options.checkpointHandler,
-    skipHead: options.skipHead,
     skipRevalidate: options.skipRevalidate,
     skipPrevalidate: options.skipPrevalidate,
   }
@@ -51,8 +50,6 @@ export interface DownloadBaseOptions {
    */
   checkpointHandler?: CheckpointHandler
 
-  skipHead?: boolean
-
   skipRevalidate?: boolean
 
   skipPrevalidate?: boolean
@@ -60,8 +57,8 @@ export interface DownloadBaseOptions {
 
 export interface DownloadOptions extends DownloadBaseOptions {
   /**
-     * The url or urls (fallback) of the resource
-     */
+   * The url or urls (fallback) of the resource
+   */
   url: string | string[]
   /**
    * The header of the request
@@ -87,86 +84,41 @@ export interface DownloadOptions extends DownloadBaseOptions {
    * Will first download to pending file and then rename to actual file
    */
   pendingFile?: string
+  /**
+   * The expected total size of the file.
+   */
+  expectedTotal?: number
 }
 
-interface Context {
-  history: URL[]
-  opts: Dispatcher.DispatchOptions
-}
-interface Metadata {
-  origin?: string
-  pathname?: string
-  offset: number
-  total: number
-  acceptRange: boolean
-}
-
-async function head(url: string, headers: Record<string, string>, dispatcher: Dispatcher, signal?: AbortSignal) {
-  try {
-    const { opaque } = await stream(url, {
-      method: 'HEAD',
-      headers,
-      dispatcher,
-      signal,
-      opaque: {},
-      headersTimeout: 5000,
-      bodyTimeout: 5000,
-      throwOnError: true,
-    }, ({ opaque, headers, context, statusCode }) => {
-      const length = headers['content-length'] ? parseInt(headers['content-length'] as string) : 0
-      const rangeHeader = parseRangeHeader(headers['content-range'])
-      const offset = rangeHeader?.start ?? 0
-      const total = rangeHeader?.size || length
-      const ctx = context as Context
-      const metadata = opaque as Metadata
-
-      metadata.offset = offset
-      metadata.total = total
-      metadata.acceptRange = headers['accept-ranges'] === 'bytes'
-
-      if (ctx) {
-        metadata.pathname = ctx.opts.path
-        metadata.origin = ctx.opts.origin as string
-      }
-
-      const pass = new PassThrough()
-
-      if (statusCode === 203) {
-        setImmediate(() => pass.emit('error', new errors.ResponseStatusCodeError('', statusCode, headers, '')))
-      }
-
-      return pass
-    })
-
-    return opaque as Metadata
-  } catch (e) {
-    if (e instanceof errors.ResponseStatusCodeError) {
-      if (e.statusCode === 405) {
-        return undefined
-      }
-    }
-    throw e
-  }
-}
-
-async function get(url: string, fd: number, destination: string, headers: Record<string, string>, range: Range | undefined,
-  dispatcher: Dispatcher, progress: (url: URL, chunkSize: number, written: number, partLength: number, totalLength: number) => void, signal?: AbortSignal) {
-  const parsedUrl = new URL(url)
-
+async function getWithRange(
+  url: string,
+  fd: number,
+  headers: Record<string, string>,
+  range: Range,
+  dispatcher: Dispatcher,
+  onHeaderMetadata: (metadata: HeaderMetadata) => void,
+  onDataWritten: (chunkSize: number, metadata: HeaderMetadata) => void,
+  signal?: AbortSignal,
+) {
   let writable: Writable | undefined
   try {
     const requestHeader = { ...headers }
-    if (range) {
+    const isInitializeRequest = range.end === -1
+    if (!isInitializeRequest) {
       requestHeader.range = `bytes=${range.start}-${range.end}`
+    }
+    const noRetry = {
+      value: true,
     }
     await stream(url, {
       method: 'GET',
       maxRedirections: 5,
       headers: requestHeader,
-      throwOnError: true,
       dispatcher,
       signal,
-    }, ({ statusCode, headers }) => {
+      // @ts-expect-error
+      noRetry,
+    }, ({ statusCode, headers, context }) => {
       if (statusCode === 203 || statusCode >= 300) {
         const pass = new PassThrough()
 
@@ -177,31 +129,56 @@ async function get(url: string, fd: number, destination: string, headers: Record
 
       const length = headers['content-length'] ? parseInt(headers['content-length'] as string) : 0
       const rangeHeader = parseRangeHeader(headers['content-range'])
-      const offset = rangeHeader?.start ?? range?.start ?? 0
-      const totalLength = rangeHeader?.size ?? 0
+      if (range.start && rangeHeader?.start && range.start !== rangeHeader.start) {
+        throw new RangeError(`Range mismatch. ${range.start} !== ${rangeHeader.start}`)
+      }
 
-      let written = 0
+      const redirectedUrl = 'history' in context && context.history instanceof Array ? context.history[context.history.length - 1] : undefined
+
+      const acceptRange = headers['accept-ranges'] === 'bytes'
+
+      if (acceptRange) {
+        noRetry.value = false
+      }
+
+      const metadata = {
+        url: redirectedUrl ? redirectedUrl : url,
+        contentLength: length,
+        range: headers['accept-ranges'] === 'bytes' ? {
+          offset: rangeHeader?.start ?? range.start,
+          total: rangeHeader?.size ?? length,
+        } : undefined,
+      }
+      onHeaderMetadata(metadata)
+
+      function writeBuf(chunk: Buffer, callback: (err?: Error | null) => void) {
+        const reachLimit = range.end !== -1 && (range.start + chunk.length) > range.end
+        const killRequest = isInitializeRequest && reachLimit
+        write(fd, chunk, 0, chunk.length, range.start, (err) => {
+          range.start += chunk.length
+          onDataWritten(chunk.length, metadata)
+          if (killRequest) {
+            callback(new Error('REACHED_THE_END'))
+          } else {
+            callback(err)
+          }
+        })
+      }
+
       const writable = new Writable({
         write(chunk, encoding, callback) {
-          write(fd, chunk, 0, chunk.length, offset + written, callback)
-          written += chunk.length
-          progress(parsedUrl, chunk.length, written, length, totalLength)
+          writeBuf(chunk, callback)
         },
         writev(chunks, callback) {
           const buffer = Buffer.concat(chunks.map((c) => c.chunk))
-          write(fd, buffer, 0, buffer.length, offset + written, callback)
-          written += buffer.length
-          progress(parsedUrl, buffer.length, written, length, totalLength)
+          writeBuf(buffer, callback)
         },
         final(callback) {
-          progress(parsedUrl, 0, written, length, totalLength)
+          onDataWritten(0, metadata)
           callback()
         },
-        highWaterMark: 1024 * 1024,
         emitClose: false,
       })
-
-      progress(parsedUrl, 0, written, length, totalLength)
 
       return writable
     })
@@ -210,6 +187,9 @@ async function get(url: string, fd: number, destination: string, headers: Record
       await finished(writable)
     }
   } catch (e) {
+    if ((e as any)?.message === 'REACHED_THE_END') {
+      return
+    }
     const err = e as any
     if (!err.stack) {
       err.stack = new Error().stack
@@ -218,20 +198,69 @@ async function get(url: string, fd: number, destination: string, headers: Record
   }
 }
 
-function computeRanges(metadata: Metadata | undefined, rangePolicy: RangePolicy) {
-  if (!metadata) return [undefined]
-  const ranges = rangePolicy.computeRanges(metadata.total)
-  if (ranges.length > 1) return ranges
-  return [undefined]
+class DownloadJob {
+  constructor(
+    readonly url: string,
+    readonly fd: number,
+    readonly headers: Record<string, string>,
+    readonly expectedTotal: number | undefined,
+    readonly onProgress: (url: URL | string, chunkSize: number, progress: number, total: number) => void,
+    readonly dispatcher: Dispatcher,
+    readonly rangePolicy: RangePolicy,
+    readonly signal?: AbortSignal,
+  ) { 
+    this.contentLength = expectedTotal ?? 0
+  }
+
+  readonly progress = [{
+    start: 0,
+    end: -1,
+  }] as Range[]
+
+  public contentLength = 0
+
+  async run() {
+    const progress = this.progress
+    const rangesPromises = [] as Promise<unknown>[]
+    const sumProgress = () => this.contentLength - progress.map(v => v.end - v.start + 1).reduce((a, b) => a + b, 0)
+    const initial = getWithRange(this.url, this.fd, this.headers, progress[0], this.dispatcher, (metadata) => {
+      this.contentLength = metadata.contentLength
+      if (metadata.range) {
+        // start to divide the range
+        const ranges = this.rangePolicy.computeRanges(metadata.contentLength)
+        if (ranges.length > 0) {
+          const [first, ...pendings] = ranges
+          progress[0].end = first.end
+          progress.push(...pendings)
+          rangesPromises.push(...pendings.map((range) => getWithRange(metadata.url, this.fd, this.headers, range, this.dispatcher, () => {
+            this.onProgress(metadata.url, 0, sumProgress(), metadata.contentLength)
+          }, (chunkSize) => {
+            this.onProgress(metadata.url, chunkSize, sumProgress(), metadata.contentLength)
+          }, this.signal)))
+        } else {
+          progress[0].end = metadata.contentLength - 1
+        }
+      } else {
+        progress[0].end = metadata.contentLength - 1
+      }
+    }, (chunkSize, metadata) => {
+      // emit update
+      this.onProgress(metadata.url, chunkSize, sumProgress(), metadata.contentLength)
+    }, this.signal)
+
+    const initialResult = await initial
+    const result = await Promise.all(rangesPromises)
+
+    return [initialResult, ...result]
+  }
 }
 
-function getUrl(metadata: Metadata | undefined, original: string) {
-  if (!metadata || !metadata.pathname || !metadata.origin) return original
-  try {
-    const url = new URL(metadata.pathname, metadata.origin)
-    return url.toString()
-  } catch {
-    return original
+interface HeaderMetadata {
+  url: string
+  contentLength: number
+  range?: {
+    offset: number
+    total: number
   }
 }
 
@@ -249,13 +278,15 @@ export async function download(options: DownloadOptions) {
   const skipPrevalidate = options.skipPrevalidate
   const skipRevalidate = options.skipRevalidate
   const rangePolicy = options?.rangePolicy ?? new DefaultRangePolicy(2 * 1024 * 1024, 4)
-  const dispatcher = options?.dispatcher ?? new Agent(getDefaultAgentOptions())
-
-  await mkdir(dirname(destination), { recursive: true }).catch(() => { })
+  const dispatcher = options?.dispatcher ?? getDefaultAgent()
+  const expectedTotal = options.expectedTotal
 
   if (!skipPrevalidate && validator) {
     const error = await validator.validate(destination, urls[0]).catch((e) => e)
     if (!error) {
+      if (options.expectedTotal) {
+        progressController(new URL(urls[0]), 0, options.expectedTotal, options.expectedTotal)
+      }
       // file is already downloaded and validated
       return
     }
@@ -273,7 +304,8 @@ export async function download(options: DownloadOptions) {
   }
 
   const output = pendingFile || destination
-  const fd = await open(output, 'w').catch((e) => {
+  await mkdir(dirname(destination), { recursive: true }).catch(() => { })
+  function assignError(e: Error) {
     e.stack = new Error().stack
     Object.assign(e, {
       phase: 'open',
@@ -282,6 +314,16 @@ export async function download(options: DownloadOptions) {
       destination,
       pendingFile,
     })
+  }
+  const fd = await open(output, 'w').catch(async (e) => {
+    if (e.code === 'ENOENT') {
+      await mkdir(dirname(destination), { recursive: true })
+      return await open(output, 'w').catch((e) => {
+        assignError(e)
+        throw e
+      })
+    }
+    assignError(e)
     throw e
   })
 
@@ -296,45 +338,12 @@ export async function download(options: DownloadOptions) {
         destination,
         pendingFile,
       })
-      const metadataOrMetadata = !options.skipHead
-        ? await head(url, headers, dispatcher, abortSignal).catch((e) => {
-          return decorate(e, 'head') as Error
-        })
-        : undefined
-      if (metadataOrMetadata instanceof Error) {
-        if (metadataOrMetadata instanceof errors.RequestAbortedError) throw metadataOrMetadata
-        aggregate.push(metadataOrMetadata)
-        continue
-      }
-      const metadata = metadataOrMetadata
-      const ranges = metadata?.acceptRange ? computeRanges(metadata, rangePolicy) : [undefined]
-      const redirectedUrl = getUrl(metadata, url)
-      let writtens = ranges.map(() => 0)
-      let totals = ranges.map(() => 0)
-      let results = await Promise.all(ranges.map(
-        (range, index) => get(redirectedUrl, fd, output, headers, range, dispatcher, (url, chunk, written, partLength, totalLength) => {
-          writtens[index] = written
-          totals[index] = partLength
-          const writtenTotal = writtens.reduce((a, b) => a + b, 0)
-          const totalTotal = metadata?.total || totalLength || totals.reduce((a, b) => a + b, 0)
-          progressController(url, chunk, writtenTotal, totalTotal)
-        }, abortSignal)),
-      )
 
-      if (metadataOrMetadata && results.some(e => e instanceof errors.ResponseStatusCodeError)) {
-        // Invalid range, we will retry without range
-        writtens = [0]
-        totals = [0]
-        results = [
-          await get(redirectedUrl, fd, output, headers, undefined, dispatcher, (url, chunk, written, partLength, totalLength) => {
-            writtens[0] = written
-            totals[0] = partLength
-            const writtenTotal = writtens.reduce((a, b) => a + b, 0)
-            const totalTotal = metadata?.total || totalLength || totals.reduce((a, b) => a + b, 0)
-            progressController(url, chunk, writtenTotal, totalTotal)
-          }, abortSignal),
-        ]
-      }
+      const job = new DownloadJob(url, fd, headers, expectedTotal, (url, chunkSize, progress, total) => {
+        progressController(typeof url === 'string' ? new URL(url) : url, chunkSize, progress, !total && expectedTotal ? expectedTotal : total)
+      }, dispatcher, rangePolicy, abortSignal)
+
+      const results = await job.run()
 
       let noErrors = true
       for (const e of results) {
@@ -381,19 +390,7 @@ export async function download(options: DownloadOptions) {
     }
 
     if (aggregate.length > 1) {
-      const flatten = [] as Error[]
-      const flatError = (e: any) => {
-        if (e instanceof AggregateError) {
-          for (const err of e.errors) {
-            flatError(err)
-          }
-        }
-        flatten.push(e)
-      }
-      for (const e of aggregate) {
-        flatError(e)
-      }
-      throw new AggregateError(flatten)
+      throw new AggregateError(aggregate.flatMap(e => e instanceof AggregateError ? e.errors : e))
     }
 
     throw aggregate[0]

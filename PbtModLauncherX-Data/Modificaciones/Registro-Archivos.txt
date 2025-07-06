@@ -29,6 +29,8 @@
 
 - xmcl-electron-app/postinstall.ts (Agregar API Key)
 
+- xmcl-electron-app/build.ts (Actualizar Opciones de Build)
+
 - xmcl-keystone-ui/src/multiplayer.html (Arreglar Branding PbtModLauncherX)
 
 - ‎xmcl-runtime/launch/LaunchService.ts (Arreglar Branding PbtModLauncherX)
