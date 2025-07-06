@@ -22,6 +22,28 @@
     />
 
     <v-list-item>
+      <v-list-item-content class="max-w-70 mr-4">
+        <v-list-item-title>
+          {{ t("instance.preExecCommand") }}
+          <BaseSettingGlobalLabel
+            :global="isGlobalPreExecuteCommand"
+            @clear="resetPreExecuteCommand"
+            @click="gotoSetting"
+          />
+        </v-list-item-title>
+        <v-list-item-subtitle>
+          <v-text-field
+            v-model="preExecuteCommand"
+            outlined
+            filled
+            dense
+            class="m-1 mt-2"
+            hide-details
+            required
+            :placeholder="t('instance.preExecCommandHint')"
+          />
+        </v-list-item-subtitle>
+      </v-list-item-content>
       <v-list-item-content style="flex: 1">
         <v-list-item-title>
           {{ t("instance.mcOptions") }}
@@ -159,26 +181,27 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-divider />
   </v-list>
 </template>
 
 <script lang=ts setup>
-import { useNotifier } from '../composables/notifier'
-import { useLaunchPreview } from '../composables/launchPreview'
-import { injection } from '@/util/inject'
-import { InstanceEditInjectionKey } from '../composables/instanceEdit'
-import BaseSettingGlobalLabel from './BaseSettingGlobalLabel.vue'
 import SettingItemCheckbox from '@/components/SettingItemCheckbox.vue'
 import { useService } from '@/composables'
+import { useSimpleDialog } from '@/composables/dialog'
+import { kInstance } from '@/composables/instance'
+import { injection } from '@/util/inject'
 import { InstanceOptionsServiceKey, InstanceServerInfoServiceKey } from '@xmcl/runtime-api'
 import useSWRV from 'swrv'
-import { kInstance } from '@/composables/instance'
-import { useSimpleDialog } from '@/composables/dialog'
+import { InstanceEditInjectionKey } from '../composables/instanceEdit'
+import { useLaunchPreview } from '../composables/launchPreview'
+import { useNotifier } from '../composables/notifier'
+import BaseSettingGlobalLabel from './BaseSettingGlobalLabel.vue'
 
 const { t } = useI18n()
 const { preview, refresh, command, error } = useLaunchPreview()
 const { notify } = useNotifier()
-const { save, isGlobalMcOptions, resetMcOptions, mcOptions } = injection(InstanceEditInjectionKey)
+const { save, isGlobalMcOptions, resetMcOptions, mcOptions, isGlobalPreExecuteCommand, resetPreExecuteCommand, preExecuteCommand } = injection(InstanceEditInjectionKey)
 const isPreviewShown = ref(false)
 const previewText = computed(() => preview.value.join('\n'))
 const { push } = useRouter()
@@ -216,7 +239,6 @@ async function copyToClipboard(side = 'client' as 'client' | 'server') {
 const gotoSetting = () => {
   push('/setting')
 }
-
 </script>
 
 <style scoped=true>

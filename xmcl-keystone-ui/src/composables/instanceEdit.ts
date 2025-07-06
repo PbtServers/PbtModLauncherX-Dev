@@ -4,6 +4,7 @@ import { useGlobalSettings } from './setting'
 import debounce from 'lodash.debounce'
 import { injection } from '@/util/inject'
 import { kLaunchButton } from './launchButton'
+import { AnyError } from '@/util/error'
 
 export const InstanceEditInjectionKey: InjectionKey<ReturnType<typeof useInstanceEdit>> = Symbol('InstanceEdit')
 
@@ -18,7 +19,8 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     globalAssignMemory, globalFastLaunch, globalHideLauncher, globalMaxMemory,
     globalMcOptions, globalMinMemory, globalShowLog, globalVmOptions,
     globalDisableAuthlibInjector, globalDisableElyByAuthlib,
-    globalPrependCommand,
+    globalPrependCommand, globalPreExecuteCommand,
+    globalEnv, globalResolution,
   } = useGlobalSettings()
 
   const data = reactive({
@@ -36,8 +38,10 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     vmOptions: instance.value?.vmOptions?.join(' '),
     mcOptions: instance.value?.mcOptions?.join(' '),
     prependCommand: instance.value?.prependCommand,
+    preExecuteCommand: instance.value?.preExecuteCommand,
     maxMemory: instance.value?.maxMemory,
     minMemory: instance.value?.minMemory,
+    env: instance.value?.env ?? {},
 
     runtime: {
       minecraft: instance.value?.runtime.minecraft ?? '',
@@ -63,6 +67,8 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
 
     icon: instance.value?.icon,
 
+    resolution: instance.value?.resolution,
+
     loading: true,
   })
 
@@ -77,6 +83,9 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
   const isGlobalDisableElyByAuthlib = computed(() => data.disableElyByAuthlib === undefined)
   const isGlobalDisableAuthlibInjector = computed(() => data.disableAuthlibInjector === undefined)
   const isGlobalPrependCommand = computed(() => data.prependCommand === undefined)
+  const isGlobalPreExecuteCommand = computed(() => data.preExecuteCommand === undefined)
+  const isGlobalResolution = computed(() => data.resolution === undefined)
+
   const resetAssignMemory = () => {
     set(data, 'assignMemory', undefined)
     set(data, 'minMemory', undefined)
@@ -89,6 +98,15 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
   }
   const resetPrependCommand = () => {
     set(data, 'prependCommand', undefined)
+    saveJIT()
+  }
+  const resetPreExecuteCommand = () => {
+    set(data, 'preExecuteCommand', undefined)
+    saveJIT()
+  }
+
+  const resetResolution = () => {
+    set(data, 'resolution', undefined)
     saveJIT()
   }
   const resetMcOptions = () => {
@@ -152,6 +170,10 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     get: () => data.prependCommand ?? globalPrependCommand.value,
     set: (v) => { set(data, 'prependCommand', v); saveJIT() },
   })
+  const preExecuteCommand = computed({
+    get: () => data.preExecuteCommand ?? globalPreExecuteCommand.value,
+    set: (v) => { set(data, 'preExecuteCommand', v); saveJIT() },
+  })
   const fastLaunch = computed({
     get: () => data.fastLaunch ?? globalFastLaunch.value,
     set: (v) => { set(data, 'fastLaunch', v); saveJIT() },
@@ -175,6 +197,14 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
   const javaPath = computed({
     get: () => data.javaPath,
     set: (v) => { data.javaPath = v; saveJIT() },
+  })
+  const resolution = computed({
+    get: () => data.resolution ?? globalResolution.value,
+    set: (v) => { set(data, 'resolution', v); saveJIT() },
+  })
+  const env = computed({
+    get: () => data.env,
+    set: (v) => { data.env = v; saveJIT() },
   })
 
   const isModified = computed(() => {
@@ -265,8 +295,11 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       disableAuthlibInjector: data.disableAuthlibInjector,
       disableElybyAuthlib: data.disableElyByAuthlib,
       prependCommand: data.prependCommand,
+      preExecuteCommand: data.preExecuteCommand,
       author: data.author,
       description: data.description,
+      env: data.env,
+      resolution: data.resolution,
     } as EditInstanceOptions
     if (instance.value.server) {
       payload.server = instance.value?.server
@@ -288,6 +321,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       version: data.version,
       runtime: data.runtime,
       icon: data.icon,
+      resolution: data.resolution,
     }
     if (!instance.value?.server) {
       await edit({
@@ -333,6 +367,8 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       data.disableAuthlibInjector = current.disableAuthlibInjector
       data.disableElyByAuthlib = current.disableElybyAuthlib
       data.prependCommand = current.prependCommand
+      data.preExecuteCommand = current.preExecuteCommand
+      data.env = current.env ?? {}
 
       if (current.server) {
         data.host = current.server.host
@@ -346,6 +382,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       data.javaPath = current.java
       data.assignMemory = current.assignMemory
       data.fastLaunch = current.fastLaunch
+      data.resolution = current.resolution
     }
   }
 
@@ -362,14 +399,18 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     isGlobalDisableElyByAuthlib,
     isGlobalDisableAuthlibInjector,
     isGlobalPrependCommand,
+    isGlobalPreExecuteCommand,
     assignMemory,
     prependCommand,
+    preExecuteCommand,
     fastLaunch,
     hideLauncher,
     showLog,
     javaPath,
     disableAuthlibInjector,
     disableElyByAuthlib,
+    env,
+    globalEnv,
     resetAssignMemory,
     resetVmOptions,
     resetMcOptions,
@@ -379,10 +420,14 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     resetDisableAuthlibInjector,
     resetDisableElyByAuthlib,
     resetPrependCommand,
+    resetPreExecuteCommand,
+    resetResolution,
     minMemory,
     maxMemory,
     mcOptions,
     vmOptions,
+    resolution,
+    isGlobalResolution,
     data,
     save,
     load,
@@ -484,15 +529,19 @@ export function useInstanceEditVersions(data: Pick<InstanceData, 'runtime' | 've
   }
   function onSelectLocalVersion(version: string) {
     data.version = version
-    const v = versions.value.find(ver => ver.id === version)!
-    data.runtime.minecraft = v.minecraft
-    data.runtime.forge = v.forge
-    data.runtime.liteloader = v.liteloader
-    data.runtime.fabricLoader = v.fabric
-    data.runtime.neoForged = v.neoForged
-    data.runtime.optifine = v.optifine
-    data.runtime.quiltLoader = v.quilt
-    data.runtime.labyMod = v.labyMod
+    const v = versions.value.find(ver => ver.id === version)
+    if (v) {
+      data.runtime.minecraft = v.minecraft
+      data.runtime.forge = v.forge
+      data.runtime.liteloader = v.liteloader
+      data.runtime.fabricLoader = v.fabric
+      data.runtime.neoForged = v.neoForged
+      data.runtime.optifine = v.optifine
+      data.runtime.quiltLoader = v.quilt
+      data.runtime.labyMod = v.labyMod
+    } else {
+      throw new AnyError('SelectLocalVersionError', `Cannot find version ${version}`)
+    }
   }
 
   return {

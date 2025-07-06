@@ -3,6 +3,7 @@ import { useService } from '@/composables'
 import { useDialog } from '@/composables/dialog'
 import { kInstance } from '@/composables/instance'
 import { kInstanceModsContext } from '@/composables/instanceMods'
+import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
 import { ModFile } from '@/util/mod'
 import { InstanceModsServiceKey } from '@xmcl/runtime-api'
@@ -23,16 +24,20 @@ const items = computed(() => {
 })
 
 function selectDefault(files: ModFile[]) {
-  return files.toSorted((a, b) => !a.enabled ? 1 : a.fileName.length - b.fileName.length)[0]
+  return files.toSorted((a, b) => !a.enabled ? 1 : b.mtime - a.mtime)[0]
 }
 
-watch(conflicted, (all) => {
+function selectDefaults(all: Record<string, ModFile[]> ) {
   const newOmitted = {} as Record<string, ModFile>
   for (const i of Object.entries(all)) {
     const [modId, files] = i
     newOmitted[modId] = selectDefault(files)
   }
   omitted.value = newOmitted
+}
+
+watch(conflicted, (all) => {
+  selectDefaults(all)
 })
 
 const omitted = ref({} as Record<string, ModFile>)
@@ -58,6 +63,21 @@ function process() {
   isShown.value = false
 }
 
+const { push, currentRoute } = useRouter()
+
+function view(modId: string) {
+  const all = conflicted.value[modId]
+  for (const file of all) {
+    const modrinthId = file.modrinth?.projectId
+    const curseforgeId = file.curseforge?.projectId
+    const name = file.name
+    const id = modrinthId || curseforgeId || name
+    push({ query: { ...currentRoute.query, id: id.toString() } })
+    isShown.value = false
+    return
+  }
+}
+
 </script>
 
 <template>
@@ -81,6 +101,16 @@ function process() {
               :key="item + i"
             >
               {{ item }}
+              <v-spacer />
+              <v-btn
+                text
+                small
+                @click="view(item)"
+              >
+                <v-icon small>
+                  arrow_forward
+                </v-icon>
+              </v-btn>
             </v-subheader>
             <v-list-item
               v-else
@@ -108,6 +138,13 @@ function process() {
       </v-card-text>
       <v-card-actions>
         <v-spacer />
+        <v-btn
+        v-shared-tooltip="t('filter')"
+          icon 
+          @click="selectDefaults(conflicted)"
+        >
+          <v-icon>filter_alt</v-icon>
+        </v-btn>
         <v-btn
           text
           color="primary"

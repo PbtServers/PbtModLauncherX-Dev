@@ -49,7 +49,7 @@
           step="1"
         >
           <SetLocale
-            v-model="locale"
+            v-model="localeRef"
           />
         </v-stepper-content>
         <v-stepper-content
@@ -111,14 +111,14 @@
 <script lang=ts setup>
 import { useService } from '@/composables'
 import { injection } from '@/util/inject'
-import { BaseServiceKey, Drive } from '@xmcl/runtime-api'
+import { BaseServiceKey, Drive, InvalidDirectoryErrorCode } from '@xmcl/runtime-api'
 import SetupAppearance from './SetupAppearance.vue'
 import SetDataRoot from './SetupDataRoot.vue'
 import SetupFooter from './SetupFooter.vue'
 import SetupAccount from './SetupAccount.vue'
 import SetLocale from './SetupLocale.vue'
 import { kSettingsState } from '@/composables/setting'
-import { kTheme } from '@/composables/theme'
+import { getDefaultTheme, kTheme } from '@/composables/theme'
 
 const emit = defineEmits(['ready'])
 const { validateDataDictionary } = useService(BaseServiceKey)
@@ -131,6 +131,13 @@ const prev = () => {
 }
 
 const { locale, t } = useI18n()
+const localeRef = computed({
+  get: () => state.value?.locale ?? locale.value,
+  set: (v) => {
+    state.value?.localeSet(v ?? locale.value)
+  },
+})
+
 const currentTitle = computed(() => {
   if (data.step === 1) return t('setup.locale.name')
   if (data.step === 2) return t('setup.dataRoot.name')
@@ -142,7 +149,7 @@ const data = reactive({
   minecraftPath: '',
   instancePath: '',
   path: '',
-  pathError: '' as '' | 'noperm' | 'bad' | 'nondictionary' | 'exists',
+  pathError: '' as InvalidDirectoryErrorCode,
   defaultPath: '',
   loading: false,
   drives: [] as Drive[],
@@ -151,6 +158,9 @@ const data = reactive({
 provide('setup', data)
 bootstrap.preset().then(({ minecraftPath, defaultPath, locale: locale_, drives }) => {
   data.fetching = false
+  if (locale_.startsWith('en')) {
+    locale_ = 'en'
+  }
   locale.value = locale_
   data.minecraftPath = minecraftPath
   data.instancePath = minecraftPath
@@ -162,7 +172,7 @@ bootstrap.preset().then(({ minecraftPath, defaultPath, locale: locale_, drives }
 const hasError = computed(() => !!data.pathError && data.pathError !== 'exists')
 watch(() => data.path, (newPath) => {
   data.loading = true
-  data.pathError = ''
+  data.pathError = undefined
   validateDataDictionary(newPath).then((reason) => {
     data.loading = false
     if (!reason) {
@@ -173,10 +183,19 @@ watch(() => data.path, (newPath) => {
   })
 })
 
-const { darkTheme } = injection(kTheme)
+const { isDark, currentTheme } = injection(kTheme)
+watch(isDark, (dark) => {
+  currentTheme.value = { ...getDefaultTheme(), dark }
+})
 
 const updateTheme = (theme: 'dark' | 'system' | 'light') => {
-  darkTheme.value = theme
+  if (theme === 'system') {
+    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  } else if (theme === 'dark') {
+    isDark.value = true
+  } else {
+    isDark.value = false
+  }
 }
 
 updateTheme(data.theme as any)

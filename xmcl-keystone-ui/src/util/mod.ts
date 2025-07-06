@@ -1,7 +1,8 @@
-import { FabricModMetadata, ForgeModMetadata, LiteloaderModMetadata, QuiltModMetadata } from '@xmcl/mod-parser'
+import { FabricModMetadata, ForgeModMetadata, ForgeModTOMLData, LiteloaderModMetadata, QuiltModMetadata } from '@xmcl/mod-parser'
 import { ForgeModCommonMetadata, NeoforgeMetadata, Resource, ResourceSourceCurseforge, ResourceSourceModrinth, RuntimeVersions } from '@xmcl/runtime-api'
-import { ModDependencies, getModDependencies, getModProvides } from './modDependencies'
+import { ModDependencies, ModDependency, getModDependencies, getModProvides } from './modDependencies'
 import { ProjectFile } from './search'
+import { notNullish } from '@vueuse/core'
 
 interface ModMetadata {
   /**
@@ -29,7 +30,7 @@ export interface ModFile extends ModMetadata, ProjectFile {
    */
   path: string
   /**
-   * The mod id
+   * The mod id. This is computed from the metadata.
    */
   modId: string
   /**
@@ -75,7 +76,9 @@ export interface ModFile extends ModMetadata, ProjectFile {
   /**
    * All mod dependencies
    */
-  dependencies: ModDependencies
+  dependencies: {
+    [runtime: string]: ModDependencies
+  }
   /**
    * The provided runtime
    */
@@ -107,19 +110,23 @@ function getUrl(resource: Resource) {
   // return resource.uris.find(u => u?.startsWith('http')) ?? ''
 }
 
+function getLinksFromTOML(links: ModFile['links'], m: ForgeModTOMLData) {
+  if (m.issueTrackerURL) {
+    links.issues = m.issueTrackerURL
+  }
+  if (m.updateJSONURL) {
+    links.update = m.updateJSONURL
+  }
+  if (m.displayURL) {
+    links.home = m.displayURL
+  }
+}
+
 function getForgeModLinks(metadata: ForgeModMetadata) {
   const links: ModFile['links'] = {}
   if (metadata.modsToml && metadata.modsToml.length > 0) {
     for (const m of metadata.modsToml) {
-      if (m.issueTrackerURL) {
-        links.issues = m.issueTrackerURL
-      }
-      if (m.updateJSONURL) {
-        links.update = m.updateJSONURL
-      }
-      if (m.displayURL) {
-        links.home = m.displayURL
-      }
+      getLinksFromTOML(links, m)
     }
   } else if (metadata.mcmodInfo && metadata.mcmodInfo.length > 0) {
     for (const m of metadata.mcmodInfo) {
@@ -163,6 +170,87 @@ function getFabricLikeModLinks(contact?: FabricModMetadata['contact'] & { source
   return links
 }
 
+export function getModSide(mod: ModFile, runtime: 'fabric' | 'forge' | 'neoforge' | 'quilt') {
+  const fabric = mod.fabric
+  if (fabric && runtime) {
+    let env: 'client' | 'server' | '*' | undefined
+    if (fabric instanceof Array) {
+      env = fabric[0].environment
+    } else {
+      env = fabric.environment
+    }
+    if (env === '*') {
+      return 'BOTH'
+    }
+    if (env === 'client') {
+      return 'CLIENT'
+    }
+    if (env === 'server') {
+      return 'SERVER'
+    }
+  }
+  if (mod.quilt && runtime === 'quilt') {
+    const quilt = mod.quilt
+    if (quilt.quilt_loader.minecraft?.environment === '*') {
+      return 'BOTH'
+    }
+    if (quilt.quilt_loader.minecraft?.environment === 'client') {
+      return 'CLIENT'
+    }
+    if (quilt.quilt_loader.minecraft?.environment === 'dedicated_server') {
+      return 'SERVER'
+    }
+  }
+  if (mod.forge && runtime === 'forge') {
+    const forge = mod.forge
+    const tomls = forge.modsToml
+    const sides = new Set(tomls.reduce((acc, toml) => {
+      return [...acc, ...toml.dependencies.map(d => d.side).filter(notNullish)]
+    }, [] as Array<"BOTH" | "CLIENT" | "SERVER">))
+    if (sides.has('BOTH') || (sides.has('CLIENT') && sides.has('SERVER'))) {
+      return 'BOTH'
+    }
+    if (sides.has('CLIENT')) {
+      return 'CLIENT'
+    }
+    if (sides.has('SERVER')) {
+      return 'SERVER'
+    }
+  }
+  if (mod.neoforge && runtime === 'neoforge' && mod.neoforge.dependencies instanceof Array) {
+    const sides = new Set(mod.neoforge.dependencies.map(d => d.side).filter(notNullish))
+    if (sides.has('BOTH') || (sides.has('CLIENT') && sides.has('SERVER'))) {
+      return 'BOTH'
+    }
+    if (sides.has('CLIENT')) {
+      return 'CLIENT'
+    }
+    if (sides.has('SERVER')) {
+      return 'SERVER'
+    }
+  }
+
+  return ''
+}
+
+export function isModFile(file: ProjectFile): file is ModFile {
+  return (file as ModFile).dependencies !== undefined
+}
+
+export function getModMinecraftVersion(mod: ModFile) {
+  for (const deps of Object.values(mod.dependencies)) {
+    for (const dep of deps) {
+      if (dep.modId === 'minecraft') {
+        const mcDep = dep
+        const mcVer = (mcDep?.semanticVersion instanceof Array ? mcDep.semanticVersion.join(' ') : mcDep?.semanticVersion) ?? mcDep?.versionRange
+        if (mcVer) {
+          return mcVer
+        }
+      }
+    }
+  }
+}
+
 export function getModFileFromResource(resource: Resource, runtime: RuntimeVersions): ModFile {
   const modItem: ModFile = markRaw({
     path: resource.path,
@@ -175,11 +263,7 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
     links: {},
     provideRuntime: markRaw(getModProvides(resource)),
     icon: resource.icons?.at(-1) ?? '',
-    dependencies: runtime.fabricLoader
-      ? (getModDependencies(resource, 'fabric').map(markRaw))
-      : runtime.neoForged
-      ? (getModDependencies(resource, 'neoforge').map(markRaw))
-      : (getModDependencies(resource, 'forge').map(markRaw)),
+    dependencies: getModDependencies(resource),
     url: '',
     hash: resource.hash,
     tags: [],
@@ -196,7 +280,7 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
     size: resource.size,
     mtime: resource.mtime,
     fileName: resource.fileName,
-  })
+  } as ModFile)
   if (resource.metadata.forge) {
     modItem.modLoaders.push('forge')
   }
@@ -209,7 +293,23 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
   if (resource.metadata.quilt) {
     modItem.modLoaders.push('quilt')
   }
-  const applyForge = (meta: ForgeModCommonMetadata) => {
+  if (resource.metadata.neoforge) {
+    modItem.modLoaders.push('neoforge')
+  }
+  const applyNeoforge = () => {
+    const meta = resource.metadata.neoforge
+    if (!meta) return true
+    modItem.modId = meta.modid
+    modItem.name = meta.displayName
+    modItem.version = meta.version
+    modItem.description = meta.description
+    modItem.authors = typeof meta.authors === 'string' ? [meta.authors] : meta.authors ?? []
+    modItem.links = {}
+    getLinksFromTOML(modItem.links, meta)
+  }
+  const applyForge = () => {
+    const meta = resource.metadata.forge
+    if (!meta) return true
     modItem.modId = meta.modid
     modItem.name = meta.name
     modItem.version = meta.version
@@ -217,7 +317,9 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
     modItem.authors = meta.authors
     modItem.links = getForgeModLinks(meta)
   }
-  const applyFabric = (meta: FabricModMetadata) => {
+  const applyFabric = () => {
+    const meta = resource.metadata.fabric instanceof Array ? resource.metadata.fabric[0] : resource.metadata.fabric
+    if (!meta) return true
     modItem.modId = meta.id
     modItem.version = meta.version
     modItem.name = meta.name ?? meta.id
@@ -226,7 +328,9 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
     modItem.links = getFabricLikeModLinks(meta.contact)
     modItem.license = typeof meta.license === 'string' ? { name: meta.license } : meta.license ? { name: meta.license?.[0] } : undefined
   }
-  const applyQuilt = (meta: QuiltModMetadata) => {
+  const applyQuilt = () => {
+    const meta = resource.metadata.quilt
+    if (!meta) return true
     modItem.modId = meta.quilt_loader.id
     modItem.version = meta.quilt_loader.version
     modItem.name = meta.quilt_loader.metadata?.name ?? meta.quilt_loader.id
@@ -238,7 +342,9 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
       ? license instanceof Array ? { name: license[0] } : { name: license.id, url: license.url }
       : license ? { name: license } : undefined
   }
-  const applyLiteloader = (meta: LiteloaderModMetadata) => {
+  const applyLiteloader = () => {
+    const meta = resource.metadata.liteloader
+    if (!meta) return true
     modItem.name = meta.name
     modItem.version = meta.version ?? ''
     modItem.modId = `${meta.name}`
@@ -248,22 +354,22 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
       modItem.links = { home: meta.url }
     }
   }
-  if (runtime.fabricLoader) {
-    if (resource.metadata.fabric) applyFabric(resource.metadata.fabric instanceof Array ? resource.metadata.fabric[0] : resource.metadata.fabric)
-    else if (resource.metadata.quilt) applyQuilt(resource.metadata.quilt)
-    else if (resource.metadata.forge) applyForge(resource.metadata.forge)
-    else if (resource.metadata.liteloader) applyLiteloader(resource.metadata.liteloader)
-  } else if (runtime.quiltLoader) {
-    if (resource.metadata.quilt) applyQuilt(resource.metadata.quilt)
-    else if (resource.metadata.fabric) applyFabric(resource.metadata.fabric instanceof Array ? resource.metadata.fabric[0] : resource.metadata.fabric)
-    else if (resource.metadata.forge) applyForge(resource.metadata.forge)
-    else if (resource.metadata.liteloader) applyLiteloader(resource.metadata.liteloader)
-  } else {
-    if (resource.metadata.forge) applyForge(resource.metadata.forge)
-    else if (resource.metadata.fabric) applyFabric(resource.metadata.fabric instanceof Array ? resource.metadata.fabric[0] : resource.metadata.fabric)
-    else if (resource.metadata.liteloader) applyLiteloader(resource.metadata.liteloader)
-    else if (resource.metadata.quilt) applyQuilt(resource.metadata.quilt)
+  const order = runtime.fabricLoader
+    ? [applyFabric, applyQuilt, applyForge, applyNeoforge, applyLiteloader]
+    : runtime.quiltLoader
+      ? [applyQuilt, applyFabric, applyForge, applyNeoforge, applyLiteloader]
+      : runtime.forge
+        ? [applyForge, applyNeoforge, applyFabric, applyQuilt, applyLiteloader]
+        : runtime.neoForged
+          ? [applyNeoforge, applyForge, applyFabric, applyQuilt, applyLiteloader]
+          : [applyForge, applyFabric, applyQuilt, applyNeoforge, applyLiteloader]
+
+  for (const apply of order) {
+    if (!apply()) {
+      break
+    }
   }
+
   if (!modItem.name) {
     modItem.name = resource.fileName
   }

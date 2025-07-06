@@ -38,6 +38,7 @@ const headerData = computed(() => {
     categories: project.value.tags.map((c) => {
       return {
         text: c.name,
+        id: c.id.toString(),
       }
     }),
     type: 'ftb',
@@ -156,6 +157,11 @@ async function onUpdate(v: ProjectVersionProps) {
         projectName: project.value?.name || '',
         authors: project.value?.authors || [],
       }),
+      upstream: {
+        type: 'ftb-modpack',
+        id: Number(props.id),
+        versionId: Number(v.id),
+      }
     })
   } finally {
     updating.value = false
@@ -175,7 +181,7 @@ const onDuplicate = async (v: ProjectVersionProps) => {
       projectName: project.value?.name || '',
       authors: project.value?.authors || [],
     })
-    showAddInstanceDialog({ type: 'ftb', manifest: cached })
+    showAddInstanceDialog({ format: 'ftb', manifest: cached })
   } finally {
     duplicating.value = false
   }

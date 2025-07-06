@@ -2,26 +2,6 @@
   <div class="flex flex-col">
     <v-progress-linear
       class="mt-3 rounded"
-      :value="memoryProgress"
-      color="blue"
-      height="25"
-      reverse
-    >
-      <template #default>
-        <div class="flex items-center justify-center">
-          <v-icon left>
-            memory
-          </v-icon>
-          <strong class="flex flex-grow-0 items-center justify-center">
-            {{ t('java.systemMemory') }}
-            {{ getExpectedSize(sysmem.free, 'B') }} / {{ getExpectedSize(sysmem.total, 'B') }}
-          </strong>
-        </div>
-      </template>
-    </v-progress-linear>
-
-    <v-progress-linear
-      class="mt-3 rounded"
       :active="assignMemory !== false"
       :value="minMemoryProgress"
       color="deep-orange"
@@ -42,7 +22,6 @@
     </v-progress-linear>
     <v-range-slider
       v-if="assignMemory !== false"
-      v-model="mem"
       :input-value="mem"
       :disabled="assignMemory !== true"
       :max="sysmem.total"
@@ -54,11 +33,31 @@
       track-color="transparent"
       color="red"
       hide-details
+      @input="mem = $event"
     >
       <template #thumb-label="{ value }">
         {{ getExpectedSize(value, '', 1) }}
       </template>
     </v-range-slider>
+    <v-progress-linear
+      class="mt-3 rounded"
+      :value="memoryProgress"
+      color="blue"
+      height="25"
+      reverse
+    >
+      <template #default>
+        <div class="flex items-center justify-center">
+          <v-icon left>
+            memory
+          </v-icon>
+          <strong class="flex flex-grow-0 items-center justify-center">
+            {{ t('java.systemMemory', { free: getExpectedSize(sysmem.free, 'B'), total: getExpectedSize(sysmem.total, 'B') }) }}
+            <!-- {{ getExpectedSize(sysmem.free, 'B') }} / {{ getExpectedSize(sysmem.total, 'B') }} -->
+          </strong>
+        </div>
+      </template>
+    </v-progress-linear>
   </div>
 </template>
 <script lang="ts" setup>

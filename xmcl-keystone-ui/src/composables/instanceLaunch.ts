@@ -1,5 +1,5 @@
 import { useService } from '@/composables'
-import { AUTHORITY_DEV, AuthlibInjectorServiceKey, Instance, JavaRecord, LaunchException, LaunchOptions, LaunchServiceKey, UserProfile, UserServiceKey } from '@xmcl/runtime-api'
+import { AUTHORITY_DEV, AuthlibInjectorServiceKey, Instance, JavaRecord, LaunchException, LaunchOptions, LaunchServiceKey, UserProfile, UserServiceKey, generateLaunchOptionsWithGlobal } from '@xmcl/runtime-api'
 import useSWRV from 'swrv'
 import { InjectionKey, Ref } from 'vue'
 import { useGlobalSettings, useSettingsState } from './setting'
@@ -18,7 +18,7 @@ export function useInstanceLaunch(
 ) {
   const { refreshUser } = useService(UserServiceKey)
   const { launch, kill, on, getGameProcesses, reportOperation } = useService(LaunchServiceKey)
-  const { globalAssignMemory, globalMaxMemory, globalMinMemory, globalPrependCommand, globalMcOptions, globalVmOptions, globalFastLaunch, globalHideLauncher, globalShowLog, globalDisableAuthlibInjector, globalDisableElyByAuthlib } = useGlobalSettings(globalState)
+  const { globalAssignMemory, globalMaxMemory, globalMinMemory, globalPreExecuteCommand, globalPrependCommand, globalMcOptions, globalVmOptions, globalFastLaunch, globalEnv, globalHideLauncher, globalShowLog, globalDisableAuthlibInjector, globalDisableElyByAuthlib, globalResolution } = useGlobalSettings(globalState)
   const { getOrInstallAuthlibInjector } = useService(AuthlibInjectorServiceKey)
 
   type LaunchStatus = '' | 'spawning-process' | 'refreshing-user' | 'preparing-authlib' | 'assigning-memory' | 'checking-permission' | 'launching'
@@ -28,18 +28,19 @@ export function useInstanceLaunch(
     aborted: boolean
   }
   const allLaunchingStatus = shallowRef({} as Record<string, LaunchStatusState>)
-  const launchingStatus = computed(() => allLaunchingStatus.value[instance.value.path]?.status ?? '')
+  const launchToken = computed(() => getLaunchToken(userProfile.value, instance.value.path))
+  const launchingStatus = computed(() => allLaunchingStatus.value[launchToken.value]?.status ?? '')
   const launching = computed(() => Object.values(allLaunchingStatus.value).some(v => v.status.length > 0))
 
-  function assignStatus(path: string, status: LaunchStatus, controller?: AbortController) {
+  function assignStatus(token: string, status: LaunchStatus, controller?: AbortController) {
     const oldVal = allLaunchingStatus.value
-    const controllers = oldVal[path]?.controllers || {}
+    const controllers = oldVal[token]?.controllers || {}
     if (controller) {
       controllers[status] = controller
     }
     allLaunchingStatus.value = {
       ...oldVal,
-      [path]: markRaw({
+      [token]: markRaw({
         aborted: false,
         status,
         controllers,
@@ -58,14 +59,6 @@ export function useInstanceLaunch(
   watch(instance, () => {
     mutate()
   })
-
-  function tryParseUrl(url: string) {
-    try {
-      return new URL(url)
-    } catch {
-      return undefined
-    }
-  }
 
   const gameProcesses = computed(() => data.value || [])
   const count = computed(() => data.value?.filter(v => v.side === 'client').length ?? 0)
@@ -96,7 +89,9 @@ export function useInstanceLaunch(
     }
     try {
       const controller = new AbortController()
-      assignStatus(token, name, controller)
+      if (id) {
+        assignStatus(token, name, controller)
+      }
       const v = await Promise.race([p, new Promise<T>((resolve, reject) => {
         controller.signal.onabort = () => {
           reject(new Error('Aborted'))
@@ -124,90 +119,40 @@ export function useInstanceLaunch(
     }
   }
 
-  async function generateLaunchOptions(instancePath: string, operationId: string, side = 'client' as 'client' | 'server', overrides?: Partial<LaunchOptions>, dry = false) {
+  async function generateLaunchOptions(instancePath: string, userProfile: UserProfile, operationId: string, side = 'client' as 'client' | 'server', overrides?: Partial<LaunchOptions>, dry = false) {
     const ver = overrides?.version ?? side === 'client' ? version.value : serverVersion.value
+    const token = getLaunchToken(userProfile, instancePath)
 
-    if (!ver) {
-      throw new LaunchException({ type: 'launchNoVersionInstalled' })
-    }
-
-    const javaPath = overrides?.java ?? java.value?.path
-    if (!javaPath) {
-      throw new LaunchException({ type: 'launchNoProperJava', javaPath: '' })
-    }
-
-    let yggdrasilAgent: LaunchOptions['yggdrasilAgent']
-
-    const authority = tryParseUrl(userProfile.value.authority)
-
-    const inst = instance.value
-
-    const disableAuthlibInjector = inst.disableAuthlibInjector ?? globalDisableAuthlibInjector.value
-    if (!disableAuthlibInjector && authority && (authority.protocol === 'http:' || authority?.protocol === 'https:' || userProfile.value.authority === AUTHORITY_DEV)) {
-      try {
-        yggdrasilAgent = {
-          jar: await track(instancePath, getOrInstallAuthlibInjector(), 'preparing-authlib', operationId),
-          server: userProfile.value.authority,
-        }
-      } catch {
-        // TODO: notify user
+    return await generateLaunchOptionsWithGlobal(
+      { ...instance.value, path: instancePath },
+      userProfile,
+      ver,
+      {
+        token,
+        operationId,
+        side,
+        overrides,
+        dry,
+        javaPath: java.value?.path,
+        globalEnv: globalEnv.value,
+        globalVmOptions: globalVmOptions.value,
+        globalMcOptions: globalMcOptions.value,
+        globalPrependCommand: globalPrependCommand.value,
+        globalAssignMemory: globalAssignMemory.value,
+        globalMinMemory: globalMinMemory.value,
+        globalMaxMemory: globalMaxMemory.value,
+        globalHideLauncher: globalHideLauncher.value,
+        globalShowLog: globalShowLog.value,
+        globalFastLaunch: globalFastLaunch.value,
+        globalDisableAuthlibInjector: globalDisableAuthlibInjector.value,
+        globalDisableElyByAuthlib: globalDisableElyByAuthlib.value,
+        globalPreExecuteCommand: globalPreExecuteCommand.value,
+        globalResolution: globalResolution.value,
+        modCount: mods.value.length,
+        getOrInstallAuthlibInjector,
+        track: track as any,
       }
-    }
-
-    const assignMemory = inst.assignMemory ?? globalAssignMemory.value
-    const hideLauncher = inst.hideLauncher ?? globalHideLauncher.value
-    const showLog = inst.showLog ?? globalShowLog.value
-    const fastLaunch = inst.fastLaunch ?? globalFastLaunch.value
-    const disableElyByAuthlib = inst.disableElybyAuthlib ?? globalDisableElyByAuthlib.value
-
-    let minMemory: number | undefined = inst.minMemory ?? globalMinMemory.value
-    let maxMemory: number | undefined = inst.maxMemory ?? globalMaxMemory.value
-    if (assignMemory === true && minMemory > 0) {
-      // noop
-    } else if (assignMemory === 'auto') {
-      if (!dry) {
-        assignStatus(instancePath, 'assigning-memory')
-      }
-
-      const modCount = mods.value.length
-      if (modCount === 0) {
-        minMemory = 1024
-      } else {
-        const level = modCount / 25
-        const rounded = Math.floor(level)
-        const percentage = level - rounded
-        minMemory = rounded * 1024 + (percentage > 0.5 ? 512 : 0) + 1024
-      }
-    } else {
-      minMemory = undefined
-    }
-    maxMemory = assignMemory === true && maxMemory > 0 ? maxMemory : undefined
-
-    const vmOptions = inst.vmOptions ?? globalVmOptions.value.filter(v => !!v)
-    const mcOptions = inst.mcOptions ?? globalMcOptions.value.filter(v => !!v)
-    const prependCommand = inst.prependCommand ?? globalPrependCommand.value
-
-    const options: LaunchOptions = {
-      operationId,
-      version: ver,
-      gameDirectory: instance.value.path,
-      user: userProfile.value,
-      java: javaPath,
-      hideLauncher,
-      showLog,
-      minMemory,
-      maxMemory,
-      skipAssetsCheck: fastLaunch,
-      vmOptions,
-      mcOptions,
-      yggdrasilAgent,
-      disableElyByAuthlib,
-      prependCommand,
-      side,
-      server: inst.server ?? undefined,
-      ...(overrides || {}),
-    }
-    return options
+    )
   }
 
   function shouldEnableVoiceChat() {
@@ -218,32 +163,38 @@ export function useInstanceLaunch(
     return allMods.some(m => m.modId === 'voicechat')
   }
 
-  async function _launch(instancePath: string, operationId: string, side: 'client' | 'server', overrides?: Partial<LaunchOptions>) {
+  function getLaunchToken(userProfile: UserProfile, instancePath: string) {
+    return `${userProfile.id}@${instancePath}`
+    // return instancePath
+  }
+
+  async function _launch(instancePath: string, user: UserProfile, operationId: string, side: 'client' | 'server', overrides?: Partial<LaunchOptions>) {
+    const token = getLaunchToken(user, instancePath)
     try {
       error.value = undefined
-      const options = await generateLaunchOptions(instancePath, operationId, side, overrides)
+      const options = await generateLaunchOptions(instancePath, user, operationId, side, overrides)
 
-      if (!options.skipAssetsCheck) {
+      if (!options.skipAssetsCheck && side === 'client') {
         console.log('refreshing user')
         try {
-          await track(instancePath, refreshUser(userProfile.value.id, { validate: true }), 'refreshing-user', operationId)
+          await track(token, refreshUser(user.id, { validate: true }), 'refreshing-user', operationId)
         } catch (e) {
           console.error(e)
         }
       }
 
-      if (shouldEnableVoiceChat()) {
+      if (shouldEnableVoiceChat() && side === 'client') {
         try {
-          await track(instancePath, windowController.queryAudioPermission(), 'checking-permission', operationId)
+          await track(token, windowController.queryAudioPermission(), 'checking-permission', operationId)
         } catch (e) {
           console.error(e)
         }
       }
 
-      assignStatus(instancePath, 'spawning-process')
+      assignStatus(token, 'spawning-process')
       console.log('spawning process')
 
-      const state = allLaunchingStatus.value[instancePath]
+      const state = allLaunchingStatus.value[token]
       if (state?.aborted) {
         return
       }
@@ -266,14 +217,16 @@ export function useInstanceLaunch(
       error.value = e as any
       throw e
     } finally {
-      assignStatus(instancePath, '')
+      assignStatus(token, '')
     }
   }
 
   async function launchWithTracking(side = 'client' as 'client' | 'server', overrides?: Partial<LaunchOptions>) {
     const operationId = crypto.getRandomValues(new Uint32Array(1))[0].toString(16)
     const instancePath = instance.value.path
-    await track(instancePath, _launch(instancePath, operationId, side, overrides), 'launching', operationId)
+    const user = userProfile.value
+    const token = getLaunchToken(user, instancePath)
+    await track(token, _launch(instancePath, user, operationId, side, overrides), 'launching', operationId)
   }
 
   async function killGame(side: 'client' | 'server' = 'client') {
@@ -287,8 +240,8 @@ export function useInstanceLaunch(
   }
 
   function abort() {
-    const path = instance.value.path
-    const state = allLaunchingStatus.value[path]
+    const token = launchToken.value
+    const state = allLaunchingStatus.value[token]
     state.aborted = true
     const controllers = state.controllers
     controllers['preparing-authlib']?.abort()
@@ -309,18 +262,18 @@ export function useInstanceLaunch(
     generateLaunchOptions,
     abort,
     skipAuthLib: () => {
-      const path = instance.value.path
-      const controllers = allLaunchingStatus.value[path].controllers
+      const token = launchToken.value
+      const controllers = allLaunchingStatus.value[token].controllers
       controllers['preparing-authlib']?.abort()
     },
     skipRefresh: () => {
-      const path = instance.value.path
-      const controllers = allLaunchingStatus.value[path].controllers
+      const token = launchToken.value
+      const controllers = allLaunchingStatus.value[token].controllers
       controllers['refreshing-user']?.abort()
     },
     skipPermission: () => {
-      const path = instance.value.path
-      const controllers = allLaunchingStatus.value[path].controllers
+      const token = launchToken.value
+      const controllers = allLaunchingStatus.value[token].controllers
       controllers['checking-permission']?.abort()
     },
   }

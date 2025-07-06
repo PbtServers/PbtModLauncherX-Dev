@@ -54,7 +54,6 @@ const props = defineProps<{
   value: string[]
   selectable?: boolean
   openAll?: boolean
-  search?: string
   scrollElement?: HTMLElement | null
 }>()
 
@@ -135,6 +134,7 @@ const toggleValue = (item: TreeItem<InstanceFileNode<any>>) => {
 
 const files = injection(FileNodesSymbol)
 const flattened = ref<TreeItem<InstanceFileNode<any>>[]>([])
+const checkedFilesSets = computed(() => new Set(props.value))
 
 const checkedFolders = computed(() => {
   const result: string[] = []
@@ -148,7 +148,7 @@ const checkedFolders = computed(() => {
         continue
       }
 
-      if (!props.value.includes(item.path)) {
+      if (!checkedFilesSets.value.has(item.path)) {
         match = false
         continue
       }
@@ -191,7 +191,6 @@ watch([files, opened, () => props.openAll], async ([newFiles, newOpened, newOpen
   const visited = new Set<string>()
   const filtered = result.filter(i => {
     if (visited.has(i.data.path)) {
-      console.warn('Duplicated path', i.data.path)
       return false
     }
     visited.add(i.data.path)

@@ -62,6 +62,41 @@
           </v-btn>
 
           <div class="flex-grow" />
+          <template v-if="modrinth">
+            <v-menu>
+              <template #activator="{ on }">
+                <v-btn
+                  small
+                  :plain="!collection"
+                  icon
+                  :loading="loadingCollections"
+                  v-on="on"
+                >
+                  <v-icon
+                    :class="!collection ? 'material-icons-outlined' : ''"
+                  >
+                    label
+                  </v-icon>
+                </v-btn>
+              </template>
+              <AppCollectionList :project-id="modrinth" no-favorite :select="collection" @update:select="emit('collection', $event)" />
+            </v-menu>
+            <v-btn
+              small
+              :plain="!followed"
+              icon
+              color="yellow"
+              :loading="following"
+              @click="emit('follow', !followed)"
+            >
+              <v-icon
+                class="material-icons-outlined"
+              >
+                {{ followed ? 'star' : 'star_rate' }}
+              </v-icon>
+            </v-btn>
+          </template>
+
           <AppCopyChip
             v-if="(currentTarget === 'curseforge' ? curseforge : modrinth)"
             label
@@ -89,7 +124,7 @@
               v-for="(h, i) of detailsHeaders"
             >
               <div
-                :key="h.text"
+                :key="h.id"
                 class="flex flex-grow-0"
               >
                 <v-icon
@@ -104,7 +139,7 @@
               </div>
               <v-divider
                 v-if="i < detailsHeaders.length - 1"
-                :key="i"
+                :key="h.id + 'divider'"
                 class="ml-1"
                 vertical
               />
@@ -126,7 +161,7 @@
         <div
           class="my-2 flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-end"
         >
-          <div class="flex items-end gap-2">
+          <div class="flex items-end gap-2 flex-wrap">
             <v-btn
               v-if="selectedInstalled && !noEnabled"
               :disabled="updating"
@@ -163,7 +198,7 @@
               class="v-card border-transparent bg-transparent!"
               :class="{ 'theme--dark': isDark, 'theme--light': !isDark }"
             >
-              <div class="v-card__subtitle overflow-hidden overflow-ellipsis whitespace-nowrap p-0">
+              <div class="v-card__subtitle overflow-hidden overflow-ellipsis p-0">
                 {{
                   versions.length > 0 ?
                     t('modInstall.installHint', { file: 1, dependencies: dependencies.filter(d => d.type === 'required').length })
@@ -698,11 +733,13 @@ import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { vFallbackImg } from '@/directives/fallbackImage'
 import { BuiltinImages } from '@/constant'
 import { kLocalizedContent, useLocalizedContentControl } from '@/composables/localizedContent'
+import AppCollectionList from './AppCollectionList.vue'
 
 const props = defineProps<{
   detail: ProjectDetail
   versions: ProjectVersion[]
   enabled: boolean
+  error?: any
   updating?: boolean
   dependencies: ProjectDependency[]
   loading: boolean
@@ -717,6 +754,10 @@ const props = defineProps<{
   curseforge?: number
   modrinth?: string
   currentTarget?: 'curseforge' | 'modrinth'
+  followed?: boolean
+  following?: boolean
+  loadingCollections?: boolean
+  collection?: string
 }>()
 
 const emit = defineEmits<{
@@ -730,6 +771,8 @@ const emit = defineEmits<{
   (event: 'select:category', category: string): void
   (event: 'refresh'): void
   (event: 'description-link-clicked', e: MouseEvent, href: string): void
+  (event: 'follow', followed: boolean): void
+  (event: 'collection', collection?: string): void
 }>()
 
 export interface ProjectDependency {
@@ -823,11 +866,12 @@ const _enabled = computed({
   },
 })
 
-const titleToDisplay = computed(() => (isEnabled.value && props.detail.localizedTitle) || props.detail.title)
-const descriptionToDisplay = computed(() => (isEnabled.value && props.detail.localizedDescription) || props.detail.description)
+const titleToDisplay = computed(() => (isEnabled.value && props.detail.localizedTitle) || props.detail.title || props.error?.name || '')
+const descriptionToDisplay = computed(() => (isEnabled.value && props.detail.localizedDescription) || props.detail.description || props.error?.message || '')
 
 const detailsHeaders = computed(() => {
   const result: Array<{
+    id: string
     icon: string
     text: string
     color?: string
@@ -835,6 +879,7 @@ const detailsHeaders = computed(() => {
 
   if (props.detail.author) {
     result.push({
+      id: `${props.detail.id}-author`,
       icon: 'person',
       text: props.detail.author,
     })
@@ -842,12 +887,14 @@ const detailsHeaders = computed(() => {
 
   if (props.detail.downloadCount) {
     result.push({
+      id: `${props.detail.id}-download`,
       icon: 'file_download',
       text: getExpectedSize(props.detail.downloadCount, ''),
     })
   }
   if (props.detail.follows) {
     result.push({
+      id: `${props.detail.id}-follow`,
       icon: 'star_rate',
       color: 'orange',
       text: props.detail.follows.toString(),

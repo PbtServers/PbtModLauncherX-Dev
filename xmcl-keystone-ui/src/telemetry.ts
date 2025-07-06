@@ -1,8 +1,9 @@
 import { ApplicationInsights } from '@microsoft/applicationinsights-web'
+import { APP_INSIGHT_KEY } from '@xmcl/runtime-api'
 
 const appInsights = new ApplicationInsights({
   config: {
-    connectionString: 'InstrumentationKey=294f3664-8208-4963-a2b0-62405ff9d48e;IngestionEndpoint=https://eastasia-0.in.applicationinsights.azure.com/;LiveEndpoint=https://eastasia.livediagnostics.monitor.azure.com/',
+    connectionString: APP_INSIGHT_KEY,
     disableCookiesUsage: true,
     disableFetchTracking: true,
     disableAjaxTracking: true,

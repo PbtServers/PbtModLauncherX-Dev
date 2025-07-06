@@ -2,10 +2,9 @@
   <v-navigation-drawer
     :value="true"
     permanent
-    width="200"
     :mini-variant="true"
     :color="sideBarColor"
-    class="sidebar moveable z-10"
+    class="sidebar moveable z-10 rounded-[0.75rem]"
     :style="{ 'backdrop-filter': `blur(${blurSidebar}px)` }"
   >
     <v-list
@@ -33,7 +32,7 @@
         <v-list-item-icon>
           <v-icon> widgets </v-icon>
         </v-list-item-icon>
-        <v-list-item-title v-text="'Text'" />
+        <v-list-item-title v-text="t('myStuff')" />
       </v-list-item>
       <v-list-item
         v-if="true"
@@ -50,13 +49,12 @@
             store
           </v-icon>
         </v-list-item-icon>
-        <v-list-item-title v-text="'Text'" />
+        <v-list-item-title v-text="t('store.name', 2)" />
       </v-list-item>
       <v-divider />
     </v-list>
 
-    <AppSideBarContentFocus v-if="useFocus" />
-    <AppSideBarContentNext v-else />
+    <AppSideBarContentNext />
 
     <v-list
       nav
@@ -77,7 +75,7 @@
             hub
           </v-icon>
         </v-list-item-icon>
-        <v-list-item-title>Multiplayer</v-list-item-title>
+        <v-list-item-title>{{ t('multiplayer.name') }}</v-list-item-title>
       </v-list-item>
 
       <v-divider
@@ -105,7 +103,7 @@
             </v-icon>
           </v-badge>
         </v-list-item-icon>
-        <v-list-item-title>Settings</v-list-item-title>
+        <v-list-item-title>{{ t('setting.name', 2) }}</v-list-item-title>
       </v-list-item>
     </v-list>
   </v-navigation-drawer>
@@ -114,15 +112,11 @@
 <script lang=ts setup>
 import { kSettingsState } from '@/composables/setting'
 import { injection } from '@/util/inject'
-import { kUILayout } from '../composables/uiLayout'
-import AppSideBarContentFocus from './AppSideBarContentFocus.vue'
 import AppSideBarContentNext from './AppSideBarContentNext.vue'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { kTheme } from '@/composables/theme'
 
 const { blurSidebar } = injection(kTheme)
-const layout = injection(kUILayout)
-const useFocus = computed(() => layout.value === 'focus')
 const { state } = injection(kSettingsState)
 
 const { t } = useI18n()
@@ -147,9 +141,20 @@ function goMultiplayer() {
   flex-direction: column;
   /* @apply rounded-r-xl border-r-[hsla(0,0%,100%,.12)]; */
 }
-
 </style>
 <style>
+
+.dark .sidebar .theme--dark.v-icon {
+  color: var(--icon-color);
+}
+
+.dark .sidebar .v-list-item {
+  --icon-color: #d8d8d8;
+}
+
+.dark .sidebar .v-list-item:hover {
+  --icon-color: #fff;
+}
 
 .v-navigation-drawer__content {
   @apply flex flex-col flex-grow-0 h-full;

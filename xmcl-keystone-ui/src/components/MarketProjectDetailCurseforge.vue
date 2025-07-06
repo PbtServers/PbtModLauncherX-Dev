@@ -6,15 +6,16 @@ import { useCurseforgeChangelog } from '@/composables/curseforgeChangelog'
 import { getCurseforgeDependenciesModel, useCurseforgeTask } from '@/composables/curseforgeDependencies'
 import { kCurseforgeInstaller } from '@/composables/curseforgeInstaller'
 import { useDateString } from '@/composables/date'
-import { kFlights, useI18nSearchFlights } from '@/composables/flights'
+import { useI18nSearchFlights } from '@/composables/flights'
 import { useAutoI18nCommunityContent } from '@/composables/i18n'
+import { useInCollection, useModrinthFollow } from '@/composables/modrinthAuthenticatedAPI'
 import { useProjectDetailEnable, useProjectDetailUpdate } from '@/composables/projectDetail'
 import { useService } from '@/composables/service'
 import { useLoading, useSWRVModel } from '@/composables/swrv'
 import { basename } from '@/util/basename'
-import { getCurseforgeFileGameVersions, getCurseforgeRelationType, getCursforgeFileModLoaders, getModLoaderTypesForFile } from '@/util/curseforge'
+import { getCurseforgeFileGameVersions, getCurseforgeRelationType, getCursforgeFileModLoaders, getCursforgeModLoadersFromString, getModLoaderTypesForFile } from '@/util/curseforge'
 import { injection } from '@/util/inject'
-import { ModFile } from '@/util/mod'
+import { ModFile, getModMinecraftVersion, isModFile } from '@/util/mod'
 import { ProjectFile } from '@/util/search'
 import { FileModLoaderType, Mod, ModStatus } from '@xmcl/curseforge'
 import { ProjectMapping, ProjectMappingServiceKey } from '@xmcl/runtime-api'
@@ -24,7 +25,7 @@ const props = defineProps<{
   curseforgeId: number
   installed: ProjectFile[]
   gameVersion: string
-  loaders: string[]
+  loader?: string
   allFiles: ProjectFile[]
   category?: number
   updating?: boolean
@@ -49,7 +50,9 @@ const curseforgeProjectMapping = shallowRef(undefined as ProjectMapping | undefi
 
 watch(curseforgeModId, async (id) => {
   const result = await lookupByCurseforge(id).catch(() => undefined)
-  curseforgeProjectMapping.value = result
+  if (id === curseforgeModId.value) {
+    curseforgeProjectMapping.value = result
+  }
 }, { immediate: true })
 
 const { data: description, isValidating: isValidatingDescription } = useSWRVModel(getCurseforgeProjectDescriptionModel(curseforgeModId))
@@ -63,7 +66,9 @@ if (i18nSearch) {
   watch(curseforgeModId, async (id) => {
     localizedBody.value = ''
     const result = await getContent('curseforge', id)
-    localizedBody.value = result
+    if (id === curseforgeModId.value) {
+      localizedBody.value = result
+    }
   }, { immediate: true })
 }
 
@@ -194,7 +199,7 @@ const releaseTypes: Record<string, 'release' | 'beta' | 'alpha'> = {
 
 const { files, refreshing: loadingVersions, index, totalCount, pageSize } = useCurseforgeProjectFiles(curseforgeModId,
   computed(() => props.gameVersion),
-  computed(() => undefined))
+  computed(() => getCursforgeModLoadersFromString(props.loader)[0]))
 
 const modId = ref(0)
 const fileId = ref(undefined as number | undefined)
@@ -204,12 +209,6 @@ const modVersions = computed(() => {
   const versions: ProjectVersion[] = []
   const installed = [...props.installed]
   for (const file of files.value) {
-    const loaders = getCursforgeFileModLoaders(file)
-    if (props.loaders.length > 0 && loaders.length > 0) {
-      if (!loaders.some(l => props.loaders.indexOf(l as any) !== -1)) {
-        continue
-      }
-    }
     const installedFileIndex = installed.findIndex(f => f.curseforge?.fileId === file.id)
     const f = installedFileIndex === -1 ? undefined : installed.splice(installedFileIndex, 1)
 
@@ -230,7 +229,7 @@ const modVersions = computed(() => {
   }
 
   for (const i of installed) {
-    const mcDep = 'dependencies' in i ? (i as ModFile).dependencies.find(d => d.modId === 'minecraft') : undefined
+    const minecraftVersion = isModFile(i) ? getModMinecraftVersion(i) : undefined
     versions.push({
       id: i.curseforge?.fileId.toString() ?? '',
       name: basename(i.path) ?? '',
@@ -242,7 +241,7 @@ const modVersions = computed(() => {
       installed: true,
       downloadCount: 0,
       loaders: 'modLoaders' in i ? (i as ModFile).modLoaders : [],
-      minecraftVersion: (mcDep?.semanticVersion instanceof Array ? mcDep.semanticVersion.join(' ') : mcDep?.semanticVersion) ?? mcDep?.versionRange ?? '',
+      minecraftVersion,
       createdDate: '',
     })
   }
@@ -374,6 +373,8 @@ const onRefresh = () => {
 }
 
 const modrinthId = computed(() => props.modrinth || props.allFiles.find(v => v.curseforge?.projectId === props.curseforgeId && v.modrinth)?.modrinth?.projectId || curseforgeProjectMapping.value?.modrinthId)
+const { isFollowed, following, onFollow } = useModrinthFollow(modrinthId)
+const { collectionId, onAddOrRemove, loadingCollections } = useInCollection(modrinthId)
 </script>
 <template>
   <MarketProjectDetail
@@ -392,7 +393,12 @@ const modrinthId = computed(() => props.modrinth || props.allFiles.find(v => v.c
     :modrinth="modrinthId"
     :loading-dependencies="loadingDependencies"
     current-target="curseforge"
+    :followed="isFollowed"
+    :collection="collectionId"
+    :following="following"
+    :loading-collections="loadingCollections"
     @load-changelog="loadChangelog"
+    @collection="onAddOrRemove"
     @delete="onDelete"
     @enable="enabled = $event"
     @load-more="onLoadMore"
@@ -401,5 +407,6 @@ const modrinthId = computed(() => props.modrinth || props.allFiles.find(v => v.c
     @install-dependency="installDependency"
     @select:category="emit('category', Number($event))"
     @refresh="onRefresh"
+    @follow="onFollow"
   />
 </template>

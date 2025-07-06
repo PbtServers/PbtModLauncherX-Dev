@@ -5,15 +5,17 @@ import { useDialog } from './dialog'
 import { kInstance } from './instance'
 import { kInstanceFiles } from './instanceFiles'
 import { useInstanceFilesDiagnose } from './instanceFilesDiagnose'
-import { useInstanceJavaDiagnose } from './instanceJavaDiagnose'
+import { kInstanceJavaDiagnose } from './instanceJavaDiagnose'
 import { kInstanceLaunch } from './instanceLaunch'
 import { kInstanceVersion } from './instanceVersion'
+import { useInstanceVersionDiagnose } from './instanceVersionDiagnose'
 import { kInstanceVersionInstall } from './instanceVersionInstall'
 import { kInstances } from './instances'
 import { LaunchStatusDialogKey } from './launch'
 import { kLaunchTask } from './launchTask'
 import { useUserDiagnose } from './userDiagnose'
-import { useInstanceVersionDiagnose } from './instanceVersionDiagnose'
+import { kInstanceJava } from './instanceJava'
+import { kUserContext } from './user'
 
 export interface LaunchMenuItem {
   title: string
@@ -31,16 +33,18 @@ export function useLaunchButton() {
 
   const { path } = injection(kInstance)
   const { isValidating } = injection(kInstances)
-  const { isValidating: refreshingFiles, mutate } = injection(kInstanceFiles)
+  const { isValidating: refreshingJava } = injection(kInstanceJava)
+  const { isValidating: refreshingFiles } = injection(kInstanceFiles)
+  const { userProfile } = injection(kUserContext)
 
   const { fix: fixVersionIssues, loading: loadingVersionIssues } = injection(kInstanceVersionInstall)
   const versionIssues = useInstanceVersionDiagnose()
-  const { issue: javaIssue } = useInstanceJavaDiagnose()
-  const { issue: filesIssue, fix: fixInstanceFileIssue } = useInstanceFilesDiagnose()
+  const { issue: javaIssue } = injection(kInstanceJavaDiagnose)
+  const { issue: filesIssue, fix: fixInstanceFileIssue, loading: loadingInstanceFiles } = useInstanceFilesDiagnose()
   const { issue: userIssue, fix: fixUserIssue } = useUserDiagnose()
   const { status, pause, resume } = injection(kLaunchTask)
   const { isValidating: isRefreshingVersion } = injection(kInstanceVersion)
-  const { launch, launching, count, abort } = injection(kInstanceLaunch)
+  const { launch, launching, gameProcesses, count, abort } = injection(kInstanceLaunch)
 
   const { t } = useI18n()
   const dirty = ref(false)
@@ -82,6 +86,22 @@ export function useLaunchButton() {
         },
       }
     } else if (count.value > 0) {
+      if (gameProcesses.value.every(p => p.options.user.id !== userProfile.value.id)) { 
+        return {
+          text: t('launch.launch'),
+          color: !javaIssue.value ? 'primary' : 'primary darken-1',
+          leftIcon: 'play_arrow',
+          onClick: async () => {
+            await fixInstanceFileIssue()
+            if (javaIssue.value) {
+              showLaunchStatusDialog({ javaIssue: javaIssue.value })
+            } else {
+              launch()
+              showLaunchStatusDialog()
+            }
+          },
+        }
+      }
       return {
         icon: 'close',
         text: t('launch.kill'),
@@ -122,7 +142,6 @@ export function useLaunchButton() {
         color: !javaIssue.value ? 'primary' : 'primary darken-1',
         leftIcon: 'play_arrow',
         onClick: async () => {
-          await mutate().catch(() => { })
           await fixInstanceFileIssue()
           if (javaIssue.value) {
             showLaunchStatusDialog({ javaIssue: javaIssue.value })
@@ -144,7 +163,9 @@ export function useLaunchButton() {
   const loading = computed(() => launching.value ||
     loadingVersionIssues.value ||
     refreshingFiles.value ||
+    refreshingJava.value ||
     isRefreshingVersion.value ||
+    loadingInstanceFiles.value ||
     isValidating.value ||
     dirty.value)
   const leftIcon = computed(() => launchButtonFacade.value.leftIcon)

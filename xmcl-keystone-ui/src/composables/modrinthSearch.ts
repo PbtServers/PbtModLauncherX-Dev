@@ -1,22 +1,26 @@
 import { ProjectEntry } from '@/util/search'
-import { Ref } from 'vue'
 import { useSearchPattern } from './useSearchPattern'
 import { useModrinthSearchFunc } from './modrinth'
+import { SearchModel } from './search'
 
 export function useModrinthSearch<T extends ProjectEntry<any>>(
   projectType: string,
-  keyword: Ref<string>,
-  loaders: Ref<string[]>,
-  categories: Ref<string[]>,
-  sort: Ref<'relevance' | 'downloads' | 'follows' | 'newest' | 'updated' | undefined>,
-  gameVersion: Ref<string>,
+  {
+    keyword,
+    modLoaders,
+    modrinthCategories: categories,
+    modrinthSort: sort,
+    gameVersion,
+    isModrinthDisabled: disabled,
+    currentView
+  }: SearchModel
 ) {
   const search = useModrinthSearchFunc(
     keyword,
     gameVersion,
     '',
     categories,
-    loaders,
+    modLoaders,
     '',
     sort,
     projectType,
@@ -41,13 +45,13 @@ export function useModrinthSearch<T extends ProjectEntry<any>>(
       }
     },
     () => {
-      if (keyword.value) {
-        return true
+      if (disabled.value) {
+        return false
       }
-      if (categories.value.length > 0) {
-        return true
+      if (currentView.value !== 'remote') {
+        return false
       }
-      return false
+      return true
     },
   )
 
@@ -56,6 +60,8 @@ export function useModrinthSearch<T extends ProjectEntry<any>>(
     watch(categories, onSearch, { deep: true })
     watch(sort, onSearch)
     watch(gameVersion, onSearch)
+    watch(disabled, onSearch)
+    onSearch()
   }
 
   const result = computed(() => {

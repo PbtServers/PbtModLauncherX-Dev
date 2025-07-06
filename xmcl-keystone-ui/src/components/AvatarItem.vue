@@ -1,6 +1,7 @@
 <template>
   <div
     class="flex flex-grow-0 items-center rounded pr-2 text-sm"
+    :class="{ 'cursor-pointer': !!$listeners.click }"
     @click="emit('click', $event)"
   >
     <v-avatar
@@ -62,7 +63,6 @@ const emit = defineEmits(['click'])
     display: block !important;
   }
   .text {
-    padding-left: 0rem;
   }
 }
 </style>

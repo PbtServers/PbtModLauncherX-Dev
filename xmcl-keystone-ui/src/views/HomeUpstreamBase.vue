@@ -66,15 +66,20 @@
           }"
         >
           <HomeUpstreamVersion
+            v-if="!loading"
             :version="getItemVersion(row.index)"
             :updating="updating"
             :duplicating="duplicating"
-            :outlined="row.index === 1"
+            :outlined="true"
             :no-action="row.index === 1 || currentVersion?.id === getItemVersion(row.index).id"
             :downgrade="isItemDowngrade(row.index)"
             @changelog="$emit('changelog', getItemVersion(row.index))"
             @update="$emit('update', getItemVersion(row.index))"
             @duplicate="$emit('duplicate', getItemVersion(row.index))"
+          />
+          <v-skeleton-loader
+            v-else
+            type="table-heading, list-item-two-line, table-tfoot"
           />
         </div>
       </template>
@@ -99,10 +104,13 @@ import HomeUpstreamHeader, { UpstreamHeaderProps } from './HomeUpstreamHeader.vu
 import HomeUpstreamVersion, { ProjectVersionProps } from './HomeUpstreamVersion.vue'
 import { useVirtualizer, VirtualizerOptions } from '@tanstack/vue-virtual'
 import { getEl } from '@/util/el'
+import { injection } from '@/util/inject'
+import { kTheme } from '@/composables/theme'
 
 const props = defineProps<{
   duplicating?: boolean
   updating?: boolean
+  loading?: boolean
   items: Record<string, ProjectVersionProps[]>
   currentVersion?: ProjectVersionProps
   header?: UpstreamHeaderProps
@@ -131,7 +139,7 @@ const listItems = computed(() => {
   ] as (ProjectVersionProps | string)[]
   for (const [date, versions] of Object.entries(items)) {
     results.push(date)
-    results.push(...versions)
+    results.push(...versions.filter(v => !!v))
   }
   return results
 })
@@ -139,7 +147,7 @@ const scrollElement = inject('scrollElement', ref(null as HTMLElement | null))
 const offsetTop = ref(0)
 const containerRef = ref(null as HTMLElement | null)
 const virtualizerOptions = computed(() => ({
-  count: Object.keys(props.items).length,
+  count: props.loading ? 10 : listItems.value.length,
   getScrollElement: () => getEl(scrollElement.value) as any,
   paddingStart: offsetTop.value,
   overscan: 5,
@@ -158,6 +166,9 @@ function estimateSize(i: number) {
     return 48
   }
   const item = listItems.value[i] as ProjectVersionProps
+  if (!item) {
+    return 48
+  }
   const changelogHtml = item.changelog
   // estimate the height of the changelog by counting how many div and li inside
   const divCount = (changelogHtml.match(/<div/g) || []).length
@@ -174,6 +185,9 @@ function getItemKey(index: number) {
   const item = listItems.value[index]
   if (typeof item === 'string') {
     return item + _only.value
+  }
+  if (!item) {
+    return '-1'
   }
   return item.id + _only.value
 }

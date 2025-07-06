@@ -22,6 +22,18 @@
           />
           {{ tGroupState[groupState] }}
 
+          <v-chip
+            v-if="groupState === 'connected'"
+            small label color="primary"
+          >
+            <v-icon left>
+              signal_cellular_alt
+            </v-icon>
+            {{ groupPing + 'ms' }}
+
+            {{ pingAgo }}
+          </v-chip>
+
           <div class="hidden text-sm text-gray-400 lg:block">
             <template v-if="group">
               {{ t('multiplayer.copyGroupToFriendHint') }}
@@ -362,7 +374,7 @@
                   color="primary"
                   icon
                   @click="c.sharing ? showAddInstasnce({
-                    type: 'manifest',
+                    format: 'manifest',
                     manifest: c.sharing,
                   }) : undefined"
                 >
@@ -558,18 +570,19 @@ import Hint from '@/components/Hint.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import SimpleDialog from '@/components/SimpleDialog.vue'
 import { useService } from '@/composables'
+import { useLocalStorageCacheBool, useLocalStorageCacheStringValue } from '@/composables/cache'
+import { useDateString } from '@/composables/date'
+import { AddInstanceDialogKey } from '@/composables/instanceTemplates'
 import { kPeerState } from '@/composables/peers'
-import { kSettingsState } from '@/composables/setting'
 import { kTheme } from '@/composables/theme'
 import { kUserContext } from '@/composables/user'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
+import { useIntervalFn } from '@vueuse/core'
 import { AUTHORITY_MICROSOFT, BaseServiceKey } from '@xmcl/runtime-api'
 import { useDialog, useSimpleDialog } from '../composables/dialog'
 import MultiplayerDialogInitiate from './MultiplayerDialogInitiate.vue'
 import MultiplayerDialogReceive from './MultiplayerDialogReceive.vue'
-import { useLocalStorageCacheBool, useLocalStorageCacheStringValue } from '@/composables/cache'
-import { AddInstanceDialogKey } from '@/composables/instanceTemplates'
 
 const { show } = useDialog('peer-initiate')
 const { show: showShareInstance } = useDialog('share-instance')
@@ -586,7 +599,7 @@ const { show: showDelete, target: deleting, confirm: doDelete, model } = useSimp
   console.log(`drop connection ${v}`)
   drop(v)
 })
-const { exposedPorts, exposePort, unexposePort, otherExposedPorts, connections, turnservers, group, groupState, joinGroup, leaveGroup, drop, ips, device, natType, refreshingNatType, refreshNatType } = injection(kPeerState)
+const { exposedPorts, exposePort, unexposePort, otherExposedPorts, connections, turnservers, group, groupState, icePings, groupPing, groupLastTimestamp, joinGroup, leaveGroup, drop, ips, device, natType, refreshingNatType, refreshNatType } = injection(kPeerState)
 const { t } = useI18n()
 const { handleUrl } = useService(BaseServiceKey)
 const { users } = injection(kUserContext)
@@ -600,8 +613,13 @@ const kernels = computed(() => [
   { value: 'webrtc', text: 'WebRTC' },
 ])
 
+function getIceServerPingText(value: number | 'timeout' | undefined) {
+  if (value === undefined) return ''
+  return ` (${value}ms)`
+}
+
 const preferredTurnserver = useLocalStorageCacheStringValue('peerPreferredTurn', '')
-const turnserversItems = computed(() => Object.entries(turnservers.value).map(([key, value]) => ({ value: key, text: `${tLocale.value[value as string] || value}` })))
+const turnserversItems = computed(() => Object.entries(turnservers.value).map(([key, value]) => ({ value: key, text: `${tLocale.value[value as string] || value}${getIceServerPingText(icePings.value[key])}` })))
 const tLocale = computed(() => ({
   liaoning: t('turnRegion.liaoning'),
   guangzhou: t('turnRegion.guangzhou'),
@@ -685,6 +703,20 @@ const tConnectionStates = computed(() => ({
   new: t('peerConnectionState.new'),
 }))
 
+const { getDateString } = useDateString()
+const pingAgo = ref('')
+const interval = useIntervalFn(() => {
+  pingAgo.value = `(${getDateString(groupLastTimestamp.value)})`
+}, 1_000, { immediate: false })
+
+watch(groupState, (newVal) => {
+  if (newVal === 'connected') {
+    interval.resume()
+  } else {
+    interval.pause()
+  }
+}, { immediate: true })
+
 const edit = (id: string, init: boolean) => {
   const conn = connections.value.find(c => c.id === id)
   if (conn) {
@@ -717,3 +749,11 @@ const onJoin = () => {
     leaveGroup()
   }
 }
+
+// useTutorial(computed(() => [
+//   { element: '#group-input', popover: { title: t('tutorial.multiplayer.groupTitle'), description: t('tutorial.multiplayer.groupDescription') } },
+//   { element: '#join-group-button', popover: { title: t('tutorial.multiplayer.groupTitle'), description: t('tutorial.multiplayer.joinDescription') } },
+//   { element: '.multiplayer-content', popover: { title: t('tutorial.multiplayer.contentTitle'), description: t('tutorial.multiplayer.contentDescription') } },
+//   { element: '#manual-connect-button', popover: { title: t('multiplayer.manualConnect'), description: t('tutorial.multiplayer.manualDescription') } },
+// ]))
+</script>

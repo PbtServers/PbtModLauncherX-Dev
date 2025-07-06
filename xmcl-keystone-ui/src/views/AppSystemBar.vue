@@ -2,7 +2,7 @@
   <v-system-bar
     topbar
     window
-    :color="appBarColor"
+    :color="'transparent'"
     class="moveable flex w-full grow-0 gap-1 p-0"
     :style="{ 'backdrop-filter': `blur(${blurAppBar}px)` }"
   >
@@ -79,7 +79,6 @@ import TaskSpeedMonitor from '../components/TaskSpeedMonitor.vue'
 import { injection } from '@/util/inject'
 import { useWindowStyle } from '@/composables/windowStyle'
 import AppSystemBarAvatar from './AppSystemBarUserMenu.vue'
-import { kTutorial } from '@/composables/tutorial'
 import AppSystemBarBadge from '@/components/AppSystemBarBadge.vue'
 import AppAudioPlayer from '@/components/AppAudioPlayer.vue'
 import { kTheme } from '@/composables/theme'
@@ -98,13 +97,5 @@ const { show: showFeedbackDialog } = useDialog('feedback')
 const { show: showTaskDialog } = useDialog('task')
 const { t } = useI18n()
 const { count } = useTaskCount()
-const tutor = inject(kTutorial, undefined)
 
-let onBack = () => {}
-if (props.back) {
-  const router = useRouter()
-  onBack = () => {
-    router.back()
-  }
-}
 </script>

@@ -3,7 +3,7 @@
     :items="all"
     :item-height="itemHeight"
     :plans="{}"
-    :error="modrinthError"
+    :error="error"
     :class="{
       dragover,
     }"
@@ -55,9 +55,8 @@
         :project-id="selectedModrinthId"
         :installed="selectedItem?.installed || getInstalledModrinth(selectedModrinthId)"
         :game-version="gameVersion"
-        :loaders="shaderLoaderFilters"
         :categories="modrinthCategories"
-        :all-files="shaderProjectFiles"
+        :all-files="shaderPacks"
         :curseforge="selectedItem?.curseforge?.id || selectedItem?.curseforgeProjectId"
         @uninstall="onUninstall"
         @enable="onEnable"
@@ -70,9 +69,8 @@
         :curseforge-id="Number(selectedCurseforgeId)"
         :installed="selectedItem?.installed || getInstalledCurseforge(Number(selectedCurseforgeId))"
         :game-version="gameVersion"
-        :loaders="[]"
         :category="curseforgeCategory"
-        :all-files="shaderProjectFiles"
+        :all-files="shaderPacks"
         :modrinth="selectedModrinthId"
         @uninstall="onUninstall"
         @enable="onEnable"
@@ -206,6 +204,15 @@
             </v-list-item>
           </v-list>
         </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            text
+            @click="skip"
+          >
+            {{ t('shared.skipForNow') }}
+          </v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
     <!-- <DeleteDialog
@@ -253,27 +260,33 @@ import { ProjectEntry, ProjectFile } from '@/util/search'
 import { InstanceShaderPacksServiceKey } from '@xmcl/runtime-api'
 import ShaderPackDetailResource from './ShaderPackDetailResource.vue'
 import ShaderPackItem from './ShaderPackItem.vue'
+import { kSearchModel } from '@/composables/search'
+import { sort } from '@/composables/sortBy'
 
 const {
-  modrinthError,
-  loading,
-
-  enabled,
-  disabled,
-  others,
-
-  keyword,
-  curseforgeCategory,
-  shaderProjectFiles,
-  shaderLoaderFilters,
-  modrinthCategories,
-  loadMore,
   gameVersion,
+  modrinthCategories,
+  curseforgeCategory,
+  currentView,
+} = injection(kSearchModel)
+
+const {
+  error,
+  loading,
+  loadMore,
   effect,
+  items: originalItems,
+  sortBy,
 } = injection(kShaderPackSearch)
+
 const { runtime, path } = injection(kInstance)
 
-const { model, show: showInstallShaderWizard } = useSimpleDialog<boolean>(() => {})
+const { model, show: showInstallShaderWizard, confirm } = useSimpleDialog<(bypass: boolean) => void>((f) => {
+  console.log('skip')
+  f?.(true)
+}, (f) => {
+  f?.(false)
+})
 
 const shouldDisableIris = computed(() => !!runtime.value.forge || !!runtime.value.optifine)
 const shouldDisableOculus = computed(() => !!runtime.value.fabricLoader || !!runtime.value.optifine || !!runtime.value.quiltLoader)
@@ -294,24 +307,45 @@ const getInstalledCurseforge = (modId: number | undefined) => {
 const all = computed(() => {
   const result: (string | ProjectEntry)[] = []
 
-  if (enabled.value.length > 0) {
-    result.push(
-      'enabled' as string,
-      ...enabled.value,
-    )
-  }
-  if (disabled.value.length > 0) {
-    result.push(
-      'disabled' as string,
-      ...disabled.value,
-    )
-  }
-
-  if (others.value.length > 0) {
-    result.push(
-      'search' as string,
-      ...others.value,
-    )
+  if (currentView.value === 'local') {
+    const {
+      enabled,
+      disabled,
+      others,
+    } = originalItems.value.reduce((arrays, item) => {
+      if (item.installed && item.installed.length > 0) {
+        if (item.disabled) {
+          arrays.disabled.push(item)
+        } else {
+          arrays.enabled.push(item)
+        }
+      } else {
+        arrays.others.push(item)
+      }
+      return arrays
+    }, {
+      enabled: [] as ProjectEntry[],
+      disabled: [] as ProjectEntry[],
+      others: [] as ProjectEntry[],
+    })
+    if (enabled.length > 0) {
+      result.push('enabled' as string)
+      result.push(...enabled)
+    }
+    if (disabled.length > 0) {
+      result.push('disabled' as string)
+      sort(sortBy.value, disabled)
+      result.push(...disabled)
+    }
+    if (others.length > 0) {
+      result.push('search' as string)
+      result.push(...others)
+    }
+  } else if (currentView.value === 'remote') {
+    result.push('search' as string)
+    result.push(...originalItems.value)
+  } else {
+    result.push(...originalItems.value)
   }
 
   return result
@@ -329,19 +363,21 @@ const onUninstall = (files: ProjectFile[]) => {
   shaderPack.value = ''
   uninstall(path.value, files.map(f => f.path))
 }
-const onEnable = (f: ProjectFile | string) => {
+const onEnable = async (f: ProjectFile | string) => {
   if (!shaderMod.value && !runtime.value.optifine) {
-    showInstallShaderWizard(true)
-    return
+    await new Promise<void>((resolve, reject) => {
+      showInstallShaderWizard((v) => {
+        if (v) resolve()
+        else reject(new Error('cancel'))
+      })
+    })
   }
   shaderPack.value = typeof f === 'string' ? f : (f as InstanceShaderFile).fileName
 }
 
-// Reset all filter
-onUnmounted(() => {
-  keyword.value = ''
-  modrinthCategories.value = []
-})
+const skip = () => {
+  confirm()
+}
 
 // Presence
 const { name } = injection(kInstance)
@@ -370,14 +406,6 @@ onMounted(() => {
 const installModloaders = useInstanceModLoaderDefault()
 const { shaderMod } = injection(kInstanceShaderPacks)
 
-function installMoadloadersWrapped(...args: Parameters<typeof installModloaders>) {
-  if (!shaderMod.value && !runtime.value.optifine) {
-    showInstallShaderWizard(true)
-    throw new Error('No shader mod installed')
-  }
-  return installModloaders(...args)
-}
-
 const { push } = useRouter()
 function navigateToMod(type: string) {
   if (type === 'iris') {
@@ -394,10 +422,10 @@ const { installFromMarket, install, uninstall } = useService(InstanceShaderPacks
 const modrinthInstaller = useModrinthInstaller(
   path,
   runtime,
-  shaderProjectFiles,
+  shaderPacks,
   installFromMarket,
   onUninstall,
-  installMoadloadersWrapped,
+  installModloaders,
 )
 provide(kModrinthInstaller, modrinthInstaller)
 
@@ -405,16 +433,16 @@ provide(kModrinthInstaller, modrinthInstaller)
 const curseforgeInstaller = useCurseforgeInstaller(
   path,
   runtime,
-  shaderProjectFiles,
+  shaderPacks,
   installFromMarket,
   onUninstall,
-  installMoadloadersWrapped,
+  installModloaders,
 )
 provide(kCurseforgeInstaller, curseforgeInstaller)
 
 const onInstallProject = useProjectInstall(
   runtime,
-  shaderLoaderFilters,
+  ref(undefined),
   curseforgeInstaller,
   modrinthInstaller,
   (f) => {

@@ -8,25 +8,56 @@
       <div class="invisible-scroll flex justify-end gap-4 overflow-x-auto">
         <MarketTextFieldWithMenu
           :placeholder="t('mod.search')"
-          :keyword.sync="_keyword"
+          :keyword.sync="keywordBuffer"
           :curseforge-category.sync="curseforgeCategory"
           :modrinth-categories.sync="modrinthCategories"
+          :local-sort.sync="sortBy"
           curseforge-category-filter="mc-mods"
           modrinth-category-filter="mod"
+          :collection.sync="selectedCollection"
           :enable-curseforge.sync="isCurseforgeActive"
           :enable-modrinth.sync="isModrinthActive"
           :sort.sync="sort"
+          :mode.sync="source"
           :game-version.sync="gameVersion"
           :modloader.sync="modLoader"
           :mod-loaders="[ModLoaderFilter.forge, ModLoaderFilter.neoforge, ModLoaderFilter.fabric, ModLoaderFilter.quilt]"
-        />
+        >
+          <template #local>
+            <v-subheader class="flex">
+              {{ t('mod.filter') }}
+            </v-subheader>
+            <v-btn-toggle
+              background-color="transparent"
+              :value="localFilter === 'disabledOnly' ? 0 : localFilter === 'incompatibleOnly' ? 1 : undefined"
+              class="bg-transparent px-1"
+              @change="onUpdateLocalFilter(filterItems[$event]?.value)"
+            >
+              <v-btn
+                v-for="tag in filterItems"
+                :key="tag.value"
+                v-shared-tooltip="_ => tag.text"
+                :disabled="tag.disabled"
+                small
+                outlined
+              >
+                <v-icon
+                  class="material-icons-outlined"
+                  small
+                >
+                  {{ tag.icon }}
+                </v-icon>
+              </v-btn>
+            </v-btn-toggle>
+            <ModOptionsPage
+              :denseView.sync="denseView"
+              :groupInstalled.sync="groupInstalled"
+            />
+          </template>
+        </MarketTextFieldWithMenu>
       </div>
     </div>
-    <MarketExtensions
-      :modrinth="modrinthCount"
-      :curseforge="curseforgeCount"
-      :local="cachedMods.length"
-    />
+    <MarketExtensions />
   </div>
 </template>
 
@@ -36,66 +67,104 @@ import MarketExtensions from '@/components/MarketExtensions.vue'
 import MarketTextFieldWithMenu from '@/components/MarketTextFieldWithMenu.vue'
 import { kInstance } from '@/composables/instance'
 import { kInstanceModsContext } from '@/composables/instanceMods'
-import { kModsSearch, ModLoaderFilter } from '@/composables/modSearch'
-import { useQuery } from '@/composables/query'
+import { kModsSearch } from '@/composables/modSearch'
 import { getExtensionItemsFromRuntime } from '@/util/extensionItems'
 import { injection } from '@/util/inject'
 import debounce from 'lodash.debounce'
+import ModOptionsPage from './ModOptionsPage.vue'
+import { vSharedTooltip } from '@/directives/sharedTooltip'
+import { kModUpgrade } from '@/composables/modUpgrade'
+import { kModDependenciesCheck } from '@/composables/modDependenciesCheck'
+import { kModLibCleaner } from '@/composables/modLibCleaner'
+import { ModLoaderFilter, kSearchModel } from '@/composables/search'
 
 const { runtime: version } = injection(kInstance)
-const { modrinth, curseforge, gameVersion, cachedMods, modLoaderFilters, curseforgeCategory, modrinthCategories, isCurseforgeActive, isModrinthActive, sort } = injection(kModsSearch)
+const { plans } = injection(kModUpgrade)
+const { curseforgeCategory, modrinthCategories, isCurseforgeActive, isModrinthActive, sort, modLoader, selectedCollection, gameVersion, source } = injection(kSearchModel)
+const { denseView, groupInstalled, sortBy, localFilter } = injection(kModsSearch)
 const { mods: modFiles } = injection(kInstanceModsContext)
-const curseforgeCount = computed(() => curseforge.value ? curseforge.value.length : 0)
-const modrinthCount = computed(() => modrinth.value ? modrinth.value.length : 0)
 const { t } = useI18n()
+const { installation } = injection(kModDependenciesCheck)
+const { unusedMods } = injection(kModLibCleaner)
 
-let buffer = undefined as undefined | string
+
+const filterItems = computed(() => {
+  const hasUpdate = Object.keys(plans.value).length > 0
+  const hasDependenciesInstall = Object.keys(installation.value).length > 0
+  const hasUnusedMods = Object.keys(unusedMods.value).length > 0
+  const result = [{
+    icon: 'flash_off',
+    text: t('modFilter.disabledOnly'),
+    disabled: false,
+    value: 'disabledOnly',
+  }, {
+    icon: 'info',
+    text: t('modFilter.incompatibleOnly'),
+    value: 'incompatibleOnly',
+  }]
+  result.push({
+    icon: 'recycling',
+    disabled: !hasUnusedMods,
+    text: t('modFilter.unusedOnly'),
+    value: 'unusedOnly',
+  })
+  result.push({
+    icon: 'merge',
+    disabled: !hasDependenciesInstall,
+    text: t('modFilter.dependenciesInstallOnly'),
+    value: 'dependenciesInstallOnly',
+  })
+  result.push({
+    icon: 'update',
+    disabled: !hasUpdate,
+    text: t('modFilter.hasUpdateOnly'),
+    value: 'hasUpdateOnly',
+  })
+  return result
+})
+
+function onUpdateLocalFilter(filter: string) {
+  localFilter.value = filter as any
+}
+
+const route = useRoute()
 const updateSearch = debounce(() => {
-  if (typeof buffer === 'string') {
+  const buffer = keywordBuffer.value
+  if (buffer) {
     const isSuperQuery = buffer.startsWith('@')
     if (isSuperQuery) {
       const query = buffer.substring(1)
       const isCurseforgeProjectId = /^\d+$/.test(query) && query.length < 10
       const isModrinthProject = /^[0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz]+$/.test(query) && query.length === 8
       if (isCurseforgeProjectId) {
+        if (route.query.id === `curseforge:${query}`) return
         replace({ query: { ...route.query, id: `curseforge:${query}` } })
       } else if (isModrinthProject) {
+        if (route.query.id === `modrinth:${query}`) return
         replace({ query: { ...route.query, id: `modrinth:${query}` } })
       } else {
+        if (route.query.keyword === query) return
         replace({ query: { ...route.query, keyword: query } })
       }
     } else {
+      if (route.query.keyword === buffer) return
       replace({ query: { ...route.query, keyword: buffer } })
     }
-    buffer = undefined
+  } else {
+    if (route.query.keyword === '') return
+    replace({ query: { ...route.query, keyword: '' } })
   }
 }, 500)
 const { replace } = useRouter()
-const route = useRoute()
-const _keyword = computed({
-  get: () => route.query.keyword as string ?? '',
-  set: (v) => {
-    if (v !== buffer) {
-      if (v === '') {
-        replace({ query: { ...route.query, keyword: v } })
-        buffer = undefined
-      } else {
-        buffer = v ?? ''
-        updateSearch()
-      }
-    }
-  },
-})
-const modLoader = useQuery('modLoader')
+const keywordBuffer = ref(route.query.keyword as string)
 
-watch(version, (v) => {
-  // gameVersion.value = v.minecraft
-  if (v.forge) {
-    modLoader.value = 'forge'
-  } else if (v.fabric) {
-    modLoader.value = 'fabric'
-  } else if (v.quilt) {
-    modLoader.value = 'quilt'
+onMounted(() => {
+  keywordBuffer.value = route.query.keyword as string ?? ''
+})
+
+watch(keywordBuffer, (v, old) => {
+  if (v !== old) {
+    updateSearch()
   }
 }, { immediate: true })
 

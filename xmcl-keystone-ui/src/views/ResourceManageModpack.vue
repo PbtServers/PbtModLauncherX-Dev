@@ -137,7 +137,7 @@ function getModpackItem(resource: Resource): ModpackItem {
     id: resource.path,
     size: getExpectedSize(resource.size),
     icon: resource.icons ? resource.icons[0] : '',
-    name: metadata['curseforge-modpack']?.name ?? metadata['mcbbs-modpack']?.name ?? metadata['modrinth-modpack']?.name ?? '',
+    name: metadata['curseforge-modpack']?.name ?? metadata['mcbbs-modpack']?.name ?? metadata['modrinth-modpack']?.name ?? resource.fileName,
     version: metadata['curseforge-modpack']?.version ?? metadata['modrinth-modpack']?.versionId ?? metadata['mcbbs-modpack']?.version ?? '',
     author: metadata['curseforge-modpack']?.author ?? metadata['mcbbs-modpack']?.author ?? '',
     tags: [],
@@ -176,9 +176,9 @@ onUnmounted(() => {
 const { show: showCreateDialog } = useDialog(AddInstanceDialogKey)
 const onCreate = (item: ModpackItem) => {
   if (item.resource) {
-    showCreateDialog({ type: 'modpack', path: item.resource.path })
+    showCreateDialog({ format: 'modpack', path: item.resource.path })
   } else if (item.ftb) {
-    showCreateDialog({ type: 'ftb', manifest: item.ftb })
+    showCreateDialog({ format: 'ftb', manifest: item.ftb })
   }
 }
 </script>

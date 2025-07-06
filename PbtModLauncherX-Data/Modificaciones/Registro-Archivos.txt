@@ -12,8 +12,7 @@
 
 - xmcl-keystone-ui/src/views (Eliminar [kTutorial, useTutorial, useTutorialModel])
  - BaseSetting.vue
- - HomeDefault.vue
- - HomeFocus.vue
+ - Home.vue
  - Me.vue
  - Mod.vue
  - Multiplayer.vue
@@ -25,7 +24,7 @@
 
 - xmcl-keystone-ui/src/composables/tutorial.ts (Eliminar contenido de [useTutorialModel() y useTutorial()])
 
-- xmcl-keystone-ui/src/views (Eliminar AppSystemBarBadge piezas de [tutor-button y feedback-button])
+- xmcl-keystone-ui/src/views/AppSystemBar.vue (Eliminar AppSystemBarBadge piezas de [tutor-button y feedback-button])
 
 - xmcl-electron-app/postinstall.ts (Agregar API Key)
 

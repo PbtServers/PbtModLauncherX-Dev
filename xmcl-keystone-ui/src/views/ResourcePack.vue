@@ -1,12 +1,12 @@
 <template>
   <MarketBase
-    :items="displayItems"
+    :items="items"
     :item-height="itemHeight"
     :plans="{}"
     :class="{
       dragover,
     }"
-    :error="modrinthError"
+    :error="error"
     :loading="loading"
     @load="onLoad"
   >
@@ -35,7 +35,7 @@
         v-else-if="(typeof item === 'object')"
         :pack="item"
         :dense="denseView"
-        :draggable="!networkOnly && !item.disabled"
+        :draggable="currentView === 'local' && !item.disabled"
         :selection-mode="selectionMode"
         :item-height="itemHeight"
         :selected="selected"
@@ -59,7 +59,6 @@
         :project-id="selectedModrinthId"
         :installed="selectedItem?.installed || getInstalledModrinth(selectedItem?.modrinth?.project_id || selectedModrinthId)"
         :game-version="gameVersion"
-        :loaders="modrinthLoaders"
         :categories="modrinthCategories"
         :all-files="files"
         :curseforge="selectedItem?.curseforge?.id || selectedCurseforgeId"
@@ -73,7 +72,6 @@
         :curseforge="selectedItem?.curseforge"
         :curseforge-id="Number(selectedItem?.curseforge?.id || selectedCurseforgeId)"
         :installed="selectedItem?.installed || getInstalledCurseforge(Number(selectedItem?.curseforge?.id || selectedCurseforgeId))"
-        :loaders="[]"
         :game-version="gameVersion"
         :category="curseforgeCategory"
         :all-files="files"
@@ -128,25 +126,25 @@ import { ProjectEntry, ProjectFile } from '@/util/search'
 import { InstanceResourcePacksServiceKey } from '@xmcl/runtime-api'
 import ResourcePackDetailResource from './ResourcePackDetailResource.vue'
 import ResourcePackItem from './ResourcePackItem.vue'
+import { kSearchModel } from '@/composables/search'
+import { sort } from '@/composables/sortBy'
 
 const { runtime, path } = injection(kInstance)
 const { files, enable, disable, insert } = injection(kInstanceResourcePacks)
 const {
-  modrinthError,
-  loading,
-  modrinthCategories,
-  curseforgeCategory,
-
-  enabled,
-  disabled,
-  others,
-
-  loadMoreCurseforge,
-  loadMoreModrinth,
   keyword,
-  networkOnly,
+  curseforgeCategory,
+  modrinthCategories,
+  currentView,
   gameVersion,
+} = injection(kSearchModel)
+const {
+  error,
+  loading,
+  loadMore,
+  items: originalItems,
   effect,
+  sortBy,
 } = injection(kResourcePackSearch)
 
 // Register the resource pack search effect
@@ -154,45 +152,48 @@ effect()
 
 const isLocalFile = (f: any): f is ProjectEntry<InstanceResourcePack> => !!f
 
-const displayItems = computed(() => {
+const items = computed(() => {
   const result: (string | ProjectEntry)[] = []
 
-  if (enabled.value.length > 0) {
-    result.push(
-      'enabled' as string,
-      ...enabled.value,
-    )
-  }
-  if (disabled.value.length > 0) {
-    result.push(
-      'disabled' as string,
-      ...disabled.value,
-    )
-  }
-
-  if (others.value.length > 0) {
-    result.push(
-      'search' as string,
-      ...others.value,
-    )
-  }
-
-  return result
-})
-
-const modrinthLoaders = computed(() => {
-  const result = [
-    'minecraft',
-    'datapack',
-  ] as string[]
-  if (runtime.value.forge || runtime.value.neoForged) {
-    result.push('forge', 'neoforged')
-  }
-  if (runtime.value.fabric) {
-    result.push('fabric')
-  }
-  if (runtime.value.quiltLoader) {
-    result.push('quilt')
+  if (currentView.value === 'local') {
+    const {
+      enabled,
+      disabled,
+      others,
+    } = originalItems.value.reduce((arrays, item) => {
+      if (item.installed && item.installed.length > 0) {
+        if (item.disabled) {
+          arrays.disabled.push(item)
+        } else {
+          arrays.enabled.push(item)
+        }
+      } else {
+        arrays.others.push(item)
+      }
+      return arrays
+    }, {
+      enabled: [] as ProjectEntry[],
+      disabled: [] as ProjectEntry[],
+      others: [] as ProjectEntry[],
+    })
+    if (enabled.length > 0) {
+      result.push('enabled' as string)
+      result.push(...enabled)
+    }
+    if (disabled.length > 0) {
+      result.push('disabled' as string)
+      sort(sortBy.value, disabled)
+      result.push(...disabled)
+    }
+    if (others.length > 0) {
+      result.push('search' as string)
+      result.push(...others)
+    }
+  } else if (currentView.value === 'remote') {
+    result.push('search' as string)
+    result.push(...originalItems.value)
+  } else {
+    result.push(...originalItems.value)
   }
   return result
 })
@@ -211,17 +212,18 @@ const onDisable = (f: ProjectFile) => {
   disable([f as InstanceResourcePack])
 }
 const onDrop = (item: ResourcePackProject, id: string) => {
-  const target = enabled.value.indexOf(item)
-  const from = enabled.value.findIndex(e => e.id === id)
+  const _items = items.value
+  if (_items[0] !== 'enabled') {
+    return
+  }
+  const target = _items.indexOf(item)
+  const from = _items.findIndex(e => typeof e === 'object' && e.id === id)
   if (target !== -1 && from !== -1) {
     insert(from, target)
   }
 }
 
-const onLoad = () => {
-  loadMoreCurseforge()
-  loadMoreModrinth()
-}
+const onLoad = loadMore
 
 const toggleCategory = useToggleCategories(modrinthCategories)
 
@@ -252,8 +254,10 @@ const { dragover } = useGlobalDrop({
     for (const f of t.files) {
       paths.push(f.path)
     }
-    const installed = await install(path.value, paths)
-    await enable(installed)
+    if (paths.length > 0) {
+      const installed = await install(path.value, paths)
+      await enable(installed)
+    }
   },
 })
 
@@ -279,7 +283,7 @@ provide(kCurseforgeInstaller, curseforgeInstaller)
 
 const onInstallProject = useProjectInstall(
   runtime,
-  modrinthLoaders,
+  ref(undefined),
   curseforgeInstaller,
   modrinthInstaller,
   (f) => {

@@ -32,6 +32,7 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     enabled: shaderPack.value === f.fileName,
     fileName: f.fileName,
     size: f.size,
+    mtime: f.mtime,
     hash: f.hash,
     modrinth: f.metadata.modrinth,
     curseforge: f.metadata.curseforge,
@@ -155,6 +156,19 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
           shaderPack: v ?? '',
         }).then(() => mutateShaderPackOptions())
       } else if (shaderPackStatus.value?.[0] === 'oculus') {
+        editOculusShaderOptions({
+          instancePath: instancePath.value,
+          shaderPack: v ?? '',
+        }).then(() => mutateShaderPackOptions())
+      } else {
+        editShaderOptions({
+          instancePath: instancePath.value,
+          shaderPack: v ?? '',
+        })
+        editIrisShaderOptions({
+          instancePath: instancePath.value,
+          shaderPack: v ?? '',
+        }).then(() => mutateShaderPackOptions())
         editOculusShaderOptions({
           instancePath: instancePath.value,
           shaderPack: v ?? '',

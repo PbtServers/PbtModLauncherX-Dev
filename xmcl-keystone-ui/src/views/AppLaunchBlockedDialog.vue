@@ -55,11 +55,12 @@
 </template>
 
 <script lang=ts setup>
-import { getExpectVersion, LaunchException, LaunchExceptions, LaunchServiceKey } from '@xmcl/runtime-api'
-import { useDialog } from '../composables/dialog'
 import { useService } from '@/composables'
 import { useExceptionHandler } from '@/composables/exception'
+import { isException, LaunchException, LaunchExceptions, LaunchServiceKey } from '@xmcl/runtime-api'
 import FeedbackCard from '../components/FeedbackCard.vue'
+import { useDialog } from '../composables/dialog'
+import { useLaunchException } from '@/composables/launchException'
 
 const { on } = useService(LaunchServiceKey)
 const { isShown, hide } = useDialog('launch-blocked')
@@ -69,68 +70,21 @@ const unexpected = ref(false)
 const extraText = ref('')
 const { t } = useI18n()
 
+const { onException: _onException, onError } = useLaunchException(
+  title,
+  description,
+  unexpected,
+  extraText
+)
+
 function onException(e: LaunchExceptions) {
-  if (e.type === 'launchGeneralException') {
-    title.value = t('launchBlocked.launchGeneralException.title')
-    description.value = t('launchBlocked.launchGeneralException.description')
-    unexpected.value = true
-    if (e.error) {
-      if (typeof (e.error as any).stack === 'string') {
-        extraText.value += (e.error as any).stack
-      } else if (typeof (e.error as any).message === 'string') {
-        extraText.value = (e.error as any).message
-      } else if (typeof (e.error as any).toString === 'function') {
-        extraText.value = (e.error as any).toString()
-      } else {
-        extraText.value = e as any
-      }
-    }
-  } else if (e.type === 'launchInvalidJavaPath') {
-    title.value = t('launchBlocked.launchInvalidJavaPath.title')
-    description.value = t('launchBlocked.launchInvalidJavaPath.description', { javaPath: e.javaPath })
-    unexpected.value = true
-    extraText.value = ''
-  } else if (e.type === 'launchJavaNoPermission') {
-    title.value = t('launchBlocked.launchJavaNoPermission.title')
-    description.value = t('launchBlocked.launchJavaNoPermission.description', { javaPath: e.javaPath })
-    unexpected.value = false
-    extraText.value = ''
-  } else if (e.type === 'launchNoProperJava') {
-    title.value = t('launchBlocked.launchNoProperJava.title')
-    description.value = t('launchBlocked.launchNoProperJava.description', { javaPath: e.javaPath })
-    unexpected.value = true
-    extraText.value = ''
-  } else if (e.type === 'launchNoVersionInstalled') {
-    title.value = t('launchBlocked.launchNoVersionInstalled.title')
-    description.value = t('launchBlocked.launchNoVersionInstalled.description', { version: e.options?.version })
-    unexpected.value = true
-    extraText.value = ''
-  } else if (e.type === 'launchBadVersion') {
-    title.value = t('launchBlocked.launchBadVersion.title')
-    description.value = t('launchBlocked.launchBadVersion.description', { version: e.version })
-    unexpected.value = true
-    extraText.value = ''
-  } else if (e.type === 'launchUserStatusRefreshFailed') {
-    title.value = t('launchBlocked.launchUserStatusRefreshFailed.title')
-    description.value = t('launchBlocked.launchUserStatusRefreshFailed.description') + '<br>'
-    if (e.userException.type === 'userAcquireMicrosoftTokenFailed') {
-      description.value += t('launchBlocked.userAcquireMicrosoftTokenFailed')
-    } else if (e.userException.type === 'userCheckGameOwnershipFailed') {
-      description.value += t('launchBlocked.userCheckGameOwnershipFailed')
-    } else if (e.userException.type === 'userExchangeXboxTokenFailed') {
-      description.value += t('launchBlocked.userExchangeXboxTokenFailed')
-    } else if (e.userException.type === 'userLoginMinecraftByXboxFailed') {
-      description.value += t('launchBlocked.userLoginMinecraftByXboxFailed')
-    }
-  } else if (e.type === 'launchSpawnProcessFailed') {
-    title.value = t('launchBlocked.launchSpawnProcessFailed.title')
-    description.value = t('launchBlocked.launchSpawnProcessFailed.description')
-  }
+  _onException(e)
   isShown.value = true
 }
 
 on('error', (e) => {
-  onException(e.exception)
+  onError(e)
+  isShown.value = true
 })
 
 useExceptionHandler(LaunchException, (e) => {

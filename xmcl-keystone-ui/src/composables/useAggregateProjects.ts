@@ -23,30 +23,24 @@ function assignProject(a: ProjectEntry, b: ProjectEntry) {
     installedRecord[file.path] = file
   }
   a.installed = Object.values(installedRecord)
+
+  a.curseforgeProjectId = a.curseforgeProjectId || b.curseforgeProjectId
+  a.modrinthProjectId = a.modrinthProjectId || b.modrinthProjectId
 }
 
 /**
  * Sort the projects by the keyword. It will also filter the project if the networkOnly is true
  * @param keyword The keyword to search
  * @param items The project items
- * @param networkOnly If only show the network project
+ * @param mode The mod of the filtering project. 'online' only show the connected (curseforge/modrinth) projects. 'local' only show the installed projects.
  * @returns The sorted and filtered project
  */
-export function useProjectsFilterSort<T extends ProjectEntry>(
+export function useProjectsSort<T extends ProjectEntry>(
   keyword: Ref<string>,
   items: Ref<T[]>,
-  networkOnly: MaybeRef<boolean>,
-  isCurseforgeActive: MaybeRef<boolean>,
-  isModrinthActive: MaybeRef<boolean>,
 ) {
   const filterSorted = computed(() => {
-    const filtered = get(networkOnly)
-      ? items.value.filter(p => {
-        if (!get(isCurseforgeActive) && p.curseforge) return false
-        if (!get(isModrinthActive) && p.modrinth) return false
-        return p.curseforge || p.modrinth || p.id === 'OptiFine'
-      })
-      : items.value
+    const filtered = items.value
 
     if (!keyword.value) return filtered
 
@@ -60,17 +54,71 @@ export function useProjectsFilterSort<T extends ProjectEntry>(
   return filterSorted
 }
 
+export function useMergedProjects<T extends ProjectEntry>(
+  items: Ref<[T[], T[]]>,
+) {
+  const result = computed(() => {
+    const all: T[] = []
+    const indices: Record<string, T> = {}
+    const insert = (mod: T) => {
+      indices[mod.id] = mod
+      if (mod.curseforgeProjectId) {
+        indices[mod.curseforgeProjectId] = mod
+      }
+      if (mod.modrinthProjectId) {
+        indices[mod.modrinthProjectId] = mod
+      }
+    }
+    const get = (mod: T) => {
+      if (indices[mod.id]) {
+        return indices[mod.id]
+      }
+      if (mod.curseforgeProjectId) {
+        return indices[mod.curseforgeProjectId]
+      }
+      if (mod.modrinthProjectId) {
+        return indices[mod.modrinthProjectId]
+      }
+      return undefined
+    }
+
+    const visit = (mod: T, addToList: boolean) => {
+      const existed = get(mod)
+      if (existed) {
+        assignProject(existed, mod)
+        insert(existed)
+      } else {
+        insert(mod)
+        if (addToList) {
+          all.push(mod)
+        }
+      }
+    }
+
+    const [source, decorators] = items.value
+
+    for (const item of source) {
+      visit(item, true)
+    }
+    for (const mod of decorators) {
+      visit(mod, false)
+    }
+
+    return all
+  })
+
+  return result
+}
+
 /**
  * Aggregate the modrinth/curseforge/local
- * @param modrinth Project provided by modrinth
- * @param curseforge Project provided by curseforge
+ * @param external Project provided by modrinth/curseforge/other
  * @param local Project provieded by local cache
  * @param installedProjects The installed project
  * @returns The aggregated project
  */
 export function useAggregateProjects<T extends ProjectEntry>(
-  modrinth: Ref<T[]>,
-  curseforge: Ref<T[]>,
+  external: Ref<T[]>,
   local: Ref<T[]>,
   installedProjects: Ref<T[]>,
   allLocal: Ref<T[]>,
@@ -124,8 +172,7 @@ export function useAggregateProjects<T extends ProjectEntry>(
       }
     }
 
-    for (const mod of modrinth.value) visit(mod)
-    for (const mod of curseforge.value) visit(mod)
+    for (const mod of external.value) visit(mod)
     for (const mod of local.value) {
       mod.curseforge = undefined
       mod.modrinth = undefined

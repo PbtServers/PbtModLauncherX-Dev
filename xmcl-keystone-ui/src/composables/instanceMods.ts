@@ -1,8 +1,9 @@
 import { ReactiveResourceState } from '@/util/ReactiveResourceState'
+import { basename } from '@/util/basename'
 import { ModFile, getModFileFromResource } from '@/util/mod'
 import { CompatibleDetail, getModsCompatiblity, resolveDepsCompatible } from '@/util/modCompatible'
-import { useEventListener } from '@vueuse/core'
-import { InstanceModsServiceKey, JavaRecord, MutableState, Resource, ResourceState, RuntimeVersions } from '@xmcl/runtime-api'
+import { refThrottled, useEventListener } from '@vueuse/core'
+import { InstanceModsServiceKey, JavaRecord, Resource, ResourceState, RuntimeVersions, SharedState } from '@xmcl/runtime-api'
 import debounce from 'lodash.debounce'
 import { InjectionKey, Ref } from 'vue'
 import { useLocalStorageCache } from './cache'
@@ -11,7 +12,7 @@ import { useState } from './syncableState'
 
 export const kInstanceModsContext: InjectionKey<ReturnType<typeof useInstanceMods>> = Symbol('instance-mods')
 
-function useInstanceModsMetadataRefresh(instancePath: Ref<string>, state: Ref<MutableState<ResourceState> | undefined>) {
+function useInstanceModsMetadataRefresh(instancePath: Ref<string>, state: Ref<SharedState<ResourceState> | undefined>) {
   const lastUpdateMetadata = useLocalStorageCache<Record<string, number>>('instanceModsLastRefreshMetadata', () => ({}), JSON.stringify, JSON.parse)
   const { refreshMetadata } = useService(InstanceModsServiceKey)
   const expireTime = 1000 * 30 * 60 // 0.5 hour
@@ -53,14 +54,15 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
   const { isValidating, error, state, revalidate } = useState(async () => {
     const inst = instancePath.value
     if (!inst) { return undefined }
-    console.time('[watchMods] ' + inst)
+    const start = performance.now()
     const mods = await watchMods(inst)
-    console.timeEnd('[watchMods] ' + inst)
+    console.log('[instanceMods] fetch', performance.now() - start)
     mods.files = mods.files.map(m => markRaw(m))
     return mods as any
   }, ReactiveResourceState)
 
-  const mods: Ref<ModFile[]> = shallowRef([])
+  const modsRaw: Ref<ModFile[]> = shallowRef([])
+  const mods = refThrottled(modsRaw, 500)
   const modsIconsMap: Ref<Record<string, string>> = shallowRef({})
   const provideRuntime: Ref<Record<string, string>> = shallowRef({})
 
@@ -71,6 +73,7 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
     modsIconsMap.value = {}
     provideRuntime.value = {}
   }
+
   watch(instancePath, (v, prev) => {
     if (v !== prev) {
       reset()
@@ -102,10 +105,12 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
       neoforge: runtimeVersions.neoForged ?? '',
       fabricloader: runtimeVersions.fabricLoader ?? '',
     }
+    const allows = getAllowedLoaders(runtimeVersions, newItems)
 
     for (const item of newItems) {
       // Update icon map
       newIconMap[item.modId] = item.icon
+      newIconMap[basename(item.path)] = item.icon
       if (item.enabled) {
         for (const [key, val] of Object.entries(item.provideRuntime)) {
           runtime[key] = val
@@ -113,8 +118,9 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
       }
     }
 
+    allowLoaders.value = allows
     modsIconsMap.value = markRaw(newIconMap)
-    mods.value = markRaw(newItems.map(markRaw))
+    modsRaw.value = markRaw(newItems.map(markRaw))
     provideRuntime.value = markRaw(runtime)
   }
 
@@ -141,14 +147,48 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
     return markRaw(dict)
   })
 
+  function getAllowedLoaders(instanceRuntime: RuntimeVersions, mods: ModFile[]) {
+    const loaders = [] as string[]
+    if (instanceRuntime.forge) {
+      loaders.push('forge')
+      if (mods.some(m => m.modId === 'fabric_api')) {
+        loaders.push('fabric')
+      }
+    } else if (instanceRuntime.fabricLoader) {
+      loaders.push('fabric')
+    } else if (instanceRuntime.neoforge) {
+      loaders.push('neoforge')
+    } else if (instanceRuntime.quiltLoader) {
+      loaders.push('quilt')
+    }
+    return loaders
+  }
+
+  const allowLoaders = shallowRef([] as string[])
+
   const compatibility = computed(() => {
     const runtime = provideRuntime.value
+    const loaders = allowLoaders.value
 
     const result: Record<string, CompatibleDetail[]> = {}
+
+    if (loaders.length === 0) return result
+
+    const isForgeAndFabric = loaders[0] === 'forge' && loaders[1] === 'fabric'
+
     for (const i of mods.value) {
       if (!i.enabled) continue
-      const details = getModsCompatiblity(i.dependencies, runtime)
-      result[i.modId] = details
+      for (const loader of loaders) {
+        const deps = i.dependencies[loader]
+        if (deps) {
+          const details = getModsCompatiblity(deps, runtime, isForgeAndFabric)
+          result[i.modId] = details
+          break
+        }
+      }
+      if (!result[i.modId]) {
+        result[i.modId] = []
+      }
     }
 
     return markRaw(result)
@@ -169,6 +209,7 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
 
   return {
     mods,
+    allowLoaders,
     conflicted,
     modsIconsMap,
     provideRuntime,

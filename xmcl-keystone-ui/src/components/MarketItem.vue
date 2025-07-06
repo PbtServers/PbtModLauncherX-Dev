@@ -1,16 +1,17 @@
 <template>
   <v-list-item
     v-context-menu="getContextMenuItems"
-    v-shared-tooltip="{ text: tooltip, color: hasUpdate ? 'primary' : 'black' }"
+    v-shared-tooltip="_ => ({ text: tooltip, color: hasUpdate ? 'primary' : 'black' })"
     :style="{
       minHeight: height ? height + 'px' : undefined,
-      maxHeight: height ? height + 'px' : undefined
+      maxHeight: height ? height + 'px' : undefined,
     }"
     style="pointer-events: initial;"
     :draggable="draggable"
     :class="{
-      'v-list-item--disabled': item.disabled,
+      'v-list-item--disabled': disabled || item.disabled || item.unsupported,
       'dragged-over': dragover > 0,
+      dense,
     }"
     :input-value="selected"
     link
@@ -28,11 +29,11 @@
       <img
         ref="iconImage"
         v-fallback-img="BuiltinImages.unknownServer"
-        :class="{ 'opacity-20': item.installed.length === 0 && hover }"
+        :class="{ 'opacity-20': item.installed.length === 0 && hover && !item.unsupported }"
         :src="icon || item.icon || BuiltinImages.unknownServer"
       >
       <v-btn
-        v-if="install && item.installed.length === 0"
+        v-if="install && item.installed.length === 0 && !item.unsupported"
         class="absolute"
         large
         icon
@@ -47,7 +48,17 @@
         </v-icon>
       </v-btn>
     </v-list-item-avatar>
-    <v-list-item-content>
+    <div
+      v-if="indent"
+      class="indicator"
+      :style="{ height: `${height}px`, background: indentColor || 'rgb(250 204 21 / 1)' }"
+    />
+    <v-list-item-content
+      :class="{
+        indented: indent,
+        dense,
+      }"
+    >
       <v-badge
         class="w-full"
         color="red"
@@ -166,8 +177,11 @@ const props = defineProps<{
   noDuplicate?: boolean
   dense?: boolean
   hasUpdate?: boolean
+  disabled?: boolean
   height?: number
   draggable?: boolean
+  indent?: boolean
+  indentColor?: string
   install?: (p: ProjectEntry) => Promise<void>
   getContextMenuItems?: () => ContextMenuItem[]
 }>()
@@ -254,7 +268,7 @@ watch(() => props.item, (newVal, old) => {
 }, { immediate: true })
 const { t } = useI18n()
 
-const tooltip = computed(() => props.hasUpdate ? t('mod.hasUpdate') : (typeof descriptionTextOrObject.value === 'string' ? descriptionTextOrObject.value.trim() : descriptionTextOrObject.value.text) || props.item.title.trim())
+const tooltip = computed(() => props.hasUpdate ? t('mod.hasUpdate') : (typeof descriptionTextOrObject.value === 'string' ? descriptionTextOrObject.value.trim() : descriptionTextOrObject.value?.text) || props.item.title.trim())
 const onSettingClick = (event: MouseEvent) => {
   const button = event.target as any // Get the button element
   const rect = button.getBoundingClientRect() // Get the position of the button
@@ -338,5 +352,10 @@ const onInstall = async () => {
 <style scoped>
 .dragged-over {
   @apply border border-dashed border-transparent border-yellow-400;
+}
+.indicator {
+  content: '';
+  min-width: 2px;
+  margin-right: 1rem;
 }
 </style>

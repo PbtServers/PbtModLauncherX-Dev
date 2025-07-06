@@ -14,9 +14,10 @@
         modrinth-category-filter="shader"
         :enable-modrinth.sync="isModrinthActive"
         :game-version.sync="gameVersion"
+        :local-sort.sync="sortBy"
         :sort.sync="sort"
-        :modloader="modloader"
-        :mod-loaders="[ShaderLoaderFilter.optifine, ShaderLoaderFilter.iris]"
+        :mode.sync="source"
+        :collection.sync="selectedCollection"
       />
     </div>
     <MarketExtensions
@@ -33,7 +34,8 @@ import MarketExtensions from '@/components/MarketExtensions.vue'
 import MarketTextFieldWithMenu from '@/components/MarketTextFieldWithMenu.vue'
 import { kInstance } from '@/composables/instance'
 import { kInstanceShaderPacks } from '@/composables/instanceShaderPack'
-import { kShaderPackSearch, ShaderLoaderFilter } from '@/composables/shaderPackSearch'
+import { kSearchModel } from '@/composables/search'
+import { kShaderPackSearch } from '@/composables/shaderPackSearch'
 import { getExtensionItemsFromRuntime } from '@/util/extensionItems'
 import { injection } from '@/util/inject'
 
@@ -63,14 +65,8 @@ const extensionItems = computed(() => {
   return items
 })
 
-const modloader = computed({
-  get: () => shaderLoaderFilters.value[0],
-  set: (value: string) => {
-    shaderLoaderFilters.value = [value as ShaderLoaderFilter]
-  },
-})
-
-const { keyword, gameVersion, shaderLoaderFilters, modrinthCategories, sort, isModrinthActive } = injection(kShaderPackSearch)
+const { keyword, source, gameVersion, selectedCollection, modrinthCategories, sort, isModrinthActive } = injection(kSearchModel)
 const { shaderMod } = injection(kInstanceShaderPacks)
+const { sortBy } = injection(kShaderPackSearch)
 const { t } = useI18n()
 </script>
