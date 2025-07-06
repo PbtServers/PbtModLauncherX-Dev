@@ -1,13 +1,13 @@
-import { GameProfileAndTexture, LoginOptions, RefreshUserOptions, Skin, SkinPayload, UserException, UserProfile, normalizeUserId } from '@xmcl/runtime-api'
-import { MicrosoftAuthenticator, MicrosoftMinecraftProfile, MojangClient, MojangError, ProfileNotFoundError, UnauthorizedError, YggdrasilClient } from '@xmcl/user'
+import { AUTHORITY_MICROSOFT, AuthorityMetadata, GameProfileAndTexture, LoginOptions, RefreshUserOptions, Skin, SkinPayload, UserException, UserProfile, normalizeUserId } from '@xmcl/runtime-api'
+import { MicrosoftAuthenticator, MicrosoftMinecraftProfile, MojangClient, MojangError } from '@xmcl/user'
+import { randomUUID } from 'crypto'
+import { LauncherApp } from '~/app'
 import { Logger } from '~/logger'
 import { toRecord } from '~/util/object'
 import { XBoxResponse, normalizeSkinData } from '../user'
 import { UserTokenStorage } from '../userTokenStore'
 import { UserAccountSystem } from './AccountSystem'
 import { MicrosoftOAuthClient } from './MicrosoftOAuthClient'
-import { LauncherApp } from '~/app'
-import { randomUUID } from 'crypto'
 
 export class MicrosoftAccountSystem implements UserAccountSystem {
   constructor(
@@ -18,6 +18,17 @@ export class MicrosoftAccountSystem implements UserAccountSystem {
     private oauthClient: MicrosoftOAuthClient,
     private app: LauncherApp,
   ) { }
+
+  getSupporetedAuthorityMetadata(): AuthorityMetadata[] {
+    return [
+      {
+        authority: AUTHORITY_MICROSOFT,
+        flow: ['device-code', 'grant-code'],
+        emailOnly: true,
+        kind: 'builtin',
+      },
+    ]
+  }
 
   async login(options: LoginOptions, signal: AbortSignal): Promise<UserProfile> {
     const properties = options.properties || {}
@@ -146,6 +157,7 @@ export class MicrosoftAccountSystem implements UserAccountSystem {
   }
 
   protected async loginMicrosoft(microsoftEmailAddress: string, oauthCode: string | undefined, useDeviceCode: boolean, directRedirectToLauncher: boolean, signal: AbortSignal, slientOnly = false) {
+    const logError = (e: any) => this.logger.error(Object.assign(e, { scenario: 'loginMicrosoft' }))
     const { result, extra } = await this.oauthClient.authenticate(microsoftEmailAddress, ['XboxLive.signin', 'XboxLive.offline_access'], {
       code: oauthCode,
       useDeviceCode,
@@ -153,7 +165,7 @@ export class MicrosoftAccountSystem implements UserAccountSystem {
       signal,
       slientOnly,
     }).catch((e) => {
-      this.logger.error(e)
+      logError(e)
       throw new UserException({ type: 'userAcquireMicrosoftTokenFailed' }, 'Failed to acquire Microsoft access token', { cause: e })
     })
 
@@ -162,6 +174,7 @@ export class MicrosoftAccountSystem implements UserAccountSystem {
     this.logger.log('Successfully get Microsoft access token')
     const oauthAccessToken = result.accessToken
     const { liveXstsResponse, minecraftXstsResponse } = await this.authenticator.acquireXBoxToken(oauthAccessToken, signal).catch((e) => {
+      logError(e)
       throw new UserException({ type: 'userExchangeXboxTokenFailed' }, 'Failed to exchange Xbox token', { cause: e })
     })
 
@@ -173,11 +186,13 @@ export class MicrosoftAccountSystem implements UserAccountSystem {
       this.logger.log('Successfully login Xbox')
 
       const mcResponse = await this.authenticator.loginMinecraftWithXBox(xstsResponse.DisplayClaims.xui[0].uhs, xstsResponse.Token, signal).catch((e) => {
+        logError(e)
         throw new UserException({ type: 'userLoginMinecraftByXboxFailed' }, 'Failed to login Minecraft with Xbox', { cause: e })
       })
       this.logger.log('Successfully login Minecraft with Xbox')
 
       const ownershipResponse = await this.mojangClient.checkGameOwnership(mcResponse.access_token, signal).catch((e) => {
+        logError(e)
         this.logger.warn(new UserException({ type: 'userCheckGameOwnershipFailed' }, 'Failed to check game ownership', { cause: e }))
         return { items: [] }
       })
@@ -185,7 +200,7 @@ export class MicrosoftAccountSystem implements UserAccountSystem {
       this.logger.log(`Successfully check ownership: ${ownGame}`)
 
       const gameProfileResponse = await this.mojangClient.getProfile(mcResponse.access_token, signal).catch((e) => {
-        this.logger.warn(e)
+        logError(e)
         if (e instanceof MojangError) {
           throw new UserException({
             type: 'fetchMinecraftProfileFailed',

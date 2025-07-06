@@ -125,6 +125,9 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
         throw e
       })
       if (fstat.isDirectory()) continue
+      const dstat = await stat(dest).catch(_ => undefined)
+      if (dstat?.ino === fstat.ino) continue
+      if (dstat?.size === fstat.size) continue
       result.push(await linkOrCopyFile(src, dest))
     }
     return result
@@ -134,7 +137,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
     const files = file instanceof Array ? file : [file]
     for (const f of files) {
       const dest = join(instancePath, this.domain, basename(f))
-      await unlink(dest)
+      await unlink(dest).catch(() => {})
     }
   }
 
@@ -156,7 +159,7 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
           if (isSystemError(e)) {
             if (e.code === 'ENOENT') {
               // ignore
-              this.log(`Instance ${instancePath} not exist. Skip watching.`)
+              // this.log(`Instance ${instancePath} not exist. Skip watching.`) // verbose
             } else {
               throw e
             }
@@ -192,9 +195,10 @@ export abstract class AbstractInstanceDomainService extends AbstractService {
 
   async installFromMarket(options: InstallMarketOptionWithInstance): Promise<string[]> {
     const provider = await this.app.registry.get(kMarketProvider)
-    const result = await provider.installFile({
+    const result = await provider.installInstanceFile({
       ...options,
-      directory: join(options.instancePath, this.domain),
+      domain: this.domain,
+      instancePath: options.instancePath,
     })
     return result.map((r) => r.path)
   }

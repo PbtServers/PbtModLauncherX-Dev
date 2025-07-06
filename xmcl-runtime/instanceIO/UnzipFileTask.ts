@@ -7,6 +7,7 @@ import { dirname } from 'path'
 import { pipeline } from 'stream/promises'
 import { errors } from 'undici'
 import { Entry, ZipFile } from 'yauzl'
+import { isSystemError } from '~/util/error'
 import { ZipManager } from '~/zipManager/ZipManager'
 
 export class UnzipFileTask extends AbortableTask<void> {
@@ -15,7 +16,7 @@ export class UnzipFileTask extends AbortableTask<void> {
   constructor(
     private zipManager: ZipManager,
     private queue: Array<{ file: InstanceFile; zipPath: string; entryName: string; destination: string }>,
-    readonly finished: Set<InstanceFile>,
+    readonly finished: Set<string>,
   ) {
     super()
     this.name = 'unzip'
@@ -47,7 +48,12 @@ export class UnzipFileTask extends AbortableTask<void> {
 
     // Update the total size
     for (const { zipPath, entryName } of queue) {
-      const zip = await this.zipManager.open(zipPath)
+      const zip = await this.zipManager.open(zipPath).catch(e => {
+        if (isSystemError(e) && e.code === 'ENOENT') {
+          e.name = 'UnzipFileNotFoundError'
+        }
+        throw e
+      })
       const entry = zip.entries[entryName]
       if (entry) {
         this._total += entry.uncompressedSize
@@ -65,7 +71,7 @@ export class UnzipFileTask extends AbortableTask<void> {
         const entry = entries[entryName]
         if (entry) {
           promises.push(this.#processEntry(zip, entry, destination).then(() => {
-            this.finished.add(file)
+            this.finished.add(file.path)
           }, (e) => {
             return Object.assign(e, {
               zipEntry: entry,
@@ -85,7 +91,7 @@ export class UnzipFileTask extends AbortableTask<void> {
 
     if (allErrors.length > 0) {
       if (allErrors.length > 1) {
-        throw new AggregateError(allErrors)
+        throw new AggregateError(allErrors.flatMap(e => e instanceof AggregateError ? e.errors : e))
       }
 
       throw allErrors[0]

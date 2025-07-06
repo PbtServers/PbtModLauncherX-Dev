@@ -1,7 +1,6 @@
 import type { Frame as GameSetting } from '@xmcl/gamesetting'
-import { Exception, InstanceNotFoundException } from '../entities/exception'
 import { ShaderOptions } from '../entities/shaderpack'
-import { MutableState } from '../util/MutableState'
+import { SharedState } from '../util/SharedState'
 import { ServiceKey } from './Service'
 export interface EditGameSettingOptions extends GameSetting {
   /**
@@ -53,6 +52,7 @@ export class GameOptionsState implements GameOptions {
   renderClouds = undefined
   lang = ''
   shaderPack = ''
+  eula = false
 
   gameOptionsSet(settings: GameSetting) {
     const container = this as Record<string, any>
@@ -69,13 +69,17 @@ export class GameOptionsState implements GameOptions {
   shaderPackSet(pack: string) {
     this.shaderPack = pack
   }
+
+  eulaSet(value: boolean) {
+    this.eula = value
+  }
 }
 
 /**
  * The service for game options & shader options
  */
 export interface InstanceOptionsService {
-  watch(path: string): Promise<MutableState<GameOptionsState>>
+  watch(path: string): Promise<SharedState<GameOptionsState>>
   /**
    * Get the shader setting of the specific instance
    * @param instancePath The instance path
@@ -124,11 +128,7 @@ export interface InstanceOptionsService {
 
   getServerProperties(instancePath: string): Promise<Record<string, string>>
 
-  setServerProperties(instancePath: string, properties: Record<string, string>): Promise<void>
+  setServerProperties(instancePath: string, properties: Record<string, string | number | boolean>): Promise<void>
 }
 
 export const InstanceOptionsServiceKey: ServiceKey<InstanceOptionsService> = 'InstanceOptionsService'
-
-export type InstanceOptionExceptions = InstanceNotFoundException
-
-export class InstanceOptionException extends Exception<InstanceOptionExceptions> { }

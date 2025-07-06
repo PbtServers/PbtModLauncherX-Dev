@@ -1,17 +1,24 @@
 import { MinecraftFolder, LaunchOption as ResolvedLaunchOptions, ResolvedVersion, ServerOptions, createMinecraftProcessWatcher, generateArguments, generateArgumentsServer, launch, launchServer } from '@xmcl/core'
-import { AUTHORITY_DEV, GameProcess, LaunchService as ILaunchService, LaunchException, LaunchOptions, LaunchServiceKey, ReportOperationPayload, ResolvedServerVersion } from '@xmcl/runtime-api'
+import { AUTHORITY_DEV, CreateLaunchShortcutOptions, GameProcess, LaunchService as ILaunchService, LaunchException, LaunchOptions, LaunchServiceKey, ReportOperationPayload, ResolvedServerVersion } from '@xmcl/runtime-api'
 import { offline } from '@xmcl/user'
-import { ChildProcess } from 'child_process'
+import { ChildProcess, spawn } from 'child_process'
+import createDesktopShortcut, { ShortcutOptions } from 'create-desktop-shortcuts'
+import vbTextContent from 'create-desktop-shortcuts/src/windows.vbs'
 import { randomUUID } from 'crypto'
-import { constants } from 'fs'
-import { access } from 'fs-extra'
+import { constants, existsSync } from 'fs'
+import { access, writeFile } from 'fs-extra'
 import { EOL } from 'os'
-import { dirname, join } from 'path'
+import { basename, dirname, join } from 'path'
+import { createICO } from 'png2icons'
+import { Readable } from 'stream'
+import { finished } from 'stream/promises'
 import { setTimeout } from 'timers/promises'
 import { Inject, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
 import { EncodingWorker, kEncodingWorker } from '~/encoding'
 import { AbstractService, ExposeServiceKey } from '~/service'
 import { UserTokenStorage, kUserTokenStorage } from '~/user'
+import { kYggdrasilSeriveRegistry } from '~/user/YggdrasilSeriveRegistry'
+import { normalizeCommandLine } from '~/util/cmd'
 import { isSystemError } from '~/util/error'
 import { VersionService } from '~/version'
 import { LauncherApp } from '../app/LauncherApp'
@@ -44,8 +51,61 @@ export class LaunchService extends AbstractService implements ILaunchService {
   async #isValidAndExeucatable(javaPath: string) {
     return await access(javaPath, constants.X_OK).then(() => true).catch(() => false)
   }
+  
+  /**
+   * Execute pre-launch command
+   * @param command The command to execute
+   * @param cwd The working directory
+   * @param operationId The operation id
+   */
+  async #execPreCommand(command: string, cwd: string): Promise<void> {
+    if (!command.trim()) return;
+    
+    this.log(`Executing pre-launch command: ${command}`);
+    try {
+      const process = spawn(command, {
+        shell: true,
+        cwd,
+        stdio: 'pipe',
+      });
+      
+      return await new Promise<void>((resolve, reject) => {
+        const stdoutChunks: Buffer[] = [];
+        const stderrChunks: Buffer[] = [];
+        
+        process.stdout?.on('data', (data) => {
+          stdoutChunks.push(Buffer.from(data));
+          this.log(`[Pre-Launch CMD] ${data.toString('utf-8').trim()}`);
+        });
+        
+        process.stderr?.on('data', (data) => {
+          stderrChunks.push(Buffer.from(data));
+          this.warn(`[Pre-Launch CMD Error] ${data.toString('utf-8').trim()}`);
+        });
+        
+        process.on('error', (err) => {
+          this.warn(`Pre-launch command failed: ${err.message}`);
+          reject(new LaunchException({ type: 'launchPreExecuteCommandFailed', command, error: err.message }, 'Failed to execute pre-command'));
+        });
+        
+        process.on('exit', (code) => {
+          if (code === 0) {
+            this.log('Pre-launch command executed successfully');
+            resolve();
+          } else {
+            const stderr = Buffer.concat(stderrChunks).toString('utf-8');
+            const error = `Pre-launch command exited with code ${code}. Error: ${stderr}`;
+            reject(new LaunchException({ type: 'launchPreExecuteCommandFailed', command, error }, 'Pre-launch command failed'));
+          }
+        });
+      });
+    } catch (e) {
+      this.warn(`Failed to spawn pre-launch command: ${e}`);
+      throw new LaunchException({ type: 'launchPreExecuteCommandFailed', command, error: (e as Error).message }, 'Failed to execute pre-command');
+    }
+  }
 
-  async #generateServerOptions(options: LaunchOptions, version: ResolvedServerVersion) {
+  async generateServerOptions(options: LaunchOptions, version: ResolvedServerVersion) {
     let javaPath = options.java
 
     if (javaPath.endsWith('java.exe')) {
@@ -81,6 +141,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
       ...version.libraries.filter((lib) => !lib.isNative).map((lib) => mc.getLibraryByPath(lib.download.path)),
       mc.getVersionJar(version.minecraftVersion, 'server'),
     ]
+    const prepend = normalizeCommandLine(options.prependCommand)
 
     /**
      * Build launch condition
@@ -96,13 +157,15 @@ export class LaunchService extends AbstractService implements ILaunchService {
       classPath,
 
       extraExecOption: {
+        shell: prepend && prepend.length > 0,
         detached: true,
         cwd: minecraftFolder.getPath('server'),
+        env: { ...process.env, ...options.env },
       },
 
       extraJVMArgs: jvmArgs,
       extraMCArgs: mcArgs,
-      prependCommand: options.prependCommand,
+      prependCommand: prepend,
 
       nogui: options.nogui,
     }
@@ -112,6 +175,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
 
   async #generateOptions(options: LaunchOptions, version: ResolvedVersion, accessToken?: string) {
     const user = options.user
+    const demo = !user.id && !user.selectedProfile && !user.username
     const gameProfile = user.profiles[user.selectedProfile] ?? offline('Steve').selectedProfile
     const javaPath = options.java
     const yggdrasilAgent = options.yggdrasilAgent
@@ -124,6 +188,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
     const launcherName = `PbtModLauncherX (${this.app.version})`
     const javawPath = join(dirname(javaPath), process.platform === 'win32' ? 'javaw.exe' : 'javaw')
     const validJavaPath = await this.#isValidAndExeucatable(javawPath) ? javawPath : javaPath
+    const prepend = normalizeCommandLine(options.prependCommand)
     /**
      * Build launch condition
      */
@@ -144,21 +209,25 @@ export class LaunchService extends AbstractService implements ILaunchService {
         }
         : undefined,
       extraExecOption: {
+        shell: prepend && prepend.length > 0,
         detached: true,
         cwd: minecraftFolder.root,
+        env: { ...process.env, ...options.env },
       },
       extraJVMArgs: options.vmOptions?.filter(v => !!v),
       extraMCArgs: options.mcOptions?.filter(v => !!v),
       launcherBrand: options?.launcherBrand ?? launcherName,
       launcherName: options?.launcherName ?? launcherName,
-      prependCommand: options.prependCommand,
+      prependCommand: prepend,
       yggdrasilAgent,
+      resolution: options.resolution,
       useHashAssetsIndex: true,
       platform: {
         arch: process.arch,
         name: this.app.platform.os,
         version: this.app.platform.osRelease,
       },
+      demo,
       prechecks: [],
     }
 
@@ -178,14 +247,15 @@ export class LaunchService extends AbstractService implements ILaunchService {
         ? getAddress()
         : launchOptions.yggdrasilAgent.server
       launchOptions.extraJVMArgs?.push(
-        '-Dauthlibinjector.legacySkinPolyfill=enabled',
-        '-Dauthlibinjector.disableHttpd',
-        '-Dauthlibinjector.mojangNamespace=enabled',
         '-Dauthlibinjector.debug',
-        '-Dauthlibinjector.mojangAntiFeatures=enabled',
-        '-Dauthlibinjector.profileKey=disabled',
-        '-Dauthlibinjector.usernameCheck=disabled',
       )
+
+      const reg = await this.app.registry.get(kYggdrasilSeriveRegistry)
+      const auth = reg.getYggdrasilServices().find(y => y.url === user.authority)
+      if (auth?.authlibInjector) {
+        const injectedBase64 = Buffer.from(JSON.stringify(auth.authlibInjector)).toString('base64')
+        launchOptions.extraJVMArgs?.push(`-Dauthlibinjector.yggdrasil.prefetched=${injectedBase64}`)
+      }
     }
 
     if (options.server) {
@@ -234,15 +304,25 @@ export class LaunchService extends AbstractService implements ILaunchService {
         return args
       } else {
         const version = await this.versionService.resolveServerVersion(options.version)
-        const launchOptions = await this.#generateServerOptions(options, version)
-        const args = await generateArgumentsServer(launchOptions)
+        const launchOptions = await this.generateServerOptions(options, version)
+        const args = generateArgumentsServer(launchOptions)
         return args
       }
     } catch (e) {
       if (e instanceof LaunchException) {
         throw e
       }
-      throw new LaunchException({ type: 'launchGeneralException', error: { ...(e as any), message: (e as any).message, stack: (e as any).stack } })
+      if (e instanceof Error) {
+        if (!e.stack) {
+          e.stack = new Error().stack
+        }
+        if (e.name === 'Error') {
+          Object.assign(e, {
+            name: 'LaunchGeneralError',
+          })
+        }
+      }
+      throw e
     }
   }
 
@@ -291,6 +371,12 @@ export class LaunchService extends AbstractService implements ILaunchService {
         throw new LaunchException({ type: 'launchNoProperJava', javaPath: javaPath || '' }, 'Cannot launch without a valid java')
       }
 
+      // Execute pre-launch command if specified
+      if (options.preExecuteCommand) {
+        this.log(`Executing pre-execute command: ${options.preExecuteCommand}`)
+        await this.#track(this.#execPreCommand(options.preExecuteCommand, options.gameDirectory), 'pre-execute-command', operationId)
+      }
+
       let process: ChildProcess
       const context = {}
       let launchOptions: (ResolvedLaunchOptions | ServerOptions)
@@ -322,7 +408,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
           throw e
         }
       } else {
-        launchOptions = await this.#generateServerOptions(options, version)
+        launchOptions = await this.generateServerOptions(options, version)
         for (const plugin of this.middlewares) {
           try {
             await this.#track(plugin.onBeforeLaunch(options, { side: 'server', version, options: launchOptions }, context), plugin.name, operationId)
@@ -405,7 +491,7 @@ export class LaunchService extends AbstractService implements ILaunchService {
       })
 
       watcher.on('error', (err) => {
-        this.emit('error', new LaunchException({ type: 'launchGeneralException', error: err }))
+        this.emit('error', err)
       }).on('minecraft-exit', ({ code, signal, crashReport, crashReportLocation }) => {
         const endTime = Date.now()
         const playTime = endTime - startTime
@@ -452,7 +538,17 @@ export class LaunchService extends AbstractService implements ILaunchService {
       if (e instanceof LaunchException) {
         throw e
       }
-      throw new LaunchException({ type: 'launchGeneralException', error: { ...(e as any), message: (e as any).message, stack: (e as any).stack } }, (e as any).message, { cause: e })
+      if (e instanceof Error) {
+        if (!e.stack) {
+          e.stack = new Error().stack
+        }
+        if (e.name === 'Error') {
+          Object.assign(e, {
+            name: 'LaunchGeneralError',
+          })
+        }
+      }
+      throw e
     }
   }
 
@@ -515,5 +611,73 @@ export class LaunchService extends AbstractService implements ILaunchService {
         name: payload.name,
       })
     }
+  }
+
+  async createLaunchShortcut(options: CreateLaunchShortcutOptions): Promise<void> {
+    const iconUrl = options.icon
+
+    const instanceIcoPath = process.platform === 'win32'
+      ? join(options.instancePath, 'icon.ico')
+      : join(options.instancePath, 'icon.png')
+    if (iconUrl) {
+      const { body } = await this.app.protocol.handle({
+        method: 'GET',
+        url: iconUrl,
+      })
+      let buffer: Buffer
+      if (body) {
+        if (body instanceof Buffer) {
+          buffer = body
+        } else if (body instanceof Readable) {
+          const buffers = [] as Buffer[]
+          body.on('data', (b) => {
+            buffers.push(b)
+          })
+          await finished(body)
+          buffer = Buffer.concat(buffers)
+        } else {
+          buffer = Buffer.from(body)
+        }
+        if (process.platform === 'win32') {
+          const result = createICO(buffer, 0, 0, true, true)
+          if (result) {
+            buffer = result
+          }
+        }
+        await writeFile(instanceIcoPath, buffer)
+      }
+    }
+
+    const shortcutOptions: ShortcutOptions = {}
+
+    if (process.platform === 'win32') {
+      const c = vbTextContent
+      const vbPath = join(this.app.appDataPath, 'vbscript.vbs')
+      await writeFile(vbPath, c, { encoding: 'utf-8' })
+      shortcutOptions.windows = {
+        VBScriptPath: vbPath,
+        filePath: process.execPath,
+        outputPath: dirname(options.destination),
+        name: basename(options.destination),
+        icon: instanceIcoPath,
+        arguments: `launch "${options.userId}" "${options.instancePath}"`,
+      }
+      if (!existsSync(shortcutOptions.windows!.icon!)) {
+        delete shortcutOptions.windows.icon
+      }
+    } else {
+      shortcutOptions.linux = {
+        filePath: process.execPath,
+        outputPath: options.destination,
+        name: basename(options.destination),
+        icon: instanceIcoPath,
+        arguments: `launch "${options.userId}" "${options.instancePath}"`,
+      }
+      if (!existsSync(shortcutOptions.linux!.icon!)) {
+        delete shortcutOptions.linux.icon
+      }
+    }
+
+    createDesktopShortcut(shortcutOptions)
   }
 }

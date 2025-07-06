@@ -1,5 +1,5 @@
 import { ModrinthV2Client } from '@xmcl/modrinth'
-import { CreateInstanceOption, CurseforgeModpackManifest, ExportModpackOptions, ModpackService as IModpackService, InstallMarketOptions, Instance, InstanceData, InstanceFile, McbbsModpackManifest, ModpackException, ModpackInstallProfile, ModpackServiceKey, ModpackState, ModrinthModpackManifest, MutableState, ResourceDomain, ResourceMetadata, ResourceState, UpdateResourcePayload, findMatchedVersion, getCurseforgeModpackFromInstance, getMcbbsModpackFromInstance, getModrinthModpackFromInstance, isAllowInModrinthModpack } from '@xmcl/runtime-api'
+import { CreateInstanceOption, CurseforgeModpackManifest, ExportModpackOptions, ModpackService as IModpackService, InstallMarketOptions, Instance, InstanceData, InstanceFile, McbbsModpackManifest, ModpackException, ModpackInstallProfile, ModpackServiceKey, ModpackState, ModrinthModpackManifest, SharedState, ResourceDomain, ResourceMetadata, ResourceState, UpdateResourcePayload, findMatchedVersion, getCurseforgeModpackFromInstance, getMcbbsModpackFromInstance, getModrinthModpackFromInstance, isAllowInModrinthModpack } from '@xmcl/runtime-api'
 import { ensureDir, mkdir, readdir, remove, stat, unlink } from 'fs-extra'
 import { dirname, join } from 'path'
 import { Entry, ZipFile } from 'yauzl'
@@ -84,6 +84,7 @@ export class ModpackService extends AbstractService implements IModpackService {
     version?: string
     runtime: Instance['runtime']
   }> {
+    this.log(`Import modpack ${modpackFile}`)
     const zipManager = await this.app.registry.getOrCreate(ZipManager)
     const cached = await this.getCachedInstallProfile(modpackFile)
     const zip = await zipManager.open(modpackFile)
@@ -124,13 +125,15 @@ export class ModpackService extends AbstractService implements IModpackService {
       instance.runtime.optifine,
       instance.runtime.quiltLoader,
       instance.runtime.labyMod)
+    if (matchedVersion) {
+      this.log('Found matched version', matchedVersion, instance.runtime)
+    }
 
     const hasShaderpacks = files.some(f => f.path.startsWith('shaderpacks/'))
     const hasResourcepacks = files.some(f => f.path.startsWith('resourcepacks/'))
     const options: CreateInstanceOption = {
       ...instance,
       name,
-      path: this.getPath('instances', name),
       version: matchedVersion?.id || instance.version,
       shaderpacks: hasShaderpacks,
       resourcepacks: hasResourcepacks,
@@ -144,7 +147,15 @@ export class ModpackService extends AbstractService implements IModpackService {
 
     const path = await this.instanceService.createInstance(options)
 
-    instanceInstallService.installInstanceFiles({ path: this.getPath('instances', name), files }).catch((e) => {
+    instanceInstallService.installInstanceFiles(upstream ? {
+      path,
+      files,
+      upstream,
+    } : {
+      path,
+      files,
+      oldFiles: [],
+    }).catch((e) => {
       this.error(e)
     })
 
@@ -173,6 +184,7 @@ export class ModpackService extends AbstractService implements IModpackService {
     let curseforgeConfig: CurseforgeModpackManifest | undefined
     let mcbbsManifest: McbbsModpackManifest | undefined
     let modrinthManifest: ModrinthModpackManifest | undefined
+    let xmclManifestExtension: Pick<InstanceData, 'disableElybyAuthlib' | 'disableAuthlibInjector' | 'upstream' | 'server'> | undefined
 
     if (emitCurseforge) {
       curseforgeConfig = getCurseforgeModpackFromInstance(instance)
@@ -212,7 +224,7 @@ export class ModpackService extends AbstractService implements IModpackService {
           let handled = false
           if (metadata.curseforge && (curseforgeConfig || mcbbsManifest)) {
             // curseforge
-            curseforgeConfig?.files.push({ projectID: metadata.curseforge.projectId, fileID: metadata.curseforge.fileId, required: true })
+            curseforgeConfig?.files?.push({ projectID: metadata.curseforge.projectId, fileID: metadata.curseforge.fileId, required: true })
             mcbbsManifest?.files!.push({ projectID: metadata.curseforge.projectId, fileID: metadata.curseforge.fileId, type: 'curse', force: false })
             handled = true
           }
@@ -380,7 +392,7 @@ export class ModpackService extends AbstractService implements IModpackService {
     return files
   }
 
-  async openModpack(modpackFile: string): Promise<MutableState<ModpackState>> {
+  async openModpack(modpackFile: string): Promise<SharedState<ModpackState>> {
     const store = await this.app.registry.get(ServiceStateManager)
     const zipManager = await this.app.registry.getOrCreate(ZipManager)
 
@@ -409,8 +421,13 @@ export class ModpackService extends AbstractService implements IModpackService {
       const hash = cached.sha1
 
       const entries = Object.values(zip.entries)
-      const [manifest, handler] = await this.getManifestAndHandler(zip.file, entries)
-      if (!manifest || !handler) throw new ModpackException({ type: 'invalidModpack', path: modpackFile })
+      const [manifest, handler, errors] = await this.getManifestAndHandler(zip.file, entries)
+      if (!manifest || !handler) {
+        for (const e of errors) {
+          this.error(Object.assign(e, { name: e.name || 'ModpackParseError', cause: 'ModpackParsing' }))
+        }
+        throw new ModpackException({ type: 'invalidModpack', path: modpackFile })
+      }
 
       this.log(`Parse modpack profile ${modpackFile} with handler ${handler.constructor.name}`)
       const instance = handler.resolveInstanceOptions(manifest)
@@ -451,6 +468,9 @@ export class ModpackService extends AbstractService implements IModpackService {
             },
           },
         }])
+      }).catch(e => {
+        this.error(new AnyError('ModpackInstallProfileError', 'Fail to update resource', { cause: e }))
+        state.modpackError(e)
       })
 
       return [state, zip.dispose]
@@ -458,20 +478,24 @@ export class ModpackService extends AbstractService implements IModpackService {
   }
 
   private async getManifestAndHandler(zip: ZipFile, entries: Entry[]) {
+    const errors = [] as any[]
     for (const handler of Object.values(this.handlers)) {
-      const manifest = await handler.readManifest(zip, entries).catch(e => undefined)
+      const manifest = await handler.readManifest(zip, entries).catch((e) => {
+        errors.push(e)
+        return undefined
+      })
       if (manifest) {
-        return [manifest, handler] as const
+        return [manifest, handler, []] as const
       }
     }
-    return [undefined, undefined]
+    return [undefined, undefined, errors] as const
   }
 
   async showModpacksFolder(): Promise<void> {
     this.app.shell.openDirectory(this.getPath('modpacks'))
   }
 
-  async watchModpackFolder(): Promise<MutableState<ResourceState>> {
+  async watchModpackFolder(): Promise<SharedState<ResourceState>> {
     const states = await this.app.registry.getOrCreate(ServiceStateManager)
     return states.registerOrGet('modpacks', async ({ doAsyncOperation }) => {
       const dir = this.getPath('modpacks')

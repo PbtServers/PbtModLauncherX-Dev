@@ -1,4 +1,4 @@
-import { CreateInstanceOption, ExportInstanceOptions, InstanceIOService as IInstanceIOService, InstanceFile, InstanceIOServiceKey, InstanceType, LockKey, ThirdPartyLauncherManifest } from '@xmcl/runtime-api'
+import { CreateInstanceOption, ExportInstanceAsServerOptions, ExportInstanceOptions, InstanceIOService as IInstanceIOService, InstanceFile, InstanceIOServiceKey, InstanceType, LaunchOptions, LockKey, ThirdPartyLauncherManifest } from '@xmcl/runtime-api'
 import { readFile, readdir } from 'fs-extra'
 import { basename, join, resolve } from 'path'
 import { Inject, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
@@ -15,18 +15,23 @@ import { isFulfilled, requireObject } from '../util/object'
 import { ZipTask } from '../util/zip'
 import { parseCurseforgeInstance } from './parseCurseforgeInstance'
 import { parseModrinthInstance, parseModrinthInstanceFiles } from './parseModrinthInstance'
-import { parseMultiMCInstance, parseMultiMcInstanceFiles } from './parseMultiMCInstance'
+import { detectMMCRoot, parseMultiMCInstance, parseMultiMcInstanceFiles } from './parseMultiMCInstance'
 import { parseVanillaInstance, parseVanillaInstanceFiles } from './parseVanillaInstance'
+import { exportInstanceAsServer } from './exportInstanceAsServer'
 
 @ExposeServiceKey(InstanceIOServiceKey)
 export class InstanceIOService extends AbstractService implements IInstanceIOService {
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
     @Inject(InstanceService) private instanceService: InstanceService,
-    @Inject(kTaskExecutor) private submit: TaskFn,
-    @Inject(kGameDataPath) private getPath: PathResolver,
-    @Inject(VersionService) private versionService: VersionService,
+    @Inject(kTaskExecutor) protected submit: TaskFn,
+    @Inject(kGameDataPath) protected getPath: PathResolver,
+    @Inject(VersionService) protected versionService: VersionService,
   ) {
     super(app)
+  }
+
+  async exportInstanceAsServer(options: ExportInstanceAsServerOptions): Promise<void> {
+    await exportInstanceAsServer.call(this, options)
   }
 
   async getGameDefaultPath(type?: 'modrinth' | 'modrinth-instances' | 'vanilla' | 'curseforge') {
@@ -57,6 +62,7 @@ export class InstanceIOService extends AbstractService implements IInstanceIOSer
   async parseLauncherData(path: string, type?: InstanceType): Promise<ThirdPartyLauncherManifest> {
     try {
       if (type === 'mmc') {
+        path = detectMMCRoot(path)
         const instancesPath = join(path, 'instances')
         const instances = await readdir(instancesPath)
         const manifests = await Promise.allSettled(instances.map(async (instance) => {
@@ -223,7 +229,7 @@ export class InstanceIOService extends AbstractService implements IInstanceIOSer
 
     // add assets
     if (includeAssets) {
-      releases.push(await this.semaphoreManager.getLock(LockKey.assets).acquireRead())
+      releases.push(await this.mutex.of(LockKey.assets).acquire())
       const assetsJson = resolve(root, 'assets', 'indexes', `${version.assets}.json`)
       zipTask.addFile(assetsJson, `assets/indexes/${version.assets}.json`)
       const objects = await readFile(assetsJson, 'utf8').then(JSON.parse).then(manifest => manifest.objects)
@@ -236,7 +242,7 @@ export class InstanceIOService extends AbstractService implements IInstanceIOSer
     const versionsChain = version.pathChain
     for (const versionPath of versionsChain) {
       const versionId = basename(versionPath)
-      releases.push(await this.semaphoreManager.getLock(LockKey.version(versionId)).acquireRead())
+      releases.push(await this.mutex.of(LockKey.version(versionId)).acquire())
       if (includeVersionJar && await exists(join(versionPath, `${versionId}.jar`))) {
         zipTask.addFile(join(versionPath, `${versionId}.jar`), `versions/${versionId}/${versionId}.jar`)
       }
@@ -245,7 +251,7 @@ export class InstanceIOService extends AbstractService implements IInstanceIOSer
 
     // add libraries
     if (includeLibraries) {
-      releases.push(await this.semaphoreManager.getLock(LockKey.libraries).acquireRead())
+      releases.push(await this.mutex.of(LockKey.libraries).acquire())
       for (const lib of version.libraries) {
         zipTask.addFile(resolve(root, 'libraries', lib.download.path),
           `libraries/${lib.download.path}`)

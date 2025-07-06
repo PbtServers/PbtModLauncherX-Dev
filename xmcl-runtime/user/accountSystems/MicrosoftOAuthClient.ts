@@ -1,9 +1,10 @@
-import { Constants, DeviceCodeResponse } from '@azure/msal-common'
+import { Constants, DeviceCodeResponse, ServerError } from '@azure/msal-common'
 import { AuthenticationResult, LogLevel, PublicClientApplication } from '@azure/msal-node'
 import { SecretStorage } from '~/app/SecretStorage'
 import { Logger } from '~/logger'
 import { AnyError } from '~/util/error'
 import { createPlugin } from '../credentialPlugin'
+import { createNetworkClient } from './OAuthNetworkClient'
 
 export class MicrosoftOAuthClient {
   constructor(
@@ -33,52 +34,7 @@ export class MicrosoftOAuthClient {
             this.logger.log(`${message}`)
           },
         },
-        networkClient: {
-          sendGetRequestAsync: async (url, options, token) => {
-            const response = await this.fetch(url, {
-              method: 'GET',
-              headers: options?.headers,
-              body: options?.body,
-              signal,
-            })
-
-            const body = await response.json()
-
-            if ((response.status < 200 || response.status > 299) && // do not destroy the request for the device code flow
-              body.error !== Constants.AUTHORIZATION_PENDING) {
-              throw new Error(`HTTP status code ${response.status}`)
-            }
-
-            return {
-              body,
-              // @ts-ignore
-              headers: Object.fromEntries(response.headers),
-              status: response.status,
-            }
-          },
-          sendPostRequestAsync: async (url, options) => {
-            const response = await this.fetch(url, {
-              method: 'POST',
-              headers: options?.headers,
-              body: options?.body,
-              signal,
-            })
-
-            const body = await response.json()
-
-            if ((response.status < 200 || response.status > 299) && // do not destroy the request for the device code flow
-              body.error !== Constants.AUTHORIZATION_PENDING) {
-              throw new Error(`HTTP status code ${response.status}`)
-            }
-
-            return {
-              body,
-              // @ts-ignore
-              headers: Object.fromEntries(response.headers),
-              status: response.status,
-            }
-          },
-        },
+        networkClient: createNetworkClient(this.fetch, signal),
       },
     })
   }

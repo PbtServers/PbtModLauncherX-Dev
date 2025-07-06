@@ -4,51 +4,42 @@ import { stat } from 'fs-extra'
 import { join, relative } from 'path'
 import { Logger } from '~/logger'
 import { ResourceManager, ResourceWorker } from '~/resource'
-import { readdirIfPresent } from '../util/fs'
+import { ENOENT_ERROR, readdirIfPresent } from '../util/fs'
 import { isNonnull } from '~/util/object'
+import { isSystemError } from '~/util/error'
 
 /**
  * @returns The instance file with file stats array. The InstanceFile does not have hashes and downloads.
  */
-export async function discover(instancePath: string, logger: Logger, filter?: (relativePath: string) => boolean) {
+export async function discover(instancePath: string, logger: Logger, filter?: (relativePath: string, stats: Stats) => boolean) {
   const files = [] as Array<[InstanceFile, Stats]>
 
-  const scan = async (p: string) => {
-    const status = await stat(p)
-    const isDirectory = status.isDirectory()
-    const relativePath = relative(instancePath, p).replace(/\\/g, '/')
-    if (filter && filter(relativePath)) {
-      return
-    }
-    if (relativePath.startsWith('resourcepacks') || relativePath.startsWith('shaderpacks')) {
-      if (relativePath.endsWith('.json') || relativePath.endsWith('.png')) {
+  const scan = async (dirOrFile: string) => {
+    const s = await stat(dirOrFile).catch(e => {
+      if (isSystemError(e) && e.code === ENOENT_ERROR) {
         return
       }
-    }
-    if (relativePath === 'instance.json') {
-      return
-    }
-    // no lib or exe
-    if (relativePath.endsWith('.dll') || relativePath.endsWith('.so') || relativePath.endsWith('.exe')) {
-      return
-    }
-    // do not share versions/libs/assets
-    if (relativePath.startsWith('versions') || relativePath.startsWith('assets') || relativePath.startsWith('libraries')) {
+      throw e
+    })
+    if (!s) return
+    const isDirectory = s.isDirectory()
+    const relativePath = relative(instancePath, dirOrFile).replace(/\\/g, '/')
+    if (filter && filter(relativePath, s)) {
       return
     }
 
     if (isDirectory) {
-      const children = await readdirIfPresent(p)
-      await Promise.all(children.map(child => scan(join(p, child)).catch((e) => {
-        logger.error(new Error('Fail to get manifest data for instance file', { cause: e }))
+      const children = await readdirIfPresent(dirOrFile)
+      await Promise.all(children.map(child => scan(join(dirOrFile, child)).catch((e) => {
+        logger.warn(new Error('Fail to get manifest data for instance file', { cause: e }))
       })))
     } else {
       const localFile: InstanceFile = {
         path: relativePath,
-        size: status.size,
+        size: s.size,
         hashes: {},
       }
-      files.push([localFile, status])
+      files.push([localFile, s])
     }
   }
 

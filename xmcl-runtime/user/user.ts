@@ -1,9 +1,8 @@
 /* eslint-disable camelcase */
 
-import { AuthlibInjectorApiProfile, GameProfileAndTexture, YggdrasilApi } from '@xmcl/runtime-api'
+import { AuthlibInjectorApiProfile, GameProfileAndTexture, OICDLikeConfig, YggdrasilApi } from '@xmcl/runtime-api'
 import { GameProfile } from '@xmcl/user'
 import { readFile } from 'fs-extra'
-import { request } from 'undici'
 
 export interface OAuthTokenResponse {
   token_type: string
@@ -128,20 +127,20 @@ export async function normalizeSkinData(url: string) {
   }
 }
 
-export async function loadYggdrasilApiProfile(url: string) {
+export async function loadYggdrasilApiProfile(url: string, fetch = globalThis.fetch) {
   const api: YggdrasilApi = { url }
 
   async function loadHostFavicon() {
     const parsedUrl = new URL(url)
     try {
-      const resp = await request(parsedUrl.protocol + parsedUrl.host + '/favicon.ico')
-      if (resp.statusCode === 200) {
+      const resp = await fetch(parsedUrl.protocol + parsedUrl.host + '/favicon.ico')
+      if (resp.status === 200) {
         api.favicon = parsedUrl.protocol + parsedUrl.host + '/favicon.ico'
       }
     } catch {
       try {
-        const resp = await request(parsedUrl.protocol + parsedUrl.host)
-        const body = await resp.body.text()
+        const resp = await fetch(parsedUrl.protocol + parsedUrl.host)
+        const body = await resp.text()
         const match = body.match(/<link rel="shortcut icon" href="([^"]+)" \/>/)
         if (match) {
           api.favicon = match[1]
@@ -151,8 +150,8 @@ export async function loadYggdrasilApiProfile(url: string) {
   }
   async function loadMetadata() {
     try {
-      const resp = await request(url)
-      const body = await resp.body.json() as AuthlibInjectorApiProfile
+      const resp = await fetch(url)
+      const body = await resp.json() as AuthlibInjectorApiProfile
 
       api.authlibInjector = {
         meta: {
@@ -168,12 +167,38 @@ export async function loadYggdrasilApiProfile(url: string) {
         signaturePublickey: typeof body?.signaturePublickey === 'string' ? body.signaturePublickey : '',
         skinDomains: typeof body?.skinDomains === 'object' ? body.skinDomains : [],
       }
+
+      if (body?.meta?.['feature.openid_configuration_url']) {
+        const configResp = await fetch(body?.meta?.['feature.openid_configuration_url'])
+        const config = await configResp.json() as OICDLikeConfig
+        api.ocidConfig = config
+      }
     } catch (e) {
 
     }
   }
-
   await Promise.all([loadHostFavicon(), loadMetadata()])
 
   return api
+}
+
+export function transformGameProfileTexture(profile: GameProfile) {
+  if (!profile.properties) return
+  const texturesBase64 = profile.properties.textures
+  if (!texturesBase64) return
+  const textures = JSON.parse(Buffer.from(texturesBase64, 'base64').toString())
+  const skin = textures?.textures.SKIN
+  const uploadable = profile.properties.uploadableTextures
+
+  // mark skin already refreshed
+  if (skin) {
+    return {
+      ...profile,
+      textures: {
+        ...textures.textures,
+        SKIN: skin,
+      },
+      uploadable: uploadable ? uploadable.split(',') as any : undefined,
+    }
+  }
 }

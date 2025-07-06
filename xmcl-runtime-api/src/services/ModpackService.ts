@@ -3,7 +3,7 @@ import { InstanceData, RuntimeVersions } from '../entities/instance.schema'
 import { InstanceFile } from '../entities/instanceManifest.schema'
 import { InstallMarketOptions } from '../entities/market'
 import { ResourceMetadata, ResourceState } from '../entities/resource'
-import { MutableState } from '../util/MutableState'
+import { SharedState } from '../util/SharedState'
 import { CreateInstanceOption } from './InstanceService'
 import { ServiceKey } from './Service'
 
@@ -119,10 +119,16 @@ export class ModpackState {
 
   files: InstanceFile[] = []
   ready = false
+  error = undefined as any
 
   modpackFiles(files: InstanceFile[]) {
     this.ready = true
     this.files = files
+  }
+
+  modpackError(error: Error) {
+    this.ready = false
+    this.error = error
   }
 }
 
@@ -144,7 +150,7 @@ export interface ModpackService {
   /**
    * Open an modpack to install. Use the `installInstanceFiles` to create an instance.
    */
-  openModpack(modpackPath: string): Promise<MutableState<ModpackState>>
+  openModpack(modpackPath: string): Promise<SharedState<ModpackState>>
   /**
    * Import the modpack as an instance
    * @param modpackPath The modpack file path
@@ -161,19 +167,40 @@ export interface ModpackService {
    */
   showModpacksFolder(): Promise<void>
 
-  watchModpackFolder(): Promise<MutableState<ResourceState>>
+  watchModpackFolder(): Promise<SharedState<ResourceState>>
 
   removeModpack(path: string): Promise<void>
 }
 
-export function waitModpackFiles(modpack: MutableState<ModpackState>) {
-  return new Promise<InstanceFile[]>(resolve => {
+export function waitModpackFiles(modpack: SharedState<ModpackState>) {
+  return new Promise<InstanceFile[]>((resolve, reject) => {
     if (modpack.ready) {
       resolve(modpack.files)
     } else {
-      const onFiles = (files: InstanceFile[]) => {
+      let counter = 0
+      const i = setInterval(() => {
+        if (modpack.ready) {
+          resolve(modpack.files)
+          modpack.unsubscribe('modpackFiles', onFiles)
+          clearInterval(i)
+        }
+        if (modpack.error) {
+          reject(modpack.error)
+          modpack.unsubscribe('modpackFiles', onFiles)
+          clearInterval(i)
+        }
+        counter++
+        if (counter > 90) {
+          // If the modpack is not ready in X seconds, we will stop waiting
+          reject(new Error('Modpack is not ready'))
+          modpack.unsubscribe('modpackFiles', onFiles)
+          clearInterval(i)
+        }
+      }, 1000)
+      function onFiles(files: InstanceFile[]) {
         resolve(files)
         modpack.unsubscribe('modpackFiles', onFiles)
+        clearInterval(i)
       }
       modpack.subscribe('modpackFiles', onFiles)
     }

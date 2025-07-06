@@ -64,29 +64,22 @@
         },
         "resolution": {
             "description": "The resolution of the game",
-            "anyOf": [
-                {
-                    "type": "object",
-                    "properties": {
-                        "width": {
-                            "type": "number"
-                        },
-                        "height": {
-                            "type": "number"
-                        },
-                        "fullscreen": {
-                            "type": "boolean"
-                        }
-                    },
-                    "required": [
-                        "fullscreen",
-                        "height",
-                        "width"
-                    ]
+            "type": "object",
+            "properties": {
+                "width": {
+                    "type": "number"
                 },
-                {
-                    "type": "null"
+                "height": {
+                    "type": "number"
+                },
+                "fullscreen": {
+                    "type": "boolean"
                 }
+            },
+            "required": [
+                "fullscreen",
+                "height",
+                "width"
             ]
         },
         "minMemory": {
@@ -117,7 +110,14 @@
                 "type": "string"
             }
         },
+        "env": {
+            "description": "The launch environment variables",
+            "$ref": "#/definitions/Record<string,string>"
+        },
         "prependCommand": {
+            "type": "string"
+        },
+        "preExecuteCommand": {
             "type": "string"
         },
         "url": {
@@ -169,11 +169,9 @@
             }
         },
         "disableElybyAuthlib": {
-            "default": false,
             "type": "boolean"
         },
         "disableAuthlibInjector": {
-            "default": false,
             "type": "boolean"
         },
         "useLatest": {
@@ -189,6 +187,9 @@
         "upstream": {
             "anyOf": [
                 {
+                    "$ref": "#/definitions/ModrinthSpecialUpstream"
+                },
+                {
                     "$ref": "#/definitions/ModrinthUpstream"
                 },
                 {
@@ -196,6 +197,9 @@
                 },
                 {
                     "$ref": "#/definitions/FTBUpstream"
+                },
+                {
+                    "$ref": "#/definitions/PeerUpstream"
                 }
             ]
         }
@@ -272,6 +276,35 @@
                 "minecraft"
             ]
         },
+        "Record<string,string>": {
+            "type": "object"
+        },
+        "ModrinthSpecialUpstream": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "modrinth-special"
+                    ]
+                },
+                "projectId": {
+                    "type": "string"
+                },
+                "versionId": {
+                    "type": "string"
+                },
+                "sha1": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "projectId",
+                "sha1",
+                "type",
+                "versionId"
+            ]
+        },
         "ModrinthUpstream": {
             "type": "object",
             "properties": {
@@ -342,6 +375,24 @@
                 "id",
                 "type",
                 "versionId"
+            ]
+        },
+        "PeerUpstream": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "peer"
+                    ]
+                },
+                "id": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "type"
             ]
         }
     },

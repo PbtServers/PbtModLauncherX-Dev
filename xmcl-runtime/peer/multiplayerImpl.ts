@@ -1,4 +1,4 @@
-import { MutableState, PeerState, SetRemoteDescriptionOptions, TransferDescription, createPromiseSignal } from '@xmcl/runtime-api'
+import { SharedState, PeerState, SetRemoteDescriptionOptions, TransferDescription, createPromiseSignal } from '@xmcl/runtime-api'
 import { randomUUID } from 'crypto'
 import EventEmitter from 'events'
 import { promisify } from 'util'
@@ -83,7 +83,7 @@ export class Peers {
 
 export function createMultiplayer() {
   const peers = new Peers()
-  const state = createPromiseSignal<MutableState<PeerState>>()
+  const state = createPromiseSignal<SharedState<PeerState>>()
   const emitter = new EventEmitter()
   let _PeerConnection: any
   let _RTCPeerConnection: typeof RTCPeerConnection
@@ -92,7 +92,7 @@ export function createMultiplayer() {
     _PeerConnection = PeerConnection
   })
   import('node-datachannel/polyfill').then(({ RTCPeerConnection }) => {
-    _RTCPeerConnection = RTCPeerConnection
+    _RTCPeerConnection = RTCPeerConnection as any
   })
 
   const idSignal = createPromiseSignal<string>()
@@ -125,6 +125,8 @@ export function createMultiplayer() {
         s.connectionUserInfo({ id: target.id, info: profile })
       }
     })
+  }, (ping, timestamp) => {
+    state.then(s => s.pingSet({ ping, timestamp }))
   })
 
   state.then((s) => {
@@ -157,14 +159,15 @@ export function createMultiplayer() {
             portRangeEnd: privatePort,
             enableIceUdpMux: true,
             // @ts-ignore
-          }, { PeerConnection: _PeerConnection })
+          }, _PeerConnection)
         } else {
           return new RTCPeerConnection({
             iceServers: server ? [server] : [],
             iceCandidatePoolSize: 8,
           })
         }
-      } catch {
+      } catch (e) {
+        console.debug(e)
         console.log('Use webrtc fallback', server)
         return new RTCPeerConnection({
           iceServers: server ? [server] : [],
@@ -176,9 +179,14 @@ export function createMultiplayer() {
 
   const iceServers = createIceServersProvider(
     facotry,
-    (server) => {
+    (server, ping) => {
       console.log('Valid ice server', server)
       state.then(s => s.validIceServerSet(Array.from(new Set([...s.validIceServers, getKey(server)]))))
+      if (ping) {
+        const rawKey = getKey(server)
+        const key = rawKey.split(':')[1] || rawKey
+        state.then(s => s.iceServerPingSet({ server: key, ping }))
+      }
       debouncedRefreshNat()
     },
     (ip) => {
@@ -479,7 +487,7 @@ export function createMultiplayer() {
     emitter,
     host,
     updateIceServers: iceServers.update,
-    setState: (_state: MutableState<PeerState>) => {
+    setState: (_state: SharedState<PeerState>) => {
       state.resolve(_state)
       _state.connectionClear()
     },

@@ -1,7 +1,5 @@
 # Registro de Archivos Modificados
 
-- latest_version.json (Cambiar versión anterior a la nueva v*.*.*)
-
 - package.json (Cambiar branding y versión a la nueva v*.*.*)
 
 - .gitignore (Agregar directorios no incluidos)

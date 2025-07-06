@@ -1,10 +1,10 @@
 import { InstanceManifest } from '../entities/instanceManifest.schema'
 import { GenericEventEmitter } from '../events'
 import { ConnectionState, ConnectionUserInfo, IceGatheringState, Peer, SelectedCandidateInfo, SignalingState } from '../multiplayer'
-import { MutableState } from '../util/MutableState'
+import { SharedState } from '../util/SharedState'
 import { ServiceKey } from './Service'
 
-export type NatType = 'Blocked'| 'Open Internet'| 'Full Cone'| 'Symmetric UDP Firewall'| 'Restrict NAT'| 'Restrict Port NAT'| 'Symmetric NAT' | 'Unknown'
+export type NatType = 'Blocked' | 'Open Internet' | 'Full Cone' | 'Symmetric UDP Firewall' | 'Restrict NAT' | 'Restrict Port NAT' | 'Symmetric NAT' | 'Unknown'
 
 export interface NatDeviceInfo {
   deviceType: string
@@ -20,6 +20,7 @@ export interface NatDeviceInfo {
 export class PeerState {
   connections = [] as Peer[]
   validIceServers = [] as string[]
+  icsServersPings = {} as Record<string, number | 'timeout'>
   ips = [] as string[]
   turnservers = {} as Record<string, string>
   group = ''
@@ -30,6 +31,14 @@ export class PeerState {
   natType: NatType = 'Unknown'
 
   exposedPorts: [number, number][] = []
+
+  ping = 0
+  timestamp = 0
+
+  pingSet({ ping, timestamp }: { ping: number, timestamp: number }) {
+    this.ping = ping
+    this.timestamp = timestamp
+  }
 
   natDeviceSet(device: NatDeviceInfo) {
     this.natDeviceInfo = device
@@ -166,6 +175,13 @@ export class PeerState {
     this.validIceServers = servers
   }
 
+  iceServerPingSet({ server, ping }: { server: string; ping: number | 'timeout' }) {
+    this.icsServersPings = {
+      ...this.icsServersPings,
+      [server]: ping,
+    }
+  }
+
   ipsSet(ips: string[]) {
     this.ips = ips
   }
@@ -189,7 +205,7 @@ interface PeerServiceEvents {
 }
 
 export interface PeerService extends GenericEventEmitter<PeerServiceEvents> {
-  getPeerState(): Promise<MutableState<PeerState>>
+  getPeerState(): Promise<SharedState<PeerState>>
   /**
     * Share the instance to other peers
     */

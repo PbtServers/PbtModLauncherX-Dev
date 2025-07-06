@@ -1,5 +1,5 @@
-import { BaseServiceException, BaseServiceKey, Environment, BaseService as IBaseService, MigrateOptions, MutableState, PoolStats, Settings } from '@xmcl/runtime-api'
-import { readdir, rename, stat } from 'fs-extra'
+import { BaseServiceKey, Environment, BaseService as IBaseService, InvalidDirectoryErrorCode, MigrateOptions, MigrationException, PoolStats, Settings, SharedState } from '@xmcl/runtime-api'
+import { readdir, stat } from 'fs-extra'
 import os, { freemem, totalmem } from 'os'
 import { join } from 'path'
 import { Inject, LauncherAppKey, kGameDataPath } from '~/app'
@@ -12,10 +12,8 @@ import { TaskFn, kTaskExecutor } from '~/task'
 import { validateDirectory } from '~/util/validate'
 import { LauncherApp } from '../app/LauncherApp'
 import { HAS_DEV_SERVER } from '../constant'
-import { AnyError, isSystemError } from '../util/error'
-import { copyPassively } from '../util/fs'
 import { ZipTask } from '../util/zip'
-import { ResourceManager } from '~/resource'
+import { kGFW } from '~/gfw'
 
 @ExposeServiceKey(BaseServiceKey)
 export class BaseService extends AbstractService implements IBaseService {
@@ -26,6 +24,10 @@ export class BaseService extends AbstractService implements IBaseService {
     super(app, async () => {
       this.checkUpdate()
     })
+  }
+
+  async getDesktopDirectory(): Promise<string> {
+    return this.app.host.getPath('desktop')
   }
 
   destroyPool(origin: string) {
@@ -44,7 +46,7 @@ export class BaseService extends AbstractService implements IBaseService {
     return this.app.registry.get(kGameDataPath).then(f => f())
   }
 
-  async getSettings(): Promise<MutableState<Settings>> {
+  async getSettings(): Promise<SharedState<Settings>> {
     return this.app.registry.get(kSettings)
   }
 
@@ -56,6 +58,7 @@ export class BaseService extends AbstractService implements IBaseService {
       env: this.app.env,
       version: this.app.version,
       build: this.app.build,
+      gfw: (await this.app.registry.get(kGFW)).inside,
     }
   }
 
@@ -113,6 +116,9 @@ export class BaseService extends AbstractService implements IBaseService {
       }
     } catch (e) {
       if (e instanceof Error && e.name === 'Error') {
+        if (e.message === 'No update info found') {
+          return
+        }
         e.name = 'CheckUpdateError'
       }
       throw e
@@ -166,65 +172,21 @@ export class BaseService extends AbstractService implements IBaseService {
   }
 
   async migrate(options: MigrateOptions) {
-    const getPath = await this.app.registry.get(kGameDataPath)
-    const source = getPath()
     const destination = options.destination
-    const destStat = await stat(destination).catch(() => undefined)
-    if (destStat && destStat.isFile()) {
-      throw new BaseServiceException({
-        type: 'migrationDestinationIsFile',
+    const code = await validateDirectory(this.app.platform, destination)
+    if (code) {
+      throw new MigrationException({
+        type: 'migrationInvalidDestiantion',
+        code,
         destination,
       })
     }
-    if (destStat && destStat.isDirectory()) {
-      const files = await readdir(destination)
-      if (files.length !== 0) {
-        throw new BaseServiceException({
-          type: 'migrationDestinationIsNotEmptyDirectory',
-          destination,
-        })
-      }
-    }
 
-    try {
-      await this.app.dispose()
-      this.log(`Try to use rename to migrate the files: ${source} -> ${destination}`)
-      const files = await readdir(source)
-      for (const file of files) {
-        const from = join(source, file)
-        const to = join(destination, file)
-        try {
-          await rename(from, to)
-        } catch (e) {
-          if (isSystemError(e)) {
-            if (e.code === 'EXDEV') {
-              // cannot move file across disk
-              this.warn(`Cannot move file across disk ${from} -> ${to}. Use copy instead.`)
-              await copyPassively(from, to)
-              return
-            }
-            if (e.code === 'EPERM') {
-              throw new BaseServiceException({
-                type: 'migrationNoPermission',
-                source,
-                destination,
-              })
-            }
-          }
-          throw e
-        }
-      }
-    } catch (e) {
-      this.error(new AnyError('MigrateRootError', `Fail to migrate with rename ${source} -> ${destination} with unknown error`, { cause: e }))
-      throw e
-    }
-    await this.app.migrateRoot(destination)
-
-    this.app.relaunch()
+    this.app.relaunch([...process.argv.slice(1), '--migrate', destination])
     this.app.quit()
   }
 
-  async validateDataDictionary(path: string): Promise<undefined | 'noperm' | 'bad' | 'nondictionary' | 'exists'> {
+  async validateDataDictionary(path: string): Promise<InvalidDirectoryErrorCode> {
     return await validateDirectory(this.app.platform, path)
   }
 
@@ -233,9 +195,5 @@ export class BaseService extends AbstractService implements IBaseService {
       total: totalmem(),
       free: freemem(),
     })
-  }
-
-  async isResourceDatabaseOpened(): Promise<boolean> {
-    return this.app.registry.get(ResourceManager).then(r => r.isReady())
   }
 }

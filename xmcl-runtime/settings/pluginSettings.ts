@@ -41,6 +41,9 @@ export const pluginSettings: LauncherAppPlugin = async (app) => {
       globalDisableElyByAuthlib: state.globalDisableElyByAuthlib,
       enableDedicatedGPUOptimization: state.enableDedicatedGPUOptimization,
       replaceNatives: state.replaceNatives,
+      globalEnv: state.globalEnv,
+      globalPreExecuteCommand: state.globalPreExecuteCommand,
+      globalResolution: state.globalResolution,
     }), 1000)
 
   app.registryDisposer(async () => {
@@ -50,6 +53,9 @@ export const pluginSettings: LauncherAppPlugin = async (app) => {
   settingFile.read().then(async () => {
     const data = await settingFile.read()
     data.locale = data.locale || app.host.getLocale()
+    if (data.locale.startsWith('en')) {
+      data.locale = 'en'
+    }
     state.config(data)
   }).finally(() => {
     app.registry.register(kSettings, state)

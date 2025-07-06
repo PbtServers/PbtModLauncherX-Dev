@@ -1,8 +1,9 @@
 import { GameProfile } from '@xmcl/user'
 import { Exception } from '../entities/exception'
 import { GameProfileAndTexture, UserProfile } from '../entities/user.schema'
+import { AuthlibInjectorApiProfile } from '../entities/yggdrasil.schema'
 import { GenericEventEmitter } from '../events'
-import { MutableState } from '../util/MutableState'
+import { SharedState } from '../util/SharedState'
 import { ServiceKey } from './Service'
 
 export interface RefreshSkinOptions {
@@ -147,7 +148,7 @@ export interface RefreshUserOptions {
 }
 
 export interface UserService extends GenericEventEmitter<UserServiceEventMap> {
-  getUserState(): Promise<MutableState<UserState>>
+  getUserState(): Promise<SharedState<UserState>>
   /**
    * Refresh the current user login status.
    *
@@ -197,9 +198,52 @@ export interface UserService extends GenericEventEmitter<UserServiceEventMap> {
    */
   abortRefresh(): Promise<void>
   /**
-   * Get mojang selected user id
+   * Get the supported authorities for login
    */
-  getMojangSelectedUser(): Promise<string>
+  getSupportedAuthorityMetadata(): Promise<AuthorityMetadata[]>
+  /**
+   * Add a third-party account system satisfy the authlib-injector format
+   * @param url The account api url
+   */
+  addYggdrasilService(url: string): Promise<void>
+  /**
+   * Remove a third-party account system satisfy the authlib-injector format
+   * @param url The account api url
+   */
+  removeYggdrasilService(url: string): Promise<void>
+
+  loginModrinth(invalidate?: boolean): Promise<void>
+
+  hasModrinthToken(): Promise<boolean>
+}
+
+export interface AuthorityMetadata {
+  /**
+   * The url of the authority
+   */
+  authority: string
+  /**
+   * Is this a built-in service
+   */
+  kind: 'builtin' | 'yggdrasil'
+  /**
+   * The cache for authlib injector compatible api.
+   *
+   * This is only available for authlib-injector compatible service.
+   */
+  authlibInjector?: AuthlibInjectorApiProfile
+  /**
+   * The favicon of the service
+   */
+  favicon?: string
+  /**
+   * The login flow of the service
+   */
+  flow: Array<'grant-code' | 'device-code' | 'password' | 'anonymous'>
+  /**
+   * Only allow email login
+   */
+  emailOnly?: boolean
 }
 
 export const UserServiceKey: ServiceKey<UserService> = 'UserService'

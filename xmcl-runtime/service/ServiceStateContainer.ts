@@ -2,7 +2,7 @@ import EventEmitter from 'events'
 import { AnyError } from '~/util/error'
 import { ServiceStateContext } from './ServiceStateManager'
 import { Client } from '~/app'
-import { MutableState, createPromiseSignal } from '@xmcl/runtime-api'
+import { SharedState, createPromiseSignal } from '@xmcl/runtime-api'
 import { MutableStateImpl, kStateKey } from './stateUtils'
 
 export type ServiceStateFactory<T> = (context: ServiceStateContext) => Promise<[T, () => void] | [T, () => void, () => Promise<void>]>
@@ -19,8 +19,8 @@ export class ServiceStateContainer<T = any> implements ServiceStateContext {
   #revalidating: Promise<void> | undefined
   private semaphore = 0
   #clients: [Client, Function][] = []
-  #state: MutableState<T> | undefined
-  #signal = createPromiseSignal<MutableState<T>>()
+  #state: SharedState<T> | undefined
+  #signal = createPromiseSignal<SharedState<T>>()
   #disposer: () => void = () => { }
   #revalidator?: () => Promise<void>
   #emitter = new EventEmitter()
@@ -88,6 +88,10 @@ export class ServiceStateContainer<T = any> implements ServiceStateContext {
     try {
       this.semaphore += 1
       for (const [c] of this.#clients) {
+        if (c.isDestroyed()) {
+          this.untrack(c)
+          continue
+        }
         c.send('state-validating', { id: this.id, semaphore: this.semaphore })
       }
       return await action
@@ -95,6 +99,10 @@ export class ServiceStateContainer<T = any> implements ServiceStateContext {
       this.semaphore -= 1
       if (this.semaphore === 0) {
         for (const [c] of this.#clients) {
+          if (c.isDestroyed()) {
+            this.untrack(c)
+            continue
+          }
           c.send('state-validating', { id: this.id, semaphore: this.semaphore })
         }
       }

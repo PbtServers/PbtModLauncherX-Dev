@@ -1,4 +1,4 @@
-import { ProjectMappingService as IProjectMappingService, ProjectMappingServiceKey, Settings } from '@xmcl/runtime-api'
+import { ProjectMappingService as IProjectMappingService, ProjectMapping, ProjectMappingServiceKey, Settings } from '@xmcl/runtime-api'
 import { createHash } from 'crypto'
 import { existsSync, rmSync, writeFile } from 'fs-extra'
 import { Kysely } from 'kysely'
@@ -35,24 +35,31 @@ export class ProjectMappingService extends AbstractService implements IProjectMa
     @Inject(kSettings) private settings: Settings,
   ) {
     super(app, async () => {
-      await this.ensureDatabase(true)
+      try {
+        await this.ensureDatabase(true)
+      } catch (e) {
+        if (typeof e === 'object' && e) {
+          Object.assign(e, { Cause: 'ProjectMappingInitialize' })
+        }
+        throw e
+      }
     })
   }
 
   private async ensureDatabase(init = false) {
-    const locale = this.settings.locale.toLowerCase()
+    const locale = this.settings.locale.toLowerCase() || 'en'
     const gfw = await this.app.registry.get(kGFW)
+    const app = this.app
 
-    if (!locale) return undefined
     if (this.#db?.locale === locale) return this.#db.db
 
     let filePath = join(this.app.appDataPath, `project-mapping-${locale}.sqlite`)
-    await this.semaphoreManager.getLock('project-mapping').write(async () => {
+    await this.mutex.of('project-mapping').runExclusive(async () => {
       let original = `https://xmcl.blob.core.windows.net/project-mapping/${locale}.sqlite`
 
       async function exists() {
         try {
-          const resp = await fetch(original + '.sha256', { method: 'HEAD' })
+          const resp = await app.fetch(original + '.sha256', { method: 'HEAD' })
           if (!resp.ok) {
             return false
           }
@@ -108,7 +115,7 @@ export class ProjectMappingService extends AbstractService implements IProjectMa
         throw errors[0]
       }
       if (errors.length) {
-        throw new AggregateError(errors)
+        throw new AggregateError(errors.flatMap(e => e instanceof AggregateError ? e.errors : e))
       }
     })
 
@@ -125,13 +132,16 @@ export class ProjectMappingService extends AbstractService implements IProjectMa
         }
       } catch { }
     }
-    const sqlite = new SQLDatabase(filePath, {
-      readOnly: true,
-    })
 
     const db = new Kysely<Database>({
       dialect: new SqliteWASMDialect({
-        database: sqlite,
+        database: () => new SQLDatabase(filePath, {
+          readOnly: true,
+        }),
+        onError: (e) => {
+          // @ts-ignore
+          e.source = 'ProjectMappingDatabase'
+        }
       }),
       log: (e) => {
         if (e.level === 'error') {
@@ -146,10 +156,26 @@ export class ProjectMappingService extends AbstractService implements IProjectMa
     }
 
     this.app.registryDisposer(async () => {
-      sqlite.close()
+      db.destroy()
     })
 
     return db
+  }
+
+  async lookupByKeyword(keyword: string): Promise<ProjectMapping[]> {
+    const db = await this.ensureDatabase()
+
+    if (!db) return []
+
+    const result = await db.selectFrom('project')
+      .where(eb => eb.or([
+        eb('name', 'like', `%${keyword}%`),
+        eb('description', 'like', `%${keyword}%`),
+      ]))
+      .selectAll()
+      .execute()
+
+    return result
   }
 
   async lookupByModrinth(modrinth: string) {

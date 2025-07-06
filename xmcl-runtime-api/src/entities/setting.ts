@@ -1,6 +1,12 @@
+import { InvalidDirectoryErrorCode } from '../services/BaseService'
 import { SettingSchema } from './setting.schema'
 import { ReleaseInfo } from './update'
 
+/**
+ * The basic setting of the launcher.
+ *
+ * It also contains the some state properties of the launcher.
+ */
 export class Settings implements SettingSchema {
   globalDisableAuthlibInjector = false
   globalDisableElyByAuthlib = false
@@ -10,9 +16,12 @@ export class Settings implements SettingSchema {
   globalVmOptions: string[] = []
   globalMcOptions: string[] = []
   globalPrependCommand: string = ''
+  globalPreExecuteCommand: string = ''
   globalFastLaunch = false
   globalHideLauncher = false
   globalShowLog = false
+  globalEnv: Record<string, string> = {}
+  globalResolution: { width?: number; height?: number; fullscreen?: boolean } = {}
   discordPresence = false
   developerMode = false
   disableTelemetry = false
@@ -41,7 +50,7 @@ export class Settings implements SettingSchema {
   autoInstallOnAppQuit = false
   autoDownload = false
   enableDedicatedGPUOptimization = true
-  apiSetsPreference: 'mojang' | 'mcbbs' | 'bmcl' | '' = ''
+  apiSetsPreference: 'mojang' | 'bmcl' | '' = ''
   apiSets = [{ name: 'bmcl', url: 'https://bmclapi2.bangbang93.com' }]
   /**
    * Is current environment connecting to internet?
@@ -57,6 +66,12 @@ export class Settings implements SettingSchema {
   maxSockets = 0
 
   maxAPISockets = 0
+
+  diskFullError = false
+
+  databaseReady = false
+
+  invalidGameDataPath: InvalidDirectoryErrorCode = undefined
 
   config(config: SettingSchema) {
     this.locale = config.locale
@@ -81,12 +96,15 @@ export class Settings implements SettingSchema {
     this.globalShowLog = config.globalShowLog
     this.globalDisableElyByAuthlib = config.globalDisableElyByAuthlib
     this.globalDisableAuthlibInjector = config.globalDisableAuthlibInjector
+    this.globalPreExecuteCommand = config.globalPreExecuteCommand
+    this.globalEnv = config.globalEnv
     this.discordPresence = config.discordPresence
     this.developerMode = config.developerMode
     this.disableTelemetry = config.disableTelemetry
     this.linuxTitlebar = config.linuxTitlebar
     this.enableDedicatedGPUOptimization = config.enableDedicatedGPUOptimization
     this.replaceNatives = config.replaceNatives
+    this.globalResolution = config.globalResolution
   }
 
   developerModeSet(developerMode: boolean) {
@@ -150,7 +168,7 @@ export class Settings implements SettingSchema {
     if (typeof updateInfo === 'object') this.updateInfo = updateInfo
   }
 
-  apiSetsPreferenceSet(apiSetsPreference: 'mojang' | 'bmcl' | 'mcbbs' | '') {
+  apiSetsPreferenceSet(apiSetsPreference: 'mojang' | 'bmcl' | '') {
     this.apiSetsPreference = apiSetsPreference
   }
 
@@ -186,6 +204,22 @@ export class Settings implements SettingSchema {
     this.replaceNatives = replace
   }
 
+  globalResolutionSet(resolution: { width?: number; height?: number; fullscreen?: boolean }) {
+    this.globalResolution = resolution
+  }
+
+  diskFullErrorSet(diskFullError: boolean) {
+    this.diskFullError = diskFullError
+  }
+
+  databaseReadySet(ready: boolean) {
+    this.databaseReady = ready
+  }
+
+  invalidGameDataPathSet(invalid: InvalidDirectoryErrorCode) {
+    this.invalidGameDataPath = invalid
+  }
+
   globalInstanceSetting(settings: {
     globalMinMemory: number
     globalMaxMemory: number
@@ -198,6 +232,9 @@ export class Settings implements SettingSchema {
     globalDisableAuthlibInjector: boolean
     globalDisableElyByAuthlib: boolean
     globalPrependCommand: string
+    globalPreExecuteCommand: string
+    globalEnv: Record<string, string>
+    globalResolution: { width?: number; height?: number; fullscreen?: boolean }
   }) {
     this.globalMinMemory = settings.globalMinMemory
     this.globalMaxMemory = settings.globalMaxMemory
@@ -210,5 +247,8 @@ export class Settings implements SettingSchema {
     this.globalDisableAuthlibInjector = settings.globalDisableAuthlibInjector
     this.globalDisableElyByAuthlib = settings.globalDisableElyByAuthlib
     this.globalPrependCommand = settings.globalPrependCommand
+    this.globalPreExecuteCommand = settings.globalPreExecuteCommand
+    this.globalEnv = settings.globalEnv
+    this.globalResolution = settings.globalResolution
   }
 }

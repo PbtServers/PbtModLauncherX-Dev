@@ -27,7 +27,6 @@
             "enum": [
                 "",
                 "bmcl",
-                "mcbbs",
                 "mojang"
             ],
             "type": "string"
@@ -149,6 +148,15 @@
             "default": "",
             "type": "string"
         },
+        "globalPreExecuteCommand": {
+            "default": "",
+            "type": "string"
+        },
+        "globalEnv": {
+            "$ref": "#/definitions/Record<string,string>",
+            "description": "The launch environment variables",
+            "default": {}
+        },
         "discordPresence": {
             "default": true,
             "type": "boolean"
@@ -168,6 +176,22 @@
         "enableDedicatedGPUOptimization": {
             "default": true,
             "type": "boolean"
+        },
+        "globalResolution": {
+            "description": "Global resolution settings for Minecraft",
+            "default": {},
+            "type": "object",
+            "properties": {
+                "width": {
+                    "type": "number"
+                },
+                "height": {
+                    "type": "number"
+                },
+                "fullscreen": {
+                    "type": "boolean"
+                }
+            }
         }
     },
     "required": [
@@ -184,12 +208,15 @@
         "globalAssignMemory",
         "globalDisableAuthlibInjector",
         "globalDisableElyByAuthlib",
+        "globalEnv",
         "globalFastLaunch",
         "globalHideLauncher",
         "globalMaxMemory",
         "globalMcOptions",
         "globalMinMemory",
+        "globalPreExecuteCommand",
         "globalPrependCommand",
+        "globalResolution",
         "globalShowLog",
         "globalVmOptions",
         "httpProxy",
@@ -200,6 +227,11 @@
         "replaceNatives",
         "theme"
     ],
+    "definitions": {
+        "Record<string,string>": {
+            "type": "object"
+        }
+    },
     "$schema": "http://json-schema.org/draft-07/schema#",
     "additionalProperties": false
 }

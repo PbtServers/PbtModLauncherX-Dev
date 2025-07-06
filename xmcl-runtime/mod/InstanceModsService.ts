@@ -1,16 +1,16 @@
-import { CurseforgeV1Client } from '@xmcl/curseforge'
+import { CurseforgeApiError, CurseforgeV1Client } from '@xmcl/curseforge'
 import { ModrinthV2Client } from '@xmcl/modrinth'
-import { InstanceModsService as IInstanceModsService, InstallMarketOptionWithInstance, InstallModsOptions, InstanceModsServiceKey, ResourceState, LockKey, MutableState, Resource, ResourceDomain, getInstanceModStateKey } from '@xmcl/runtime-api'
+import { InstanceModsService as IInstanceModsService, InstallMarketOptionWithInstance, InstallModsOptions, InstanceModsServiceKey, LockKey, Resource, ResourceDomain, ResourceState, SharedState, getInstanceModStateKey } from '@xmcl/runtime-api'
 import { emptyDir, ensureDir, rename, stat, unlink } from 'fs-extra'
 import { basename, dirname, join } from 'path'
 import { Inject, LauncherAppKey } from '~/app'
+import { InstanceService } from '~/instance'
 import { kMarketProvider } from '~/market'
 import { ResourceManager, kResourceWorker } from '~/resource'
 import { AbstractService, ExposeServiceKey, ServiceStateManager } from '~/service'
-import { AnyError, isSystemError } from '~/util/error'
+import { AnyError } from '~/util/error'
 import { LauncherApp } from '../app/LauncherApp'
 import { linkDirectory, linkWithTimeoutOrCopy, readdirIfPresent } from '../util/fs'
-import { InstanceService } from '~/instance'
 
 /**
  * Provide the abilities to import mods and resource packs files to instance
@@ -25,7 +25,7 @@ export class InstanceModsService extends AbstractService implements IInstanceMod
 
   async refreshMetadata(instancePath: string): Promise<void> {
     const stateManager = await this.app.registry.get(ServiceStateManager)
-    const state = stateManager.get<MutableState<ResourceState>>(getInstanceModStateKey(instancePath))
+    const state = stateManager.get<SharedState<ResourceState>>(getInstanceModStateKey(instancePath))
     if (state) {
       await state.revalidate()
       const modrinthClient = await this.app.registry.getOrCreate(ModrinthV2Client)
@@ -62,13 +62,18 @@ export class InstanceModsService extends AbstractService implements IInstanceMod
             const prints = (await Promise.all(chunk.map(async (v) => ({ fingerprint: await worker.fingerprint(v.path), file: v }))))
             for (const { fingerprint, file } of prints) {
               if (fingerprint in allPrints) {
-                this.error(new Error(`Duplicated fingerprint ${fingerprint} for ${file.path} and ${allPrints[fingerprint].path}`))
+                this.warn(new Error(`Duplicated fingerprint ${fingerprint} for ${file.path} and ${allPrints[fingerprint].path}`))
                 continue
               }
               allPrints[fingerprint] = file
             }
           }
-          const result = await curseforgeClient.getFingerprintsMatchesByGameId(432, Object.keys(allPrints).map(v => parseInt(v, 10)))
+          const result = await curseforgeClient.getFingerprintsMatchesByGameId(432, Object.keys(allPrints).map(v => parseInt(v, 10))).catch((e) => {
+            if (e instanceof CurseforgeApiError && e.status >= 400 && e.status < 500 && e.status !== 404) {
+              this.error(e)
+            }
+            return { exactMatches: [] }
+          })
           const options = [] as { hash: string; metadata: { curseforge: { projectId: number; fileId: number } } }[]
           for (const f of result.exactMatches) {
             const r = allPrints[f.file.fileFingerprint] || Object.values(allPrints).find(v => v.hash === f.file.hashes.find(a => a.algo === 1)?.value)
@@ -112,15 +117,15 @@ export class InstanceModsService extends AbstractService implements IInstanceMod
     await this.app.shell.openDirectory(join(path, 'mods'))
   }
 
-  async watch(instancePath: string): Promise<MutableState<ResourceState>> {
+  async watch(instancePath: string): Promise<SharedState<ResourceState>> {
     if (!instancePath) throw new AnyError('WatchModError', 'Cannot watch instance mods on empty path')
-    const lock = this.semaphoreManager.getLock(LockKey.instance(instancePath))
+    const lock = this.mutex.of(LockKey.instance(instancePath))
     const stateManager = await this.app.registry.get(ServiceStateManager)
     return stateManager.registerOrGet(getInstanceModStateKey(instancePath), async ({ doAsyncOperation }) => {
       const basePath = join(instancePath, 'mods')
 
       await ensureDir(basePath)
-      const { dispose, revalidate, state } = this.resourceManager.watch(basePath, ResourceDomain.Mods, (func) => doAsyncOperation(lock.read(func)))
+      const { dispose, revalidate, state } = this.resourceManager.watch(basePath, ResourceDomain.Mods, (func) => doAsyncOperation(lock.waitForUnlock().then(func)))
 
       const instanceService = await this.app.registry.get(InstanceService)
       instanceService.registerRemoveHandler(instancePath, dispose)
@@ -133,9 +138,10 @@ export class InstanceModsService extends AbstractService implements IInstanceMod
 
   async installFromMarket(options: InstallMarketOptionWithInstance): Promise<string[]> {
     const provider = await this.app.registry.get(kMarketProvider)
-    const result = await provider.installFile({
+    const result = await provider.installInstanceFile({
       ...options,
-      directory: join(options.instancePath, 'mods'),
+      instancePath: options.instancePath,
+      domain: ResourceDomain.Mods,
     })
     return result.map(v => v.path)
   }

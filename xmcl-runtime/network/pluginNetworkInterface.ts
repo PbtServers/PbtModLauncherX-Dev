@@ -8,13 +8,9 @@ import { kSettings } from '~/settings'
 import { NetworkAgent, ProxySettingController } from './dispatchers/NetworkAgent'
 import { kDownloadOptions, kNetworkInterface } from './networkInterface'
 
-type DispatchOptions = Dispatcher.DispatchOptions
-
 export const pluginNetworkInterface: LauncherAppPlugin = (app) => {
   const logger = app.getLogger('NetworkInterface')
   const userAgent = app.userAgent
-
-  const dispatchInterceptors: Array<(opts: DispatchOptions) => void> = []
 
   let maxConnection = 64
   const connectorOptions: buildConnector.BuildOptions = {
@@ -24,29 +20,36 @@ export const pluginNetworkInterface: LauncherAppPlugin = (app) => {
     autoSelectFamilyAttemptTimeout: 850,
   }
 
-  const proxy = new ProxySettingController()
+  const globalProxyHttps = process.env.HTTPS_PROXY || process.env.https_proxy
+
+  const proxyControl = new ProxySettingController()
   app.registry.get(kSettings).then((state) => {
     maxConnection = state.maxSockets > 0 ? state.maxSockets : 64
-    proxy.setProxyEnabled(state.httpProxyEnabled)
-    if (state.httpProxy) {
+    proxyControl.setProxyEnabled(state.httpProxyEnabled)
+    const proxy = state.httpProxy || globalProxyHttps
+    if (proxy) {
       try {
-        proxy.setProxy(new URL(state.httpProxy))
+        proxyControl.setProxy(new URL(proxy))
+        app.setProxy(proxy)
       } catch (e) {
-        logger.warn(`Fail to set url as it's not a valid url ${state.httpProxy}`, e)
+        logger.warn(`Fail to set url as it's not a valid url ${proxy}`, e)
       }
     }
+
     state.subscribe('maxSocketsSet', (val) => {
       maxConnection = val > 0 ? val : 64
     })
     state.subscribe('httpProxySet', (p) => {
+      app.setProxy(p)
       try {
-        proxy.setProxy(new URL(p))
+        proxyControl.setProxy(new URL(p))
       } catch (e) {
         logger.warn(`Fail to set url as it's not a valid url ${p}`, e)
       }
     })
     state.subscribe('httpProxyEnabledSet', (e) => {
-      proxy.setProxyEnabled(e)
+      proxyControl.setProxyEnabled(e)
+      app.setProxy(e ? (state.httpProxy || globalProxyHttps || '') : '')
     })
   })
 
@@ -69,11 +72,14 @@ export const pluginNetworkInterface: LauncherAppPlugin = (app) => {
   const downloadProxy = new NetworkAgent({
     userAgent,
     retryOptions: {
-      maxTimeout: 60_000,
-      maxRetries: 30,
-      // @ts-ignore
       retry: (err, { state, opts }, cb) => {
         const { statusCode, code, headers } = err as any
+
+        if ((opts as any).noRetry?.value) {
+          cb(err)
+          return
+        }
+
         const { method, retryOptions } = opts
         const {
           maxRetries,
@@ -90,7 +96,6 @@ export const pluginNetworkInterface: LauncherAppPlugin = (app) => {
         if (
           code &&
           code !== 'UND_ERR_REQ_RETRY' &&
-          code !== 'UND_ERR_SOCKET' &&
           !errorCodes!.includes(code)
         ) {
           if (code !== 'UND_ERR_CONNECT_TIMEOUT') {
@@ -108,6 +113,7 @@ export const pluginNetworkInterface: LauncherAppPlugin = (app) => {
           const pool = clients.get(typeof opts.origin === 'string' ? opts.origin : opts.origin.origin)
           const stats = pool?.stats
           if (!stats?.connected && !stats?.pending && !stats?.running && !stats?.queued && !stats?.free) {
+            // throw error if there are no connection with the same origin
             cb(err)
             return
           }
@@ -156,14 +162,22 @@ export const pluginNetworkInterface: LauncherAppPlugin = (app) => {
       bodyTimeout: 60_000,
       maxRedirections: 5,
       connect,
-      factory: (origin, opts) => patchIfPool(new Pool(origin, opts)),
+      factory: (origin, opts) => {
+        return patchIfPool(new Pool(origin, opts))
+      },
     }),
     proxyTls: connectorOptions,
     requestTls: connectorOptions,
   })
-  proxy.add(downloadProxy)
+
+  class RangePolicy extends DefaultRangePolicy {
+    getConcurrency() {
+      return Math.max(maxConnection / 4, 4)
+    }
+  }
+  proxyControl.add(downloadProxy)
   app.registry.register(kDownloadOptions, {
-    rangePolicy: new DefaultRangePolicy(4 * 1024 * 1024, 4),
+    rangePolicy: new RangePolicy(2 * 1024 * 1024, Math.max(maxConnection / 4, 4)),
     dispatcher: downloadProxy,
     checkpointHandler: {
       lookup: async (url) => { return undefined },
@@ -217,9 +231,6 @@ export const pluginNetworkInterface: LauncherAppPlugin = (app) => {
   })
 
   app.registry.register(kNetworkInterface, {
-    registerOptionsInterceptor(interceptor: (opts: DispatchOptions) => void | Promise<void>): void {
-      dispatchInterceptors.unshift(interceptor)
-    },
     getDownloadAgentStatus: getAgentStatus,
     async destroyPool(origin) {
       // @ts-ignore

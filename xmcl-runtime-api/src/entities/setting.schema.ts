@@ -32,7 +32,7 @@ export interface SettingSchema {
    * The download API set preferences
    * @default ""
    */
-  apiSetsPreference: 'mojang' | 'mcbbs' | 'bmcl' | ''
+  apiSetsPreference: 'mojang' | 'bmcl' | ''
   /**
    * The supported unofficial api sets
    * @default []
@@ -117,6 +117,15 @@ export interface SettingSchema {
    */
   globalPrependCommand: string
   /**
+   * @default ""
+   */
+  globalPreExecuteCommand: string
+  /**
+   * The launch environment variables
+   * @default {}
+   */
+  globalEnv: Record<string, string>
+  /**
    * @default true
    */
   discordPresence: boolean
@@ -136,5 +145,9 @@ export interface SettingSchema {
    * @default true
    */
   enableDedicatedGPUOptimization: boolean
-
+  /**
+   * Global resolution settings for Minecraft
+   * @default {}
+   */
+  globalResolution: { width?: number; height?: number; fullscreen?: boolean }
 }

@@ -2,15 +2,15 @@ import { LibraryInfo, MinecraftFolder } from '@xmcl/core'
 import { DownloadTask } from '@xmcl/installer'
 import { AuthlibInjectorServiceKey, AuthlibInjectorService as IAuthlibInjectorService, Settings } from '@xmcl/runtime-api'
 import { readFile, writeFile } from 'fs-extra'
-import { NetworkInterface, kDownloadOptions, kNetworkInterface } from '~/network'
-import { LauncherApp } from '../app/LauncherApp'
-import { LauncherAppKey, PathResolver, kGameDataPath, Inject } from '~/app'
+import { Inject, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
 import { GFW, kGFW } from '~/gfw'
-import { getApiSets, kSettings, shouldOverrideApiSet } from '~/settings'
-import { TaskFn, kTaskExecutor } from '~/task'
-import { validateSha256 } from '../util/fs'
+import { kDownloadOptions } from '~/network'
 import { AbstractService, ExposeServiceKey, Lock } from '~/service'
+import { getApiSets, kSettings } from '~/settings'
+import { TaskFn, kTaskExecutor } from '~/task'
 import { AnyError } from '~/util/error'
+import { LauncherApp } from '../app/LauncherApp'
+import { validateSha256 } from '../util/fs'
 
 const AUTHLIB_ORG_NAME = 'org.to2mbn:authlibinjector'
 
@@ -26,20 +26,8 @@ export class AuthlibInjectorService extends AbstractService implements IAuthlibI
     @Inject(kGameDataPath) private getPath: PathResolver,
     @Inject(kTaskExecutor) private submit: TaskFn,
     @Inject(kGFW) gfw: GFW,
-    @Inject(kNetworkInterface) networkInterface: NetworkInterface,
   ) {
     super(app)
-
-    networkInterface.registerOptionsInterceptor((options) => {
-      const origin = options.origin instanceof URL ? options.origin : new URL(options.origin! as any)
-      if (origin.hostname === 'authlib-injector.yushi.moe') {
-        if (shouldOverrideApiSet(settings, gfw.inside)) {
-          const api = settings.apiSets.find(a => a.name === settings.apiSetsPreference) || settings.apiSets[0]
-          options.origin = new URL(api.url).origin
-          options.path = `/mirrors/authlib-injector${options.path}`
-        }
-      }
-    })
   }
 
   async abortAuthlibInjectorInstall(): Promise<void> {

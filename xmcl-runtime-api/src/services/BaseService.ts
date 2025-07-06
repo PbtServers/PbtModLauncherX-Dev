@@ -2,7 +2,7 @@ import { Exception } from '../entities/exception'
 import { LauncherProfile } from '../entities/launcherProfile'
 import { Platform } from '../entities/platform'
 import { Settings } from '../entities/setting'
-import { MutableState } from '../util/MutableState'
+import { SharedState } from '../util/SharedState'
 import { ServiceKey } from './Service'
 
 export interface MigrateOptions {
@@ -30,6 +30,7 @@ export interface Environment extends Platform {
    * The current build number
    */
   build: number
+  gfw: boolean
 }
 
 export interface PoolStats {
@@ -41,16 +42,18 @@ export interface PoolStats {
   size: number
 }
 
+export type InvalidDirectoryErrorCode = 'bad' | 'invalidchar' | 'nondictionary' | 'noperm' | 'exists' | undefined
+
 export interface BaseService {
   getNetworkStatus(): Promise<Record<string, PoolStats>>
 
   destroyPool(origin: string): Promise<void>
 
-  validateDataDictionary(path: string): Promise<undefined | 'noperm' | 'bad' | 'nondictionary' | 'exists'>
+  validateDataDictionary(path: string): Promise<InvalidDirectoryErrorCode>
 
   getSessionId(): Promise<string>
 
-  getSettings(): Promise<MutableState<Settings>>
+  getSettings(): Promise<SharedState<Settings>>
   /**
    * Get the environment of the launcher
    */
@@ -99,37 +102,31 @@ export interface BaseService {
    */
   getGameDataDirectory(): Promise<string>
   /**
+   * Get the desktop directory folder.
+   */
+  getDesktopDirectory(): Promise<string>
+  /**
    * Migrate the launcher game data root to another directory
    * @param options The migration options
    */
   migrate(options: MigrateOptions): Promise<void>
 
   getMemoryStatus(): Promise<{ total: number; free: number }>
-
-  isResourceDatabaseOpened(): Promise<boolean>
 }
 
-export type BaseServiceExceptions = {
+export type MigrationExceptions = {
   /**
    * Throw when dest is a file
    */
-  type: 'migrationDestinationIsFile'
-  destination: string
-} | {
-  /**
-   * Throw when dest is a dir but not empty.
-   */
-  type: 'migrationDestinationIsNotEmptyDirectory'
-  destination: string
-} | {
-  /**
-   * Throw rename has no permission.
-   */
-  type: 'migrationNoPermission'
-  source: string
+  type: 'migrationInvalidDestiantion'
+  code: InvalidDirectoryErrorCode
   destination: string
 }
 
-export class BaseServiceException extends Exception<BaseServiceExceptions> { }
+export class MigrationException extends Exception<MigrationExceptions> { }
+
+export class CancelledException extends Exception<{
+  type: 'cancelled'
+}> { }
 
 export const BaseServiceKey: ServiceKey<BaseService> = 'BaseService'

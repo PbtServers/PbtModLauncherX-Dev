@@ -35,10 +35,6 @@ export class ResourceManager {
     @Inject(kResourceContext) readonly context: ResourceContext,
   ) { }
 
-  async isReady() {
-    return this.context.isDatabaseOpened()
-  }
-
   async getHashByUri(uri: string): Promise<string | undefined> {
     return this.getHashesByUris([uri]).then(v => v[0])
   }
@@ -93,7 +89,7 @@ export class ResourceManager {
 
   async validateSnapshotFile(snapshot: ResourceSnapshotTable): Promise<File | undefined> {
     const file = await getFile(join(this.context.root, snapshot.domainedPath))
-    if (!file) return file
+    if (!file) return undefined
     if (!isSnapshotValid(file, snapshot)) {
       this.context.db.deleteFrom('snapshots')
         .where('domainedPath', '=', snapshot.domainedPath)
