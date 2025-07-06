@@ -75,12 +75,10 @@ export function useAllowThirdparty() {
 
 export function useAuthorityItems(authorities: Ref<AuthorityMetadata[] | undefined>) {
   const { t } = useI18n()
-  const thirdParty = useAllowThirdparty()
   const items: Ref<AuthorityItem[]> = computed(() => {
     if (!authorities.value) return []
     const result = [] as AuthorityItem[]
     for (const v of authorities.value) {
-      if (!thirdParty.value && v.authority !== AUTHORITY_MICROSOFT) continue
       if (v.authority === AUTHORITY_MICROSOFT) {
         result.push({
           value: AUTHORITY_MICROSOFT,
