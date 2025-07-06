@@ -11,6 +11,8 @@ Clonar Repositorio -->
 Instalar Dependencias y Ejecutar Dev -->                                                                                                                         
 (Ejecutar Compilación habitual)
 
+`choco install python visualstudio2022-workload-vctools -y`
+
 `pnpm install`                                                                                                                                                   
 `npm run dev:renderer`                                                                                                                                           
 En otra terminal (revisar proceso principal) -> `npm run dev:main`
