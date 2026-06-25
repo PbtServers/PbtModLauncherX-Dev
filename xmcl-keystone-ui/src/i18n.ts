@@ -2,7 +2,6 @@
 import Vue from 'vue'
 import VueI18n from 'vue-i18n'
 import { castToVueI18n, createI18n } from 'vue-i18n-bridge'
-// @ts-ignore
 import es from '../locales/es-ES.yaml'
 import en from '../locales/en.yaml'
 
@@ -16,6 +15,7 @@ export const i18n = castToVueI18n(
       missingWarn: false,
       fallbackWarn: false,
       messages: {
+        en,
         es,
       },
     },

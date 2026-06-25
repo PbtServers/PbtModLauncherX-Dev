@@ -96,13 +96,12 @@ export const config = {
     },
     category: 'Game',
     icon: 'icons/dark.icns',
-    artifactName: 'xmcl-${version}-${arch}.${ext}',
+    artifactName: 'pbtmodlauncherx-${version}-${arch}.${ext}',
     target: [
       { target: 'deb', arch: ['x64', 'arm64'] },
       { target: 'rpm', arch: ['x64', 'arm64'] },
       { target: 'AppImage', arch: ['x64', 'arm64'] },
       { target: 'tar.xz', arch: ['x64', 'arm64'] },
-      { target: 'pacman', arch: ['x64', 'arm64'] },
     ],
   },
   snap: {

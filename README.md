@@ -1,4 +1,4 @@
-# PbtModLauncherX (v1.0.5)
+# PbtModLauncherX (v1.0.6)
 
 La versión del launcher X de PbtServers adaptada para su uso mejorado y offline [🚀]
 

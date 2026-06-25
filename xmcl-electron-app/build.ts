@@ -104,7 +104,9 @@ async function start() {
         buildPath: context.appDir,
         electronVersion: context.electronVersion,
         arch: context.arch,
+        ignoreModules: ['cpu-features'],
         types: ['dev'],
+        useCache: true,
       })
       rebuildProcess.lifecycle.on('module-found', (path: string) => {
         console.log(`  ${chalk.blue('•')} rebuild module ${chalk.blue('path')}=${path}`)

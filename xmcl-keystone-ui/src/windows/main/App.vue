@@ -114,6 +114,10 @@ provide(kLaunchButton, useLaunchButton())
 const compact = ref(false)
 provide(kCompact, compact)
 
+const onReady = () => {
+  showSetup.value = false
+}
+
 const headerHeight = ref(0)
 provide('headerHeight', headerHeight)
 

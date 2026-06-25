@@ -12,15 +12,15 @@ jobs:
         submodules: recursive
     - uses: pnpm/action-setup@v2.0.1
       with:
-        version: 7.13.2
-    - name: Use Node.js 16
+        version: 9.3.0
+    - name: Use Node.js 20
       uses: actions/setup-node@v2
       with:
-        node-version: 16
+        node-version: 20
         cache: 'pnpm'
     - name: Install
       run: |
-        pnpm install
+        pnpm install --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000
     - name: Lint
       run: |
         pnpm lint
