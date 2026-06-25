@@ -32,6 +32,11 @@ declare module '*.svg' {
   export default value
 }
 
+declare module '*.yaml' {
+  const value: Record<string, any>
+  export default value
+}
+
 interface File {
   /**
    * The real path to the file on the users filesystem
