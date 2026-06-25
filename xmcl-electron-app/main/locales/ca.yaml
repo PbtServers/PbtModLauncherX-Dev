@@ -1,0 +1,23 @@
+browseApps: Explorar la interfície del launcher personalitzat
+checkUpdate: Cercar actualitzacions
+openUrl:
+  cancel: Cancel·lar
+  message: >-
+    El launcher vol obrir {url} al teu navegador per defecte. Permets aquesta
+    operació?
+  title: Obrir al navegador
+  trust: Confiar en aquest lloc i no tornar-ho a preguntar
+  'yes': Sí
+quit: Sortir
+relaunch: Reiniciar
+showDiagnosis: Mostrar diagnòstic
+showLogsFolder: Mostrar carpeta de registres
+task:
+  continue: Veure al launcher
+  fail: Una operació ha fallat
+  success: Una operació ha funcionat
+title: PbtModLauncherX
+urlFailed: URL no trobada {url}. Si us plau, revisa l'URL o contacta amb el desenvolupador!
+urlSuccess: Fet! Ara pots tancar aquesta finestra i tornar al launcher!
+autoCloseHint: Aquesta finestra es tancarà en {time} segons
+multiplayer: Multijugador P2P
