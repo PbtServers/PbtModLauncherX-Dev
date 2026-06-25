@@ -32,6 +32,7 @@ BaseSettingGeneral:
   title: General
 FeedTheBeast:
   search: Buscar en FTB
+FeedTheBeastCard: {}
 FeedTheBeastProject:
   changelog: Registro de cambios
   details: Detalles
@@ -680,6 +681,11 @@ launchFailed:
   failedToLaunch: Error de arranque
   latestLog: Log mas reciente
   title: El Juego se ha cerrado con un código extraño
+launchPreExecuteCommandFailed:
+  description: >-
+    El comando previo a la ejecución falló con un error: {error}. Por favor,
+    comprueba el comando e inténtalo de nuevo.
+  title: Error en el Comando Previo a la Ejecución
 launchStatus:
   assigningMemory: Asignando Memoria
   exit: Salir del Juego?
@@ -1708,3 +1714,186 @@ versionType:
   name: Estado
   release: Estable
 'yes': 'Si'
+agent:
+  callingTool: llamando a {name}…
+  disabledPlaceholder: Agente desactivado
+  emptyHint: >-
+    Pide al agente que inspeccione tu instancia, active mods, lea los registros
+    o diagnostique un fallo.
+  inputPlaceholder: Pregunta al agente… (Enter para enviar, Shift+Enter para nueva línea)
+  notConfiguredHint: >-
+    Configura tu clave API, modelo y endpoint en Ajustes → General → Agente IA
+    para activar el agente.
+  notConfiguredTitle: Agente no configurado
+  openSettings: Abrir ajustes
+  reset: Reiniciar conversación
+  setupGuide: Guía de configuración
+  statusDisabled: Desactivado — falta la clave API
+  statusReady: Listo
+  statusWorking: Trabajando…
+  suggestion1: >-
+    Actualiza esta instancia a una versión más reciente de Minecraft y actualiza
+    los mods para que coincidan
+  suggestion2: Mis mods están fallando — encuentra la causa y dime cómo arreglarlo
+  suggestion3: >-
+    Crea un modpack: encuentra mods para una función que quiero e instálalos en
+    esta instancia
+  thinking: pensando…
+  title: Agente XMCL
+  toggleHint: para activar/desactivar
+askAICrash:
+  agentNotConfigured: >-
+    Añade un proveedor de IA y una clave API en los ajustes para que el agente
+    integrado del launcher diagnostique y solucione esto por ti.
+  askAgent: Diagnosticar con el agente IA integrado
+  copyPrompt: Copiar el prompt para preguntar a la IA
+  description: >-
+    ¡Deja que la IA te ayude a entender el fallo del juego! Sigue las
+    instrucciones a continuación para preguntar a la IA sobre este fallo.
+  orExternal: o usa una IA externa
+  selectPlatform: Abre una plataforma de IA y pega el prompt que acabas de copiar.
+  setupAgent: Configurar el agente IA
+browseApps: Viendo la interfaz del launcher
+command:
+  instance:
+    launch:
+      title: Lanzar Instancia
+      description: Lanzar una instancia de Minecraft
+    create:
+      title: Crear Instancia
+      description: Crear una nueva instancia
+    delete:
+      title: Eliminar Instancia
+      description: Eliminar una instancia existente
+  user:
+    login:
+      title: Iniciar Sesión
+      description: Iniciar sesión en tu cuenta
+    refresh:
+      title: Actualizar Usuario
+      description: Actualizar la sesión del usuario
+commandPalette:
+  placeholder: Buscar comandos, instancias, mods…
+  commands: Comandos
+  instances: Instancias
+  modrinth: Modrinth
+  recent: Reciente
+  open: Acción Rápida
+  openHint: Abrir paleta de comandos ({shortcut})
+  empty: Escribe para buscar.
+  noResults: No se encontraron resultados.
+  searching: Buscando…
+  hintNavigate: navegar
+  hintInvoke: ejecutar
+  hintEnter: entrar
+  hintBack: volver
+  hintClose: cerrar
+difficulty:
+  easy: Fácil
+  hard: Difícil
+  normal: Normal
+  peaceful: Pacífico
+downloadModMetadataDb:
+  name: Descargar Base de Datos de Metadatos de Mods
+duplicateInstance:
+  name: Duplicar Instancia
+exportModpack:
+  name: Exportar Modpack
+installProfile:
+  name: Instalar Perfil {version}
+installQuilt:
+  name: Instalar Quilt {version}
+instanceLauncher:
+  search: Buscar instancias...
+  showAll: Mostrar Todas las Instancias
+  title: Todas las Instancias
+logView:
+  searchPlaceholder: Buscar registros...
+migrateMinecraft:
+  name: Migrar Archivos de Minecraft
+migrationWindow:
+  title: Migración de Datos
+  preparing: Preparando migración…
+  scanning: Calculando…
+  migrating: Moviendo tus datos
+  done: Migración completada
+  files: archivos
+  warning: Mantén el launcher abierto hasta que termine, o tus datos podrían perderse.
+  error: Error en la migración
+minecraftFriends:
+  accept: Aceptar
+  add: Añadir amigo
+  addPlaceholder: Nombre de usuario de Minecraft
+  addedRelative: Añadido {time}
+  errors:
+    cannotAddSelf: No puedes enviarte una solicitud de amistad a ti mismo.
+    duplicate: Ese jugador ya está en tu lista.
+    generic: Algo salió mal. Por favor, inténtalo de nuevo.
+    inviteRejected: Ese jugador no tiene los amigos activados o no acepta invitaciones.
+    tokenExpired: Tu sesión de Microsoft ha expirado. Por favor, inicia sesión de nuevo.
+    unknownProfile: No pudimos encontrar un jugador con ese nombre.
+  expiresRelative: Expira {time}
+  friends: Amigos
+  heroEmptyHint: Añade un jugador de Minecraft por nombre de usuario arriba para enviar una solicitud de amistad.
+  heroEmptyTitle: Tu lista de amigos está vacía
+  incoming: Solicitudes entrantes
+  incomingHint: 1 solicitud entrante | {count} solicitudes entrantes
+  notifyAdded: Solicitud de amistad enviada a {name}
+  outgoing: Solicitudes salientes
+  privacy:
+    acceptInvites: Aceptar invitaciones de amistad
+    acceptInvitesHint: Cuando está desactivado, otros jugadores no pueden enviarte solicitudes de amistad.
+    friendsEnabled: Lista de amigos activada
+  reconnectAction: Reconectar
+  requiresMicrosoft: Inicia sesión con una cuenta de Microsoft para usar amigos.
+  scopedTo: Conectado como {name}
+  send: Enviar
+  title: Amigos de Minecraft
+  unsupported: Los amigos solo están disponibles para cuentas de Microsoft.
+modSearch:
+  noLocalModsFound: No se encontraron mods locales que coincidan con tu búsqueda.
+  noModsFound: No se encontraron mods
+  noModsInstalled: No tienes ningún mod instalado.
+  searchInMarket: Buscar {keyword} en el Mercado
+reinstall:
+  name: Reinstalar {version}
+relative:
+  daysAgo: 'hace {count} día | hace {count} días'
+  hoursAgo: 'hace {count} hora | hace {count} horas'
+  justNow: ahora mismo
+  minutesAgo: 'hace {count} minuto | hace {count} minutos'
+  secondsAgo: 'hace {count} segundo | hace {count} segundos'
+resourceError:
+  body: >-
+    "{path}" no se pudo analizar ({code}). El archivo puede estar dañado,
+    bloqueado o incompleto. Intenta volver a descargarlo o eliminarlo.
+  title: No se puede leer {file}
+sidebar:
+  pin: Fijar
+  unpin: Desfijar
+unauthenticatedWarning:
+  cancel: Cancelar
+  description: >-
+    No has iniciado sesión en ninguna cuenta. El juego se iniciará en modo demo.
+    Para acceder a todas las funciones, por favor inicia sesión.
+  login: Iniciar Sesión
+  playAnyway: Jugar de todas formas
+  title: No has iniciado sesión
+unresolvedFiles:
+  description: >-
+    Estos archivos no se pudieron descargar durante la instalación. Busca una
+    fuente coincidente, instala las coincidencias o ignora los archivos para
+    iniciar de todas formas.
+  empty: Todos los archivos están resueltos.
+  ignoreSelected: 'Ignorar {count}'
+  install: 'Instalar {count} coincidencias'
+  matched: Coincidente
+  noMatch: No encontrado
+  search: Buscar fuentes
+  source:
+    curseforge-name: CurseForge
+    dependency: Dependencia
+    modrinth-hash: Hash de Modrinth
+    modrinth-name: Modrinth
+  title: Archivos sin resolver
+  via: 'vía {source}'
