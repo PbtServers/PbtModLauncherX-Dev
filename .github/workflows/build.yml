@@ -1,9 +1,11 @@
-name: Build
+name: Build & Release
 
 on:
   push:
     branches:
       - master
+    tags:
+      - "v*"
     paths:
       - 'xmcl-runtime/**'
       - 'xmcl-runtime-api/**'
@@ -12,255 +14,192 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/**'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de release (ej: v1.0.6). Si vacío y no es push tag, usa v0.0.0-dev"
+        required: false
+        default: ""
 
-# env:
-#   ELECTRON_CACHE: ~/.cache/electron
-#   ELECTRON_BUILDER_CACHE: ~/.cache/electron-builder
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    - uses: pnpm/action-setup@v2.0.1
-      with:
-        version: 9.3.0
-    - name: Fix node-gyp and Python
-      run: python3 -m pip install packaging setuptools
-    - name: Use Node.js 20
-      uses: actions/setup-node@v2
-      with:
-        node-version: 20
-        cache: 'pnpm'
-    # - name: Restore cached Electron
-    #   id: cache-electron
-    #   uses: actions/cache/restore@v3
-    #   with:
-    #     path: |
-    #       ~/.cache/electron
-    #       ~/.cache/electron-builder
-    #     key: ${{ runner.os }}-electron
-    - name: Install
-      run: pnpm install --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000
-    - name: Build
-      run: |
-        pnpm run --prefix xmcl-keystone-ui build
-        pnpm run --prefix xmcl-electron-app build:all
-      env:
-        BUILD_NUMBER: ${{ github.run_number }}
-        NODE_ENV: production
-        CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_TOKEN }}
-    # - name: Save cached Electron
-    #   uses: actions/cache/save@v3
-    #   with:
-    #     path: |
-    #       ~/.cache/electron
-    #       ~/.cache/electron-builder
-    #     key: ${{ runner.os }}-electron
-    - name: Upload Source Maps
-      if: ${{ runner.os == 'Windows' }} 
-      uses: actions/upload-artifact@v4
-      with:
-        name: sourcemap
-        path: |
-          xmcl-electron-app/dist/*.js.map
-    - name: Upload Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-${{ runner.os }}
-        path: |
-          xmcl-electron-app/build/output/
-    - name: Upload Windows Zip Build
-      if: ${{ runner.os == 'Windows' }} 
-      uses: actions/upload-artifact@v4
-      with:
-        name: win-b${{ github.run_number }}
-        path: |
-          xmcl-electron-app/build/output/win-unpacked/
-    - name: Upload Linux x64 Zip Build
-      if: ${{ runner.os == 'Linux' }} 
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux-b${{ github.run_number }}-x64
-        path: |
-          xmcl-electron-app/build/output/linux-unpacked/
-    - name: Upload Linux arm64 Zip Build
-      if: ${{ runner.os == 'Linux' }} 
-      uses: actions/upload-artifact@v4
-      with:
-        name: linux-b${{ github.run_number }}-arm64
-        path: |
-          xmcl-electron-app/build/output/linux-arm64-unpacked/
-    - name: Upload Mac x64 Zip Build
-      if: ${{ runner.os == 'macOS' }} 
-      uses: actions/upload-artifact@v4
-      with:
-        name: mac-b${{ github.run_number }}-x64
-        path: |
-          xmcl-electron-app/build/output/mac/
-    - name: Upload Mac arm64 Zip Build
-      if: ${{ runner.os == 'macOS' }} 
-      uses: actions/upload-artifact@v4
-      with:
-        name: mac-b${{ github.run_number }}-arm64
-        path: |
-          xmcl-electron-app/build/output/mac-arm64/
-
-  prepare-release:
-    runs-on: ubuntu-latest
-    needs: 
-      - build
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release)') }}
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-        fetch-depth: 0
-    - uses: pnpm/action-setup@v2.0.1
-      with:
-        version: 9.3.0
-    - name: Use Node.js 20
-      uses: actions/setup-node@v2
-      with:
-        node-version: 20
-    - name: Install
-      run: |
-        pnpm install --filter ./.github/actions
-    - name: Bump Version
-      id: version
-      uses: Voxelum/semantic-version-bump-action@xmcl
-      with:
-        packages: |
-          ./xmcl-keystone-ui
-          ./xmcl-runtime
-          ./xmcl-runtime-api
-        root: '.'
-        stage: 'prepare'
-    - name: Update Sponsor
-      uses: Voxelum/afdian-sponsor-action@master
-      with:
-        user-id: ${{ secrets.AFDIAN_USER_ID }}
-        token: ${{ secrets.AFDIAN_TOKEN }}
-        markdown: |
-          README.md
-          README.zh.md
-    - name: Update Lock File
-      if: ${{ steps.version.outputs.release == 'true' }}
-      run: pnpm i --lockfile-only
-    - name: Create Pull Request
-      if: ${{ steps.version.outputs.release == 'true' }}
-      uses: peter-evans/create-pull-request@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: "chore(release): version ${{ steps.version.outputs.version }}"
-        title: Prepare Release ${{ steps.version.outputs.version }}
-        body: ${{ steps.version.outputs.changelog }}
-        reviewers: ci010
-        assignees: ci010
-        branch: prepare-release
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
-  upload-sourcemap:
-    runs-on: ubuntu-latest
-    needs:
-      - build
-    steps:
-    - name: Download Source Map
-      uses: actions/download-artifact@v4
-      with:
-        name: sourcemap
-        path: sourcemap/${{github.run_number}}
-    - name: Upload Source Map to Azure
-      uses: ci010/upload-blob-to-azure@master
-      env:
-        AZURE_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY }}
-      with:
-        account: xmcl
-        container: sourcemap
-        directory: ./sourcemap
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.3.0
+
+      - name: Setup Python (node-gyp)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Fix node-gyp tooling
+        run: python -m pip install --upgrade pip packaging setuptools
+        shell: bash
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install (retry)
+        shell: bash
+        run: |
+          n=0
+          until [ $n -ge 3 ]
+          do
+            pnpm install --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000 && break
+            n=$((n+1))
+            echo "retry $n..."
+            sleep 10
+          done
+          [ $n -lt 3 ]
+
+      - name: Build
+        run: |
+          pnpm run --prefix xmcl-keystone-ui build
+          pnpm run --prefix xmcl-electron-app build:all
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          NODE_ENV: production
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_TOKEN }}
+        shell: bash
+
+      - name: Upload Source Maps
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sourcemap
+          path: |
+            xmcl-electron-app/dist/*.js.map
+          if-no-files-found: warn
+
+      - name: Upload Build Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ runner.os }}
+          path: xmcl-electron-app/build/output/
+          if-no-files-found: warn
+
+      - name: Upload Windows unpacked
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-b${{ github.run_number }}
+          path: xmcl-electron-app/build/output/win-unpacked/
+          if-no-files-found: warn
+
+      - name: Upload Linux x64 unpacked
+        if: ${{ runner.os == 'Linux' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-b${{ github.run_number }}-x64
+          path: xmcl-electron-app/build/output/linux-unpacked/
+          if-no-files-found: warn
+
+      - name: Upload Linux arm64 unpacked
+        if: ${{ runner.os == 'Linux' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-b${{ github.run_number }}-arm64
+          path: xmcl-electron-app/build/output/linux-arm64-unpacked/
+          if-no-files-found: warn
+
+      - name: Upload Mac x64 unpacked
+        if: ${{ runner.os == 'macOS' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-b${{ github.run_number }}-x64
+          path: xmcl-electron-app/build/output/mac/
+          if-no-files-found: warn
+
+      - name: Upload Mac arm64 unpacked
+        if: ${{ runner.os == 'macOS' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-b${{ github.run_number }}-arm64
+          path: xmcl-electron-app/build/output/mac-arm64/
+          if-no-files-found: warn
 
   release:
-    if: startsWith(github.event.head_commit.message, 'chore(release)')
+    name: Draft Release (tag only)
     runs-on: ubuntu-latest
-    needs:
-      - build
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        submodules: recursive
-    - uses: pnpm/action-setup@v2.0.1
-      with:
-        version: 9.3.0
-    - name: Use Node.js 20
-      uses: actions/setup-node@v2
-      with:
-        node-version: 20
-        cache: 'pnpm'
-    - name: Install
-      run: |
-        pnpm install --filter ./.github/actions
-    - name: Download Build
-      uses: actions/download-artifact@v4
-      with:
-        pattern: build-*
-        merge-multiple: true
-        path: build
-    - name: Prepare Release
-      id: prepare_release
-      uses: Voxelum/semantic-version-bump-action@xmcl
-      with:
-        packages: |
-          ./xmcl-keystone-ui
-          ./xmcl-runtime
-          ./xmcl-runtime-api
-        root: '.'
-        stage: 'release'
-    - name: Create Tag
-      run: |
-        git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/voxelum/x-minecraft-launcher.git"
-        git config user.name ci010
-        git config user.email cijhn@hotmail.com
-        git tag -f ${{ steps.prepare_release.outputs.tag }}
-        git push origin tag ${{ steps.prepare_release.outputs.tag }} -f
-    - name: Emit Version File
-      run: |
-        echo ${{ steps.prepare_release.outputs.version }}.${{ github.run_number }} > ./build/version
-    - name: Draft Release
-      id: create_release
-      uses: voxelum/create-release@xmcl
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.prepare_release.outputs.tag }}
-        release_name: ${{ steps.prepare_release.outputs.tag }}
-        draft: true
-        prerelease: false
-        body: ${{ steps.prepare_release.outputs.changelog }}
-        asset_dir_path: ./build
-    - name: Checkout Website
-      uses: actions/checkout@v3
-      with:
-        repository: Voxelum/xmcl-page
-        path: xmcl-page
-    - name: Create Release Note
-      uses: ./.github/actions/generate-release-note
-      with:
-        body: ${{ steps.prepare_release.outputs.changelog }}
-        version: ${{ steps.prepare_release.outputs.version }}
-    - name: Create Release Note PR
-      uses: peter-evans/create-pull-request@v3
-      with:
-        token: ${{ secrets.PAT_GITHUB_TOKEN }}
-        path: xmcl-page
-        commit-message: "docs: Update ${{ steps.prepare_release.outputs.version }} release note"
-        title: Update ${{ steps.prepare_release.outputs.version }} release note
-        body: Update ${{ steps.prepare_release.outputs.version }} release note
-        reviewers: ci010
-        assignees: ci010
-        branch: release-note-${{ steps.prepare_release.outputs.version }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          merge-multiple: true
+          path: build
+
+      - name: Resolve tag name
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          elif [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            echo "name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=v0.0.0-dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate SHA256SUMS
+        shell: bash
+        run: |
+          cd build
+          # sha256sum no está en mac/windows pero aquí estamos en ubuntu
+          find . -maxdepth 1 -type f -print0 | xargs -0 -I{} sha256sum "{}" > SHA256SUMS.txt || true
+
+      - name: Build release body
+        shell: bash
+        run: |
+          VERSION="${{ steps.tag.outputs.name }}"
+          cat > RELEASE_BODY.md << EOF
+          ## **PbtModLauncherX [Versión ${VERSION#v}] -->**
+
+          ### *Esta versión incluye:*
+          - Build multiplataforma automática (Windows, macOS y Linux).
+          - Artefactos adjuntos generados por GitHub Actions.
+          - Archivo de checksums SHA256.
+
+          ### *Aún por añadir:*
+          - Ajustes menores y mejoras según feedback de usuarios.
+          EOF
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: ${{ steps.tag.outputs.name }}
+          draft: true
+          prerelease: false
+          body_path: RELEASE_BODY.md
+          files: |
+            build/*
+            build/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
