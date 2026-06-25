@@ -82,3 +82,48 @@ declare module 'undici/lib/dispatcher-base' {
 
   export default DispatcherBase
 }
+
+declare module 'create-desktop-shortcuts' {
+  interface WindowsShortcut {
+    filePath: string
+    outputPath?: string
+    name?: string
+    comment?: string
+    icon?: string
+    arguments?: string
+    windowMode?: 'normal' | 'maximized' | 'minimized'
+    hotkey?: string
+    workingDirectory?: string
+    VBScriptPath?: string
+  }
+
+  interface LinuxShortcut {
+    filePath: string
+    outputPath?: string
+    name?: string
+    comment?: string
+    icon?: string
+    type?: 'Link' | 'Directory' | 'Application'
+    terminal?: boolean
+    chmod?: boolean
+    arguments?: string
+  }
+
+  interface OsxShortcut {
+    filePath: string
+    outputPath?: string
+    name?: string
+    overwrite?: boolean
+  }
+
+  export interface ShortcutOptions {
+    onlyCurrentOS?: boolean
+    verbose?: boolean
+    customLogger?: (message: string, error?: object) => void
+    windows?: WindowsShortcut
+    linux?: LinuxShortcut
+    osx?: OsxShortcut
+  }
+
+  export default function createDesktopShortcut(options: ShortcutOptions): boolean
+}
