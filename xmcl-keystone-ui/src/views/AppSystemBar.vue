@@ -97,5 +97,6 @@ const { show: showFeedbackDialog } = useDialog('feedback')
 const { show: showTaskDialog } = useDialog('task')
 const { t } = useI18n()
 const { count } = useTaskCount()
+const { back: onBack } = useRouter()
 
 </script>
