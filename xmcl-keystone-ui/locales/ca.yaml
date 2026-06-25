@@ -1,95 +1,82 @@
 AppAddInstanceDialog:
-  choiceTitle: Multiples perfiles de arranque detectados. Selecciona uno.
-  configTitle: Configuración
-  createTitle: Crear Instancia
-  downloadedNotification: El modpack {name} se ha descargado. ¿Quieres crear una instancia para ello?
-  serverTitle: Ingrese la dirección de su servidor
+  choiceTitle: S'han detectat múltiples perfils de llançament. Selecciona'n un per importar.
+  configTitle: Configuració
+  createTitle: Crea un Joc
+  downloadedNotification: El modpack {name} s'ha descarregat. Vols crear una instància?
+  serverTitle: Introdueix l'adreça del servidor
 AppShareInstanceDialog:
-  alterDownloadDescription: |-
-    Si no quiere estropear la instancia actual. 
-    También puede crear una nueva instancia desde la configuración de su par. 
-    Haga clic en el botón a continuación para crear una instancia.
-  baseInfo: Configuración Básica
-  cancelShare: Cancelar Compartir
+  alterDownloadDescription: >-
+    Si no vols modificar la instància actual, pots crear una nova instància
+    des de la configuració del teu company. Fes clic al botó de baix per crear-la.
+  baseInfo: Informació Bàsica
+  cancelShare: Cancel·la la Compartició
   description: >-
-    Después de compartir, otros compañeros podran descargar los archivos del
-    juego que compartiste a través de tu PC.
-  downloadDescription: |-
-    Verifique los archivos que le proporcionó su compañero. 
-    Seleccione el archivo que desea descargar. 
-    Se colocará en la instancia actual {name}.
-  downloadNotifyTitle: Descargar instancia de {user}
-  downloadTitle: Descargar archivos de otros compañeros
-  downloadToLocal: Descargar a la instancia actual
-  filesToDownload: Elija archivos para descargar
-  filesToShare: Elija archivos para compartir
-  instanceShare: '{user} acaba de compartir archivos del juego contigo'
+    Quan comparteixes el perfil, altres persones poden descarregar aquests fitxers
+    des del teu ordinador.
+  downloadDescription: >-
+    Verifica els fitxers que el teu company t'ha proporcionat. Selecciona els
+    fitxers que vols descarregar. Es col·locaran a la instància actual {name}.
+  downloadNotifyTitle: Descarrega la instància de {user}
+  downloadTitle: Descarrega fitxers d'altres companys
+  downloadToLocal: Descarrega a la instància actual
+  filesToDownload: Tria els fitxers a descarregar
+  filesToShare: Tria els fitxers a compartir
+  instanceShare: '{user} acaba de compartir la instància actual amb tu'
   share: Compartir
-  shareNotifyTitle: Compartir Instancia
-  shareTitle: Comparte archivos de juego con otro jugador
+  shareNotifyTitle: Compartir Instància
+  shareTitle: Comparteix fitxers del joc amb altres jugadors
 BaseSetting: {}
 BaseSettingGeneral:
   title: General
 FeedTheBeast:
-  search: Buscar en FTB
+  search: Cerca a FTB
 FeedTheBeastCard: {}
 FeedTheBeastProject:
-  changelog: Registro de cambios
-  details: Detalles
-  install: Instalar {version}
-  overview: Visión general
-  versions: Versiones
+  changelog: Registre de canvis
+  details: Detalls
+  install: Instal·la {version}
+  overview: Visió general
+  versions: Versions
 HomeJavaIssueDialog:
   incompatibleJava: Java Incompatible
-  incompatibleJavaHint: ¡El Java actual puede ser incompatible con Minecraft seleccionado!
-  missingJava: Falta Java
-  missingJavaHint: 'El Launcher no puede detectar ningún java en su computadora. Puedes:'
+  incompatibleJavaHint: El Java actual pot ser incompatible amb el Minecraft seleccionat!
+  missingJava: Java no Trobat
+  missingJavaHint: "El launcher no pot detectar cap Java al teu ordinador. Pots:"
   needDownloadHint: >-
-    No se puede encontrar la versión de Java adecuada en tu computadora. Se
-    recomienda descargar uno nuevo.
+    No es troba cap versió adequada de Java al teu ordinador. Es recomana
+    descarregar-ne una de nova.
   optionAutoDownload:
-    message: Launcher descargará e instalará Java desde la fuente de Mojang's para ti.
-    name: Descargar Automáticamente
-  optionManualDownload: {}
-  optionSelectJava:
+    message: El launcher descarregarà i instal·larà Java des de la font de Mojang.
+    name: Descarrega Automàticament
+  optionGoToDownloadPage:
     message: >-
-      Tal vez el launcher no encontró Java en tu ordenador. Puedes decirle al
-      launcher dónde está.
-    name: Selecciona Java en tu ordenador
-  optionSwitch:
-    disabled: ¡No se ha encontrado ninguna {version} de Java en la base de datos ahora!
-    message: Use la {version} de Java existente en su PC
-    name: Cambiar a {version}
-  recommendedVersionHint: La {version} recomienda usar Java con el rango {range}。
-  selectMatchedHint: >-
-    Se encontraron versiones locales de Java adecuadas. Puede elegir estos Javas
-    locales.
-  selectSecondaryHint: >-
-    Encontré algunas versiones locales de Java, pero es posible que no se
-    ajusten a los criterios. Todavía puede usarlos para iniciar, pero este
-    problema seguirá apareciendo.
+      Obre la pàgina de descàrrega de Java. Pots descarregar i instal·lar
+      Java manualment.
+    name: Ves a la Pàgina de Descàrrega
+  optionLocalJava:
+    message: Usa Java local si el tens al teu ordinador.
+    name: Usa Java Local
 HomeLaunchMultiInstanceDialog:
   confirm: Sí, Lanzar
   description: Estás lanzando varias instancias de Minecraft. ¿Está seguro?
   title: Múltiples instancias
-HomeSyncButton: {}
+HomeSyncButton:
+  sync: Sincronitza
 HomeSyncDialog:
-  pull: Traer
-  push: Alejar
+  description: Sincronitza la teva instància amb la font remota.
+  sync: Sincronitza
+  title: Sincronització
 HomeSyncDialogPull:
-  failText: Error al obtener la actualización. {url}
-  refresh: Recargar
-  update: Actualizar
+  description: Descarrega els canvis del servidor remot.
+  pull: Descarrega
+  title: Descarrega Canvis
 HomeSyncDialogPush:
-  authError: >-
-    Autenticación de usuario erronea. ¡Asegúrese de tener privilegios para
-    cargar archivos del servidor!
-  refresh: Actualizar
-  unknownError: Error desconocido del servidor. Por favor, intenta de nuevo.
-  upload: Cargar Instancia
+  description: Puja els canvis locals al servidor remot.
+  push: Puja
+  title: Puja Canvis
 SettingMigrationDialog:
   selectRootDirectory: Seleccionar Directorio Raíz
-add: Añadir
+add: Afegeix
 ago:
   day: 'hace {duration} dia | hace {duration} dias'
   hour: 'hace {duration} hora | hace {duration} horas'
@@ -97,43 +84,28 @@ ago:
   second: 'hace {duration} segundo | hace {duration} segundos'
 authProfileAddedNotification: Perfil de Autenticación {name} Añadido
 author: Autor
-back: Atrás
+back: Enrere
 baseSetting:
   title: Configuración Básica
-browse: Explorar
+browse: Navega
 browseApp:
   createShortcut: Crear Acceso directo
   default: DEFECTO
   delete: Borrar
   launch: Iniciar y configurar como predeterminado
-cancel: Cancelar
+cancel: Cancel·la
+checkUpdate: Comprova Actualitzacions
 color: Color
-checkUpdate:
-  name: Revisar Update
 confirm: Comenzar
 copyClipboard:
   success: Copiar al portapapeles
 create: Crear
 curseforge:
-  authors: Autores
-  category: Categoría
-  createdDate: Fecha de creación
-  downloadOnly: Descargar
-  file:
-    gameVersion: Versión del Juego
-    modLoader: Cargador de Mods
-  install: Instalar
-  installTo: Instalar en {path}
-  installToStorage: Instalar en Almacenamiento
-  lastUpdate: Última Fecha de Actualización
-  project:
-    description: Descripción
-    files: Archivos
-    images: Imágenes
-  recentFiles: Archivos Recientes
-  releasedDate: Fecha de Lanzamiento
-  search: Buscar
-  totalDownloads: Descargas Totales
+  download: Descarrega
+  install: Instal·la
+  search: Cerca
+  title: CurseForge
+  view: Veure
 curseforgeCard: {}
 curseforgeCategory:
   API and Library: API y Bibliotecas
@@ -215,8 +187,8 @@ dependencies:
   name: Dependencies
   optional: Optional
   required: Required
-description: Descripción
-detail: Detalle
+description: Descripció
+detail: Detall
 diagnosis:
   badInstall:
     message: Haga clic para intentar reinstalar esta versión.
@@ -265,6 +237,20 @@ diagnosis:
     name: >-
       Falta la libreria {name} | Falta la libreria {name} | Faltan {count}
       Librerias | Faltan {count} Librerias
+disable: Desactiva
+disk:
+  available: Disponible
+  used: Usado
+download: Descarrega
+downloadCount: '{count} descargas'
+downloadUpdate: Descargar Update
+duration:
+  day: '{duration} dia | {duration} dias'
+  hour: '{duration} hora | {duration} horas'
+  minute: '{duration} minuto | {duration} minutos'
+  second: '{duration} segundo | {duration} segundos'
+edit: Edita
+enable: Activa
 env:
   select:
     all: Seleccionar todo
@@ -276,22 +262,7 @@ env:
   missingVersionJar:
     message: Click para instalar esta versión
     name: Falta el jar de la versión %{version}
-disable: Deshabilitar
-disk:
-  available: Disponible
-  used: Usado
-download: Descargar
-downloadUpdate: Descargar Update
-downloadCount: '{count} descargas'
-duration:
-  day: '{duration} dia | {duration} dias'
-  hour: '{duration} hora | {duration} horas'
-  minute: '{duration} minuto | {duration} minutos'
-  second: '{duration} segundo | {duration} segundos'
-edit: Editar
-enable: Habilitar
-error:
-  name: Error | Errores
+error: Error
 errors:
   DatabaseNotOpened: |-
     ¡La base de datos no está abierta! 
@@ -330,12 +301,11 @@ exception:
     HTTP request to {url} failed. Status code {statusCode}. {code}. Please retry
     or check your network. If this error persist, please send report to
     developer team.
-existed: Existed
+existed: Ja existeix
 exportModpackTarget:
-  curseforge: Archivo CurseForge
-  github: Archivo GitHub
-  modrinth: Archivo Modrinth
-  override: Override (Raw)
+  curseforge: CurseForge
+  modrinth: Modrinth
+  title: Exporta Modpack a
 extensions:
   mrpack: Modpack de Modrinth
   zip: Archivo Zip
@@ -364,16 +334,13 @@ feedback:
     Únete al grupo de QQ de comentarios y habla directamente con los autores.
     Número del grupo: {number}
   qqEnterGroup: Unirse
-filterLocalOnly: Mostrar solo instalado
 fileDetail:
   fileSize: Tamaño de Archivo
   hash: Hash
-filter: Filtro
-finish: Terminar
-forgeConfig:
-  hint: >-
-    Porfavor al menos ejecuta el juego una vez, para que podamos detectar
-    el archivo de configuración!
+filter: Filtre
+filterLocalOnly: Mostrar solo instalado
+finish: Finalitza
+forgeConfig: Configuració de Forge
 forgeVersion:
   common: Común
   disable: Desactivar Forge
@@ -384,7 +351,8 @@ forgeVersion:
   showBuggy: Mostrar versiones con errores
   showRecommendedAndLatestOnly: Solo Recomendadas y Últimas
   version: Versión de Forge
-gameSetting: {}
+gameSetting:
+  title: Configuració del Joc
 gameType:
   adventure: Modo Aventura
   creative: Modo Creativo
@@ -396,8 +364,8 @@ importModpack:
   failed: Error al importar {modpack}
   name: Importar paquete de modificaciones
   success: Importación de {modpack} exitosa
-importResource: Importar Recurso
-install: Instalar
+importResource: Importa Recurs
+install: Instal·la
 installAssets:
   asset: Instalar {count} recursos
   assetIndex: Verificar Archivos de Índice de Recursos
@@ -428,13 +396,7 @@ installLabyMod:
 installLibraries:
   library: Instalar Biblioteca
   name: Instalar Bibliotecas
-installModpack:
-  deploy: Desplegar
-  download:
-    file: Descargar Archivo
-    name: Descargar
-  name: Instalar Modpack
-  unpack: Descomprimir Modpack
+installModpack: Instal·la Modpack
 installModrinthFile:
   name: Instalar Modrinth
 installOptifine:
@@ -442,9 +404,7 @@ installOptifine:
   jar: Generar Jar
   json: Generar Json
   name: Instalar Optifine
-installResource:
-  fail: Fallo al instalar {file}
-  success: Recurso {file} instalado con éxito
+installResource: Instal·la Recurs
 installVersion:
   jar: Instalar Versión Jar
   json: Instalar Versión Json
@@ -535,20 +495,7 @@ instanceInstallSkip:
     Si confirma que los archivos actuales son válidos, puede omitir la
     verificación de validación.
 instanceSetting:
-  disableAuthlibInjector: Desactivar authlib injector
-  disableAuthlibInjectorDescription: >-
-    Si utilizas un sistema de skins de terceros, el inyector authlib te puede ayudar.
-  disableElyByAuthlib: Desactivar ely.by authlib reemplazo
-  disableElyByAuthlibDescription: >-
-    Ely.by tiene un reemplazo de authlib para mostrar skins.
-  fastLaunch: Inicio Rápido
-  fastLaunchHint: Ignorar el estado del usuario y los problemas sin solucionar existentes
-  hideLauncher: Ocultar el lanzador después del inicio
-  icon: Elegir una imagen
-  showLog: Mostrar Registro de Minecraft
-  showLogHint: >-
-    Esto abrirá una ventana para mostrar el registro de Minecraft después de
-    iniciar el juego
+  title: Configuració de la Instància
 instanceTemplate:
   curseforge: Este es un modpack de Curseforge
   ftb: Este es un modpack de FTB
@@ -599,22 +546,18 @@ items:
   count: '{count} ítems'
   total: '{total} total'
 java:
-  allocatedLong: Usar Java predeterminada del sistema
-  allocatedShort: Asignación Automática
-  browse: Buscar ejecutable de Java
-  importFromFile: Importar java desde archivo
-  invalid: Localización de java inválida
-  location: Localización de java
-  maxMemory: Memoria Máxima
-  memory: Memoria de Java
-  memoryAuto: Automática
-  memoryManual: Manual
-  memoryUnassigned: No Asignada
-  minMemory: Memoria Mínima
-  modifyInstance: Modificar lugar de java
-  noMemory: No limitar el uso de memoria
-  refresh: Refrescar java local
-  systemMemory: Uso de memoria actual
+  allocatedMemory: Memòria Assignada
+  autoMemory: Assignació Automàtica de Memòria
+  currentRuntime: Temps d'Execució Actual
+  description: Selecciona la versió de Java per a aquesta instància.
+  environmentJava: Java de l'Entorn
+  javaPath: Ruta de Java
+  maxMemory: Memòria Màxima
+  minMemory: Memòria Mínima
+  noJavaFound: No s'ha Trobat Java
+  optionalJvmFlags: Indicadors JVM Opcionals
+  recommendedMemory: Memòria Recomanada
+  title: Java
 labyMod:
   disable: Deshabilitar labymod
   empty: LabyMod no soporta minecraft actual
@@ -683,52 +626,44 @@ launchFailed:
   title: El Juego se ha cerrado con un código extraño
 launchPreExecuteCommandFailed:
   description: >-
-    El comando previo a la ejecución falló con un error: {error}. Por favor,
-    comprueba el comando e inténtalo de nuevo.
-  title: Error en el Comando Previo a la Ejecución
+    L'ordre prèvia a l'execució ha fallat amb un error: {error}. Comprova
+    l'ordre i torna-ho a intentar.
+  title: Error en l'Ordre Prèvia a l'Execució
 launchStatus:
-  assigningMemory: Asignando Memoria
-  exit: Salir del Juego?
-  injectingAuthLib: Ajustando el AuthLib
-  launching: Iniciando...
-  launchingSlow: Aún iniciando... El Motor gráfico puede ser lento...
-  refreshingUser: Recargando token de usuario
-  spawningProcess: Apareciendo Proceso
+  assigningMemory: Assignant Memòria
+  exit: Sortir del Joc?
+  injectingAuthLib: Ajustant AuthLib
+  launching: Iniciant...
+  launchingSlow: Encara iniciant... El motor gràfic pot ser lent...
+  refreshingUser: Recarregant token d'usuari
+  spawningProcess: Creant Procés
 launcherUpdate:
-  alreadyLatest: Actualizado!
-  installAndQuit: Reinicia para instalar
-  noUpdateAvailable: No hay Actualizaciones!
-  reinstall: Reinstalar
-  updateToThisVersion: Descargar y Instalar
-liteloader:
-  name: LiteLoader
+  alreadyLatest: Actualitzat!
+  installAndQuit: Reinicia per instal·lar
+  noUpdateAvailable: No hi ha actualitzacions!
+  reinstall: Reinstal·la
+  title: Actualització del Launcher
+  tooltip: Hi ha una nova actualització disponible!
+liteloader: LiteLoader
 localVersion:
-  auto: Auto Computado
-  delete: Borrar versión local
-  deleteDescription: >-
-    Esta acción eliminará el jar y json de tu versión. Debes volver
-    a descargarla si quieres utilizarla otra vez.
-  empty: No hay versión instalada
-  hint: Lanza una versión local específica
-  refresh: Recargar versiones
-  reinstallDescription: >-
-    Si crees que esta instalación tiene problemas, puedes intentar
-    reinstalandola.
-  reinstallTitle: Reinstalar {version}
-  title: Versión local | Versiones locales
+  fabricInstaller: Instal·lador de Fabric
+  forgeInstaller: Instal·lador de Forge
+  title: Versió Local
 logLevel:
   error: Error
   info: Info
   success: Correcto
   warning: Aviso
 login:
-  dropHint: Deja el link con authcode para iniciar sesión manualmente
-  forgetPassword: Contraseña olvidada?
-  login: Iniciar Sesión
-  manualLoginUrl: Si el navegador no aparece, haz click en este url!
-  signup: Crear cuenta
-  signupDescription: Nuevo aquí?
-  userRelogin: Token expirado. Debes volver a iniciar sesión!
+  cookiesHeader: Inicia Sessió amb Microsoft
+  description: Inicia sessió al teu compte per accedir a totes les funcions.
+  microsoft: Microsoft
+  microsoftHint: Inicia sessió amb el teu compte de Microsoft
+  mojang: Mojang
+  mojangHint: Inicia sessió amb el teu compte de Mojang
+  offline: Sense connexió
+  offlineHint: Juga sense iniciar sessió
+  title: Inicia Sessió
 loginError:
   acquireMicrosoftTokenFailed: >-
     Fallo al adquirir el token de microsoft. Esto puede ser un error de red. Porfavor
@@ -856,17 +791,10 @@ modInstall:
   source: Fuente de Mods
   switch: Cambiar Versión
   upgrade: Actualizar Mods
-modSearchType:
-  all: Todos
-  local: Locales
-  explore: ModPacks
-  installed: Instalados
 modUpgradePolicy:
-  curseforge: CurseForge primero
-  curseforgeOnly: Sólo CurseForge
-  modrinth: Modrinth primero
-  modrinthOnly: Sólo Modrinth
-  name: Política de actualización
+  active: Actualitza automàticament
+  passive: Actualitza manualment
+  title: Política d'Actualització de Mods
 modified:
   reset: Restablecer
   save: Guardar
@@ -909,162 +837,11 @@ modpackImportConfirm:
     ¿Estás tratando de importar un Modpack?
   title: ¿Estás tratando de importar un Modpack?
 modrinth:
-  browseUrl: Abrir en el Navegador {url}
-  categories:
-    128x: 128x
-    16x: 16x
-    256x: 256x
-    32x: 32x
-    48x: 48x
-    512x+: 512x+
-    64x: 64x
-    8x-: 8x-
-    adventure: Aventura
-    atmosphere: Atmosfera
-    audio: Audio
-    blocks: Bloques
-    bloom: Bloom
-    bukkit: Bukkit
-    bungeecord: Bungeecord
-    canvas: Canvas
-    cartoon: Estilo Cartoony
-    categories: Categorías
-    challenging: Desafiante
-    colored-lighting: Iluminación de Colores
-    combat: Combate
-    core-shaders: Núcleo de Shaders
-    cursed: Maldito
-    datapack: Paquete de Datos
-    decoration: Decoración
-    economy: Economía
-    entities: Entidades
-    environment: Entorno
-    equipment: Equipo
-    fabric: Fabric
-    fantasy: Fantasía
-    features: Características
-    folia: Folia
-    foliage: Follaje
-    fonts: Fuentes
-    food: Comida
-    forge: Forge
-    game-mechanics: Mecánicas de Juego
-    gui: Interfaz de Usuario
-    high: Alto
-    iris: Iris
-    items: Ítems
-    kitchen-sink: Kitchen Sink
-    library: Biblioteca
-    lightweight: Ligero
-    liteloader: Liteloader
-    locale: Idioma
-    low: Bajo
-    magic: Magia
-    management: Gestión
-    medium: Medio
-    minecraft: Minecraft
-    minigame: Minijuegos
-    misc: Variados
-    mobs: Mobs
-    modded: Modificado
-    models: Modelos
-    modloader: Cargador de Mods
-    multiplayer: Multijugador
-    neoforge: NeoForge
-    optifine: Optifine
-    optimization: Optimización
-    paper: Paper
-    path-tracing: Rastreo de Trayectoria
-    pbr: PBR
-    performance impact: Impacto en el Rendimiento
-    potato: Bajo Rendimiento
-    purpur: Purpur
-    quests: Misiones
-    quilt: Quilt
-    realistic: Realista
-    reflections: Reflexiones
-    resolutions: Resoluciones
-    rift: Rift
-    screenshot: Capturas de Pantalla
-    semi-realistic: Semi-Realista
-    shadows: Sombras
-    simplistic: Simplista
-    social: Social
-    spigot: Spigot
-    sponge: Sponge
-    storage: Almacenamiento
-    technology: Tecnología
-    themed: Temático
-    transportation: Transporte
-    tweaks: Ajustes
-    utility: Utilidad
-    vanilla: Vanilla
-    vanilla-like: Similar a Vanilla
-    velocity: Velocity
-    waterfall: Cascada
-    worldgen: Generación de Mundo
-  clientSide: Lado del Cliente
-  copyTitle: Copiar Texto {title} al portapapeles
-  createAt: Creado
-  createCollection: Crear colección
-  description: Descripción
-  downloads: Descargas
-  environments:
-    client: Cliente
-    default: Por Defecto
-    name: Entorno
-    optional: Opcional
-    required: Requerido
-    server: Servidor
-    unsupported: No Soportado
-  externalResources: Recursos Externos
-  featuredVersions: Versiones Destacadas
-  followedProjects: Proyectos seguidos
-  followers: Seguidores
-  gallery: Galería
-  gameVersions:
-    name: Versiones del Juego
-  headers:
-    status: Estadísticas
-    support: Soporta
-    version: Versión
-  issueUrl: Problema
-  license: Licencia
-  licenses:
-    name: Licencias
-  loginHint: >-
-    La operación requiere que el modrinth realice. 
-
-    El lanzador abrirá una ventana del navegador para iniciar sesión en
-    Modrinth.
-  loginTitle: Iniciar sesión en Modrinth
-  modLoaders:
-    name: Cargadores de Mods
-  perPage: Por Página
-  projectId: ID del Proyecto
-  projectMembers: Miembros del Proyecto
-  projectType:
-    mod: Mod
-    modpack: Modpack
-    name: Tipo de Proyecto
-    resourcePack: Paquete de Recursos
-    shader: Shader
-  projects: '{count} Proyectos'
-  quickSearch: Búsqueda de {title}
-  searchText: Buscar
-  serverSide: Lado del Servidor
-  sort:
-    downloads: Cantidad de Descargas
-    follows: Cantidad de Seguidores
-    newest: Creado Recientemente
-    relevance: Relevancia
-    title: Ordenar por
-    updated: Actualizado Recientemente
-  sourceUrl: Código Fuente
-  technicalInformation: Información Técnica
-  updateAt: Actualizado
-  versions: Versiones
-  wikiUrl: Wiki
+  download: Descarrega
+  install: Instal·la
+  search: Cerca
+  title: Modrinth
+  view: Veure
 modrinthCard:
   currentVersion: Versión actual
   projectHint: >
@@ -1072,91 +849,10 @@ modrinthCard:
     style="background: rgba(123,123,123,0.2)">{title}</code> (project id:
           <code class="rounded p-1" style="background: rgba(123,123,123,0.2)">{id}</code>)
 multiplayer:
-  exposedPortDescription: El puerto que expuso a otros pares
-  exposedPorts: Puertos reenviados
-  kernel: Núcleo P2P
-  kernelDescription: >-
-    Utilice WebRTC nativo o canal de datos de nodo. 
-
-    Cambie esto solo cuando su conexión p2p en algún momento bloquee la ventana
-    del iniciador.
-  otherExposedPortDescription: El prólogo del puerto de {usuario}
-  sharingNotificationBody: >-
-    Puede descargar o crear una instancia desde la configuración compartida de
-    {nombre}.
-  sharingNotificationTitle: Un compañero está compartiendo la configuración del juego.
-  allowTurn: Activar servidor relay
-  allowTurnHint: >-
-    Habilita el servidor relay si no ves a tus amigos. Pero, utilizarlo
-    hace tu conexión más lenta. Intenta no utilizarlo.
-  complete: Completo
-  confirm: Confirmar
-  connections: Conexiones
-  copied: Copiado!
-  copy: Copiar
-  copyGroupToFriendHint: Deja a tus amigos unirse con este id
-  copyLocalHint: >
-    "Please copy the local SDP text and send it to your object to have your
-    object enter this text in the join connection <span>A token can be only used
-    for <span style="color: red; font-weight: bold;">one peer</span>! You cannot
-    send the same token to multiple peer!</span> <br> <span class="hint-text"
-    style="font-style: italic;">If you need to connect multiple peers, you need
-    to create <span style="font-weight: bold; color: rgba(245, 158,
-    11)">multiple</span> connections.</span>"
-  createLocalToken: Crear token local
-  currentIpTitle: IP Publica Detectada
-  currentNatTitle: 'Red Actual (NAT):'
-  difficultyLevelHint: El nivel de dificultad para crear la red
-  disconnect: Desconectar
-  disconnectDescription: Seguro que quieres desconectarte de {user}({id})?
-  disconnected: Desconectado
-  enterRemoteToken: Introduce el token remoto
-  enterRemoteTokenHint: >-
-    Cuando tu amigo introduzca el token, debes introducir el suyo
-    en la area inferior. Presiona confirmar para aceptar.
-  gatheringIce: >
-    "Please wait for the ICE server to collect enough information about your
-    network. If you are impatient and there are enough information, you can give
-    the current SDP to the other party in advance and click Next Please send the
-    <span class="v-chip v-chip--label v-size--small" style="text-font: bold"
-    >Local Token</span> to your peer, you peer enter your token in <span
-    class="v-chip v-chip--label v-size--small" style="text-font: bold"> Join
-    Connection </span> section. <br> The ICE server might need some time to
-    collect your info to create <span class="v-chip v-chip--label v-size--small"
-    style="text-font: bold">Local token</span>.<br> You do not need to wait
-    until the ICE status complete. If the token below remain unchanged, you can
-    copy it and send to you peer."
-  groupId: ID de Grupo
-  illegalTokenDescription: Token ilegal, asegurate de que el token sea correcto
-  initiateConnection: Iniciar conexión
-  inviteLink: Link de invitación
-  joinConnection: >-
-    Si tu amigo ya ha iniciado la conexión, debes unirte a su
-    conexión.
-  joinManual: Unirse
-  joinOrCreateGroup: Unirse/Crear Grupo
-  joinOrCreateGroupHint: Obten el id de grupo de tus amigos o crea uno
-  leaveGroup: Abandonar Grupo
-  localToken: Token Local
-  manualConnect: Conexión Manual
-  name: Multijugador en LAN
-  networkInfo: Info de Red
-  next: Siguiente
-  placeholder: Conectar con otros usuarios para jugar en LAN!
-  previous: Anterior
-  receiveHint: >-
-    Después de que los demás pongan el token, tu conexión se creará
-    automaticamente. Ya puedes cerrar el diálogo.
-  receiveRemoteTokenHint: Porfavor introduce el token de tu peer aquí
-  remoteToken: Token Remoto
-  routerInfo: Router Info
-  sendTokenToRemote: Mandar token al remoto
-  share: Compartir la config de la instancia
-  sharing: Compartiendo archivos...
-  start: Iniciar
-  startNewP2PConnection: Click al botón de Iniciar para crear una conexión
+  inviteAFriend: Convida un Amic
+  title: Multijugador
 myStuff: Mods Locales
-name: Nombre
+name: Nom
 natType:
   blocked: Blocked
   fullCone: Full Cone
@@ -1173,9 +869,9 @@ neoForgedVersion:
 news:
   name: Noticias
   readMore: Leer más
-next: Siguiente
+next: Següent
 'no': 'No'
-ok: Aceptar
+ok: D'acord
 optifineVersion:
   disable: Desactivar Optifine
   empty: Optifine no es compatible con Minecraft {version}
@@ -1197,7 +893,7 @@ peerIceGatheringState:
   gathering: Recopilando Servidor Ice
 peerSignalingState:
   have-local-offer: Esperando descripción del par
-popular: Popularidad
+popular: Popular
 presence:
   curseforge: Viendo CurseForge
   curseforgeProject: Viendo {name} en CurseForge
@@ -1218,9 +914,9 @@ proxy:
 quiltVersion:
   disable: Desactivar Quilt
   empty: Quilt no es compatible con Minecraft {version}
-refresh: Actualizar
-refreshResource: Actualizar Recursos
-remove: Eliminar
+refresh: Actualitza
+refreshResource: Actualitza Recurs
+remove: Elimina
 resourcepack:
   available: Disponible
   compatible: Formato compatible {format} con {version}
@@ -1291,7 +987,7 @@ save:
   showDirectory: Mostrar directorio de guardado
   unselected: archivo compartido
   useCurrent: Usar el mundo actual
-saves: {}
+saves: Partides
 screenshots:
   empty: No tienes capturas de pantalla
   goto: Abrir Carpeta
@@ -1345,147 +1041,9 @@ serverStatus:
   refuse: §4¡El servidor lo ha rechazado!
   timeout: §4¡Conexión al servidor agotada!
 setting:
-  about: Acerca de
-  allowPrerelease: Descargar Pre-lanzamientos
-  allowPrereleaseDescription: Los pre-lanzamientos pueden no ser estables
-  apiSets:
-    auto: Automático (Determinado por la red)
-    official: Oficial (Mojang)
-  appearance: Apariencia
-  appxUpdateHint: >-
-    El lanzador descargará y ejecutará el instalador. Si la ventana emergente
-    del instalador falla, ejecútala manualmente.
-  autoDownload: Descarga Automática
-  autoDownloadDescription: Descargar actualizaciones automáticamente si están disponibles
-  autoInstallOnAppQuit: Autoinstalar
-  autoInstallOnAppQuitDescription: Autoinstalar la actualización al salir de la aplicación
-  backdropBlur: Flojo de telón de fondo
-  backgroundColorAbove: Mostrar color de fondo como superposición
-  backgroundColorAboveDescription: >-
-    Esto hará que el color de fondo se muestre encima de la imagen o el vídeo de
-    fondo.
-  backgroundImage: Imagen de fondo
-  backgroundImageBlur: Desenfoque de imagen
-  backgroundImageBlurDescription: Arrastra para desenfocar, fácil
-  backgroundImageClear: Borrar
-  backgroundImageDescription: Selecciona una imagen como fondo o bórrala
-  backgroundImageFit:
-    contain: Contener
-    cover: Cubrir
-    name: Ajustar imagen
-  backgroundImageSelect: seleccionar
-  backgroundMusic: Música de fondo del tema
-  backgroundType: Tipo de Fondo
-  backgroundTypeDescription: Muestra efectos especiales en el fondo (esto puede afectar el rendimiento)
-  backgroundTypes:
-    halo: Halo
-    image: Imagen
-    none: Ninguno
-    particle: Partícula
-    video: Video
-  backgroundVideo: Video de Fondo
-  backgroundVideoDescription: selecciona o borra el video
-  backgroundVideoSelect: seleccionar
-  backgroundVideoVolume: Volumen
-  backgroundVideoVolumeDescription: arrastra para ajustar el volumen
-  blurAppBar: Desenfoque de la barra de aplicaciones
-  blurMainBody: Desenfoque del Cuerpo Principal
-  blurMainBodyDescription: ¿Debería desenfocarse el panel derecho del lanzador?
-  blurSidebar: Desenfoque de la barra lateral
-  browseRoot: Navegar
-  checkUpdate: Comprobar Actualización
-  colorTheme:
-    appBarColor: Color de la Barra de Aplicaciones
-    backgroundColor: Color de Fondo
-    cardColor: Color de Tarjeta
-    description: Cambiar los colores en el tema
-    errorColor: Color de Error
-    name: Color y desenfoque del tema
-    primaryColor: Color Principal
-    secondaryColor: Color Secundario
-    sideBarColor: Color de la Barra Lateral
-    warningColor: Color de Advertencia
-  darkTheme: Tema Oscuro
-  darkThemeDescription: Elije el tema oscuro o claro
-  developerMode: Modo de Desarrollador
-  developerModeDescription: El Modo de Desarrollador está diseñado para probar tus propios mods
-  disableTelemetry: Desactivar Telemetría
-  disableTelemetryDescription: El launcher recopilará eventos de inicio del juego y de inicio de sesión del usuario.
-  enableDedicatedGPUOptimization: Asignar GPU dedicada
-  enableDedicatedGPUOptimizationDescription: Esta opción asignará GPU dedicada al proceso de Minecraft.
-  enableDiscord: Habilitar Presencia en Discord
-  enableDiscordDescription: Esto mantendrá actualizado tu estado de lanzador en Discord
   general: General
-  githubRelease: Lanzamiento en GitHub
-  globalSetting: Configuración Global de la Instancia
-  globalSettingHint: La instancia utilizará estos ajustes por defecto.
-  hideNewsHeader: Ocultar escaparate de noticias
-  hideNews: Ocultar Noticias
-  hideNewsDescription: Esto ocultará las noticias en la página de la instancia
-  language: Idioma
-  languageDescription: El idioma de la interfaz
-  latestVersion: Última Versión
-  layout:
-    default: Diseño Predeterminado
-    focus: Diseño de Enfoque
-  layoutDescription: >-
-    El diseño del lanzador representa una lógica de interfaz de usuario
-    diferente
-  layoutTitle: Diseño
-  linuxTitlebar: Barra de Título Nativa en Linux
-  linuxTitlebarDescription: Usar la barra de título nativa de Linux para el lanzador
-  location: Ubicación del Almacenamiento
-  maunalUpdateHint: |-
-    La versión no se puede actualizar automáticamente. 
-    ¡Vuelva a descargar el iniciador del sitio web!
-  maxSockets: Por Anfitrión
-  maxSocketsDescription: >-
-    Limita el número máximo de conexiones por anfitrión o en total para todos
-    los anfitriones. 0 significa sin límite.
-  maxSocketsTitle: Máximo de Conexiones HTTP
-  migrateFromOther: Importar desde otro lanzador
-  name: Configuración Global | Configuraciones Globales
-  network: Configuración de la red
-  officialWebsite: Sitio Web Oficial
-  particleMode:
-    bubble: Burbuja
-    name: Modo de Partícula
-    push: Empujar
-    remove: Eliminar
-    repulse: Repulsar
-  particleModeDescription: Selecciona el comportamiento al hacer clic en las partículas
-  replaceNative: Reemplazar bibliotecas nativas
-  replaceNativeDescription: Reemplace las bibliotecas nativas según el arco de su computadora.
-  replaceNatives:
-    all: Todo
-    legacy: Solo versión heredada
-  resetToDefault: Restablecer a los Valores Predeterminados
-  showNewsHeader: Mostrar escaparate de noticias
-  showRoot: Mostrar
-  streamerMode: Modo de transmisión
-  streamerModeDescription: >-
-    Esto ocultará su información privada, como el correo electrónico, en el
-    iniciador.
-  theme:
-    dark: Tema Oscuro
-    light: Tema Claro
-    system: Usar Tema del Sistema
-  themeImport: Importar Tema
-  themeExport: Exportar Tema
-  themeFont: Fuente
-  themeFontDescription: Cambia la fuente del lanzador.
-  themeResetFont: Restablecer fuente
-  themeSelectFont: Seleccionar fuente
-  themeShare: Compartir tema
-  themeShareDescription: Puedes compartir el tema con tu amigo.
-  update: Actualizar
-  useBmclAPI: Usar API de BMCL
-  useBmclAPIDescription: >-
-    Usar BMCLAPI para descargar Minecraft cuando te encuentres en la China
-    continental. (Esto no afectará si no estás en la China continental)
-  useProxy: Proxy HTTP
-  useProxyDescription: La dirección del servidor proxy para las solicitudes HTTP
-  viewBackgroundMusic: Ver músicas
+  instance: Instància
+  title: Ajustes
 settingLabel:
   global: Global
   globalHint: Esta configuración seguirá la configuración global
@@ -1567,7 +1125,7 @@ store:
   name: Buscar ModPacks
   popular: ModPacks Populares
   recentUpdated: Recientemente Actualizados
-summery: Resumen
+summery: Resum
 tag:
   create: Crear Etiqueta
   createSelected: Crear Etiqueta para la Selección
@@ -1625,8 +1183,7 @@ universalDrop:
   start: Importación Iniciada
   title: Suelta el(los) Archivo(s) Aquí para Importar como
   unknownResource: Desconocido
-update:
-  goOfficialWebDownload: Vuelva a descargar en el sitio web oficial.
+update: Actualitza
 upstream:
   downgrade: Desactualizar
   missingModpackMetadata: >-
@@ -1669,231 +1226,227 @@ userCape:
     actualmente tienes:
   noCape: Sin Capa
 userService:
-  add: Añadir más servicios
-  authLibInjector: Seguir la recomendación del inyector authlib
-  baseUrlHint: El URL Base de tu servicio personalizado
-  title: Servicios de terceros
-  validateHint: Usado para revisar si el token es válido
+  description: Gestiona els teus comptes d'usuari.
+  title: Comptes
 userServices:
   microsoft:
-    account: Cuenta Microsoft
-    deviceCode: Código de Dispositivo
-    deviceCodeHint: El Código se generará después de iniciar sesión
-    fastLogin: Inicio Rápido
     name: Microsoft
-    password: Introduce la contraseña en el navegador
-    useDeviceCode: Iniciar sesión por código de dispositivo
   mojang:
-    account: E-Mail
+    account: Adreça de Correu Electrònic
     name: Mojang
-    password: Contraseña
+    password: Contrasenya
   offline:
-    account: Usuario
-    name: Sin Conexión
-    password: Sin Contraseña
-    uuid: UUID del Usuario (Opcional)
+    account: Nom d'usuari
+    name: Sense connexió
+    password: Sense Contrasenya
+    uuid: UUID d'Usuari (Opcional)
 userSkin:
-  import: Importar Skin
-  importFile: Abrir desde Archivo
-  importLink: Abrir desde URL
-  placeUrlHere: Añade tu skin para importar
-  reset: Reset
-  save: Guardar
-  saveTitle: Guardar skin
-  skinType: Tipo de skin
-  upload: Subir skin
-  urlNotEmpty: El URL de la skin no puede estar vacio
-  urlNotValid: EL URL de la skin es inválido
-  useSlim: Usar modelo Slim
+  import: Importa Skin
+  importFile: Obre des d'un Fitxer
+  importLink: Obre des d'un Enllaç
+  placeUrlHere: Enganxa l'URL de la skin aquí per importar
+  reset: Restableix
+  save: Desa
+  saveTitle: Desa la Skin al Disc
+  skinType: Tipus de Skin
+  upload: Puja la Skin
+  urlNotEmpty: L'URL de la skin no pot estar buit
+  urlNotValid: L'URL de la skin no és vàlid
+  useSlim: Usa Model Prim
 version:
-  name: Versión | Versiones
-  notInstalled: Versión no instalada
+  name: Versió | Versions
+  notInstalled: La versió no està instal·lada
 versionType:
   alpha: Alfa
   beta: Beta
-  name: Estado
+  name: Estat
   release: Estable
-'yes': 'Si'
+'yes': 'Sí'
 agent:
-  callingTool: llamando a {name}…
-  disabledPlaceholder: Agente desactivado
+  callingTool: cridant a {name}…
+  disabledPlaceholder: Agent desactivat
   emptyHint: >-
-    Pide al agente que inspeccione tu instancia, active mods, lea los registros
-    o diagnostique un fallo.
-  inputPlaceholder: Pregunta al agente… (Enter para enviar, Shift+Enter para nueva línea)
+    Demana a l'agent que inspeccioni la teva instància, activi mods, llegeixi
+    els registres o diagnostiqui un error.
+  inputPlaceholder: Pregunta a l'agent… (Enter per enviar, Shift+Enter per nova línia)
   notConfiguredHint: >-
-    Configura tu clave API, modelo y endpoint en Ajustes → General → Agente IA
-    para activar el agente.
-  notConfiguredTitle: Agente no configurado
-  openSettings: Abrir ajustes
-  reset: Reiniciar conversación
-  setupGuide: Guía de configuración
-  statusDisabled: Desactivado — falta la clave API
-  statusReady: Listo
-  statusWorking: Trabajando…
+    Configura la teva clau API, model i endpoint a Ajustes → General → Agent IA
+    per activar l'agent.
+  notConfiguredTitle: Agent no configurat
+  openSettings: Obre els ajustes
+  reset: Reinicia la conversa
+  setupGuide: Guia de configuració
+  statusDisabled: Desactivat — falta la clau API
+  statusReady: Llest
+  statusWorking: Treballant…
   suggestion1: >-
-    Actualiza esta instancia a una versión más reciente de Minecraft y actualiza
-    los mods para que coincidan
-  suggestion2: Mis mods están fallando — encuentra la causa y dime cómo arreglarlo
+    Actualitza aquesta instància a una versió més recent de Minecraft i
+    actualitza els mods perquè coincideixin
+  suggestion2: Els meus mods fallen — troba la causa i explica'm com arreglar-ho
   suggestion3: >-
-    Crea un modpack: encuentra mods para una función que quiero e instálalos en
-    esta instancia
-  thinking: pensando…
-  title: Agente XMCL
-  toggleHint: para activar/desactivar
+    Crea un modpack: troba mods per a una funció que vull i instal·la'ls en
+    aquesta instància
+  thinking: pensant…
+  title: Agent XMCL
+  toggleHint: per activar/desactivar
 askAICrash:
   agentNotConfigured: >-
-    Añade un proveedor de IA y una clave API en los ajustes para que el agente
-    integrado del launcher diagnostique y solucione esto por ti.
-  askAgent: Diagnosticar con el agente IA integrado
-  copyPrompt: Copiar el prompt para preguntar a la IA
+    Afegeix un proveïdor d'IA i una clau API als ajustes perquè l'agent integrat
+    del launcher diagnostiqui i solucioni això per tu.
+  askAgent: Diagnostica amb l'agent IA integrat
+  copyPrompt: Copia el prompt per preguntar a la IA
   description: >-
-    ¡Deja que la IA te ayude a entender el fallo del juego! Sigue las
-    instrucciones a continuación para preguntar a la IA sobre este fallo.
+    Deixa que la IA t'ajudi a entendre l'error del joc! Segueix les instruccions
+    a continuació per preguntar a la IA sobre aquest error.
   orExternal: o usa una IA externa
-  selectPlatform: Abre una plataforma de IA y pega el prompt que acabas de copiar.
-  setupAgent: Configurar el agente IA
-browseApps: Viendo la interfaz del launcher
+  selectPlatform: Obre una plataforma d'IA i enganxa el prompt que acabes de copiar.
+  setupAgent: Configura l'agent IA
+browseApps: Veient la interfície del launcher
 command:
   instance:
     launch:
-      title: Lanzar Instancia
-      description: Lanzar una instancia de Minecraft
+      title: Llança la Instància
+      description: Llança una instància de Minecraft
     create:
-      title: Crear Instancia
-      description: Crear una nueva instancia
+      title: Crea una Instància
+      description: Crea una nova instància
     delete:
-      title: Eliminar Instancia
-      description: Eliminar una instancia existente
+      title: Elimina la Instància
+      description: Elimina una instància existent
   user:
     login:
-      title: Iniciar Sesión
-      description: Iniciar sesión en tu cuenta
+      title: Inicia Sessió
+      description: Inicia sessió al teu compte
     refresh:
-      title: Actualizar Usuario
-      description: Actualizar la sesión del usuario
+      title: Actualitza l'Usuari
+      description: Actualitza la sessió de l'usuari
 commandPalette:
-  placeholder: Buscar comandos, instancias, mods…
+  placeholder: Cerca comandos, instàncies, mods…
   commands: Comandos
-  instances: Instancias
+  instances: Instàncies
   modrinth: Modrinth
-  recent: Reciente
-  open: Acción Rápida
-  openHint: Abrir paleta de comandos ({shortcut})
-  empty: Escribe para buscar.
-  noResults: No se encontraron resultados.
-  searching: Buscando…
+  recent: Recent
+  open: Acció Ràpida
+  openHint: Obre la paleta de comandos ({shortcut})
+  empty: Escriu per cercar.
+  noResults: No s'han trobat resultats.
+  searching: Cercant…
   hintNavigate: navegar
-  hintInvoke: ejecutar
+  hintInvoke: executar
   hintEnter: entrar
-  hintBack: volver
-  hintClose: cerrar
+  hintBack: tornar
+  hintClose: tancar
 difficulty:
-  easy: Fácil
+  easy: Fàcil
   hard: Difícil
   normal: Normal
-  peaceful: Pacífico
+  peaceful: Pacífic
 downloadModMetadataDb:
-  name: Descargar Base de Datos de Metadatos de Mods
+  name: Descarrega la Base de Dades de Metadades de Mods
 duplicateInstance:
-  name: Duplicar Instancia
+  name: Duplica la Instància
 exportModpack:
-  name: Exportar Modpack
+  name: Exporta el Modpack
 installProfile:
-  name: Instalar Perfil {version}
+  name: Instal·la el Perfil {version}
 installQuilt:
-  name: Instalar Quilt {version}
+  name: Instal·la Quilt {version}
 instanceLauncher:
-  search: Buscar instancias...
-  showAll: Mostrar Todas las Instancias
-  title: Todas las Instancias
+  search: Cerca instàncies...
+  showAll: Mostra Totes les Instàncies
+  title: Totes les Instàncies
 logView:
-  searchPlaceholder: Buscar registros...
+  searchPlaceholder: Cerca als registres...
 migrateMinecraft:
-  name: Migrar Archivos de Minecraft
+  name: Migra els Fitxers de Minecraft
 migrationWindow:
-  title: Migración de Datos
-  preparing: Preparando migración…
-  scanning: Calculando…
-  migrating: Moviendo tus datos
-  done: Migración completada
-  files: archivos
-  warning: Mantén el launcher abierto hasta que termine, o tus datos podrían perderse.
-  error: Error en la migración
+  title: Migració de Dades
+  preparing: Preparant la migració…
+  scanning: Calculant…
+  migrating: Movent les teves dades
+  done: Migració completada
+  files: fitxers
+  warning: Mantén el launcher obert fins que acabi, o podries perdre les dades.
+  error: Error en la migració
 minecraftFriends:
-  accept: Aceptar
-  add: Añadir amigo
-  addPlaceholder: Nombre de usuario de Minecraft
-  addedRelative: Añadido {time}
+  accept: Accepta
+  add: Afegeix un amic
+  addPlaceholder: Nom d'usuari de Minecraft
+  addedRelative: Afegit {time}
   errors:
-    cannotAddSelf: No puedes enviarte una solicitud de amistad a ti mismo.
-    duplicate: Ese jugador ya está en tu lista.
-    generic: Algo salió mal. Por favor, inténtalo de nuevo.
-    inviteRejected: Ese jugador no tiene los amigos activados o no acepta invitaciones.
-    tokenExpired: Tu sesión de Microsoft ha expirado. Por favor, inicia sesión de nuevo.
-    unknownProfile: No pudimos encontrar un jugador con ese nombre.
+    cannotAddSelf: No et pots enviar una sol·licitud d'amistat a tu mateix.
+    duplicate: Aquest jugador ja és a la teva llista.
+    generic: Alguna cosa ha anat malament. Torna-ho a intentar.
+    inviteRejected: Aquest jugador no té els amics activats o no accepta invitacions.
+    tokenExpired: La teva sessió de Microsoft ha expirat. Torna a iniciar sessió.
+    unknownProfile: No hem pogut trobar cap jugador amb aquest nom.
   expiresRelative: Expira {time}
-  friends: Amigos
-  heroEmptyHint: Añade un jugador de Minecraft por nombre de usuario arriba para enviar una solicitud de amistad.
-  heroEmptyTitle: Tu lista de amigos está vacía
-  incoming: Solicitudes entrantes
-  incomingHint: 1 solicitud entrante | {count} solicitudes entrantes
-  notifyAdded: Solicitud de amistad enviada a {name}
-  outgoing: Solicitudes salientes
+  friends: Amics
+  heroEmptyHint: Afegeix un jugador de Minecraft pel nom d'usuari a dalt per enviar una sol·licitud d'amistat.
+  heroEmptyTitle: La teva llista d'amics és buida
+  incoming: Sol·licituds entrants
+  incomingHint: 1 sol·licitud entrant | {count} sol·licituds entrants
+  notifyAdded: Sol·licitud d'amistat enviada a {name}
+  outgoing: Sol·licituds sortints
   privacy:
-    acceptInvites: Aceptar invitaciones de amistad
-    acceptInvitesHint: Cuando está desactivado, otros jugadores no pueden enviarte solicitudes de amistad.
-    friendsEnabled: Lista de amigos activada
-  reconnectAction: Reconectar
-  requiresMicrosoft: Inicia sesión con una cuenta de Microsoft para usar amigos.
-  scopedTo: Conectado como {name}
-  send: Enviar
-  title: Amigos de Minecraft
-  unsupported: Los amigos solo están disponibles para cuentas de Microsoft.
+    acceptInvites: Accepta invitacions d'amistat
+    acceptInvitesHint: Quan està desactivat, altres jugadors no et poden enviar sol·licituds d'amistat.
+    friendsEnabled: Llista d'amics activada
+  reconnectAction: Reconnecta
+  requiresMicrosoft: Inicia sessió amb un compte de Microsoft per usar amics.
+  scopedTo: Connectat com a {name}
+  send: Envia
+  title: Amics de Minecraft
+  unsupported: Els amics només estan disponibles per a comptes de Microsoft.
 modSearch:
-  noLocalModsFound: No se encontraron mods locales que coincidan con tu búsqueda.
-  noModsFound: No se encontraron mods
-  noModsInstalled: No tienes ningún mod instalado.
-  searchInMarket: Buscar {keyword} en el Mercado
+  noLocalModsFound: No s'han trobat mods locals que coincideixin amb la teva cerca.
+  noModsFound: No s'han trobat mods
+  noModsInstalled: No tens cap mod instal·lat.
+  searchInMarket: Cerca {keyword} al Mercat
+modSearchType:
+  all: Tots
+  local: Locals
+  explore: ModPacks
+  installed: Instal·lats
 reinstall:
-  name: Reinstalar {version}
+  name: Reinstal·la {version}
 relative:
-  daysAgo: 'hace {count} día | hace {count} días'
-  hoursAgo: 'hace {count} hora | hace {count} horas'
-  justNow: ahora mismo
-  minutesAgo: 'hace {count} minuto | hace {count} minutos'
-  secondsAgo: 'hace {count} segundo | hace {count} segundos'
+  daysAgo: 'fa {count} dia | fa {count} dies'
+  hoursAgo: 'fa {count} hora | fa {count} hores'
+  justNow: ara mateix
+  minutesAgo: 'fa {count} minut | fa {count} minuts'
+  secondsAgo: 'fa {count} segon | fa {count} segons'
 resourceError:
   body: >-
-    "{path}" no se pudo analizar ({code}). El archivo puede estar dañado,
-    bloqueado o incompleto. Intenta volver a descargarlo o eliminarlo.
-  title: No se puede leer {file}
+    "{path}" no s'ha pogut analitzar ({code}). El fitxer pot estar malmès,
+    bloquejat o incomplet. Torna a descarregar-lo o elimina'l.
+  title: No es pot llegir {file}
 sidebar:
-  pin: Fijar
-  unpin: Desfijar
+  pin: Fixa
+  unpin: Desfixa
 unauthenticatedWarning:
-  cancel: Cancelar
+  cancel: Cancel·la
   description: >-
-    No has iniciado sesión en ninguna cuenta. El juego se iniciará en modo demo.
-    Para acceder a todas las funciones, por favor inicia sesión.
-  login: Iniciar Sesión
-  playAnyway: Jugar de todas formas
-  title: No has iniciado sesión
+    No has iniciat sessió a cap compte. El joc s'iniciarà en mode demo. Per
+    accedir a totes les funcions, inicia sessió.
+  login: Inicia Sessió
+  playAnyway: Juga de totes formes
+  title: No has iniciat sessió
 unresolvedFiles:
   description: >-
-    Estos archivos no se pudieron descargar durante la instalación. Busca una
-    fuente coincidente, instala las coincidencias o ignora los archivos para
-    iniciar de todas formas.
-  empty: Todos los archivos están resueltos.
-  ignoreSelected: 'Ignorar {count}'
-  install: 'Instalar {count} coincidencias'
-  matched: Coincidente
-  noMatch: No encontrado
-  search: Buscar fuentes
+    Aquests fitxers no s'han pogut descarregar durant la instal·lació. Cerca
+    una font coincident, instal·la les coincidències o ignora els fitxers per
+    iniciar de totes formes.
+  empty: Tots els fitxers estan resolts.
+  ignoreSelected: 'Ignora {count}'
+  install: 'Instal·la {count} coincidències'
+  matched: Coincident
+  noMatch: No trobat
+  search: Cerca fonts
   source:
     curseforge-name: CurseForge
-    dependency: Dependencia
+    dependency: Dependència
     modrinth-hash: Hash de Modrinth
     modrinth-name: Modrinth
-  title: Archivos sin resolver
-  via: 'vía {source}'
+  title: Fitxers sense resoldre
+  via: 'via {source}'

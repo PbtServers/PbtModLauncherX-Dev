@@ -1675,3 +1675,190 @@ versionType:
   name: Status
   release: Release
 'yes': 'Yes'
+agent:
+  callingTool: calling {name}…
+  disabledPlaceholder: Agent disabled
+  emptyHint: >-
+    Ask the agent to inspect your instance, toggle mods, read logs, or diagnose
+    a crash.
+  inputPlaceholder: Ask the agent…  (Enter to send, Shift+Enter for newline)
+  notConfiguredHint: >-
+    Set your API key, model and endpoint in Settings → General → AI Agent to
+    enable the agent.
+  notConfiguredTitle: Agent not configured
+  openSettings: Open settings
+  reset: Reset conversation
+  setupGuide: Setup guide
+  statusDisabled: Disabled — missing API key
+  statusReady: Ready
+  statusWorking: Working…
+  suggestion1: >-
+    Upgrade this instance to a newer Minecraft version, and update the mods to
+    match
+  suggestion2: My mods are crashing — find the cause and tell me how to fix it
+  suggestion3: >-
+    Build a modpack: find mods for a feature I want and install them into this
+    instance
+  thinking: thinking…
+  title: XMCL Agent
+  toggleHint: to toggle
+askAICrash:
+  agentNotConfigured: >-
+    Add an AI provider and API key in Settings to let the launcher's built-in
+    agent diagnose and fix this for you.
+  askAgent: Diagnose with the built-in AI agent
+  copyPrompt: Copy the prompt to ask AI
+  description: >-
+    Let AI help you to understand the game crash! Follow the instructions below
+    to ask AI about this game crash!
+  orExternal: or use an external AI
+  selectPlatform: Open an AI platform and paste the prompt you just copied.
+  setupAgent: Set up the AI agent
+browseApps: Viewing the launcher user interface
+command:
+  instance:
+    launch:
+      title: Launch Instance
+      description: Launch a Minecraft instance
+    create:
+      title: Create Instance
+      description: Create a new instance
+    delete:
+      title: Delete Instance
+      description: Delete an existing instance
+  user:
+    login:
+      title: Login User
+      description: Log in to your account
+    refresh:
+      title: Refresh User
+      description: Refresh user session
+commandPalette:
+  placeholder: Search commands, instances, mods…
+  commands: Commands
+  instances: Instances
+  modrinth: Modrinth
+  recent: Recent
+  open: Quick Action
+  openHint: Open command palette ({shortcut})
+  empty: Type to search.
+  noResults: No matching results.
+  searching: Searching…
+  hintNavigate: navigate
+  hintInvoke: invoke
+  hintEnter: enter
+  hintBack: back
+  hintClose: close
+difficulty:
+  easy: Easy
+  hard: Hard
+  normal: Normal
+  peaceful: Peaceful
+downloadModMetadataDb:
+  name: Download Mod Metadata Database
+duplicateInstance:
+  name: Duplicate Instance
+exportModpack:
+  name: Export Modpack
+installProfile:
+  name: Install Profile {version}
+installQuilt:
+  name: Install Quilt {version}
+instanceLauncher:
+  search: Search instances...
+  showAll: Show All Instances
+  title: All Instances
+logView:
+  searchPlaceholder: Search logs...
+migrateMinecraft:
+  name: Migrate Minecraft Files
+migrationWindow:
+  title: Data Migration
+  preparing: Preparing migration…
+  scanning: Calculating…
+  migrating: Moving your data
+  done: Migration complete
+  files: files
+  warning: Keep the launcher open until this finishes, or your data may be lost.
+  error: Migration failed
+minecraftFriends:
+  accept: Accept
+  add: Add a friend
+  addPlaceholder: Minecraft username
+  addedRelative: Added {time}
+  errors:
+    cannotAddSelf: You cannot send a friend request to yourself.
+    duplicate: That player is already in your list.
+    generic: Something went wrong. Please try again.
+    inviteRejected: That player does not have friends enabled or does not accept invites.
+    tokenExpired: Your Microsoft session expired. Please log in again.
+    unknownProfile: We could not find a player with that name.
+  expiresRelative: Expires {time}
+  friends: Friends
+  heroEmptyHint: Add a Minecraft player by username above to send a friend request.
+  heroEmptyTitle: Your friends list is empty
+  incoming: Incoming requests
+  incomingHint: 1 incoming request | {count} incoming requests
+  notifyAdded: Friend request sent to {name}
+  outgoing: Outgoing requests
+  privacy:
+    acceptInvites: Accept friend invites
+    acceptInvitesHint: When off, other players cannot send you friend requests.
+    friendsEnabled: Friends list enabled
+  reconnectAction: Reconnect
+  requiresMicrosoft: Sign in with a Microsoft account to use friends.
+  scopedTo: Signed in as {name}
+  send: Send
+  title: Minecraft Friends
+  unsupported: Friends are only available for Microsoft accounts.
+modSearch:
+  noLocalModsFound: No local mods found matching your search.
+  noModsFound: No mods found
+  noModsInstalled: You don't have any mods installed.
+  searchInMarket: Search {keyword} in Market
+modSearchType:
+  all: All
+  local: Local
+  explore: ModPacks
+  installed: Installed
+reinstall:
+  name: Reinstall {version}
+relative:
+  daysAgo: '{count} day ago | {count} days ago'
+  hoursAgo: '{count} hour ago | {count} hours ago'
+  justNow: just now
+  minutesAgo: '{count} minute ago | {count} minutes ago'
+  secondsAgo: '{count} second ago | {count} seconds ago'
+resourceError:
+  body: >-
+    "{path}" could not be parsed ({code}). The file may be corrupted, locked, or
+    incomplete. Try re-downloading or removing it.
+  title: Cannot read {file}
+sidebar:
+  pin: Pin
+  unpin: Unpin
+unauthenticatedWarning:
+  cancel: Cancel
+  description: >-
+    You are not logged into any account. The game will launch in demo mode. To
+    access full features, please sign in.
+  login: Sign In
+  playAnyway: Play Anyway
+  title: Not Logged In
+unresolvedFiles:
+  description: >-
+    These files could not be downloaded during installation. Search for a
+    matching source, install the matches, or ignore files to launch anyway.
+  empty: All files are resolved.
+  ignoreSelected: 'Ignore {count}'
+  install: 'Install {count} matched'
+  matched: Matched
+  noMatch: Not found
+  search: Search sources
+  source:
+    curseforge-name: CurseForge
+    dependency: Dependency
+    modrinth-hash: Modrinth hash
+    modrinth-name: Modrinth
+  title: Unresolved files
+  via: 'via {source}'
