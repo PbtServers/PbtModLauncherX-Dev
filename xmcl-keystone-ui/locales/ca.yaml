@@ -108,10 +108,10 @@ curseforge:
   view: Veure
 curseforgeCard: {}
 curseforgeCategory:
-  API and Library: API y Bibliotecas
+  API and Library: API i Biblioteques
   Addons: Addons
   Adventure: Aventura
-  Adventure and RPG: Aventura y RPG
+  Adventure and RPG: Aventura i RPG
   Animated: Animació
   Armor, Tools, and Weapons: Armadura, Eines i Armes
   Combat / PvP: Combat/PvP
@@ -148,12 +148,12 @@ curseforgeCategory:
   Sci-Fi: Ciència-ficció
   Server Utility: Utilitat de Servidor
   Skyblock: SkyBlock
-  Small / Light: Ligero
+  Small / Light: Petit/Lleuger
   Steampunk: Steampunk
-  Storage: Almacenamiento
-  Survival: Supervivencia
-  Tech: Tecnología
-  Technology: Tecnología
+  Storage: Emmagatzematge
+  Survival: Supervivència
+  Tech: Tecnologia
+  Technology: Tecnologia
   Traditional: Tradicional
   Twitch Integration: Integració Twitch
   Utility & QoL: Utilitat i QoL
@@ -972,7 +972,7 @@ save:
   export: Exporta la Partida
   exportMessage: Exporta la Partida com a zip
   exportTitle: Exporta la Partida
-  gameMode: modo de juego
+  gameMode: mode de joc
   import: Importa la Partida
   importMessage: Importa una Partida des d'un fitxer zip
   importTitle: Importa una Partida
@@ -1000,7 +1000,7 @@ server:
   creationHint: Si us plau, completa l'adreça del servidor i fes-li ping
   delete: {}
   error: {}
-  expectedVersions: Versiones Soportadas
+  expectedVersions: Versions Compatibles
   export: Exporta el servidor
   exportNoFilesHint: |-
     No s'han trobat fitxers del servidor.
@@ -1011,7 +1011,7 @@ server:
     Verifica el nom d'usuari/contrasenya o la clau privada.
   exportSSHOptions: Opcions SSH
   exportSSHPrivateKeyPath: Ssh
-  exportSSHRemotePath: Ruta de servidor remoto
+  exportSSHRemotePath: Ruta del servidor remot
   exportToFolder: Exporta a la carpeta
   filterVersion: Filtra la versió de Minecraft del servidor que respon
   host: Amfitrió
@@ -1020,7 +1020,7 @@ server:
   ipAddress: Adreça IP
   maxPlayers: Jugadors màxims
   motd: MOTD del Servidor
-  name: Servidor | Servidores
+  name: Servidor | Servidors
   nogui: Sense interfície gràfica
   onlineMode: Mode en línia
   ping: Ping
@@ -1143,7 +1143,7 @@ task:
   failed: Fallida
   manager: Gestor de Tasques
   nTaskRunning: '{count} tasques en execució'
-  name: Tarea | Tareas
+  name: Tasca | Tasques
   pause: Pausa
 theme:
   selectImage: Selecciona una imatge
@@ -1319,13 +1319,13 @@ command:
       title: Actualitza l'Usuari
       description: Actualitza la sessió de l'usuari
 commandPalette:
-  placeholder: Cerca comandos, instàncies, mods…
-  commands: Comandos
+  placeholder: Cerca ordres, instàncies, mods…
+  commands: Ordres
   instances: Instàncies
   modrinth: Modrinth
   recent: Recent
   open: Acció Ràpida
-  openHint: Obre la paleta de comandos ({shortcut})
+  openHint: Obre la paleta d'ordres ({shortcut})
   empty: Escriu per cercar.
   noResults: No s'han trobat resultats.
   searching: Cercant…
