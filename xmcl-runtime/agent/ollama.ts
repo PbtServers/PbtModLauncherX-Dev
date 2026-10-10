@@ -44,10 +44,11 @@ export class OllamaController {
   private status: OllamaDownloadStatus = { state: 'idle' }
 
   constructor(private fetch: Fetch, private installed = detectOllamaInstalled,
-    private hardware = () => ({ totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length })) {}
+    private hardware = () => ({ totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length }),
+    private origin = async () => ORIGIN) {}
 
   private async json(path: string, body?: unknown) {
-    const response = await this.fetch(ORIGIN + path, {
+    const response = await this.fetch(await this.origin() + path, {
       method: body ? 'POST' : 'GET', redirect: 'error', signal: AbortSignal.timeout(3000),
       headers: body ? { 'content-type': 'application/json' } : undefined,
       body: body ? JSON.stringify(body) : undefined,
@@ -118,7 +119,7 @@ export class OllamaController {
   private async pull(model: string, controller: AbortController) {
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
     try {
-      const response = await this.fetch(ORIGIN + '/api/pull', {
+      const response = await this.fetch(await this.origin() + '/api/pull', {
         method: 'POST', redirect: 'error', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30 * 60_000)]),
         headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, stream: true }),
       })

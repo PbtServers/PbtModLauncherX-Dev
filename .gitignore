@@ -34,3 +34,5 @@ e2e/test-results/
 
 # local download-probe / benchmark artifacts (opt-in tests)
 /bench-out/
+# Verified Ollama staging is acquired separately; never commit multi-GB binaries.
+/xmcl-electron-app/build/ollama/

@@ -2,6 +2,7 @@
 import { config as dotenv } from 'dotenv'
 import type { Configuration } from 'electron-builder'
 import { resolve } from 'path'
+import { validateOllamaBundle } from '../../xmcl-runtime/agent/runtimeBundle'
 
 dotenv()
 
@@ -13,6 +14,13 @@ const linuxPackageScripts = {
 }
 
 export const config = {
+  beforePack: async (context) => {
+    const platform = context.electronPlatformName
+    const arch = ({ 0: 'ia32', 1: 'x64', 2: 'arm', 3: 'arm64' } as Record<number, string>)[context.arch] || 'unsupported'
+    const folder = ({ win32: 'win', darwin: 'mac', linux: 'linux' } as Record<string, string>)[platform]
+    await validateOllamaBundle(resolve(__dirname, 'ollama', `${folder}-${arch}`), platform, arch)
+  },
+  extraFiles: process.env.PBT_DISTRIBUTION_MODE === 'portable' ? [{ from: 'build/pbt-portable.json', to: 'pbt-portable.json' }] : [],
   productName: 'PbtModLauncherX',
   appId: 'PbtModLauncherX',
   directories: {
@@ -40,7 +48,7 @@ export const config = {
     to: '.',
     filter: 'package.json',
   }],
-  extraResources: [{
+  extraResources: [{ from: 'build/ollama/${os}-${arch}', to: 'ollama', filter: ['**/*'] }, {
     from: 'main/agent-documents',
     to: 'agent-documents',
     filter: ['**/*.md'],
@@ -76,6 +84,8 @@ export const config = {
     ],
   },
   mac: {
+    // Preserve the independently signed, hash-verified official runtime.
+    signIgnore: ['resources/ollama/.*'],
     icon: 'icons/dark.icns',
     darkModeSupport: true,
     target: [
@@ -104,7 +114,6 @@ export const config = {
         target: 'zip',
         arch: [
           'x64',
-          'ia32',
         ],
       },
       'appx',

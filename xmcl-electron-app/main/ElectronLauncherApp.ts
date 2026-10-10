@@ -18,6 +18,7 @@ import { isReplayableFetchBody, splitFetchBody } from './fetchBody'
 import { getOzonePlatform } from './ozonePlatform'
 import { ElectronUpdater } from './utils/updater'
 import { getWindowsUtils } from './utils/windowsUtils'
+import { preparePortableData } from './portableData'
 
 class ElectronShell implements Shell {
   showItemInFolder = shell.showItemInFolder
@@ -155,6 +156,12 @@ export default class ElectronLauncherApp extends LauncherApp {
   private readonly reportedNonLatin1Headers = new Set<string>()
 
   constructor() {
+    const portable = preparePortableData(app.getPath('exe'), process.env)
+    if (portable) {
+      process.env.PBT_PORTABLE_BASE = portable.base
+      app.setPath('appData', portable.data)
+      app.setPath('userData', join(portable.data, LAUNCHER_NAME))
+    }
     // E2E hook: when XMCL_E2E_APP_DATA is set, redirect Electron's appData
     // (and therefore both `app.getPath('appData')` calls below + the one in
     // xmcl-runtime/app/LauncherApp.ts) to a per-test temporary directory.

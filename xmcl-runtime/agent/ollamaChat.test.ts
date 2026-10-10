@@ -2,6 +2,13 @@ import { Readable } from 'stream'
 import { expect, test, vi } from 'vitest'
 import { handleOllamaChat, toOllamaChat } from './ollamaChat'
 
+test('rejects non-loopback managed inference before any request', async () => {
+  const fetch = vi.fn()
+  const ctx = { request: { body: JSON.stringify({ messages: [] }) }, response: {} } as any
+  await expect(handleOllamaChat(ctx, { model: 'local', localOrigin: 'http://0.0.0.0:11434' }, fetch)).rejects.toThrow('invalid_local_origin')
+  expect(fetch).not.toHaveBeenCalled()
+})
+
 test('chat-only models reject tool requests before contacting Ollama', async () => {
   const fetch = vi.fn()
   for (const input of [

@@ -1,5 +1,7 @@
-import { OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtime-api'
+import { LOCAL_AI_MODELS, OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtime-api'
 import { OllamaController } from './ollama'
+import { ManagedOllama, kOllamaResourceRoot, type LocalRuntimeConfig } from './managedOllama'
+import { validateOllamaBundle } from './runtimeBundle'
 import { XMCL_CLOUD_ENABLED, assertIndependentUrl, isXmclExclusiveUrl, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import {
   AgentServiceKey,
@@ -32,14 +34,15 @@ export { SECRET_SERVICE as AGENT_SECRET_SERVICE } from './apiKey'
 
 export type ResolvedAgentProvider =
   | { mode: 'builtin' }
-  | { mode: 'custom'; endpoint: string; model: string; apiKey: string; contextWindow?: number; toolsSupported?: boolean }
+  | { mode: 'custom'; endpoint: string; model: string; apiKey: string; contextWindow?: number; toolsSupported?: boolean; localOrigin?: string }
   | { mode: 'unconfigured' }
 
 export const kResolvedAgentProvider = Symbol('resolved-agent-provider')
 
 @ExposeServiceKey(AgentServiceKey)
 export class AgentService extends AbstractService implements IAgentService {
-  private ollama = new OllamaController((...args) => this.app.fetch(...args))
+  private engine: ManagedOllama
+  private ollama: OllamaController
   private history = new AgentHistoryStore(join(this.app.appDataPath, 'agent', 'history'), message => this.warn(message))
   private artifacts = new AgentArtifactStore(join(this.app.appDataPath, 'agent', 'artifacts'))
   private documents: AgentDocumentStore
@@ -52,8 +55,14 @@ export class AgentService extends AbstractService implements IAgentService {
   constructor(
     @Inject(LauncherAppKey) app: LauncherApp,
     @Inject(kAgentDocumentDirectory) private readonly documentDirectory: string | string[],
+    @Inject(kOllamaResourceRoot) resourceRoot: string,
   ) {
     super(app)
+    this.engine = new ManagedOllama({ bundle: resourceRoot, data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args))
+    this.ollama = new OllamaController((...args) => app.fetch(...args), async () => {
+      try { await validateOllamaBundle(resourceRoot); return true } catch { return false }
+    }, undefined, () => this.engine.ensure())
+    app.registryDisposer(() => { this.ollama.cancel(); return this.engine.stop() })
     this.documents = new AgentDocumentStore(documentDirectory, message => this.warn(message))
   }
 
@@ -112,7 +121,7 @@ export class AgentService extends AbstractService implements IAgentService {
       if (!endpoint || !model || isXmclExclusiveUrl(endpoint)) return { mode: 'unconfigured' }
       if (isOllamaEndpoint(endpoint)) {
         const local = await this.ollama.resolveModel(model)
-        return local ? { mode: 'custom', endpoint, model, apiKey: '', contextWindow: local.contextWindow, toolsSupported: local.compatible } : { mode: 'unconfigured' }
+        return local ? { mode: 'custom', endpoint, model, apiKey: '', contextWindow: local.contextWindow, toolsSupported: local.compatible, localOrigin: await this.engine.ensure() } : { mode: 'unconfigured' }
       }
       const apiKey = (await this.apiKeys.get(endpoint)) ?? ''
       if (!apiKey && !isLoopbackServiceUrl(endpoint)) return { mode: 'unconfigured' }
@@ -123,8 +132,24 @@ export class AgentService extends AbstractService implements IAgentService {
     return XMCL_CLOUD_ENABLED && flights[BUILTIN_AGENT_FLIGHT] === true ? { mode: 'builtin' } : { mode: 'unconfigured' }
   }
 
-  getOllamaStatus() { return this.ollama.inspect() }
-  async prepareOllamaDownload(model: string) { return this.ollama.prepare(model) }
+  async getOllamaStatus() {
+    let runtimeError: string | undefined
+    try { await this.engine.ensure() } catch (e) {
+      const message = (e as Error).message
+      runtimeError = message.startsWith('ollama_') ? message : (e as NodeJS.ErrnoException).code === 'ENOENT' ? 'ollama_runtime_missing' : 'ollama_runtime_unavailable'
+    }
+    const status = await this.ollama.inspect()
+    if (runtimeError) return { ...status, runtimeError }
+    const storage = await this.engine.storage()
+    return { ...status, ...storage, freeStorageBytes: storage.freeBytes, recommendedModels: status.recommendedModels.filter(name => storage.freeBytes >= (LOCAL_AI_MODELS.find(entry => entry.name === name)?.estimatedBytes || Infinity) * 1.1) }
+  }
+  async getLocalRuntimeStorage() { return this.engine.storage() }
+  async configureLocalRuntime(input: LocalRuntimeConfig) { await this.engine.configure(input) }
+  async prepareOllamaDownload(model: string) {
+    const preview = this.ollama.prepare(model)
+    if ((await this.engine.storage()).freeBytes < preview.estimatedBytes * 1.1) throw new Error('ollama_storage_insufficient')
+    return preview
+  }
   async startOllamaDownload(confirmationId: string) { this.ollama.start(confirmationId) }
   async getOllamaDownloadStatus() { return this.ollama.getDownloadStatus() }
   async cancelOllamaDownload() { this.ollama.cancel() }

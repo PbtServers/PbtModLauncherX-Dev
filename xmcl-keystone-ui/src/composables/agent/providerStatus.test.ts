@@ -4,6 +4,10 @@ import { providerStatusKey } from './providerStatus'
 
 const local = (overrides: Partial<OllamaStatus> = {}): OllamaStatus => ({ installed: true, running: true, models: [], totalMemory: 0, freeMemory: 0, cpuCount: 1, recommendedModels: [], ...overrides })
 describe('independent provider status', () => {
+  it('never asks to install a global engine when the integrated package is missing or invalid', () => {
+    expect(providerStatusKey(OLLAMA_ENDPOINT, '', false, local({ runtimeError: 'ollama_runtime_missing' }))).toBe('pbtadmin.integratedMissing')
+    expect(providerStatusKey(OLLAMA_ENDPOINT, '', false, local({ runtimeError: 'ollama_architecture_mismatch' }))).toBe('pbtadmin.integratedFailed')
+  })
   it.each([
     [local({ installed: false, running: false }), false, true, 'missing'],
     [local({ running: false }), false, true, 'stopped'],

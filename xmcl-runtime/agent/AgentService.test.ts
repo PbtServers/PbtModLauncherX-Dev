@@ -47,6 +47,7 @@ function createServiceContext(flights: Record<string, unknown>) {
     },
     settings,
     ollama: { resolveModel: vi.fn(async (name: string) => ({ name, compatible: true, size: 1, contextWindow: 4096 })) },
+    engine: { ensure: vi.fn(async () => 'http://127.0.0.1:32123') },
     apiKeys: {
       get: vi.fn().mockResolvedValue(''),
     },
@@ -141,6 +142,6 @@ test('uses a local AI server without an XMCL account or a fabricated API key', a
   service.settings.agentEndpoint = 'http://127.0.0.1:11434/v1/chat/completions'
   service.settings.agentModel = 'local-model'
   await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toEqual({
-    mode: 'custom', endpoint: service.settings.agentEndpoint, model: 'local-model', apiKey: '', contextWindow: 4096, toolsSupported: true,
+    mode: 'custom', endpoint: service.settings.agentEndpoint, model: 'local-model', apiKey: '', contextWindow: 4096, toolsSupported: true, localOrigin: 'http://127.0.0.1:32123',
   })
 })

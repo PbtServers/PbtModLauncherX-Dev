@@ -88,3 +88,134 @@ En un entorno que permita adquirir archivos oficiales, seleccionar una release e
 ## Git
 
 Únicamente se añade este informe; no se cambian funcionalidades, endpoints, master, backup ni versión. Si .git continúa denegando index.lock, se conserva el informe en ZIP verificado, manifiesto SHA-256 y parche en temp/phase152-preservacion-20261010.*. No hay push, tags, releases ni merge a master.
+# Fase 15.3 — implementación productiva y estado de validación
+
+Esta sección registra la implementación posterior a la auditoría de la Fase 15.2; el contenido histórico anterior se conserva. Rama `dev/upstream-v1.0.7`, base `53e6593dfea4ce6971cad0837ad087d1712eab59`, producto 1.0.7 en desarrollo, sin publicación.
+
+**Estado de cierre: integración implementada, distribución real BLOQUEADA.** No se ha obtenido ningún binario oficial, generado un paquete con Ollama ni ejecutado inferencia real. Las pruebas con procesos Node no certifican una edición portable. No se declara terminada la integración portable.
+
+## Arquitectura implementada
+
+- `xmcl-runtime/agent/runtimeBundle.ts`: manifiesto por versión/plataforma/arquitectura; verifica SHA-256 de cada archivo, recursos no declarados, licencia MIT, rutas, symlinks y cabecera PE/ELF/Mach-O. El ejecutable permanece fuera de ASAR.
+- `managedOllama.ts`: configuración local, almacenamiento de modelos, espacio disponible, exclusión mutua del almacén, arranque bajo demanda, puerto aleatorio loopback, readiness acotado a 20 segundos, cancelación y cierre de procesos propios.
+- `ollamaSupervisor.ts`: programa fijo del launcher, sin shell ni instrucciones del modelo. La pérdida del pipe del padre dispara limpieza del árbol propio: taskkill por PID en Windows y grupo privado en Unix. No busca ni termina procesos Ollama ajenos por nombre.
+- `ollamaPortOwner.ts`: atribuye el listener al PID del motor antes de aceptar readiness, utilizando netstat, /proc o lsof según el sistema. Esto evita aceptar accidentalmente otro servicio que ocupe el puerto tras la reserva.
+- `AgentService`, `OllamaController` y puente de streaming: utilizan el origen dinámico del motor integrado para descubrir modelos, inspeccionar capacidades, descargar con consentimiento y conversar. No requieren API key. El motor no bloquea el inicio normal de Minecraft.
+- `LocalAiSetup.vue`: estado del runtime, carpeta de modelos, espacio libre y asistente de modelo con RAM requerida, consentimiento, progreso y cancelación. Las API externas, personalidad, lore, herramientas, permisos e historial existentes se conservan.
+
+Las variables OLLAMA_HOST, OLLAMA_MODELS, OLLAMA_ORIGINS, OLLAMA_NO_CLOUD, OLLAMA_NOPRUNE, HOME y directorios temporales se configuran únicamente en el proceso hijo. No hay instalación global, servicio permanente, edición de PATH, registro ni elevación.
+
+## Confianza y preparación de binarios
+
+El preparador `scripts/prepare-ollama.mjs` utiliza el tag oficial exacto y su API de GitHub. Exige `asset.digest` SHA-256 y tamaño de referencia publicados por esa API, valida el archivo antes de extraerlo y genera hashes individuales solo después de validar el archivo oficial. Si falta el digest de referencia, bloquea la preparación. No acepta como prueba de procedencia el hash calculado exclusivamente sobre un archivo recibido.
+
+Fuentes oficiales consultadas:
+
+- [Release v0.34.0](https://github.com/ollama/ollama/releases/tag/v0.34.0).
+- [API de referencia del tag](https://api.github.com/repos/ollama/ollama/releases/tags/v0.34.0).
+- [Distribución Windows](https://github.com/ollama/ollama/blob/main/docs/windows.mdx).
+- [Distribución Linux](https://github.com/ollama/ollama/blob/main/docs/linux.mdx).
+- [Licencia MIT](https://github.com/ollama/ollama/blob/main/LICENSE).
+- [Variables y orígenes](https://github.com/ollama/ollama/blob/main/envconfig/config.go).
+
+La preparación incorpora LICENSE del tag y metadatos oficiales. Los hashes concretos y el tamaño quedan registrados en el `bundle.json` generado al obtener la referencia oficial. **No existe todavía un bundle.json oficial preparado en este entorno ni se inventa un SHA Windows.** Una copia JSON proporcionada mediante `--metadata` es una entrada de confianza explícita: debe descargarse del endpoint oficial, no fabricarse a partir del ZIP. El manifiesto local presupone recursos de distribución confiables; no constituye una firma independiente frente a quien pueda modificar simultáneamente binarios y manifiesto de un paquete sin firmar.
+
+En PowerShell normal, desde la raíz, con Node >=22.16.0:
+
+```powershell
+node --experimental-strip-types scripts/prepare-ollama.mjs --version v0.34.0 --platform win32 --arch x64
+if ($LASTEXITCODE -ne 0) { throw 'No se ha preparado un runtime verificado' }
+```
+
+Produce `xmcl-electron-app/build/ollama/win-x64/`, ignorado por Git. No sobrescribe un staging existente. Para una copia oficial descargada previamente:
+
+```powershell
+Invoke-WebRequest 'https://api.github.com/repos/ollama/ollama/releases/tags/v0.34.0' -OutFile 'temp/ollama-release-v0.34.0.json'
+node --experimental-strip-types scripts/prepare-ollama.mjs --version v0.34.0 --platform win32 --arch x64 --archive 'G:\Descargas\ollama-windows-amd64.zip' --metadata 'temp/ollama-release-v0.34.0.json'
+```
+
+La segunda modalidad todavía consulta la licencia oficial; no es un preparador completamente offline. Preparar el staging completo fuera del sandbox es la alternativa reproducible. Windows utiliza `extract-ollama.ps1` con comprobaciones de rutas ZIP; Linux/macOS requieren tar compatible con el formato oficial. Las URLs y redirecciones HTTPS están restringidas a GitHub y sus hosts oficiales de descarga.
+
+## Ediciones instalables y portables
+
+Electron `extraResources` copia el staging a `resources/ollama` (en macOS, Contents/Resources/ollama). `beforePack` valida el staging para la arquitectura objetivo y falla si falta o está alterado. Windows x64 es el destino prioritario; ia32 se ha retirado del target ZIP de esta distribución y no está soportado por el motor integrado.
+
+Para una edición portable se establece `PBT_DISTRIBUTION_MODE=portable` durante el empaquetado. El marcador `pbt-portable.json` activa:
+
+```text
+PbtModLauncherX/
+  PbtModLauncherX.exe
+  pbt-portable.json
+  resources/ollama/        # ejecutable, librerías, LICENSE, bundle.json
+  data/<launcher>/ai/     # configuración del motor, modelos, home y tmp privados
+```
+
+El resto del perfil del launcher, incluidas preferencias e historial existentes, se redirige al directorio de datos portable antes de inicializar servicios. El nombre persistente interno del launcher se conserva. Las rutas de modelos dentro de la carpeta portable se guardan relativas; no se copian ni eliminan modelos al cambiar la ruta. Para datos externos o medios de solo lectura se admite `PBT_PORTABLE_DATA` solo para ese proceso. Si no puede escribirse, el inicio falla conservando datos; **la selección gráfica de una carpeta alternativa antes de arrancar aún queda pendiente**.
+
+En instalables sin marcador se conservan los directorios existentes. Modelos y configuración quedan fuera de recursos reemplazables. No se modifica ningún procedimiento para borrar modelos durante desinstalación/actualización. La preservación en una actualización real sigue pendiente.
+
+Preparación de prueba Windows, fuera del sandbox y sin publicar:
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm build:renderer
+if ($LASTEXITCODE -ne 0) { throw 'Falló renderer' }
+$env:PBT_DISTRIBUTION_MODE = 'portable'
+Remove-Item Env:BUILD_TARGET -ErrorAction SilentlyContinue
+Remove-Item Env:RELEASE -ErrorAction SilentlyContinue
+pnpm build
+if ($LASTEXITCODE -ne 0) { throw 'Falló empaquetado' }
+```
+
+El build por defecto genera directorio desempaquetado de prueba, no equivale a un instalador validado. Ejecutar únicamente ese directorio temporal; no reemplazar la instalación personal. Comprobar marcador, recursos y manifiesto antes de mover la carpeta y probar persistencia. Estas variables son del PowerShell actual, no del sistema. No utilizar build:all para esta prueba ni activar RELEASE.
+
+DeskGap incorpora el mismo runtime validado y marcador opcional en su empaquetado Windows x64. Sigue requiriendo sus entradas oficiales de runtime/bootstrap existentes; no se ha generado un paquete DeskGap.
+
+Linux x64/arm64 tienen receta de archivo oficial y resolución de datos fuera del montaje AppImage. macOS x64/arm64 tienen receta de archivo oficial, inspección Mach-O y verificación codesign durante preparación. El empaquetado evita volver a firmar los recursos Ollama para no invalidar sus hashes; **firma del contenedor, notarización, librerías, GPU y ejecución nativa no verificadas**. No se desactiva Gatekeeper. No se declara soporte real completo de estas plataformas ni Windows ARM64.
+
+## Modelos, consentimiento y servicio externo
+
+qwen3:4b y qwen3:8b son opciones del asistente existente, condicionadas por RAM y espacio disponibles; tamaño estimado y requisitos se muestran antes de autorizar. La capacidad de herramientas se consulta mediante `/api/show`, no se deduce del nombre. Los modelos sin herramientas pueden usar chat de texto sin registrar herramientas falsas. No se ha descargado ni comprobado realmente ninguno durante esta fase.
+
+El origen integrado tiene prioridad. Solo si falta el bundle se permite un servicio externo previamente autorizado y guardado, con URL literal `http://127.0.0.1:<puerto>`. No hay fallback silencioso al puerto 11434, al PATH ni a proveedores de pago. Ese servicio no es propiedad del launcher y no se detiene. La selección de un ejecutable externo arbitrario no está implementada.
+
+## Seguridad y límites operativos
+
+- Puerto exclusivamente 127.0.0.1; argumentos fijos, shell desactivado, lista reducida de variables heredadas y sin logs de prompts/tokens.
+- OLLAMA_ORIGINS no elimina los orígenes localhost y protocolos locales que Ollama añade internamente. No es autenticación frente a otras aplicaciones del mismo equipo; páginas remotas arbitrarias no están autorizadas por la configuración normal de CORS. Auditar la implementación efectiva del runtime preparado antes de distribución.
+- El lock de modelos evita motores duplicados y no se borra un lock ajeno. Un corte eléctrico puede dejar un lock obsoleto: requiere comprobación manual del PID antes de recuperación. No se presume recuperación automática segura.
+- La limpieza del árbol propio está implementada y comprobada con un proceso Node, no con Ollama/GPU. Muerte forzada, descendientes nativos, firma/quarentena y permisos de medios externos necesitan pruebas reales.
+- Un fallo de limpieza se comunica; no se considera cierre verificado ni se mata un servicio externo para resolverlo.
+
+## Evidencias de validación
+
+| Comprobación | Estado | Evidencia |
+|---|---|---|
+| Regresiones de agentes, streaming, modelos, permisos, rutas, exportación, clasificación y empaquetado | APROBADO | 359 aprobados, 0 fallidos, 1 omitido; `temp/phase153-final.json` |
+| Supervisor: argumentos fijos, PID propio y fallo de limpieza | APROBADO | 2 tests con adaptadores simulados; `temp/phase153-supervisor-tests.log` |
+| Typecheck de runtime/API/Electron/UI | APROBADO | `pnpm check`, logs phase153-check-* |
+| Lint | APROBADO | 0 errores, 2 advertencias preexistentes; `temp/phase153-lint-last.log` |
+| Traducciones es-ES/ca/en | APROBADO | validador sin errores; `temp/phase153-i18n.log` |
+| Keystone UI | APROBADO | build y verify-bundle; `temp/phase153-ui-build.log` |
+| Propiedad real de un listener Windows | APROBADO | proceso Node PID24632, puerto50377, owned=true; `temp/phase153-native-port.log` |
+| Preparación del runtime oficial v0.34.0 Windows x64 | BLOQUEADO | EACCES fetch failed; `temp/phase153-official-probe.log` |
+| Electron compile / DeskGap build | BLOQUEADO | uv_os_get_passwd ENOMEM en tsx con Node22.22.3; logs phase153-*-build |
+| DevTools y GUI real | BLOQUEADO | sin launcher de desarrollo en 3000/9222/9300; no existe tarea build:devtools |
+| Cierre nativo del árbol Windows en sandbox | BLOQUEADO | taskkill devuelve Acceso denegado para un hijo propio; el gestor informa cleanup_unconfirmed y retiene el lock |
+| Runtime nativo, modelos e inferencia real | NO EJECUTADO | ningún binario/modelo obtenido |
+| Instalador o portable con Ollama incluido | BLOQUEADO | sin runtime y compilación main bloqueada |
+| Linux/macOS nativos y actualización real | NO EJECUTADO | requiere entornos/artefactos reales |
+
+Total automatizado final sin solapamiento: **361 aprobados, 0 fallidos, 1 omitido**. No es la batería completa del repositorio. Los tests de procesos utilizan una API simulada servida por Node y un supervisor de prueba sin descendientes; los de cabeceras emplean bytes sintéticos, no ejecutables oficiales.
+
+Al exigir comprobación del resultado de taskkill se reprodujeron 3 fallos en la ejecución nativa preliminar (`temp/phase153-lifecycle-final.log`): la restricción del sandbox impide terminar árboles mediante taskkill. El supervisor productivo hace un intento de cerrar únicamente su motor y comunica fallo, sin afirmar eliminación de descendientes ni desbloquear el almacén. Las regresiones finales de lógica se aislaron con un supervisor de prueba explícito; **no sustituyen esa validación nativa bloqueada**. Las pruebas del programa supervisor comprueban que no disimula el error. Se debe repetir el cierre nativo con runtime oficial fuera del sandbox antes de distribuir.
+
+## Comprobación real pendiente obligatoria
+
+Preparar staging oficial, generar edición Windows x64, arrancar con perfil temporal sin Ollama global, verificar PID y origen propios, autorizar descarga o reutilización explícita de un modelo, conversar/stream/cancelar, cerrar y comprobar ausencia de procesos propios, mover carpeta Unicode entre unidades y repetir con modelos conservados. Comprobar puerto11434 ocupado por servicio ajeno sin tocarlo. Verificar instalable, actualización y almacén de solo lectura por separado. No usar perfiles Minecraft ni claves personales para esta prueba.
+
+## Git y preservación de esta fase
+
+Cambios limitados al motor, puentes existentes, asistente localizado, rutas portables, empaquetado y sus regresiones. Informes anteriores y funcionalidades de exportación/PbtAdmin se conservan. Git add ha fallado con código 128: `fatal: Unable to create .../.git/index.lock: Permission denied`; no existía index.lock previo. Se generan `temp/phase153-preservacion-20261010.zip`, `.manifest.json` y `.patch` con todos los archivos afectados y verificación SHA-256. El SHA base sigue siendo el de arriba hasta confirmar el commit local. No se publica ni se fusiona ninguna rama.
+
+---

@@ -1,8 +1,9 @@
 import { spawnSync } from 'node:child_process'
-import { mkdir, readFile, rm, stat } from 'node:fs/promises'
+import { cp, mkdir, readFile, rm, stat } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { assertClickToRun, assertRawBootstrap, assetNames, stageApplication, stageRuntime } from './packaging'
+import { validateOllamaBundle } from '../xmcl-runtime/agent/runtimeBundle'
 
 const root = dirname(fileURLToPath(import.meta.url))
 
@@ -28,6 +29,8 @@ async function main() {
   const application = join(output, 'app')
   const release = join(output, 'release')
   const runtimeStaging = join(output, 'runtime-staging')
+  const ollama = join(root, '..', 'xmcl-electron-app', 'build', 'ollama', 'win-x64')
+  await validateOllamaBundle(ollama, 'win32', 'x64')
   const run = (args: string[], production = false) => {
     const env = { ...process.env }
     if (production) env.NODE_ENV = 'production'
@@ -38,6 +41,8 @@ async function main() {
   await stageRuntime(runtime, runtimeStaging)
   run(['--import', 'tsx', join(root, 'build.ts')], true)
   await stageApplication(join(root, 'dist'), application, version)
+  await cp(ollama, join(application, 'resources', 'ollama'), { recursive: true })
+  if (process.env.PBT_DISTRIBUTION_MODE === 'portable') await cp(join(root, '..', 'xmcl-electron-app', 'build', 'pbt-portable.json'), join(application, 'pbt-portable.json'))
   await rm(release, { recursive: true, force: true })
   await mkdir(release, { recursive: true })
   run([join(scripts, 'package-click-to-run.mjs'), bootstrap, runtimeStaging, application, join(release, names.runtime), version])

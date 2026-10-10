@@ -34,6 +34,9 @@ export interface LocalAiModel {
 }
 
 export interface OllamaStatus {
+  runtimeError?: string
+  freeStorageBytes?: number
+  modelsDirectory?: string
   installed: boolean | undefined
   running: boolean
   models: LocalAiModel[]

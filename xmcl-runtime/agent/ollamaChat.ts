@@ -20,7 +20,7 @@ export function toOllamaChat(input: any, model: string, contextWindow: number) {
 }
 
 /** Native API sets a bounded runtime context without changing models or executing commands. */
-export async function handleOllamaChat(ctx: Context, provider: { model: string; contextWindow?: number; toolsSupported?: boolean }, fetch: typeof globalThis.fetch) {
+export async function handleOllamaChat(ctx: Context, provider: { model: string; contextWindow?: number; toolsSupported?: boolean; localOrigin?: string }, fetch: typeof globalThis.fetch) {
   let raw = ''
   if (ctx.request.body instanceof Readable) {
     const chunks: Buffer[] = []
@@ -38,7 +38,10 @@ export async function handleOllamaChat(ctx: Context, provider: { model: string; 
   if (provider.toolsSupported === false && (body.tools?.length || body.messages.some((message: any) => message.role === 'tool' || message.tool_calls?.length))) throw new Error('ollama_chat_only')
   const controller = new AbortController()
   const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10 * 60_000), ...(ctx.request.signal ? [ctx.request.signal] : [])])
-  const result = await fetch('http://127.0.0.1:11434/api/chat', {
+  const origin = provider.localOrigin || 'http://127.0.0.1:11434'
+  const url = new URL(origin)
+  if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error('ollama_invalid_local_origin')
+  const result = await fetch(origin + '/api/chat', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body), redirect: 'error', signal,
   })

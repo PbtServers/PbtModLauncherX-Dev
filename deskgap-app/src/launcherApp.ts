@@ -20,6 +20,7 @@ import { plugins } from './plugins'
 import { toWebResponseBody } from './transport'
 import { DeskGapUpdater } from './updater'
 import { createDeskGapUpdater } from './updaterHost'
+import { preparePortableData } from '../../xmcl-electron-app/main/portableData'
 
 const manifest = {
   name: 'PbtModLauncherX',
@@ -103,6 +104,12 @@ export class DeskGapLauncherApp extends LauncherApp {
   private readonly i18n = createI18n(definedLocales, 'es-ES')
 
   constructor() {
+    const portable = preparePortableData(process.execPath, process.env)
+    if (portable) {
+      process.env.PBT_PORTABLE_BASE = portable.base
+      app.setPath('appData', portable.data)
+      app.setPath('userData', join(portable.data, LAUNCHER_NAME))
+    }
     if (process.env.XMCL_E2E_APP_DATA) {
       app.setPath('appData', process.env.XMCL_E2E_APP_DATA)
       app.setPath('userData', join(process.env.XMCL_E2E_APP_DATA, LAUNCHER_NAME))

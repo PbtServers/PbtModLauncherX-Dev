@@ -5,9 +5,14 @@
     <v-select :model-value="provider" :items="providerItems" item-title="title" item-value="id" :label="t('pbtadmin.provider')" @update:model-value="selectProvider" />
     <v-switch v-model="historyEnabled" :label="t('pbtadmin.history')" :hint="t('pbtadmin.historyHint')" persistent-hint />
     <template v-if="provider === 'ollama'">
+      <v-text-field v-model="modelsDirectory" :label="t('pbtadmin.modelsDirectory')" />
+      <v-checkbox v-model="externalConsent" :label="t('pbtadmin.externalConsent')" />
+      <v-btn :disabled="checking" @click="saveStorage">{{ t('pbtadmin.saveStorage') }}</v-btn>
       <v-btn :loading="checking" :disabled="checking" @click="refresh">{{ t('pbtadmin.detect') }}</v-btn>
       <template v-if="status">
-        <p>{{ t(status.error === 'connectionFailed' || status.error === 'invalidResponse' ? 'pbtadmin.detectFailed' : status.running ? 'pbtadmin.running' : status.installed === true ? 'pbtadmin.stopped' : status.installed === false ? 'pbtadmin.missing' : 'pbtadmin.unknown') }}</p>
+        <v-alert v-if="status.runtimeError" type="warning">{{ t(status.runtimeError === 'ollama_runtime_missing' ? 'pbtadmin.integratedMissing' : 'pbtadmin.integratedFailed') }}</v-alert>
+        <p v-if="status.freeStorageBytes !== undefined">{{ t('pbtadmin.freeStorage', { size: gib(status.freeStorageBytes) }) }}</p>
+        <p v-if="!status.runtimeError">{{ t(status.error === 'connectionFailed' || status.error === 'invalidResponse' ? 'pbtadmin.detectFailed' : status.running ? 'pbtadmin.running' : status.installed === true ? 'pbtadmin.stopped' : status.installed === false ? 'pbtadmin.missing' : 'pbtadmin.unknown') }}</p>
         <p>{{ t('pbtadmin.hardware', { total: gib(status.totalMemory), free: gib(status.freeMemory), cpus: status.cpuCount }) }}</p>
         <v-select v-model="model" :items="compatibleModels" item-title="name" item-value="name" :label="t('pbtadmin.model')" :disabled="!status.running" />
         <p v-if="!compatibleModels.length">{{ t('pbtadmin.noModels') }}</p>
@@ -25,12 +30,13 @@
     <v-dialog v-model="wizard" max-width="640">
       <v-card class="pa-4">
         <v-card-title>{{ t('pbtadmin.setup') }}</v-card-title>
-        <p>{{ t('pbtadmin.installEngine') }}</p>
-        <v-btn href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">{{ t('pbtadmin.officialDownload') }}</v-btn>
-        <p>{{ t('pbtadmin.afterInstall') }}</p>
+        <p>{{ t('pbtadmin.modelRequired') }}</p>
+        <p v-if="status?.runtimeError">{{ t('pbtadmin.integratedMissing') }}</p>
         <v-btn :loading="checking" @click="refresh">{{ t('pbtadmin.detect') }}</v-btn>
         <v-select v-model="downloadModel" :items="LOCAL_AI_MODELS.map(entry => entry.name)" :label="t('pbtadmin.model')" />
         <p>{{ t('pbtadmin.downloadConsent', { model: downloadModel, size: gib(estimatedBytes) }) }}</p>
+        <p>{{ t('pbtadmin.modelRam', { size: gib(LOCAL_AI_MODELS.find(entry => entry.name === downloadModel)?.minRamBytes || 0) }) }}</p>
+        <p v-if="status?.freeStorageBytes !== undefined">{{ t('pbtadmin.freeStorage', { size: gib(status.freeStorageBytes) }) }}</p>
         <v-checkbox v-model="consent" :label="t('pbtadmin.consent')" />
         <v-card-actions>
           <v-btn @click="wizard = false">{{ t('pbtadmin.close') }}</v-btn>
@@ -50,6 +56,15 @@ import { useAgentSettings } from '@/composables/agent/settings'
 
 const { t } = useI18n()
 const service = useService(AgentServiceKey)
+const modelsDirectory = ref('')
+const externalConsent = ref(false)
+let offeredModelSetup = false
+async function saveStorage() {
+  try {
+    await service.configureLocalRuntime({ modelsDirectory: modelsDirectory.value, externalOrigin: externalConsent.value ? 'http://127.0.0.1:11434' : undefined })
+    await refresh()
+  } catch { error.value = 'pbtadmin.integratedFailed' }
+}
 const settings = useAgentSettings()
 const { endpoint, model, historyEnabled } = settings
 const providers = AGENT_PROVIDER_PRESETS
@@ -80,7 +95,15 @@ function selectProvider(id: string) {
 async function refresh() {
   if (checking.value) return
   checking.value = true
-  try { status.value = await service.getOllamaStatus(); await settings.refreshStatus(); error.value = '' } catch { error.value = 'pbtadmin.detectFailed' }
+  try {
+    status.value = await service.getOllamaStatus()
+    const storage = await service.getLocalRuntimeStorage()
+    modelsDirectory.value = storage.modelsDirectory
+    externalConsent.value = !!storage.externalOrigin
+    await settings.refreshStatus()
+    if (status.value.running && !status.value.models.length && !offeredModelSetup) { offeredModelSetup = true; wizard.value = true }
+    error.value = ''
+  } catch { error.value = 'pbtadmin.detectFailed' }
   finally { checking.value = false }
 }
 async function startDownload() {
