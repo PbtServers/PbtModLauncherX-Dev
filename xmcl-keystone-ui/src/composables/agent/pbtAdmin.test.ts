@@ -10,6 +10,7 @@ describe('PbtAdmin shared identity and local evidence', () => {
     expect(prompt).toContain('Pbt/PbtinaDev is a woman')
     expect(prompt).toContain('ella, propietaria, administradora, creadora')
     expect(prompt).toContain('fictional events, parodies and memes as fiction')
+    expect(prompt).toContain('do not conclude that the community member is imaginary or nonexistent')
     expect(prompt).toContain('explicit user confirmation with a preview')
     expect(prompt).not.toContain('Merely staging resource changes does not')
     expect(prompt).toContain('Never invent hardware')
@@ -39,5 +40,18 @@ describe('PbtAdmin shared identity and local evidence', () => {
     expect(createPbtAdminKnowledgeEvidence([{ ...result, id: 'unrelated' }])).toBeUndefined()
     expect(createPbtAdminKnowledgeEvidence([{ ...result, excerpt: undefined }])).toBeUndefined()
     expect(createPbtAdminKnowledgeEvidence(Array.from({ length: 30 }, () => ({ ...result, excerpt: 'x'.repeat(2000) })))!.match(/x{1200}/g)).toHaveLength(3)
+  })
+
+  test.each([
+    ['¿Quién es Oftome?', '0ftome101'],
+    ['¿Qué hace 0ftome en PbtServers?', 'hace 0ftome101 PbtServers'],
+    ['Qui és Thiamar?', 'Thiamar22OMG'],
+    ['Who is Batsy?', 'ItsBatsy'],
+    ['¿Qué ocurrió el 14 de septiembre de 2020?', 'ocurrió 2020-09-14'],
+    ['Què va passar el 14 de setembre de 2020?', 'Què passar 2020-09-14'],
+    ['14 September 2020', '2020-09-14'],
+    ['18/8/2020', '2020-08-18'],
+  ])('canonicalizes lore aliases and dates: %s', (input, expected) => {
+    expect(pbtAdminKnowledgeQuery(input)).toBe(expected)
   })
 })

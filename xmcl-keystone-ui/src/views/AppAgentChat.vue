@@ -38,6 +38,12 @@
         ref="scrollEl"
         data-testid="agent-transcript"
         class="agent-transcript"
+        role="log"
+        :aria-label="t('agent.title')"
+        aria-live="polite"
+        aria-relevant="additions"
+        :aria-busy="running"
+        tabindex="0"
         @scroll.passive="onTranscriptScroll"
       >
         <v-alert v-if="!agentSettings.toolsSupported.value" type="info">{{ t('pbtadmin.chatOnly') }}</v-alert>
@@ -266,6 +272,8 @@ import { useAgentSettings } from '@/composables/agent/settings'
 import { useAgentChatStatus, usePendingAgentKind } from '@/composables/agentChat'
 import { useMarkdown } from '@/composables/markdown'
 import { useOmniDialog } from '@/composables/omniDialog'
+import { isTranscriptNearEnd } from '@/composables/agent/scroll'
+import { useResizeObserver } from '@vueuse/core'
 import { kSettingsState } from '@/composables/setting'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
@@ -445,13 +453,13 @@ function openSettings() {
 
 function onTranscriptScroll() {
   const el = scrollEl.value
-  if (el) followTranscript.value = el.scrollHeight - el.scrollTop - el.clientHeight <= 32
+  if (el && el.clientHeight > 0) followTranscript.value = isTranscriptNearEnd(el)
 }
 
 function scrollTranscriptToBottom() {
   const el = scrollEl.value
   if (!el) return
-  el.scrollTop = el.scrollHeight
+  el.scrollTop = transcriptItems.value.length === 0 && !running.value && !displayError.value ? 0 : el.scrollHeight
   followTranscript.value = true
 }
 
@@ -461,6 +469,12 @@ watch([transcriptItems, events, confirmationShown, displayError], async () => {
   await nextTick()
   if (followTranscript.value) scrollTranscriptToBottom()
 }, { deep: true })
+
+// Reflow at zoom/resize follows only when the reader has not scrolled back.
+// VueUse disconnects the observer when this component is unmounted.
+useResizeObserver(scrollEl, () => {
+  if (isShown.value && followTranscript.value) scrollTranscriptToBottom()
+})
 
 </script>
 
@@ -683,24 +697,27 @@ watch([transcriptItems, events, confirmationShown, displayError], async () => {
 }
 .agent-transcript {
   display: flex;
-  width: calc(100% + 6px);
+  width: 100%;
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   box-sizing: border-box;
-  margin-inline: -3px;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 3px;
+  padding: clamp(8px, 1.5vh, 16px) 6px;
   scrollbar-gutter: stable;
+  overflow-anchor: none;
+  scroll-behavior: auto;
 }
 .agent-empty-wrap {
   display: flex;
-  min-height: 100%;
+  min-height: 0;
+  flex: 1 0 auto;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  box-sizing: border-box;
   text-align: center;
 }
 .agent-empty-card {
@@ -719,6 +736,15 @@ watch([transcriptItems, events, confirmationShown, displayError], async () => {
   gap: 16px;
   padding: 32px;
   text-align: center;
+}
+.agent-transcript:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+@media (max-height: 560px) {
+  .agent-empty-wrap { padding: 8px; }
+  .agent-empty-card { padding: 16px; }
+  .agent-disabled-card { padding: 12px; overflow-y: auto; }
 }
 .agent-live-card {
   display: flex;

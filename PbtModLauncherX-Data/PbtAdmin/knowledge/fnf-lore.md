@@ -26,3 +26,5 @@ Ficción [maintainer-10b], parte 8/9: Lozeer_55, los ascensores de SAWCraft: Sur
 Ficción [maintainer-10b], parte 9/9: final con terror, secretos y extras. No se inventan secretos o escenas no proporcionados.
 
 Fuente: maintainer-10b en sources.json. Todo papel narrativo permanece separado de datos personales o relaciones reales.
+
+Referencia proporcionada por la creadora [gamejolt-reference]: https://gamejolt.com/games/1091802/1091802 . La página no fue accesible durante esta revisión; no se le atribuye una verificación independiente de las nueve partes. Los contenidos enumerados proceden de las directrices de la creadora.

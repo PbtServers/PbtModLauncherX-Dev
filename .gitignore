@@ -36,3 +36,6 @@ e2e/test-results/
 /bench-out/
 # Verified Ollama staging is acquired separately; never commit multi-GB binaries.
 /xmcl-electron-app/build/ollama/
+
+# Private lore originals: only reviewed knowledge summaries are distributed.
+/PbtModLauncherX-Data/Lore/Fuentes/*.rtf

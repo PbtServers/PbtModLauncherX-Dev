@@ -77,17 +77,51 @@ describe('main-process Agent documents', () => {
 
   test('retrieves local fictional lore alongside existing technical workflows', async () => {
     const combined = new AgentDocumentStore([join(__dirname, 'agent-documents'), resolvePbtAdminKnowledgeDirectory(true)])
-    expect((await combined.list()).filter(document => document.id.startsWith('pbt-'))).toHaveLength(9)
+    expect((await combined.list()).filter(document => document.id.startsWith('pbt-'))).toHaveLength(24)
     const juand = await combined.read('pbt-juand')
     expect(juand.body).toContain('raid ficticio')
     expect(juand.body).toContain('maintainer-10b')
-    expect((await combined.search('JuanD'))[0].excerpt).toContain('Ficción')
+    expect((await combined.search('JuanD'))[0].excerpt).toMatch(/\[(?:juand-rtf|maintainer-157)/)
     const lore = await combined.read('pbt-fnf-lore')
     for (let part = 1; part <= 9; part++) expect(lore.body).toContain(`parte ${part}/9`)
-    expect((await combined.search('Lozeer_55 ascensores'))[0].excerpt).toContain('Ficción')
-    expect((await combined.search('Hector'))[0].id).toBe('pbt-characters')
+    expect((await combined.search('Lozeer_55 ascensores'))[0].excerpt).toMatch(/Ficción|Parodia/)
+    expect((await combined.search('Hector'))[0].id).toBe('pbt-character-hector')
     expect((await combined.read('pbt-network-history')).body).toContain('Ella es la propietaria')
     expect((await combined.read('shaderpack-enable')).body).toContain('system info')
+  })
+
+  test.each(['0ftome101', '0ftome', 'Oftome'])('retrieves the independent builder profile for alias %s', async (alias) => {
+    const docs = new AgentDocumentStore(resolvePbtAdminKnowledgeDirectory(true))
+    const results = await docs.search(alias)
+    expect(results[0].id).toBe('pbt-character-0ftome101')
+    const profile = await docs.read(results[0].id)
+    expect(profile.body).toContain('No es JuanD')
+    expect(profile.body).toContain('parte 2/9')
+    expect(results[0].excerpt).toContain('builder')
+    expect(results[0].excerpt).toContain('parte 2/9')
+  })
+
+  test.each(['2020-08-04', '2020-08-16', '2020-08-18', '2020-09-06', '2020-09-14'])('retrieves the actual narrated event for %s', async (date) => {
+    const docs = new AgentDocumentStore(resolvePbtAdminKnowledgeDirectory(true))
+    const result = (await docs.search(date))[0]
+    expect(result.id).toBe('pbt-juand-history')
+    expect(result.excerpt).toContain(date)
+    expect(result.excerpt).toContain('[juand-rtf]')
+    expect(result.excerpt!.length).toBeLessThanOrEqual(1200)
+    if (date === '2020-09-14') expect(result.excerpt).not.toContain('2020-09-06')
+  })
+
+  test('keeps author uncertainty, hypothetical relationships and private source outside distributed knowledge', async () => {
+    const docs = new AgentDocumentStore(resolvePbtAdminKnowledgeDirectory(true))
+    expect((await docs.read('pbt-juand')).body).toContain('quién escribió la historia queda pendiente')
+    expect((await docs.read('pbt-character-itsbatsy')).body).toContain('hipótesis del narrador y no hechos')
+    expect((await docs.read('pbt-character-pbtinadev')).body).toContain('Alicia BT')
+    for (const entry of await docs.list()) {
+      const { body } = await docs.read(entry.id)
+      expect(body).not.toMatch(/\b(?:\d{1,2} años|diegogamer16|alonsoneitor|neitorgg)\b/i)
+      expect(body).not.toContain('colegio de')
+      expect(body).not.toContain('\uFFFD')
+    }
   })
 
   test('keeps provenance explicit and never mistakes editorial lore for verified public history', async () => {

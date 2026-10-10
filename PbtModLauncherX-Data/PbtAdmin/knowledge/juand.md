@@ -1,12 +1,12 @@
 ---
 id: pbt-juand
-description: JuanD, el payaso de la parodia y el raid ficticio de la parte 1/9.
-tags: [JuanD, payaso, clown, raid, ficticio, fictional, FNF, 1/9]
+description: "JuanD — perfil y límites documentados."
+tags: ["JuanD", "Sixcraft", "payaso", "historia", "2020", "2021"]
 ---
 # JuanD
 
-Ficción/parodia [maintainer-10b]: JuanD es un personaje de payaso en el universo de PbtServers. La parte 1/9 de FNF VS PBTSERVERS REMASTERED trata de JuanD y un raid ficticio a PbtServers. No se describe un ataque real ni se acusa a una persona de realizarlo.
+Narración comunitaria [juand-rtf]: JuanD aparece en anécdotas de Discord y Minecraft de 2020–2021, especialmente Sixcraft. El documento se titula LA_HISTORIA_DE_JUAND.rtf; no contiene una atribución inequívoca de autoría, por lo que quién escribió la historia queda pendiente. Es un relato subjetivo, no una verificación independiente de los hechos. La cronología depurada está en pbt-juand-history.
 
-No se conocen por fuentes verificadas fechas del episodio, datos personales ni incidentes reales asociados a este papel. Ante preguntas sobre un raid real, distinguirlo expresamente de este relato y solicitar fuentes verificables; el contenido de la parodia no sirve como prueba.
+Ficción/parodia [maintainer-10b y maintainer-157]: JuanD es representado humorísticamente como un payaso y protagoniza la parte 1/9 de FNF, con un raid ficticio. No se afirma que efectuase un ataque real. El meme del circo se narra con fecha 2020-08-04 en la fuente comunitaria. Las burlas antiguas se explican con contexto, sin promover acoso ni reproducir insultos discriminatorios.
 
-Fuente: maintainer-10b en sources.json; ver también pbt-fnf-lore.
+Fuentes y procedencia: sources.json. Campos no documentados: pendientes.

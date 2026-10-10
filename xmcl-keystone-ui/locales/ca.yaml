@@ -2635,6 +2635,7 @@ versionType:
   release: Estable
 'yes': Sí
 agent:
+  send: Enviar missatge
   callingTool: cridant a {name}…
   disabledPlaceholder: Agent desactivat
   emptyHint: Demana a l'agent que inspeccioni la teva instància, activi mods, llegeixi els registres o diagnostiqui un error.

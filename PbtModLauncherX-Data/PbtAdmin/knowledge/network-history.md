@@ -9,6 +9,8 @@ Hecho documentado [official-profile]: el perfil público PbtServers se identific
 
 Canon proporcionado por la creadora [maintainer-10b]: PbtServers es una network de Minecraft vinculada a PbtinaDev y su comunidad. PbtAdmin es su administrador virtual, una IA sin privilegios reales. No es una persona ni acredita pertenencia real al equipo de administración.
 
-No hay en las fuentes consultadas una cronología verificable de fundación, cambios de personal o temporadas. No se inventan fechas. Las historias de personajes de las parodias se consultan en pbt-characters y pbt-fnf-lore y no son sucesos reales.
+No hay una cronología verificable de fundación, cambios de personal o temporadas. No se inventan fechas. La narración comunitaria subjetiva de JuanD se consulta en pbt-juand-history; las parodias se consultan en pbt-fnf-lore. Una narración comunitaria y una ficción son categorías distintas, y ninguna acredita por sí sola hechos personales.
+
+Identidad aportada por la creadora [maintainer-157]: PbtinaDev también es conocida como Pbt o Alicia BT. Ella es la creadora y responsable principal de PbtServers; PbtAdmin es su asistente de IA, no la propia PbtinaDev.
 
 Fuentes: official-profile y maintainer-10b en sources.json. Las directrices de esta fase son canon editorial, no una publicación pública independiente.

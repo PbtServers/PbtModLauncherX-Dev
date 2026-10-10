@@ -1,12 +1,22 @@
 <template>
   <v-dialog
     v-model="shown"
-    width="800"
+    :width="mode === 'agent' ? 900 : 800"
     max-width="95vw"
     scrollable
-    transition="dialog-top-transition"
+    :transition="reducedMotion ? false : 'dialog-top-transition'"
   >
     <div class="omni-surface" :class="`omni-surface--${mode}`">
+      <AppCommandPalette
+        ref="commandPanel"
+        v-show="mode === 'command'"
+        :agent-enabled="agentEnabled"
+      />
+      <AppAgentChat
+        v-if="agentEnabled"
+        ref="agentPanel"
+        v-show="mode === 'agent'"
+      />
       <div class="omni-input-card">
         <v-textarea
           ref="inputRef"
@@ -20,7 +30,7 @@
           hide-details
           auto-grow
           rows="1"
-          :max-rows="mode === 'agent' ? 6 : 1"
+          :max-rows="mode === 'agent' ? 4 : 1"
           class="omni-input"
           @compositionstart="composing = true"
           @compositionend="composing = false"
@@ -33,6 +43,8 @@
               size="small"
               variant="text"
               color="primary"
+              :title="t('agent.send')"
+              :aria-label="t('agent.send')"
               :disabled="inputDisabled || !activeInput.trim()"
               @click="sendAgentInput"
             />
@@ -71,22 +83,13 @@
           <div id="omni-mode-specific-controls" class="omni-mode-specific-controls" />
         </div>
       </div>
-      <AppCommandPalette
-        ref="commandPanel"
-        v-show="mode === 'command'"
-        :agent-enabled="agentEnabled"
-      />
-      <AppAgentChat
-        v-if="agentEnabled"
-        ref="agentPanel"
-        v-show="mode === 'agent'"
-      />
     </div>
   </v-dialog>
 </template>
 
 <script lang="ts" setup>
 import { useOmniDialog } from '@/composables/omniDialog'
+import { useLowResourceMode } from '@/composables/lowResource'
 import { shouldSubmitAgentInput } from '@/composables/agent/input'
 import AppAgentChat from '@/views/AppAgentChat.vue'
 import AppCommandPalette from '@/views/AppCommandPalette.vue'
@@ -98,6 +101,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { reducedMotion } = useLowResourceMode()
 const { shown, mode, commandInput, agentInput, open, close } = useOmniDialog()
 const commandPanel = ref<InstanceType<typeof AppCommandPalette> | null>(null)
 const agentPanel = ref<InstanceType<typeof AppAgentChat> | null>(null)
@@ -191,6 +195,27 @@ watch([shown, mode], async ([visible]) => {
   align-items: center;
 }
 
+.omni-surface--command .omni-input-card {
+  order: -1;
+}
+
+/* Keep the conversation and composer together in the middle of the viewport. */
+.omni-surface--agent {
+  height: min(78vh, 760px);
+  height: min(78dvh, 760px);
+  max-height: calc(100dvh - 32px);
+  align-items: center;
+  padding: clamp(12px, 2vh, 24px);
+  gap: 12px;
+  box-sizing: border-box;
+  transform: none;
+  overflow: hidden;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+  border-radius: 12px;
+  --omni-content-width: 760px;
+  background: rgb(var(--v-theme-surface)) !important;
+}
+
 .omni-input-card {
   width: var(--omni-content-width);
   max-width: 100%;
@@ -226,6 +251,29 @@ watch([shown, mode], async ([visible]) => {
   min-width: 0;
   flex: 1 1 auto;
   align-items: center;
+}
+
+.omni-surface--agent .omni-input :deep(.v-field__input) {
+  max-height: min(130px, 20dvh);
+  overflow-y: auto;
+}
+
+.omni-surface--agent .omni-input-card:focus-within {
+  border-color: rgb(var(--v-theme-primary));
+}
+
+@media (max-height: 560px) {
+  .omni-surface--agent {
+    height: calc(100vh - 24px);
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+    padding: 8px;
+    gap: 6px;
+  }
+  .omni-surface--agent .omni-mode-controls {
+    padding-block: 3px;
+    gap: 4px;
+  }
 }
 
 @media (max-width: 700px) {

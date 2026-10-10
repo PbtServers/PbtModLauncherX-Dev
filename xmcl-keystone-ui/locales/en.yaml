@@ -51,6 +51,7 @@ HomeLaunchMultiInstanceDialog:
 SettingMigrationDialog:
   selectRootDirectory: Select Root Directory
 agent:
+  send: Send message
   accessRequiredHint: Subscribe to XMCL to use the built-in Agent, or configure your own AI provider in Settings.
   abort: Stop generation
   callingTool: calling {name}…

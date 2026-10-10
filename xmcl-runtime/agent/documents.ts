@@ -117,7 +117,9 @@ export class AgentDocumentStore {
       const { bodyOffset } = parseFrontmatter(document.file, content)
       const body = content.slice(bodyOffset)
       const paragraphs = body.split(/\r?\n\s*\r?\n/)
-      const ranked = paragraphs.map(text => ({ text, score: terms.filter(term => normalize(text).includes(term)).length }))
+      const dates = normalizedQuery.match(/\b\d{4} \d{2} \d{2}\b/g) ?? []
+      const ranked = paragraphs.map(text => ({ text, score: terms.filter(term => normalize(text).includes(term)).length
+        + dates.filter(date => normalize(text).includes(date)).length * 50 }))
         .sort((left, right) => right.score - left.score || right.text.length - left.text.length)
       let score = 0
       for (const term of terms) {
@@ -129,7 +131,11 @@ export class AgentDocumentStore {
       if (!score) return []
       if (id.includes(normalizedQuery)) score += 8
       if (tags.includes(normalizedQuery)) score += 4
-      return [{ ...metadata(document), score, excerpt: (ranked[0]?.text ?? '').slice(0, 1200) }]
+      // Keep a second relevant paragraph for source/fiction context, within the same budget.
+      const dated = ranked.filter(paragraph => dates.some(date => normalize(paragraph.text).includes(date)))
+      const excerpt = (dated.length ? dated : ranked.filter(paragraph => paragraph.score > 0))
+        .slice(0, 2).map(paragraph => paragraph.text).join('\n\n')
+      return [{ ...metadata(document), score, excerpt: (excerpt || ranked[0]?.text || '').slice(0, 1200) }]
     }))).flat().sort((left, right) => right.score - left.score || left.id.localeCompare(right.id)).slice(0, limit)
   }
 
