@@ -839,6 +839,13 @@ launchStatus:
   elyByWarning: >-
     La substitució d'authlib d'Ely.by està activada. Algunes versions de Minecraft poden ser incompatibles i fallar. Si
     tens problemes, desactiva-la a la configuració de la instància.
+releaseSafety:
+  checkError: 'No s’ha pogut consultar una actualització vàlida de PbtServers. Comprova la connexió i torna-ho a provar.'
+  downloadError: 'La descàrrega s’ha cancel·lat, ha fallat o no ha superat la verificació. No s’instal·larà. Comprova l’espai i els permisos i torna-ho a provar.'
+  installError: 'No s’ha pogut completar la instal·lació de l’actualització. Conserva el directori de dades i utilitza el paquet complet oficial si el problema persisteix.'
+  versions: 'Versió instal·lada: {installed}. Versió disponible: {available}.'
+  manual: 'Instal·la el paquet complet oficial de PbtModLauncherX. Aquesta versió no permet verificar una actualització automàtica compatible. Conserva el directori de dades.'
+  verified: 'La descàrrega es verifica abans de permetre la instal·lació. Si es cancel·la o falla, pots tornar-ho a provar; les dades es conserven.'
 launcherUpdate:
   alreadyLatest: Actualitzat!
   installAndQuit: Reinicia per instal·lar

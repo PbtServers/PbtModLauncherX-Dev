@@ -2,6 +2,9 @@ import { Settings, type ReleaseInfo } from '@xmcl/runtime-api'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../constant', () => ({ HAS_DEV_SERVER: false }))
+// These tests exercise update state only, not unrelated Steam VDF persistence.
+// Avoid atomically's import-time OS account lookup in restricted Windows hosts.
+vi.mock('atomically', () => ({ writeFile: vi.fn() }))
 
 import { BaseService } from './BaseService'
 
@@ -13,6 +16,7 @@ function setup() {
   const updater = {
     checkUpdateTask: vi.fn(async () => info),
     downloadUpdate: vi.fn(async () => {}),
+    installUpdateAndQuit: vi.fn(async () => {}),
   }
   const task = { controller: new AbortController(), wrap: async (promise: Promise<void>) => promise }
   const service = Object.create(BaseService.prototype) as BaseService
@@ -47,6 +51,25 @@ describe('launcher update state', () => {
     const { service, settings } = setup()
     await service.checkUpdate()
     expect(settings.updateStatus).toBe('pending')
+  })
+
+  it('does not mark opening the manual download website as a ready installer', async () => {
+    const { service, settings, info } = setup()
+    settings.updateInfoSet({ ...info, operation: 'manual' })
+    settings.updateStatusSet('pending')
+    await service.downloadUpdate()
+    expect(settings.updateStatus).toBe('pending')
+  })
+  it('propagates a failed install handoff and preserves the verified download for retry', async () => {
+    const { service, settings, info, updater } = setup()
+    settings.updateInfoSet(info)
+    settings.updateStatusSet('ready')
+    updater.installUpdateAndQuit.mockRejectedValueOnce(new Error('Installation cancelled'))
+    await expect(service.quitAndInstall()).rejects.toThrow('cancelled')
+    expect(settings.updateStatus).toBe('ready')
+    expect(settings.updateInfo).toBe(info)
+    await service.quitAndInstall()
+    expect(updater.installUpdateAndQuit).toHaveBeenCalledTimes(2)
   })
 
   it('forwards cancellation to the updater and does not mark a failed download ready', async () => {

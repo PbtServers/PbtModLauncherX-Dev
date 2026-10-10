@@ -16,10 +16,14 @@ export function useUpdateSettings() {
   const updateInfo = computed(() => state.value?.updateInfo)
   const version = computed(() => env.value?.version ?? '0.0.0')
   const installing = ref(false)
+  const updateError = ref<'check' | 'download' | 'install'>()
   async function install() {
+    updateError.value = undefined
     installing.value = true
     try {
       await quitAndInstall()
+    } catch {
+      updateError.value = 'install'
     } finally {
       installing.value = false
     }
@@ -27,9 +31,12 @@ export function useUpdateSettings() {
 
   const downloadingUpdate = ref(false)
   async function download() {
+    updateError.value = undefined
     downloadingUpdate.value = true
     try {
       await downloadUpdate()
+    } catch {
+      updateError.value = 'download'
     } finally {
       downloadingUpdate.value = false
     }
@@ -37,9 +44,12 @@ export function useUpdateSettings() {
 
   const checkingUpdate = ref(false)
   async function check() {
+    updateError.value = undefined
     checkingUpdate.value = true
     try {
       await checkUpdate()
+    } catch {
+      updateError.value = 'check'
     } finally {
       checkingUpdate.value = false
     }
@@ -51,6 +61,7 @@ export function useUpdateSettings() {
     downloadUpdate: download,
     checkUpdate: check,
     installing,
+    updateError,
     updateStatus,
     checkingUpdate,
     downloadingUpdate,

@@ -18,7 +18,7 @@ function githubRelease(version = '0.70.0') {
   const name = `pbtmodlauncherx-deskgap-${version}-win32-x64.exe`
   return {
     tag_name: `v${version}`, draft: false, prerelease: false,
-    assets: [{ name, size: 100, browser_download_url: `https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}/${name}` }],
+    assets: [{ name, size: 100, browser_download_url: `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/${name}` }],
   }
 }
 
@@ -33,7 +33,7 @@ function setup() {
   const download = vi.fn(async (_url: string, destination: string, _options?: DownloadUpdateOptions) => { await writeFile(destination, bytes) })
   const restart = vi.fn(async (_relaunch: boolean) => {})
   const updater = new DeskGapUpdater({
-    version: '0.69.0', repository: 'Voxelum/x-minecraft-launcher', directory, fetch: fetcher,
+    version: '0.69.0', repository: 'PbtServers/PbtModLauncherX-Dev', directory, fetch: fetcher,
     executable, download, getSettings: async () => ({ allowPrerelease: false }), restart,
   })
   return { updater, executable, fetcher, download, restart, bytes }

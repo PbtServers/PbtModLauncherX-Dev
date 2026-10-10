@@ -219,14 +219,14 @@ export class BaseService extends AbstractService implements IBaseService {
     const settings = await this.getSettings()
     if (settings.updateStatus === 'ready' && settings.updateInfo) {
       const actionId = getActiveRendererActionId()
+      await this.app.updater.installUpdateAndQuit(settings.updateInfo)
       if (actionId) {
         endRendererAction({
           id: actionId,
           outcome: 'success',
-          attributes: { 'update.phase': 'apply' },
+          attributes: { 'update.phase': 'handoff' },
         })
       }
-      await this.app.updater.installUpdateAndQuit(settings.updateInfo)
     } else {
       this.warn('There is no update available!')
     }
@@ -291,7 +291,8 @@ export class BaseService extends AbstractService implements IBaseService {
         task.controller.signal.throwIfAborted()
       }),
     )
-    settings.updateStatusSet('ready')
+    // Opening the download website is not a completed/verified download.
+    settings.updateStatusSet(updateInfo.operation === 'manual' ? 'pending' : 'ready')
   }
 
   quit() {

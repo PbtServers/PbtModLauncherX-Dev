@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { findDeskGapRelease } from './updateFeed'
 
-const repository = 'Voxelum/x-minecraft-launcher'
+const repository = 'PbtServers/PbtModLauncherX-Dev'
 function githubRelease(version = '0.70.0', prerelease = false) {
   const tag = `v${version}`
   const name = `pbtmodlauncherx-deskgap-${version}-win32-x64.exe`
@@ -64,7 +64,13 @@ describe('DeskGap GitHub release discovery', () => {
 
   it('rejects an invalid repository before issuing requests', async () => {
     const fetcher = vi.fn<typeof fetch>()
-    await expect(findDeskGapRelease(fetcher, 'owner/repo?redirect=evil', false)).rejects.toThrow('owner/repository')
+    await expect(findDeskGapRelease(fetcher, 'owner/repo?redirect=evil', false)).rejects.toThrow('PbtServers/PbtModLauncherX-Dev')
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('rejects the original XMCL repository even though its syntax is valid', async () => {
+    const fetcher = vi.fn<typeof fetch>()
+    await expect(findDeskGapRelease(fetcher, 'Voxelum/x-minecraft-launcher', false)).rejects.toThrow('PbtServers')
     expect(fetcher).not.toHaveBeenCalled()
   })
 

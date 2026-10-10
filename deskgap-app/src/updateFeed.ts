@@ -10,8 +10,8 @@ export interface DeskGapRelease {
 }
 
 export function validateRepository(repository: string) {
-  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
-    throw new Error('DeskGap update repository must be owner/repository')
+  if (repository !== 'PbtServers/PbtModLauncherX-Dev') {
+    throw new Error('DeskGap update repository must be PbtServers/PbtModLauncherX-Dev')
   }
   return repository
 }
@@ -54,7 +54,8 @@ export async function findDeskGapRelease(
   for (let page = 1; page <= 10; page++) {
     const response = await fetcher(`https://api.github.com/repos/${repository}/releases?per_page=100&page=${page}`, {
       headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
-      signal,
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000),
+      redirect: 'error',
     })
     if (!response.ok) throw new Error(`DeskGap release discovery failed with HTTP ${response.status}`)
     const releases: unknown = await response.json()

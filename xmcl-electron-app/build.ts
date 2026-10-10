@@ -16,6 +16,8 @@ import { config as electronBuilderConfig } from './build/electron-builder.config
 import { resolveKoffiBinary } from './build/koffi'
 import esbuildConfig from './esbuild.config'
 import { version } from './package.json'
+import { canEmitLegacyAsarAsset } from './build/releasePolicy'
+import { runtimeDependencyFingerprint } from './main/utils/releaseMetadata'
 
 /**
  * @returns Hash string
@@ -161,18 +163,22 @@ async function start() {
         src = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app/Contents/Resources/app.asar`)
         console.log(`  ${chalk.yellow('•')} fallback to ${chalk.yellow('Resources/app.asar')} for ${chalk.yellow('resources/app.asar')} not found`)
       }
-      await copyFile(src, dest)
-      await writeHash('sha256', dest)
-      await promisify(pipeline)(createReadStream(dest), createGzip(), createWriteStream(gzipDest))
-      console.log(`  ${chalk.blue('•')} prepare asar with checksum ${chalk.blue('from')}=${src} ${chalk.blue('to')}=${dest}`)
+      if (canEmitLegacyAsarAsset(version)) {
+        await copyFile(src, dest)
+        await writeHash('sha256', dest)
+        await promisify(pipeline)(createReadStream(dest), createGzip(), createWriteStream(gzipDest))
+        console.log(`  ${chalk.blue('•')} prepare asar with checksum ${chalk.blue('from')}=${src} ${chalk.blue('to')}=${dest}`)
+      } else {
+        console.log('PbtModLauncherX requires a full package update; no legacy standalone ASAR asset is generated.')
+      }
 
-      // Pin the exact Electron version used for this build. The release
-      // pipeline reads this to tag the `@xmcl/app` npm package, so the
-      // portable script installer knows which Electron prebuilt to fetch from
-      // the mirror. Same value across platforms/arches, so overwriting is fine.
+      // Public package metadata only; no XMCL npm package or mirror contract.
       await writeFile('build/output/manifest.json', JSON.stringify({
         version,
         electron: context.packager.info.framework.version,
+        product: 'PbtModLauncherX',
+        updateMode: canEmitLegacyAsarAsset(version) ? 'legacy-asar' : 'full-package',
+        dependencies: runtimeDependencyFingerprint,
       }, null, 2))
     },
     async artifactBuildStarted(context) {

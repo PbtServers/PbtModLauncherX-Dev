@@ -902,6 +902,13 @@ launchStatus:
   launchingSlow: Aún iniciando... El Motor gráfico puede ser lento...
   refreshingUser: Recargando token de usuario
   spawningProcess: Apareciendo Proceso
+releaseSafety:
+  checkError: 'No se ha podido consultar una actualización válida de PbtServers. Comprueba la conexión y vuelve a intentarlo.'
+  downloadError: 'La descarga se ha cancelado, ha fallado o no ha superado la verificación. No se instalará. Comprueba el espacio y los permisos y vuelve a intentarlo.'
+  installError: 'No se ha podido completar la instalación de la actualización. Conserva tu directorio de datos y utiliza el paquete completo oficial si el problema persiste.'
+  versions: 'Versión instalada: {installed}. Versión disponible: {available}.'
+  manual: 'Instala el paquete completo oficial de PbtModLauncherX. Esta versión no permite verificar una actualización automática compatible. Conserva tu directorio de datos.'
+  verified: 'La descarga se verifica antes de permitir la instalación. Si se cancela o falla, puedes volver a intentarlo; tus datos se conservan.'
 launcherUpdate:
   alreadyLatest: Actualizado!
   installAndQuit: Reinicia para instalar

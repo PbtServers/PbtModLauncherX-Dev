@@ -3,7 +3,7 @@
 	xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
-  <Identity Name="PBTMODLAUNCHERX" Version="0.14.0.0" Publisher="CN=pbtservers" ProcessorArchitecture="x64" />
+  <Identity Name="PBTMODLAUNCHERX" Version="1.0.7.0" Publisher="CN=pbtservers" ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>PbtModLauncherX</DisplayName>
     <PublisherDisplayName>PbtServers</PublisherDisplayName>

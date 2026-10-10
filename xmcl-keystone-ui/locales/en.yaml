@@ -799,6 +799,13 @@ launchStatus:
   launchingSlow: Still launching... Starting graphics engine can be slow...
   refreshingUser: Refreshing User Token
   spawningProcess: Spawning Process
+releaseSafety:
+  checkError: 'A valid PbtServers update could not be checked. Check your connection and retry.'
+  downloadError: 'The download was cancelled, failed or did not pass verification. It will not be installed. Check available space and permissions and retry.'
+  installError: 'The update installation could not be completed. Keep your data directory and use the official full package if the problem persists.'
+  versions: 'Installed version: {installed}. Available version: {available}.'
+  manual: 'Install the official full PbtModLauncherX package. This release cannot verify a compatible automatic update. Keep your data directory.'
+  verified: 'The download is verified before installation is allowed. If cancelled or unsuccessful, you can retry; your data is preserved.'
 launcherUpdate:
   alreadyLatest: Up To Date
   installAndQuit: Restart to Install

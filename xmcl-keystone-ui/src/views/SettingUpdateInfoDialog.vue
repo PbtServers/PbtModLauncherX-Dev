@@ -4,6 +4,9 @@
     width="800"
     @input="$emit('input', $event)"
   >
+    <v-alert v-if="updateError" type="error" role="alert">
+      {{ t(`releaseSafety.${updateError}Error`) }}
+    </v-alert>
     <v-card
       v-if="updateInfo"
       outlined
@@ -18,13 +21,17 @@
       </v-alert>
       <v-card-item>
         <v-card-title>
-          {{ updateInfo.name }}
+          {{ updateInfo.newUpdate ? updateInfo.name : t('launcherUpdate.alreadyLatest') }}
         </v-card-title>
         <v-card-subtitle>
           {{ getLocalDateString(updateInfo.date, undefined, locale) }}
         </v-card-subtitle>
       </v-card-item>
       <v-card-text class="markdown-body flex flex-col overflow-auto">
+        <p>{{ t('releaseSafety.versions', { installed: env?.version ?? '—', available: updateInfo.newUpdate ? updateInfo.name : env?.version ?? '—' }) }}</p>
+        <v-alert v-if="updateInfo.newUpdate" type="info" variant="tonal">
+          {{ t(hintRedownload ? 'releaseSafety.manual' : 'releaseSafety.verified') }}
+        </v-alert>
         <div v-html="body" />
       </v-card-text>
       <v-alert
@@ -56,7 +63,7 @@
           {{ t('setting.githubRelease') }}
         </v-btn>
         <v-spacer />
-        <template v-if="!hintRedownload">
+        <template v-if="updateInfo.newUpdate && !hintRedownload">
           <v-btn
             v-if="updateStatus === 'pending'"
             color="primary"
@@ -72,7 +79,7 @@
             {{ t('launcherUpdate.updateToThisVersion') }}
           </v-btn>
           <v-btn
-            v-else
+            v-else-if="updateStatus === 'ready'"
             color="primary"
             :loading="installing"
             @click="quitAndInstall()"
@@ -122,7 +129,7 @@ const { t, locale } = useI18n()
 const { render } = useMarkdown()
 const { state } = injection(kSettingsState)
 const {
-  installing, downloadingUpdate, checkingUpdate, updateInfo, updateStatus,
+  installing, downloadingUpdate, checkingUpdate, updateInfo, updateStatus, updateError,
   downloadUpdate, quitAndInstall,
 } = injection(kUpdateSettings)
 

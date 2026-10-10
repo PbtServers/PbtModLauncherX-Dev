@@ -1,509 +1,239 @@
-import { HAS_DEV_SERVER } from '@/constant'
-import {
-  DownloadBaseOptions,
-  ProgressTracker,
-  download,
-  getDownloadBaseOptions,
-} from '@xmcl/file-transfer'
-import { Tracker, onDownloadSingle } from '@xmcl/installer'
-import {
-  DownloadUpdateTrackerEvents,
-  ElectronUpdateOperation,
-  ReleaseInfo,
-} from '@xmcl/runtime-api'
-import { DownloadUpdateOptions, LauncherAppUpdater } from '@xmcl/runtime/app'
-import { AnyError, isSystemError } from '@xmcl/utils'
-import { spawn } from 'child_process'
-import { app, shell } from 'electron'
+import { HAS_DEV_SERVER } from '../constant'
+import { ElectronUpdateOperation, type ReleaseInfo } from '@xmcl/runtime-api'
+import type { DownloadUpdateOptions, LauncherAppUpdater } from '@xmcl/runtime/app'
+import { app as electronApp, shell } from 'electron'
 import * as updater from 'electron-updater'
-import { AppUpdater, CancellationToken, UpdaterSignal } from 'electron-updater'
-import { createReadStream, createWriteStream } from 'fs'
-import { readFile, rename as renameAsync, unlink as unlinkAsync, writeFile } from 'fs-extra'
-import { closeSync, existsSync, open, rename, unlink } from 'original-fs'
-import { platform } from 'os'
-import { basename, dirname, join } from 'path'
-import { pipeline } from 'stream/promises'
-import { setTimeout } from 'timers/promises'
-import { extract as extractTar } from 'tar-stream'
-import { promisify } from 'util'
-import { createGunzip } from 'zlib'
-import { Logger } from '~/infra'
+import { CancellationToken } from 'electron-updater'
+import { dirname, join } from 'node:path'
+import { gt, prerelease, rcompare, valid } from 'semver'
 import { kSettings } from '~/settings'
-import { checksum } from '~/util/fs'
-import ElectronLauncherApp from '../ElectronLauncherApp'
-import { ensureElevateExe } from './elevate'
-
-/**
- * Only download asar file update.
- *
- * If the this update is not a full update but an incremental update,
- * you can call this to download asar update
- */
-async function downloadAsarUpdate(
-  app: ElectronLauncherApp,
-  destination: string,
-  version: string,
-  options?: {
-    abortSignal?: AbortSignal
-    tracker?: Tracker<DownloadUpdateTrackerEvents>
-  } & DownloadBaseOptions,
-): Promise<void> {
-  version = version.startsWith('v') ? version.substring(1) : version
-  const pl = platform()
-  let platformFlag = pl === 'win32' ? 'win' : pl === 'darwin' ? 'mac' : 'linux'
-  if (process.arch === 'arm64') {
-    platformFlag += '-arm64'
-  } else if (process.arch === 'ia32') {
-    platformFlag += '-ia32'
-  }
-  const file = `app-${version}-${platformFlag}.asar`
-  const github = `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/${file}`
-
-  // Skip the download entirely if the pending file already matches the
-  // published checksum.
-  try {
-    const sha256Response = await app.fetch(github + '.sha256', { signal: options?.abortSignal })
-    const sha256 = sha256Response.ok ? (await sha256Response.text()).trim() : ''
-    const actual = await checksum(destination, 'sha256').catch(() => '')
-    if (sha256 && sha256 === actual) {
-      return
-    }
-  } catch {
-    // Ignore — fall through to download.
-  }
-
-  const errors: Error[] = []
-
-  const isAbort = (e: unknown) => e instanceof Error && e.name === 'AbortError'
-
-  // A fork-owned tarball mirror can be supplied without fetching XMCL packages.
-  // The URL template may contain {version} and {platform}.
-  const mirror = process.env.PBT_ASAR_MIRROR
-  if (mirror) {
-    const tarball = mirror.replace('{version}', version).replace('{platform}', platformFlag)
-    try {
-      await downloadAsarFromTarball(app, tarball, destination, options)
-      return
-    } catch (e) {
-      if (isAbort(e)) return
-      errors.push(Object.assign(e as Error, { name: 'UpdateAsarError', url: tarball }))
-    }
-  }
-
-  // Fall back to the GitHub release asset (gzipped when available).
-  try {
-    await downloadGzAsar(app, github, destination, options)
-    return
-  } catch (e) {
-    if (isAbort(e)) return
-    errors.push(Object.assign(e as Error, { name: 'UpdateAsarError', url: github }))
-  }
-
-  throw new AggregateError(
-    errors.flatMap((e) => (e instanceof AggregateError ? e.errors : e)),
-    'Fail to download asar update',
-  )
-}
-
-/**
- * Download an npm package tarball and extract its `package/app.asar` entry to
- * `destination`. Used for the npmmirror mirror path (see `downloadAsarUpdate`).
- */
-async function downloadAsarFromTarball(
-  app: ElectronLauncherApp,
-  url: string,
-  destination: string,
-  options?: {
-    abortSignal?: AbortSignal
-    tracker?: Tracker<DownloadUpdateTrackerEvents>
-  } & DownloadBaseOptions,
-): Promise<void> {
-  const tempTgz = destination + '.tgz'
-  await download({
-    url,
-    destination: tempTgz,
-    tracker: onDownloadSingle(options?.tracker, 'download-update.asar', { url }),
-    signal: options?.abortSignal,
-    ...getDownloadBaseOptions(options),
-  })
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const tar = extractTar()
-      let found = false
-      tar.on('entry', (header, stream, next) => {
-        if (!found && (header.name === 'package/app.asar' || header.name.endsWith('/app.asar'))) {
-          found = true
-          const out = createWriteStream(destination)
-          out.on('error', reject)
-          out.on('finish', next)
-          stream.pipe(out)
-        } else {
-          stream.on('end', next)
-          stream.on('error', reject)
-          stream.resume()
-        }
-      })
-      tar.on('error', reject)
-      tar.on('finish', () => {
-        if (found) resolve()
-        else reject(new AnyError('UpdateAsarError', `No app.asar found in tarball ${url}`))
-      })
-      createReadStream(tempTgz).pipe(createGunzip()).pipe(tar)
-    })
-  } finally {
-    await unlinkAsync(tempTgz).catch(() => {})
-  }
-}
-
-/**
- * Download a raw asar (or its `.gz` sibling when present) and write it to
- * `destination`. Used for the GitHub release-asset path.
- */
-async function downloadGzAsar(
-  app: ElectronLauncherApp,
-  url: string,
-  destination: string,
-  options?: {
-    abortSignal?: AbortSignal
-    tracker?: Tracker<DownloadUpdateTrackerEvents>
-  } & DownloadBaseOptions,
-): Promise<void> {
-  const gzUrl = url + '.gz'
-  const gzResponse = await app
-    .fetch(gzUrl, { method: 'HEAD', signal: options?.abortSignal })
-    .catch(() => null)
-  const downloadUrl = gzResponse?.ok ? gzUrl : url
-
-  const tempFile = destination + '.tmp'
-  await download({
-    url: downloadUrl,
-    destination: tempFile,
-    tracker: onDownloadSingle(options?.tracker, 'download-update.asar', { url: downloadUrl }),
-    signal: options?.abortSignal,
-    ...getDownloadBaseOptions(options),
-  })
-
-  if (downloadUrl === gzUrl) {
-    await pipeline(createReadStream(tempFile), createGunzip(), createWriteStream(destination))
-    await unlinkAsync(tempFile)
-  } else {
-    await renameAsync(tempFile, destination)
-  }
-}
-
-async function hintUserDownload(): Promise<void> {
-  shell.openExternal('https://mods.pbtservers.com')
-}
-
-async function downloadAppInstaller(
-  launcherApp: ElectronLauncherApp,
-  options?: {
-    abortSignal?: AbortSignal
-    tracker?: Tracker<DownloadUpdateTrackerEvents>
-  } & DownloadBaseOptions,
-): Promise<void> {
-  const destination = join(app.getPath('downloads'), 'pbtmodlauncherx.appinstaller')
-  const url = 'https://github.com/PbtServers/PbtModLauncherX-Dev/releases/latest/download/pbtmodlauncherx.appinstaller'
-
-  await download({
-    url,
-    destination,
-    tracker: onDownloadSingle(options?.tracker, 'download-update.appx', { url }),
-    signal: options?.abortSignal,
-    ...getDownloadBaseOptions(options),
-  })
-
-  shell.showItemInFolder(destination)
-  await setTimeout(1000)
-  await shell.openPath(destination)
-  launcherApp.exit()
-}
-
-async function getUpdateAsarViaBatArgs(
-  appAsarPath: string,
-  updateAsarPath: string,
-  appDataPath: string,
-  elevatePath?: string,
-): Promise<string[]> {
-  const psPath = join(appDataPath, 'AutoUpdate.bat')
-  await writeFile(
-    psPath,
-    [
-      '@echo off',
-      'chcp 65001',
-      '%WinDir%\\System32\\timeout.exe 2',
-      `taskkill /f /im "${basename(process.argv[0])}"`,
-      `copy /Y "${updateAsarPath}" "${appAsarPath}"`,
-      `start /b "" /d "${process.cwd()}" ${process.argv.map((s) => `"${s}"`).join(' ')}`,
-    ].join('\r\n'),
-  )
-
-  return elevatePath ? [elevatePath, psPath] : ['cmd.exe', '/c', psPath]
-}
-/**
- * Download the full update. This size can be larger as it carry the whole electron thing...
- */
-async function downloadFullUpdate(
-  app: ElectronLauncherApp,
-  appUpdater: AppUpdater,
-  options?: {
-    tracker?: Tracker<DownloadUpdateTrackerEvents>
-    abortSignal?: AbortSignal
-  },
-): Promise<void> {
-
-  // electron-updater uses the fork's GitHub provider. Do not rewrite
-  // requests to Voxelum's mirror or the obsolete /LatestRelease path.
-  const tracker: ProgressTracker = {
-    progress: 0,
-    total: 0,
-    url: '',
-  }
-  options?.tracker?.({
-    phase: 'download-update.full',
-    payload: { progress: tracker },
-  })
-
-  const signal = new UpdaterSignal(appUpdater)
-  signal.progress((info) => {
-    tracker.progress = info.transferred
-    tracker.total = info.total
-    // tracker.speed = info.bytesPerSecond
-  })
-
-  const cancellationToken = new CancellationToken()
-  options?.abortSignal?.addEventListener('abort', () => {
-    cancellationToken.cancel()
-  })
-  await appUpdater.downloadUpdate(cancellationToken)
-}
-
-function isSameVersion(a: string, b: string) {
-  if (a.startsWith('v')) {
-    a = a.substring(1)
-  }
-  if (b.startsWith('v')) {
-    b = b.substring(1)
-  }
-  return a === b
-}
+import type ElectronLauncherApp from '../ElectronLauncherApp'
+import { runtimeDependencyFingerprint } from './releaseMetadata'
+import { checkRelease, fetchUpdate, readUpdateJSON, supportsAsar, updateManifestURL, updateReleaseURL, type CheckedRelease } from './updatePolicy'
+import { downloadVerifiedUpdate, hashUpdate, replaceVerifiedAsar } from './updateDownload'
 
 export class ElectronUpdater implements LauncherAppUpdater {
-  private logger: Logger
+  private approved?: { info: ReleaseInfo; key: string; manifest?: CheckedRelease; sha512?: string }
+  private downloaded?: { version: string; sha256?: string; path?: string; sha512?: string }
+  private busy = false
+  private autoInstallRequested = false
+  private checkingQuit = false
+  private resumeQuit = false
+  private logger
 
   constructor(private app: ElectronLauncherApp) {
     this.logger = app.getLogger('ElectronUpdater')
-    updater.autoUpdater.setFeedURL({
-      provider: 'github',
-      owner: 'PbtServers',
-      repo: 'PbtModLauncherX-Dev',
-    })
+    updater.autoUpdater.setFeedURL({ provider: 'github', owner: 'PbtServers', repo: 'PbtModLauncherX-Dev' })
+    updater.autoUpdater.autoDownload = false
+    updater.autoUpdater.autoInstallOnAppQuit = false
+    updater.autoUpdater.allowDowngrade = false
+    electronApp.on('before-quit', this.beforeQuit)
   }
 
-  async #getUpdateFromSelfHost(): Promise<ReleaseInfo> {
-    const app = this.app
-    this.logger.log('Try get update from selfhost')
-    const { locale } = await app.registry.get(kSettings)
-    const primary = await this.app.fetch(
-      'https://raw.githubusercontent.com/PbtServers/PbtModLauncherX-Dev/master/latest_version.json',
-      { headers: { 'Accept-Language': locale } },
-    ).catch(() => undefined)
-    const response = primary?.ok ? primary : await this.app.fetch(
-      'https://api.github.com/repos/PbtServers/PbtModLauncherX-Dev/releases/latest',
-      { headers: { 'Accept-Language': locale } },
-    )
-    if (!response.ok) {
-      throw new AnyError(
-        'UpdateError',
-        `Fail to get update from selfhost: ${await response.text()}`,
-        {},
-        { status: response.status },
-      )
-    }
-    const result = (await response.json()) as any
-    const files = result.assets.map((a: any) => ({
-      url: a.browser_download_url,
-      name: a.name,
-    })) as Array<{ url: string; name: string }>
-    const platformString =
-      app.platform.os === 'windows' ? 'win' : app.platform.os === 'osx' ? 'mac' : 'linux'
-    const archSuffix = app.platform.arch === 'arm64' ? '-arm64' : app.platform.arch === 'ia32' ? '-ia32' : ''
-    const version = result.tag_name.startsWith('v') ? result.tag_name.substring(1) : result.tag_name
-    const updateInfo: ReleaseInfo = {
-      name: result.tag_name,
-      body: result.body,
-      date: result.published_at,
-      files,
-      newUpdate: !isSameVersion(app.version, result.tag_name),
-      operation: ElectronUpdateOperation.Manual,
-    }
-
-    const hasAsar = files.some((f) => f.name === `app-${version}-${platformString}${archSuffix}.asar`)
-    if (this.app.platform.os === 'windows') {
-      if (this.app.env === 'appx') {
-        updateInfo.operation = ElectronUpdateOperation.Appx
-      } else {
-        updateInfo.operation = hasAsar
-          ? ElectronUpdateOperation.Asar
-          : ElectronUpdateOperation.Manual
-      }
-    } else if (this.app.platform.os === 'osx') {
-      updateInfo.operation = hasAsar ? ElectronUpdateOperation.Asar : ElectronUpdateOperation.Manual
-    } else {
-      updateInfo.operation =
-        hasAsar && this.app.env !== 'appimage'
-          ? ElectronUpdateOperation.Asar
-          : ElectronUpdateOperation.Manual
-    }
-
-    this.logger.log(`Got operation=${updateInfo.operation} update from selfhost`)
-
-    return updateInfo
-  }
-
-  async #getUpdateFromAutoUpdater(): Promise<ReleaseInfo> {
-    const autoUpdater = updater.autoUpdater
-
-    this.logger.log(`Check update via ${autoUpdater.getFeedURL()}`)
-    const info = await autoUpdater.checkForUpdates()
-    if (!info) throw new Error('No update info found')
-
-    const files = info.updateInfo.files.map((f) => ({ name: basename(f.url), url: f.url }))
-    const release: ReleaseInfo = {
-      name: info.updateInfo.version,
-      body: info.updateInfo.releaseNotes as string,
-      date: info.updateInfo.releaseDate,
-      files,
-      newUpdate: !isSameVersion(info.updateInfo.version, this.app.version),
-      operation: ElectronUpdateOperation.AutoUpdater,
-    }
-
-    return release
-  }
-
-  private async quitAndInstallAsar() {
-    const appAsarPath = join(dirname(__dirname), 'app.asar')
-    const updateAsarPath = join(this.app.appDataPath, 'pending_update')
-
-    this.logger.log(`Install asar on ${this.app.platform.os} ${appAsarPath}`)
-    if (this.app.platform.os === 'windows') {
-      const elevatePath = await ensureElevateExe(this.app.appDataPath)
-
-      const appAsarPath = join(dirname(__dirname), 'app.asar')
-      const updateAsarPath = join(this.app.appDataPath, 'pending_update')
-
-      if (!existsSync(updateAsarPath)) {
-        throw new Error(`No update found: ${updateAsarPath}`)
-      }
-
-      let hasWriteAccess = await new Promise((resolve) => {
-        open(appAsarPath, 'a', (e, fd) => {
-          if (e) {
-            resolve(false)
-          } else {
-            closeSync(fd)
-            resolve(true)
-          }
-        })
-      })
-
-      // force elevation for now
-      hasWriteAccess = false
-      this.logger.log(
-        hasWriteAccess
-          ? `Process has write access to ${appAsarPath}`
-          : `Process does not have write access to ${appAsarPath}`,
-      )
-
-      const args = await getUpdateAsarViaBatArgs(
-        appAsarPath,
-        updateAsarPath,
-        this.app.appDataPath,
-        !hasWriteAccess ? elevatePath : undefined,
-      )
-      this.logger.log(`Install from windows: ${args.join(' ')}`)
-      const x = spawn(args[0], args.slice(1), {
-        cwd: this.app.appDataPath,
-        detached: true,
-        stdio: 'ignore',
-      })
-      x.unref()
-      this.app.quit()
-    } else {
-      await promisify(rename)(appAsarPath, appAsarPath + '.bk').catch(() => {})
+  private beforeQuit = (event: { preventDefault(): void }) => {
+    if (this.resumeQuit || !this.autoInstallRequested) return
+    event.preventDefault()
+    if (this.checkingQuit) return
+    this.checkingQuit = true
+    void (async () => {
       try {
-        try {
-          await promisify(rename)(updateAsarPath, appAsarPath)
-        } catch (e) {
-          if (isSystemError(e) && e.code === 'EXDEV') {
-            await writeFile(appAsarPath, await readFile(updateAsarPath))
-          } else {
-            throw e
-          }
-        }
-        await promisify(unlink)(appAsarPath + '.bk').catch(() => {})
-        this.app.relaunch()
-      } catch (e) {
-        this.logger.error(
-          new AnyError('UpdateError', `Fail to rename update the file: ${appAsarPath}`, {
-            cause: e,
-          }),
-        )
-        await promisify(rename)(appAsarPath + '.bk', appAsarPath)
+        if (!this.approved || !this.downloaded?.path) throw new Error('No verified update')
+        this.getApproved(this.approved.info)
+        await this.checkChannel(this.approved.info)
+        const digest = await hashUpdate(this.downloaded.path, 'sha512', 'base64', AbortSignal.timeout(5_000))
+        if (digest !== this.downloaded.sha512) throw new Error('Update changed before quit')
+        this.resumeQuit = true
+        // User requested installation on normal exit; do not force a restart.
+        updater.autoUpdater.quitAndInstall(true, false)
+        // quitAndInstall may report an installation failure through an event
+        // without quitting. A requested normal exit must still be allowed.
+        electronApp.quit()
+      } catch {
+        this.autoInstallRequested = false
+        this.downloaded = undefined
+        this.logger.warn('Update verification failed on quit; the working application is preserved.')
+        this.resumeQuit = true
+        electronApp.quit()
       }
-    }
+    })()
   }
 
   async checkUpdateTask(): Promise<ReleaseInfo> {
-    if (this.app.platform.os === 'windows' || this.app.platform.os === 'osx') {
-      return this.#getUpdateFromSelfHost()
-    }
+    if (this.busy) throw new Error('An update operation is already running')
+    this.busy = true
+    updater.autoUpdater.autoInstallOnAppQuit = false
+    this.autoInstallRequested = false
     try {
-      return await this.#getUpdateFromAutoUpdater()
-    } catch (e) {
-      if (isSystemError(e) && e.code === 'ENOENT') {
-        return this.#getUpdateFromSelfHost()
+      const { allowPrerelease } = await this.app.registry.get(kSettings)
+      updater.autoUpdater.allowPrerelease = allowPrerelease
+      let info: ReleaseInfo
+      let manifest: CheckedRelease | undefined
+      let sha512: string | undefined
+      if (this.app.env === 'appimage' && this.app.platform.os === 'linux') {
+        // AppImage full updates retain electron-updater SHA-512 verification.
+        const result = await updater.autoUpdater.checkForUpdates()
+        if (!result || !valid(result.updateInfo.version)) throw new Error('Invalid full update metadata')
+        const version = result.updateInfo.version
+        const expected = `pbtmodlauncherx-${version}-${process.arch}.AppImage`
+        if (result.updateInfo.files.length !== 1 || result.updateInfo.files.some(file =>
+          (file.url !== expected && file.url !== `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/${expected}`) ||
+          !/^[A-Za-z0-9+/]{86}==$/.test(file.sha512))) throw new Error('Invalid AppImage update source, architecture or digest')
+        sha512 = result.updateInfo.files[0].sha512
+        info = {
+          name: version, body: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : '',
+          date: result.updateInfo.releaseDate,
+          files: result.updateInfo.files.map(f => ({ name: f.url, url: f.url })),
+          newUpdate: gt(version, this.app.version) && (allowPrerelease || !prerelease(version)),
+          operation: ElectronUpdateOperation.AutoUpdater,
+        }
+      } else {
+        const fetcher = this.app.fetch.bind(this.app) as typeof fetch
+        const candidates: CheckedRelease[] = []
+        for (const source of [updateManifestURL, updateReleaseURL]) {
+          try {
+            candidates.push(checkRelease(await readUpdateJSON(await fetchUpdate(fetcher, source)), this.app.version, allowPrerelease))
+          } catch {
+            // Either existing fork-owned source can be temporarily unavailable.
+            // Never trust an invalid response or silently claim up to date if both fail.
+          }
+        }
+        if (!candidates.length) throw new Error('No valid PbtServers update manifest is available')
+        manifest = candidates.filter(candidate => candidate.newer).sort((a, b) => rcompare(a.version, b.version))[0] ?? candidates[0]
+        const suffix = this.app.platform.arch === 'x64' ? '' : `-${this.app.platform.arch}`
+        const name = `app-${manifest.version}-linux${suffix}.asar`
+        const runtime = { electron: process.versions.electron ?? '', platform: process.platform, arch: process.arch, dependencies: runtimeDependencyFingerprint }
+        const hasVerifiedAsar = supportsAsar(manifest, runtime) && manifest.assets.some(a => a.name === name) &&
+          manifest.assets.some(a => a.name === `${name}.sha256`)
+        info = {
+          name: manifest.version, body: manifest.body, date: manifest.date,
+          files: manifest.assets.map(a => ({ name: a.name, url: a.url })),
+          newUpdate: manifest.newer,
+          operation: hasVerifiedAsar ? ElectronUpdateOperation.Asar : ElectronUpdateOperation.Manual,
+        }
       }
-      this.logger.warn(e as Error)
-      throw e
+      if (!info.newUpdate) {
+        this.approved = undefined
+        this.downloaded = undefined
+        return info
+      }
+      if (this.approved && this.approved.key === JSON.stringify(info) && this.approved.sha512 === sha512 &&
+          JSON.stringify(this.approved.manifest) === JSON.stringify(manifest)) return this.approved.info
+      this.approved = { info, key: JSON.stringify(info), manifest, sha512 }
+      this.downloaded = undefined
+      this.logger.log(`PbtServers update checked: ${info.name}, operation=${info.operation}`)
+      return info
+    } finally {
+      this.busy = false
     }
   }
 
-  async downloadUpdate(updateInfo: ReleaseInfo, options?: DownloadUpdateOptions): Promise<void> {
-    const tracker = options?.tracker
-    const abortSignal = options?.abortSignal
+  private getApproved(info: ReleaseInfo) {
+    if (!this.approved || this.approved.key !== JSON.stringify(info) || !info.newUpdate ||
+        !gt(info.name, this.app.version)) throw new Error('Update is stale or has not been checked in this session')
+    return this.approved
+  }
 
-    if (updateInfo.operation === ElectronUpdateOperation.AutoUpdater) {
-      await downloadFullUpdate(this.app, updater.autoUpdater, {
-        tracker,
-        abortSignal,
-      })
-    } else if (updateInfo.operation === ElectronUpdateOperation.Asar) {
-      const updatePath = join(this.app.appDataPath, 'pending_update')
-      await downloadAsarUpdate(this.app, updatePath, updateInfo.name, {
-        tracker,
-        abortSignal,
-      })
-    } else if (updateInfo.operation === ElectronUpdateOperation.Appx) {
-      await downloadAppInstaller(this.app, { tracker, abortSignal })
-    } else {
-      tracker?.({
-        phase: 'download-update.manual',
-        payload: {},
-      })
-      await hintUserDownload()
+  private async checkChannel(info: ReleaseInfo) {
+    const settings = await this.app.registry.get(kSettings)
+    if (prerelease(info.name) && !settings.allowPrerelease) throw new Error('Update is not allowed in the selected channel')
+  }
+
+  syncUpdatePreferences(settings: { autoInstallOnAppQuit: boolean; allowPrerelease: boolean }) {
+    updater.autoUpdater.autoDownload = false
+    updater.autoUpdater.allowDowngrade = false
+    updater.autoUpdater.allowPrerelease = settings.allowPrerelease
+    updater.autoUpdater.autoInstallOnAppQuit = false
+    this.autoInstallRequested = this.app.env === 'appimage' &&
+      this.approved?.info.operation === ElectronUpdateOperation.AutoUpdater &&
+      this.approved.key === JSON.stringify(this.approved.info) &&
+      this.downloaded?.version === this.approved.info.name && settings.autoInstallOnAppQuit &&
+      (settings.allowPrerelease || !prerelease(this.approved.info.name))
+  }
+
+  async downloadUpdate(info: ReleaseInfo, options?: DownloadUpdateOptions): Promise<void> {
+    if (this.busy) throw new Error('An update operation is already running')
+    const approved = this.getApproved(info)
+    options?.abortSignal?.throwIfAborted()
+    this.busy = true
+    this.downloaded = undefined
+    updater.autoUpdater.autoInstallOnAppQuit = false
+    this.autoInstallRequested = false
+    try {
+      await this.checkChannel(info)
+      if (info.operation === ElectronUpdateOperation.Manual) {
+        await shell.openExternal('https://mods.pbtservers.com')
+        return
+      }
+      if (info.operation === ElectronUpdateOperation.Asar && approved.manifest) {
+        // Select only the exact architecture chosen by the validated manifest.
+        const suffix = this.app.platform.arch === 'x64' ? '' : `-${this.app.platform.arch}`
+        const exact = approved.manifest.assets.find(a => a.name === `app-${info.name}-linux${suffix}.asar`)
+        if (!exact) throw new Error('Missing compatible update asset')
+        const progress = { progress: 0, total: exact.size, url: exact.url }
+        options?.tracker?.({ phase: 'download-update.asar', payload: { url: exact.url, progress } })
+        const sha256 = await downloadVerifiedUpdate(this.app.fetch.bind(this.app) as typeof fetch, exact,
+          join(this.app.appDataPath, 'pending_update'), options?.abortSignal, bytes => { progress.progress = bytes })
+        this.downloaded = { version: info.name, sha256 }
+      } else if (info.operation === ElectronUpdateOperation.AutoUpdater && this.app.env === 'appimage') {
+        const token = new CancellationToken()
+        const cancel = () => token.cancel()
+        options?.abortSignal?.addEventListener('abort', cancel, { once: true })
+        if (options?.abortSignal?.aborted) cancel()
+        const progress = { progress: 0, total: 0, url: '' }
+        const listener = (event: { transferred: number; total: number }) => { progress.progress = event.transferred; progress.total = event.total }
+        updater.autoUpdater.on('download-progress', listener)
+        options?.tracker?.({ phase: 'download-update.full', payload: { progress } })
+        try {
+          const paths = await updater.autoUpdater.downloadUpdate(token)
+          options?.abortSignal?.throwIfAborted()
+          if (paths.length !== 1) throw new Error('Missing verified AppImage download')
+          const sha512 = await hashUpdate(paths[0], 'sha512', 'base64')
+          options?.abortSignal?.throwIfAborted()
+          if (sha512 !== approved.sha512) throw new Error('AppImage integrity check failed')
+          // A receipt pins the downloaded bytes for the explicit install step;
+          // electron-updater has already matched them to its feed SHA-512.
+          this.downloaded = { version: info.name, path: paths[0], sha512 }
+        } finally {
+          options?.abortSignal?.removeEventListener('abort', cancel)
+          updater.autoUpdater.removeListener('download-progress', listener)
+        }
+      } else throw new Error('Unsupported automatic update operation')
+      await this.checkChannel(info)
+      options?.abortSignal?.throwIfAborted()
+      this.syncUpdatePreferences(await this.app.registry.get(kSettings))
+    } catch (error) {
+      this.downloaded = undefined
+      updater.autoUpdater.autoInstallOnAppQuit = false
+      this.autoInstallRequested = false
+      throw error
+    } finally {
+      this.busy = false
     }
   }
 
-  async installUpdateAndQuit(updateInfo: ReleaseInfo): Promise<void> {
-    if (HAS_DEV_SERVER) {
-      this.logger.log('Currently is development environment. Skip to install update')
-      return
-    }
-    if (updateInfo.operation === ElectronUpdateOperation.Asar) {
-      await this.quitAndInstallAsar()
-    } else {
-      updater.autoUpdater.quitAndInstall()
+  async installUpdateAndQuit(info: ReleaseInfo): Promise<void> {
+    this.getApproved(info)
+    if (HAS_DEV_SERVER) throw new Error('Updates cannot be installed in the development launcher')
+    if (this.busy || this.downloaded?.version !== info.name) throw new Error('Update must be downloaded and verified first')
+    this.busy = true
+    try {
+      await this.checkChannel(info)
+      if (info.operation === ElectronUpdateOperation.Asar && this.downloaded.sha256) {
+        const pending = join(this.app.appDataPath, 'pending_update')
+        if (await hashUpdate(pending) !== this.downloaded.sha256) throw new Error('Pending update integrity check failed')
+        await replaceVerifiedAsar(pending, join(dirname(__dirname), 'app.asar'), this.downloaded.sha256)
+        this.app.relaunch()
+      } else if (info.operation === ElectronUpdateOperation.AutoUpdater && this.app.env === 'appimage') {
+        if (!this.downloaded.path || await hashUpdate(this.downloaded.path, 'sha512', 'base64') !== this.downloaded.sha512) {
+          updater.autoUpdater.autoInstallOnAppQuit = false
+          this.autoInstallRequested = false
+          this.downloaded = undefined
+          throw new Error('Downloaded AppImage has changed')
+        }
+        updater.autoUpdater.quitAndInstall()
+      } else throw new Error('Use the signed full PbtModLauncherX package for this platform')
+    } finally {
+      this.busy = false
     }
   }
 }

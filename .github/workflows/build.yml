@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag de release (ej: v1.0.6). Si vacío y no es push tag, usa v0.0.0-dev"
+        description: "Tag de release (ej: v1.0.7). Si vacío y no es push tag, usa v0.0.0-dev"
         required: false
         default: ""
 permissions:
