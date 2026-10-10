@@ -99,6 +99,7 @@ const lazyDialogComponents = {
   'feedback': defineAsyncComponent(() => import('@/views/AppFeedbackDialog.vue')),
   'share-instance': defineAsyncComponent(() => import('@/views/AppShareInstanceDialog.vue')),
   'delete-instance': defineAsyncComponent(() => import('@/views/AppInstanceDeleteDialog.vue')),
+  'export-server': defineAsyncComponent(() => import('@/views/AppServerExportDialog.vue')),
   'launch-blocked': defineAsyncComponent(() => import('@/views/AppLaunchBlockedDialog.vue')),
   'InstanceInstallSkipDialog': defineAsyncComponent(() => import('@/views/AppInstallSkipDialog.vue')),
   'modpack-update-or-create': defineAsyncComponent(() => import('@/views/AppModpackUpdateDialog.vue')),

@@ -2,6 +2,7 @@ import { Exception, InstanceNotFoundException } from '../entities/exception'
 import { ServiceKey } from './Service'
 import { LaunchOptions } from './LaunchService'
 import type { CreateInstanceOptions, InstanceFile } from '@xmcl/instance'
+import type { ServerExportAnalysisOptions, ServerExportPlan, ServerExportRequest, ServerExportResult, ServerExportMod, ServerModOverride } from '../entities/serverExport'
 
 export interface ExportInstanceOptions {
   /**
@@ -99,6 +100,11 @@ export interface ExportInstanceAsServerOptions {
  * Provide the abilities to import/export instance from/to modpack
  */
 export interface InstanceIOService {
+  getInstanceServerModClassifications(instancePath: string, onlineMetadata?: boolean): Promise<ServerExportMod[]>
+  setServerModOverride(instancePath: string, sha256: string, override: ServerModOverride): Promise<void>
+  analyzeServerExport(options: ServerExportAnalysisOptions): Promise<ServerExportPlan>
+  exportServerZip(request: ServerExportRequest): Promise<ServerExportResult>
+  cancelServerExport(planId: string): Promise<void>
   getGameDefaultPath(type?: 'modrinth' | 'modrinth-instances' | 'curseforge' | 'vanilla'): Promise<string>
   /**
    * Parse other launcher data folder to get the instances

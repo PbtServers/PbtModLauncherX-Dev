@@ -11,6 +11,7 @@ import { useInstanceGroupOps } from './instanceGroup'
 
 export function useInstanceContextMenuFunc() {
   const { show: showDeleteDialog } = useDialog('delete-instance')
+  const { show: showExportServerDialog } = useDialog('export-server')
   const { show: showGroupSelectDialog } = useDialog('mod-group-select')
   const { duplicateInstance } = useService(InstanceServiceKey)
   const { showItemInDirectory } = useService(BaseServiceKey)
@@ -101,6 +102,12 @@ export function useInstanceContextMenuFunc() {
             }
           })
         },
+      },
+      {
+        text: t('serverExport.title'),
+        icon: 'dns',
+        section: 'action',
+        onClick() { showExportServerDialog({ path: inst.path }) },
       },
       {
         text: t('instance.changeIcon'),
