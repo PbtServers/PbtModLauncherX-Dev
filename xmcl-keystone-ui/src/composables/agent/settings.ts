@@ -1,20 +1,17 @@
 import { createSharedComposable } from '@vueuse/core'
 import {
   AgentServiceKey,
-  BUILTIN_AGENT_ENDPOINT,
-  BUILTIN_AGENT_MODEL,
-  XmclAccountServiceKey,
-  resolveAgentProviderId,
+  OLLAMA_ENDPOINT,
 } from '@xmcl/runtime-api'
 import { useService } from '../service'
-import { hasActiveXmclSubscription } from './access'
 
 export const useAgentSettings = createSharedComposable(() => {
   const service = useService(AgentServiceKey)
-  const xmclAccountService = useService(XmclAccountServiceKey)
   const apiKey = ref('')
   const endpoint = ref('')
   const model = ref('')
+  const historyEnabled = ref(true)
+  const contextWindow = ref(8192)
   const providerConfigured = ref(false)
   const subscriptionActive = ref(false)
   const resolvedMode = ref<'builtin' | 'custom' | 'unconfigured'>('unconfigured')
@@ -39,11 +36,7 @@ export const useAgentSettings = createSharedComposable(() => {
       const settings = await service.getProviderSettings()
       providerConfigured.value = settings.configured
       resolvedMode.value = settings.mode
-      if (settings.mode === 'builtin' && settings.configured) {
-        subscriptionActive.value = hasActiveXmclSubscription(
-          await xmclAccountService.getTogetherOverview(),
-        )
-      }
+      contextWindow.value = settings.contextWindow ?? 8192
     } finally {
       accessCheckCount -= 1
       checkingAccess.value = accessCheckCount > 0
@@ -55,17 +48,10 @@ export const useAgentSettings = createSharedComposable(() => {
       const settings = await service.getProviderSettings()
       endpoint.value = settings.endpoint
       model.value = settings.model
+      historyEnabled.value = settings.historyEnabled !== false
+      contextWindow.value = settings.contextWindow ?? 8192
       providerConfigured.value = settings.configured
       resolvedMode.value = settings.mode
-      if (settings.mode === 'builtin' && settings.configured) {
-        try {
-          subscriptionActive.value = hasActiveXmclSubscription(
-            await xmclAccountService.getTogetherOverview(),
-          )
-        } catch (cause) {
-          error.value = cause instanceof Error ? cause.message : String(cause)
-        }
-      }
       loaded.value = true
     } finally {
       accessCheckCount -= 1
@@ -74,19 +60,19 @@ export const useAgentSettings = createSharedComposable(() => {
   })()
 
   function saveProviderSettings() {
-    settingsSave = settingsSave.then(async () => {
-      await service.setProviderSettings({ endpoint: endpoint.value, model: model.value })
+    settingsSave = settingsSave.catch(() => {}).then(async () => {
+      await service.setProviderSettings({ endpoint: endpoint.value, model: model.value, historyEnabled: historyEnabled.value })
       await refreshStatus()
     })
     return settingsSave
   }
 
-  watch([endpoint, model], () => {
+  watch([endpoint, model, historyEnabled], () => {
     if (!loaded.value) return
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(async () => {
       saveTimer = undefined
-      await saveProviderSettings()
+      try { await saveProviderSettings(); error.value = '' } catch { error.value = 'pbtadmin.settingsFailed' }
     }, 300)
   })
 
@@ -126,7 +112,7 @@ export const useAgentSettings = createSharedComposable(() => {
         } else {
           // The endpoint just committed belongs to the previous provider; restore
           // the current selection so settings and UI do not drift apart.
-          await service.setProviderSettings({ endpoint: endpoint.value, model: model.value })
+          await service.setProviderSettings({ endpoint: endpoint.value, model: model.value, historyEnabled: historyEnabled.value })
         }
       } catch (e) {
         keySaveError = e instanceof Error ? e : new Error(String(e))
@@ -168,15 +154,14 @@ export const useAgentSettings = createSharedComposable(() => {
     await setApiKey('')
   }
 
-  const resolvedEndpoint = computed(() => endpoint.value.trim() || BUILTIN_AGENT_ENDPOINT)
-  const resolvedModel = computed(() => model.value.trim() || BUILTIN_AGENT_MODEL)
+  const resolvedEndpoint = computed(() => endpoint.value.trim() || OLLAMA_ENDPOINT)
+  const resolvedModel = computed(() => model.value.trim() || '')
   const configured = computed(() => {
     if (checkingAccess.value) return false
     if (mode.value !== 'builtin') return providerConfigured.value
     return providerConfigured.value && subscriptionActive.value
   })
 
-  const providerId = computed(() => resolveAgentProviderId(endpoint.value))
   /**
    * API keys are stored per provider and never read back into the renderer, so on a
    * provider switch the input is cleared and `configured` is re-read for the newly
@@ -184,7 +169,7 @@ export const useAgentSettings = createSharedComposable(() => {
    * the secret off the saved endpoint.
    */
   let refreshToken = 0
-  watch(providerId, () => {
+  watch(endpoint, () => {
     if (!loaded.value) return
     cancelPendingApiKey()
     apiKey.value = ''
@@ -206,6 +191,8 @@ export const useAgentSettings = createSharedComposable(() => {
     apiKey,
     endpoint,
     model,
+    historyEnabled,
+    contextWindow,
     configured,
     mode,
     loaded,

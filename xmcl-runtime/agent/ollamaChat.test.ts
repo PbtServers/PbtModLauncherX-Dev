@@ -1,0 +1,41 @@
+import { Readable } from 'stream'
+import { expect, test, vi } from 'vitest'
+import { handleOllamaChat, toOllamaChat } from './ollamaChat'
+
+test('native chat preserves tool results, sets the real selected model and bounds runtime context', () => {
+  const body = toOllamaChat({ messages: [
+    { role: 'assistant', tool_calls: [{ id: 'id', function: { name: 'vfs_shell', arguments: '{"command":"system info"}' } }] },
+    { role: 'tool', tool_call_id: 'id', content: 'actual results' },
+  ] }, 'qwen3:4b', 8192)
+  expect(body).toMatchObject({ model: 'qwen3:4b', think: false, options: { num_ctx: 8192, num_predict: 2048 } })
+  expect(body.messages[0].tool_calls[0].function.arguments).toEqual({ command: 'system info' })
+  expect(body.messages[1]).toMatchObject({ tool_name: 'vfs_shell', content: 'actual results' })
+  expect(() => toOllamaChat({}, 'model', 8192)).toThrow('invalid_agent_messages')
+})
+
+test('native streaming respects request cancellation and never uses an Authorization header', async () => {
+  const abort = new AbortController()
+  let fetchSignal: AbortSignal | undefined
+  const fetch = vi.fn(async (_url: any, init: any) => {
+    fetchSignal = init.signal
+    expect(init.headers).toEqual({ 'content-type': 'application/json' })
+    return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('{"message":{"content":"partial"},"done":false}\n')) } }))
+  })
+  const ctx: any = { request: { body: '{"messages":[]}', signal: abort.signal }, response: { headers: {} } }
+  await handleOllamaChat(ctx, { model: 'qwen3:4b', contextWindow: 8192 }, fetch)
+  abort.abort()
+  expect(fetchSignal?.aborted).toBe(true)
+  ;(ctx.response.body as Readable).destroy()
+})
+
+test('IPC request bodies preserve Unicode when UTF-8 characters cross chunk boundaries', async () => {
+  const raw = Buffer.from(JSON.stringify({ messages: [{ role: 'user', content: 'Català, español' }] }))
+  const chunks = [...raw].map(byte => Buffer.from([byte]))
+  const ctx: any = { request: { body: Readable.from(chunks) }, response: { headers: {} } }
+  const fetch = vi.fn(async (_url: any, init: any) => {
+    expect(JSON.parse(init.body).messages[0].content).toBe('Català, español')
+    return new Response('{}', { status: 503 })
+  })
+  await handleOllamaChat(ctx, { model: 'qwen3:4b' }, fetch)
+  expect(ctx.response.status).toBe(503)
+})

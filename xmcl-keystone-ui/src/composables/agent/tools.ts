@@ -1,3 +1,4 @@
+import { useI18n } from 'vue-i18n'
 import type { AgentTool } from '@earendil-works/pi-agent-core'
 import { Type } from '@earendil-works/pi-ai'
 import { useRendererCommandHost } from '@/composables/commandHost'
@@ -171,6 +172,7 @@ function confirmInstall(context: AgentRunContext, title: string, message: string
 }
 
 export function useAgentToolFactory() {
+  const { t } = useI18n()
   const baseService = useService(BaseServiceKey)
   const modsService = useService(InstanceModsServiceKey)
   const resourcePackService = useService(InstanceResourcePacksServiceKey)
@@ -448,6 +450,7 @@ export function useAgentToolFactory() {
       }
 
       const staged = changes.flatMap(change => change.staged ? [change.staged] : [])
+      if (staged.length) await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.stageChanges'), details: staged.map(file => `- ${file.path}`) })
       if (staged.length) await instanceInstall.stageInstanceFiles({ path: instancePath, oldFiles: staged, files: [] })
       for (const change of immediate) await change.remove()
 
@@ -626,13 +629,9 @@ export function useAgentToolFactory() {
         parameters: Type.Object({
           name: Type.Optional(Type.String()),
           description: Type.Optional(Type.String()),
-          java: Type.Optional(Type.String()),
           minMemory: Type.Optional(Type.Number()),
           maxMemory: Type.Optional(Type.Number()),
           assignMemory: Type.Optional(Type.Union([Type.Boolean(), Type.Literal('auto')])),
-          vmOptions: Type.Optional(Type.Array(Type.String())),
-          mcOptions: Type.Optional(Type.Array(Type.String())),
-          env: Type.Optional(Type.Record(Type.String(), Type.String())),
           resolution: Type.Optional(Type.Object({
             width: Type.Optional(Type.Number()),
             height: Type.Optional(Type.Number()),
@@ -641,13 +640,15 @@ export function useAgentToolFactory() {
           fastLaunch: Type.Optional(Type.Boolean()),
           showLog: Type.Optional(Type.Boolean()),
           hideLauncher: Type.Optional(Type.Boolean()),
-          prependCommand: Type.Optional(Type.String()),
-          preExecuteCommand: Type.Optional(Type.String()),
         }),
         executionMode: 'sequential',
         async execute(_id, args: any) {
           const { payload, edited } = buildAgentInstanceEdit(instancePath, args)
           if (!edited.length) throw new Error('No editable fields were provided')
+          await confirmAgentActionForRun(context, {
+            title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'),
+            details: [instancePath, ...edited.map(key => `${key}: ${JSON.stringify(payload[key])}`)],
+          })
           await instanceService.editInstance(payload as EditInstanceOptions & { instancePath: string })
           return textResult({ ok: true, edited })
         },
@@ -1404,6 +1405,7 @@ export function useAgentToolFactory() {
         }))
       },
       async selectAccount(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'selectAccount', JSON.stringify(input)] })
         const account = capabilities.context.accounts.value.find(value =>
           value.id === input.ref ||
           value.username === input.ref ||
@@ -1445,6 +1447,7 @@ export function useAgentToolFactory() {
         }))
       },
       async selectJava(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'selectJava', JSON.stringify(input)] })
         const instance = currentInstance(context)
         if (!input.path) {
           await instanceService.editInstance({ instancePath: instance.path, java: '' })
@@ -1521,6 +1524,7 @@ export function useAgentToolFactory() {
         return { ok: true, importedPath }
       },
       async exportWorld(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'exportWorld', JSON.stringify(input)] })
         const instance = currentInstance(context)
         const save = capabilities.context.saves.value.find(value => value.name === input.world || value.path === input.world)
         if (!save) throw new Error(`World not found: ${input.world}`)
@@ -1533,6 +1537,7 @@ export function useAgentToolFactory() {
         return { ok: true, world: save.name, destination: input.destination, zip: input.zip }
       },
       async cloneWorld(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'cloneWorld', JSON.stringify(input)] })
         const instance = currentInstance(context)
         const save = capabilities.context.saves.value.find(value => value.name === input.world || value.path === input.world)
         if (!save) throw new Error(`World not found: ${input.world}`)
@@ -1549,6 +1554,7 @@ export function useAgentToolFactory() {
         return { ok: true, world: save.name, name: input.name, destination }
       },
       async linkWorldAsServer(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'linkWorldAsServer', JSON.stringify(input)] })
         const instance = currentInstance(context)
         const save = capabilities.context.saves.value.find(value => value.name === input.world || value.path === input.world)
         if (!save) throw new Error(`World not found: ${input.world}`)
@@ -1565,6 +1571,7 @@ export function useAgentToolFactory() {
         }))
       },
       async createInstance(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'createInstance', JSON.stringify(input)] })
         const path = await instanceService.createInstance({
           name: input.name,
           ...(input.description ? { description: input.description } : {}),
@@ -1662,6 +1669,7 @@ export function useAgentToolFactory() {
         return { matches, offset, limit, hasMore: false }
       },
       async moveResource(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'moveResource', JSON.stringify(input)] })
         const source = normalizeVfsPath(input.source, context.scope)
         const destination = normalizeVfsPath(input.destination, context.scope)
         const enabling = source.endsWith('.disabled') && destination === source.slice(0, -'.disabled'.length)
@@ -1689,6 +1697,7 @@ export function useAgentToolFactory() {
         return { ok: true, source, destination, enabled }
       },
       async launchGame() {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'launchGame'] })
         const result = await capabilities.context.launch()
         return { ok: true, ...result }
       },
@@ -1765,6 +1774,7 @@ export function useAgentToolFactory() {
         }
       },
       async stopGame(input) {
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.applyChanges'), details: [context.scope, 'stopGame'] })
         await confirmInstall(context, 'Stop game', 'Stop the running Minecraft client?', currentInstance(context).name, true)
         await capabilities.context.killGame('client', input.force)
         return { ok: true }
@@ -1823,6 +1833,7 @@ export function useAgentToolFactory() {
         const parsed = parseCli([match.name, ...tokenize(args.command.slice(match.name.length).trim())], commandHost.registry)
         if (parsed.kind === 'error') throw new Error(parsed.message)
         if (parsed.kind !== 'command') return textResult(commandHelp(match.name))
+        await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.stageChanges'), details: [context.scope, args.command] }, signal)
         parsed.input.instance = context.scope
         const result = parsed.commandId === 'mod.install'
           ? await stageModWithDependencies(parsed.input, context)
@@ -1845,6 +1856,7 @@ export function useAgentToolFactory() {
 }
 
 export function useCssAgentToolFactory() {
+  const { t } = useI18n()
   const themeService = useService(ThemeServiceKey)
   const instances = injection(kInstances)
   const user = injection(kUserContext)
@@ -1884,7 +1896,7 @@ export function useCssAgentToolFactory() {
     },
   }
 
-  async function createCssTools() {
+  async function createCssTools(context: AgentRunContext) {
     return [
       {
         name: 'get_custom_css',
@@ -1904,6 +1916,7 @@ export function useCssAgentToolFactory() {
         parameters: Type.Object({ css: Type.String() }),
         executionMode: 'sequential',
         async execute(_id: string, args: any) {
+          await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.replaceCss'), details: [args.css] })
           await themeService.setCustomCss(args.css)
           return textResult({ ok: true, length: args.css.length })
         },
@@ -1915,6 +1928,7 @@ export function useCssAgentToolFactory() {
         parameters: Type.Object({ enabled: Type.Boolean() }),
         executionMode: 'sequential',
         async execute(_id: string, args: any) {
+          await confirmAgentActionForRun(context, { title: t('pbtadmin.reviewChanges'), message: t('pbtadmin.cssState'), details: [String(args.enabled)] })
           const current = await themeService.getCurrentTheme() ?? { ui: 'keystone', version: 1, assets: {}, settings: {} }
           await themeService.setCurrentTheme({
             ...current,

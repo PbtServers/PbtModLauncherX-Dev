@@ -1,8 +1,9 @@
-import { BUILTIN_AGENT_ENDPOINT, LOCAL_AGENT_TRANSPORT_ENDPOINT, isLoopbackServiceUrl } from '@xmcl/runtime-api'
+import { handleOllamaChat } from './ollamaChat'
+import { BUILTIN_AGENT_ENDPOINT, LOCAL_AGENT_TRANSPORT_ENDPOINT, isLoopbackServiceUrl, isAnthropicEndpoint, isOllamaEndpoint } from '@xmcl/runtime-api'
 import type { Handler } from '~/app'
 import type { ResolvedAgentProvider } from './AgentService'
 
-const transportUrls = [BUILTIN_AGENT_ENDPOINT, LOCAL_AGENT_TRANSPORT_ENDPOINT].map(value => new URL(value))
+const transportUrls = [BUILTIN_AGENT_ENDPOINT, LOCAL_AGENT_TRANSPORT_ENDPOINT, 'https://agent.runtime/v1/messages'].map(value => new URL(value))
 const builtinProviderUrl = 'https://ai.xmcl.app/v1/chat/completions'
 
 export interface AgentXmclAuthorization {
@@ -29,12 +30,15 @@ export function createAgentProtocolHandler(
   resolveXmclAuthorization: (
     request?: AgentXmclAuthorizationRequest,
   ) => Promise<AgentXmclAuthorization | undefined>,
+  localFetch?: typeof globalThis.fetch,
 ): Handler {
-  return async ({ request, response }) => {
+  return async (ctx) => {
+    const { request, response } = ctx
     if (!transportUrls.some(url => request.url.origin === url.origin && request.url.pathname === url.pathname))
       return
 
     setHeader(request.headers, 'authorization')
+    setHeader(request.headers, 'x-api-key')
     setHeader(request.headers, 'DPoP')
     setHeader(request.headers, 'x-xmcl-account-id')
     const provider = await resolveProvider()
@@ -44,6 +48,10 @@ export function createAgentProtocolHandler(
         response.headers = { 'content-type': 'application/json' }
         response.body = JSON.stringify({ error: { message: 'Agent API key is not configured' } })
         response.handled = true
+        return
+      }
+      if (localFetch && isOllamaEndpoint(provider.endpoint)) {
+        await handleOllamaChat(ctx, provider, localFetch)
         return
       }
       let endpoint: URL
@@ -59,7 +67,12 @@ export function createAgentProtocolHandler(
         return
       }
       request.url = endpoint
-      setHeader(request.headers, 'authorization', provider.apiKey ? `Bearer ${provider.apiKey}` : undefined)
+      if (isAnthropicEndpoint(provider.endpoint)) {
+        setHeader(request.headers, 'x-api-key', provider.apiKey)
+        setHeader(request.headers, 'anthropic-version', '2023-06-01')
+      } else {
+        setHeader(request.headers, 'authorization', provider.apiKey ? `Bearer ${provider.apiKey}` : undefined)
+      }
       request.skipRemainingHandlers = true
       return
     }

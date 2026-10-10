@@ -1,5 +1,7 @@
 import {
   AGENT_MODEL_CONTEXT_WINDOW,
+  isAnthropicEndpoint,
+  isOllamaEndpoint,
   AGENT_MODEL_MAX_TOKENS,
   normalizeAgentBaseUrl,
   resolveAgentProviderId,
@@ -140,15 +142,15 @@ export function toPiMessage(message: AgentMessage, provider: string, model: stri
   } satisfies ToolResultMessage
 }
 
-export function createAgentModel(endpoint: string, modelId: string): Model<'openai-completions'> {
+export function createAgentModel(endpoint: string, modelId: string): Model<'openai-completions' | 'anthropic-messages'> {
   return {
     id: modelId,
     name: modelId,
-    api: 'openai-completions',
-    provider: resolveAgentProviderId(endpoint),
-    baseUrl: normalizeAgentBaseUrl(endpoint),
+    api: isAnthropicEndpoint(endpoint) ? 'anthropic-messages' : 'openai-completions',
+    provider: isAnthropicEndpoint(endpoint) ? 'anthropic' : resolveAgentProviderId(endpoint),
+    baseUrl: isAnthropicEndpoint(endpoint) ? 'https://api.anthropic.com' : normalizeAgentBaseUrl(endpoint),
     reasoning: false,
-    input: ['text', 'image'],
+    input: isOllamaEndpoint(endpoint) ? ['text'] : ['text', 'image'],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: AGENT_MODEL_CONTEXT_WINDOW,
     maxTokens: AGENT_MODEL_MAX_TOKENS,

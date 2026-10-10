@@ -1,0 +1,118 @@
+<template>
+  <v-card variant="outlined" class="pa-4 my-4">
+    <v-card-title>{{ t('pbtadmin.title') }}</v-card-title>
+    <v-alert type="info" variant="tonal" class="mb-3">{{ t('pbtadmin.privacy') }}</v-alert>
+    <v-select :model-value="provider" :items="providerItems" item-title="title" item-value="id" :label="t('pbtadmin.provider')" @update:model-value="selectProvider" />
+    <v-switch v-model="historyEnabled" :label="t('pbtadmin.history')" :hint="t('pbtadmin.historyHint')" persistent-hint />
+    <template v-if="provider === 'ollama'">
+      <v-btn :loading="checking" :disabled="checking" @click="refresh">{{ t('pbtadmin.detect') }}</v-btn>
+      <template v-if="status">
+        <p>{{ t(status.running ? 'pbtadmin.running' : status.installed === true ? 'pbtadmin.stopped' : status.installed === false ? 'pbtadmin.missing' : 'pbtadmin.unknown') }}</p>
+        <p>{{ t('pbtadmin.hardware', { total: gib(status.totalMemory), free: gib(status.freeMemory), cpus: status.cpuCount }) }}</p>
+        <v-select v-model="model" :items="compatibleModels" item-title="name" item-value="name" :label="t('pbtadmin.model')" :disabled="!status.running" />
+        <p v-if="!compatibleModels.length">{{ t('pbtadmin.noModels') }}</p>
+        <p v-if="status.models.some(entry => !entry.compatible)">{{ t('pbtadmin.unsupported') }}</p>
+        <p>{{ t('pbtadmin.recommendation') }} {{ status.recommendedModels.join(', ') || t('pbtadmin.lowMemory') }}</p>
+      </template>
+      <v-btn class="my-2" @click="wizard = true">{{ t('pbtadmin.setup') }}</v-btn>
+      <p v-if="download.state !== 'idle'">{{ t(`pbtadmin.download.${download.state}`) }} {{ download.model }} <span v-if="download.total">{{ gib(download.completed || 0) }} / {{ gib(download.total) }} GiB</span></p>
+      <v-btn v-if="download.state === 'running'" @click="cancelDownload">{{ t('pbtadmin.cancel') }}</v-btn>
+      <p v-if="download.error">{{ t(`pbtadmin.${download.error}`) }}</p>
+    </template>
+    <p v-else>{{ t('pbtadmin.remote') }}</p>
+    <v-alert v-if="error" type="error" class="mt-3">{{ t(error) }}</v-alert>
+    <v-dialog v-model="wizard" max-width="640">
+      <v-card class="pa-4">
+        <v-card-title>{{ t('pbtadmin.setup') }}</v-card-title>
+        <p>{{ t('pbtadmin.installEngine') }}</p>
+        <v-btn href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">{{ t('pbtadmin.officialDownload') }}</v-btn>
+        <p>{{ t('pbtadmin.afterInstall') }}</p>
+        <v-btn :loading="checking" @click="refresh">{{ t('pbtadmin.detect') }}</v-btn>
+        <v-select v-model="downloadModel" :items="LOCAL_AI_MODELS.map(entry => entry.name)" :label="t('pbtadmin.model')" />
+        <p>{{ t('pbtadmin.downloadConsent', { model: downloadModel, size: gib(estimatedBytes) }) }}</p>
+        <v-checkbox v-model="consent" :label="t('pbtadmin.consent')" />
+        <v-card-actions>
+          <v-btn @click="wizard = false">{{ t('pbtadmin.close') }}</v-btn>
+          <v-btn :disabled="!consent || !status?.running || download.state === 'running'" :loading="starting" @click="startDownload">{{ t('pbtadmin.downloadNow') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-card>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { AgentServiceKey, AGENT_PROVIDER_PRESETS, LOCAL_AI_MODELS, OLLAMA_ENDPOINT, type OllamaStatus, type OllamaDownloadStatus } from '@xmcl/runtime-api'
+import { useService } from '@/composables/service'
+import { useAgentSettings } from '@/composables/agent/settings'
+
+const { t } = useI18n()
+const service = useService(AgentServiceKey)
+const settings = useAgentSettings()
+const { endpoint, model, historyEnabled } = settings
+const providers = AGENT_PROVIDER_PRESETS
+const providerNames: Record<string, string> = { ollama: 'Ollama', openai: 'OpenAI', anthropic: 'Anthropic', gemini: 'Gemini' }
+const providerItems = computed(() => providers.map(entry => ({ ...entry, title: providerNames[entry.id] || t('setting.aiAgentEndpoint') })))
+const customSelected = ref(false)
+const provider = computed(() => customSelected.value ? 'compatible' : providers.find(entry => entry.endpoint === (endpoint.value || OLLAMA_ENDPOINT))?.id || 'compatible')
+const status = ref<OllamaStatus>()
+const download = ref<OllamaDownloadStatus>({ state: 'idle' })
+const compatibleModels = computed(() => status.value?.models.filter(entry => entry.compatible) || [])
+const checking = ref(false)
+const starting = ref(false)
+const error = ref('')
+const wizard = ref(false)
+const consent = ref(false)
+const downloadModel = ref<'qwen3:4b' | 'qwen3:8b'>('qwen3:4b')
+const estimatedBytes = computed(() => LOCAL_AI_MODELS.find(entry => entry.name === downloadModel.value)?.estimatedBytes || 0)
+const gib = (bytes: number) => (bytes / 1024 ** 3).toFixed(1)
+watch([wizard, downloadModel], () => { consent.value = false })
+function selectProvider(id: string) {
+  const preset = providers.find(entry => entry.id === id)
+  if (!preset) return
+  customSelected.value = id === 'compatible'
+  endpoint.value = preset.endpoint
+  model.value = ''
+  if (id === 'ollama') void refresh()
+}
+async function refresh() {
+  if (checking.value) return
+  checking.value = true
+  try { status.value = await service.getOllamaStatus(); error.value = '' } catch { error.value = 'pbtadmin.detectFailed' }
+  finally { checking.value = false }
+}
+async function startDownload() {
+  if (!consent.value) return
+  starting.value = true
+  try {
+    const preview = await service.prepareOllamaDownload(downloadModel.value)
+    // The checkbox is tied to the displayed model/size and cleared on every selection change.
+    if (!consent.value || preview.model !== downloadModel.value || preview.estimatedBytes !== estimatedBytes.value) return
+    await service.startOllamaDownload(preview.confirmationId)
+    download.value = await service.getOllamaDownloadStatus()
+    wizard.value = false
+  } catch { error.value = 'pbtadmin.downloadFailed' }
+  finally { starting.value = false }
+}
+async function cancelDownload() {
+  await service.cancelOllamaDownload().catch(() => { error.value = 'pbtadmin.downloadFailed' })
+}
+let poll: ReturnType<typeof setInterval> | undefined
+let polling = false
+onMounted(async () => {
+  await settings.ready.catch(() => { error.value = 'pbtadmin.settingsFailed' })
+  if (provider.value === 'ollama') void refresh()
+  poll = setInterval(async () => {
+    if (polling) return
+    polling = true
+    try {
+      const previous = download.value.state
+      download.value = await service.getOllamaDownloadStatus()
+      if (download.value.state === 'completed' && previous !== 'completed') await refresh()
+    } catch { error.value = 'pbtadmin.detectFailed' }
+    finally { polling = false }
+  }, 1000)
+})
+onUnmounted(() => clearInterval(poll))
+</script>

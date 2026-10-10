@@ -56,7 +56,7 @@ describe('agent confirmation queue', () => {
     await expect(result).resolves.toBe(true)
   })
 
-  test('allows subsequent non-destructive confirmations for the active run', async () => {
+  test('requires explicit acceptance for every change in the same run', async () => {
     const controls = useAgentConfirmation()
     registerAgentConfirmationScope('run-a')
     registerAgentConfirmationScope('run-b')
@@ -65,8 +65,10 @@ describe('agent confirmation queue', () => {
     controls.allowAll()
 
     await expect(first).resolves.toBe(true)
-    await expect(requestAgentConfirmation({ action: 'confirm', message: 'install loader' }, undefined, 'run-a')).resolves.toBe(true)
-    expect(controls.shown.value).toBe(false)
+    const nextChange = requestAgentConfirmation({ action: 'confirm', message: 'install loader' }, undefined, 'run-a')
+    expect(controls.request.value?.message).toBe('install loader')
+    controls.decline()
+    await expect(nextChange).resolves.toBe(false)
 
     const otherRun = requestAgentConfirmation({ action: 'confirm', message: 'other run' }, undefined, 'run-b')
     expect(controls.request.value?.message).toBe('other run')

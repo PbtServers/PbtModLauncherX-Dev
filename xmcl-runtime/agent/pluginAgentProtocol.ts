@@ -16,5 +16,6 @@ export const pluginAgentProtocol: LauncherAppPlugin = (app) => {
       const service = await app.registry.getOrCreate(XmclAccountService)
       return service[kXmclSessionAuthorization](request)
     },
+    (...args) => app.fetch(...args),
   ))
 }

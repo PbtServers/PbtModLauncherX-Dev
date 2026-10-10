@@ -15,7 +15,6 @@ interface PendingConfirmation {
 let nextId = 1
 const active = shallowRef<PendingConfirmation>()
 const queue: PendingConfirmation[] = []
-const allowedScopes = new Set<string>()
 const registeredScopes = new Set<string>()
 
 function showNext() {
@@ -41,11 +40,10 @@ function finish(item: PendingConfirmation, value: boolean) {
 export function requestAgentConfirmation(request: AgentConfirmation, signal?: AbortSignal, permissionScope?: string): Promise<boolean> {
   if (signal?.aborted) return Promise.resolve(false)
   const resolvedScope = permissionScope ?? (registeredScopes.size === 1 ? registeredScopes.values().next().value : undefined)
-  if (resolvedScope && allowedScopes.has(resolvedScope) && !request.destructive) return Promise.resolve(true)
   return new Promise<boolean>((resolve) => {
     const item: PendingConfirmation = {
       id: nextId++,
-      request,
+      request: { ...request, allowAll: false },
       resolve,
       permissionScope: resolvedScope,
       signal,
@@ -80,13 +78,12 @@ export async function confirmAgentAction(input: {
     presentations: input.presentations,
     confirmLabel: input.confirmLabel,
     destructive: input.destructive,
-    allowAll: input.allowAll,
+    allowAll: false,
   }, signal, permissionScope)
   if (!accepted) throw new Error('User declined the action')
 }
 
 export function clearAgentConfirmationScope(permissionScope: string) {
-  allowedScopes.delete(permissionScope)
   registeredScopes.delete(permissionScope)
 }
 
@@ -102,7 +99,7 @@ export function useAgentConfirmation() {
     allowAll: () => {
       const item = active.value
       if (!item) return
-      if (item.permissionScope) allowedScopes.add(item.permissionScope)
+      // Every mutating operation requires its own preview and explicit acceptance.
       finish(item, true)
     },
     decline: () => active.value && finish(active.value, false),

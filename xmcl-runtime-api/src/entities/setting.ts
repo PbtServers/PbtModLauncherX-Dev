@@ -32,6 +32,7 @@ export class Settings implements SettingSchema {
   multiplayerTransport: import('../multiplayer').MultiplayerTransport = 'webrtc'
   agentEndpoint = DEFAULT_AGENT_ENDPOINT
   agentModel = DEFAULT_AGENT_MODEL
+  agentHistoryEnabled = true
   linuxTitlebar = false
   windowTranslucent = false
   quickActionShortcut = ''
@@ -122,6 +123,7 @@ export class Settings implements SettingSchema {
     this.multiplayerTransport = config.multiplayerTransport
     this.agentEndpoint = config.agentEndpoint
     this.agentModel = config.agentModel
+    this.agentHistoryEnabled = config.agentHistoryEnabled
     this.linuxTitlebar = config.linuxTitlebar
     this.windowTranslucent = config.windowTranslucent
     this.enableDedicatedGPUOptimization = config.enableDedicatedGPUOptimization
@@ -223,9 +225,10 @@ export class Settings implements SettingSchema {
     this.multiplayerTransport = transport
   }
 
-  agentProviderSet(provider: { endpoint: string; model: string }) {
+  agentProviderSet(provider: { endpoint: string; model: string; historyEnabled?: boolean }) {
     this.agentEndpoint = provider.endpoint
     this.agentModel = provider.model
+    if (provider.historyEnabled !== undefined) this.agentHistoryEnabled = provider.historyEnabled
   }
 
   linuxTitlebarSet(enabled: boolean) {

@@ -1,3 +1,5 @@
+import { OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtime-api'
+import { OllamaController } from './ollama'
 import { XMCL_CLOUD_ENABLED, assertIndependentUrl, isXmclExclusiveUrl, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import {
   AgentServiceKey,
@@ -30,13 +32,14 @@ export { SECRET_SERVICE as AGENT_SECRET_SERVICE } from './apiKey'
 
 export type ResolvedAgentProvider =
   | { mode: 'builtin' }
-  | { mode: 'custom'; endpoint: string; model: string; apiKey: string }
+  | { mode: 'custom'; endpoint: string; model: string; apiKey: string; contextWindow?: number }
   | { mode: 'unconfigured' }
 
 export const kResolvedAgentProvider = Symbol('resolved-agent-provider')
 
 @ExposeServiceKey(AgentServiceKey)
 export class AgentService extends AbstractService implements IAgentService {
+  private ollama = new OllamaController((...args) => this.app.fetch(...args))
   private history = new AgentHistoryStore(join(this.app.appDataPath, 'agent', 'history'), message => this.warn(message))
   private artifacts = new AgentArtifactStore(join(this.app.appDataPath, 'agent', 'artifacts'))
   private documents: AgentDocumentStore
@@ -56,7 +59,7 @@ export class AgentService extends AbstractService implements IAgentService {
 
   async getProviderSettings(): Promise<AgentProviderSettings> {
     const settings = await this.app.registry.get(kSettings)
-    const endpoint = settings.agentEndpoint || DEFAULT_AGENT_ENDPOINT
+    const endpoint = settings.agentEndpoint || OLLAMA_ENDPOINT
     const provider = await this[kResolvedAgentProvider]()
     const configured = provider.mode === 'custom'
       ? true
@@ -68,16 +71,22 @@ export class AgentService extends AbstractService implements IAgentService {
       model: settings.agentModel || DEFAULT_AGENT_MODEL,
       configured,
       mode: provider.mode,
+      historyEnabled: settings.agentHistoryEnabled !== false,
+      contextWindow: provider.mode === 'custom' ? provider.contextWindow ?? 128_000 : 8192,
     }
   }
 
   async setProviderSettings(input: UpdateAgentProviderSettings) {
     const settings = await this.app.registry.get(kSettings)
     const endpoint = input.endpoint.trim()
-    if (endpoint) assertIndependentUrl(endpoint)
+    if (endpoint) {
+      assertIndependentUrl(endpoint)
+      const url = new URL(endpoint)
+      if (url.username || url.password || url.search || url.hash || (url.protocol !== 'https:' && !isLoopbackServiceUrl(endpoint))) throw new Error('agent_invalid_endpoint')
+    }
     this.logAgent(`[provider.settings] ${sanitizeAgentLog({
       endpoint: sanitizeAgentEndpoint(endpoint),
-      model: input.model,
+      hasModel: !!input.model,
       hasApiKey: input.apiKey !== undefined,
     })}`)
     // Persist the secret first: it is the only step that can fail (OS keychain
@@ -90,15 +99,20 @@ export class AgentService extends AbstractService implements IAgentService {
     settings.agentProviderSet({
       endpoint,
       model: input.model.trim(),
+      historyEnabled: input.historyEnabled,
     })
   }
 
   async [kResolvedAgentProvider](): Promise<ResolvedAgentProvider> {
     const settings = await this.app.registry.get(kSettings)
-    const endpoint = settings.agentEndpoint.trim()
+    const endpoint = settings.agentEndpoint.trim() || OLLAMA_ENDPOINT
     const model = settings.agentModel.trim()
     if (endpoint || model) {
       if (!endpoint || !model || isXmclExclusiveUrl(endpoint)) return { mode: 'unconfigured' }
+      if (isOllamaEndpoint(endpoint)) {
+        const local = await this.ollama.resolveModel(model)
+        return local ? { mode: 'custom', endpoint, model, apiKey: '', contextWindow: local.contextWindow } : { mode: 'unconfigured' }
+      }
       const apiKey = (await this.apiKeys.get(endpoint)) ?? ''
       if (!apiKey && !isLoopbackServiceUrl(endpoint)) return { mode: 'unconfigured' }
       return { mode: 'custom', endpoint, model, apiKey }
@@ -108,23 +122,34 @@ export class AgentService extends AbstractService implements IAgentService {
     return XMCL_CLOUD_ENABLED && flights[BUILTIN_AGENT_FLIGHT] === true ? { mode: 'builtin' } : { mode: 'unconfigured' }
   }
 
-  getConversation(key: AgentConversationKey) {
-    return this.history.load(key)
+  getOllamaStatus() { return this.ollama.inspect() }
+  async prepareOllamaDownload(model: string) { return this.ollama.prepare(model) }
+  async startOllamaDownload(confirmationId: string) { this.ollama.start(confirmationId) }
+  async getOllamaDownloadStatus() { return this.ollama.getDownloadStatus() }
+  async cancelOllamaDownload() { this.ollama.cancel() }
+
+  private async historyEnabled() {
+    return (await this.app.registry.get(kSettings)).agentHistoryEnabled !== false
   }
 
-  updateConversationContext(key: AgentConversationKey, context: Record<string, unknown>) {
-    return this.history.updateContext(key, context)
+  async getConversation(key: AgentConversationKey) {
+    return await this.historyEnabled() ? this.history.load(key) : { key, messages: [] }
+  }
+
+  async updateConversationContext(key: AgentConversationKey, context: Record<string, unknown>) {
+    if (await this.historyEnabled()) return this.history.updateContext(key, context)
   }
 
   async appendConversationMessages(key: AgentConversationKey, messages: AgentMessage[]) {
-    for (const message of messages) await this.history.appendMessage(key, message)
+    if (await this.historyEnabled()) for (const message of messages) await this.history.appendMessage(key, message)
   }
 
-  replaceConversationMessages(key: AgentConversationKey, messages: AgentMessage[]) {
-    return this.history.replaceMessages(key, messages)
+  async replaceConversationMessages(key: AgentConversationKey, messages: AgentMessage[]) {
+    if (await this.historyEnabled()) return this.history.replaceMessages(key, messages)
   }
 
   async startNewConversation(key: AgentConversationKey) {
+    if (!await this.historyEnabled()) return undefined
     const archiveId = randomUUID()
     const historyArchived = await this.history.archive(key, archiveId)
     try {

@@ -66,10 +66,13 @@ export function buildAgentInstanceEdit(
   instancePath: string,
   args: Record<string, unknown>,
 ) {
+  for (const key of ['prependCommand', 'preExecuteCommand', 'vmOptions', 'mcOptions', 'env', 'java']) {
+    if (Object.prototype.hasOwnProperty.call(args, key)) throw new Error('Agent cannot modify execution arguments or commands')
+  }
   const editable = [
-    'name', 'description', 'java', 'minMemory', 'maxMemory', 'assignMemory',
-    'vmOptions', 'mcOptions', 'env', 'resolution', 'fastLaunch', 'showLog',
-    'hideLauncher', 'prependCommand', 'preExecuteCommand',
+    'name', 'description', 'minMemory', 'maxMemory', 'assignMemory',
+    'resolution', 'fastLaunch', 'showLog',
+    'hideLauncher',
   ] as const
   const payload: Record<string, unknown> = { instancePath }
   const edited: string[] = []

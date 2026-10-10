@@ -1,6 +1,6 @@
 import { AGENT_MODEL_CONTEXT_WINDOW, type AgentMessage } from '@xmcl/runtime-api'
 import { describe, expect, it } from 'vitest'
-import { compactedMessages, estimateAgentContextTokens, prepareAgentCompaction } from './compaction'
+import { boundAgentProviderContext, compactedMessages, estimateAgentContextTokens, prepareAgentCompaction } from './compaction'
 import { AGENT_COMPACTION_MESSAGE_NAME, fromPiMessage, toPiMessage } from './protocol'
 import { AGENT_PASSIVE_CONTEXT_MESSAGE_NAME } from './context'
 
@@ -21,6 +21,23 @@ function turn(id: string, size: number): AgentMessage[] {
 }
 
 describe('agent context compaction', () => {
+  it('uses a smaller local model threshold and preserves complete recent turns', () => {
+    const messages = [...turn('old', 5000), ...turn('recent', 5000)]
+    expect(prepareAgentCompaction(messages, 6000, 'custom-openai', 'qwen3:4b', 4096)?.retainedMessages[0]).toEqual({ role: 'user', content: 'request-recent' })
+  })
+
+  it('bounds provider input without deleting stored history or splitting tool pairs', () => {
+    const messages: any[] = [
+      { role: 'user', content: 'old'.repeat(8000), timestamp: 1 },
+      { role: 'assistant', content: [{ type: 'text', text: 'old response' }], timestamp: 2 },
+      { role: 'user', content: 'current', timestamp: 3 },
+    ]
+    const bounded = boundAgentProviderContext({ messages }, 4096, 1024)
+    expect(bounded.messages).toHaveLength(1)
+    expect(bounded.systemPrompt).toContain('outside this model context')
+    expect(messages).toHaveLength(3)
+    expect(() => boundAgentProviderContext({ systemPrompt: 'x'.repeat(40000), messages: [messages[2]] }, 4096, 1024)).toThrow('pbtadmin.contextTooSmall')
+  })
   it('does not compact at or below the 256K working target', () => {
     expect(prepareAgentCompaction(turn('a', 1_000), 200_000, provider, model)).toBeUndefined()
     expect(prepareAgentCompaction(turn('a', 1_000), AGENT_MODEL_CONTEXT_WINDOW, provider, model)).toBeUndefined()

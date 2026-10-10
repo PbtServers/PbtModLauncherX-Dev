@@ -1,3 +1,4 @@
+import type { OllamaStatus, OllamaDownloadPreview, OllamaDownloadStatus } from '../entities/localAi'
 import type { ServiceKey } from './Service'
 
 /** Internal endpoint intercepted by the launcher runtime before it reaches the network. */
@@ -11,7 +12,7 @@ export const BUILTIN_AGENT_PROVIDER_ID = 'xmcl'
 export const BUILTIN_AGENT_FLIGHT = 'builtinAgent'
 /** Flight controlling whether agent run telemetry is reported. */
 export const AGENT_TELEMETRY_FLIGHT = 'agentTelemetry'
-/** Empty defaults select the built-in provider. */
+/** An empty saved endpoint selects the local Ollama endpoint at runtime. */
 export const DEFAULT_AGENT_ENDPOINT = ''
 export const DEFAULT_AGENT_MODEL = ''
 /** Working context target used to trigger compaction for agent models. */
@@ -140,12 +141,15 @@ export interface AgentProviderSettings {
   model: string
   configured: boolean
   mode: 'builtin' | 'custom' | 'unconfigured'
+  historyEnabled?: boolean
+  contextWindow?: number
 }
 
 export interface UpdateAgentProviderSettings {
   endpoint: string
   model: string
   apiKey?: string
+  historyEnabled?: boolean
 }
 
 export type AgentRunState = 'running' | 'completed' | 'failed' | 'aborted'
@@ -266,6 +270,11 @@ export type AgentRunFailureCode =
 export type AgentProviderStatusClass = 'none' | '1xx' | '2xx' | '3xx' | '4xx' | '5xx' | 'other'
 
 export interface AgentService {
+  getOllamaStatus(): Promise<OllamaStatus>
+  prepareOllamaDownload(model: string): Promise<OllamaDownloadPreview>
+  startOllamaDownload(confirmationId: string): Promise<void>
+  getOllamaDownloadStatus(): Promise<OllamaDownloadStatus>
+  cancelOllamaDownload(): Promise<void>
   getProviderSettings(): Promise<AgentProviderSettings>
   setProviderSettings(input: UpdateAgentProviderSettings): Promise<void>
   getConversation(key: AgentConversationKey): Promise<AgentConversation>

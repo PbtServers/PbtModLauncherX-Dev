@@ -12,12 +12,9 @@
           {{ t('agent.notConfiguredTitle') }}
         </div>
         <div class="text-sm text-medium-emphasis max-w-xs">
-          {{ t('agent.accessRequiredHint') }}
+          {{ t('pbtadmin.noModels') }}
         </div>
         <div class="flex flex-wrap items-center justify-center gap-2 mt-1">
-          <v-btn color="primary" variant="flat" prepend-icon="workspace_premium" @click="openSubscription">
-            {{ t('agent.subscribeXmcl') }}
-          </v-btn>
           <v-btn color="primary" variant="flat" prepend-icon="settings" @click="openSettings">
             {{ t('agent.openSettings') }}
           </v-btn>
@@ -343,7 +340,12 @@ const liveStatus = computed(() => {
   }
   return t('agent.thinking')
 })
-const displayError = computed(() => lastError.value || runError.value)
+const displayError = computed(() => {
+  const error = lastError.value || runError.value
+  if (error.includes('pbtadmin.contextTooSmall')) return t('pbtadmin.contextTooSmall')
+  if (error.includes('pbtadmin.ollamaRequestFailed')) return t('pbtadmin.ollamaRequestFailed')
+  return error
+})
 
 const suggestions = computed(() => (selectedAgent.value === 'css'
   ? [
@@ -413,10 +415,7 @@ function openSettings() {
   hide()
   push({ path: '/setting', query: { target: 'agent' } })
 }
-function openSubscription() {
-  hide()
-  push({ path: '/multiplayer', query: { target: 'billing' } })
-}
+
 
 function onTranscriptScroll() {
   const el = scrollEl.value
