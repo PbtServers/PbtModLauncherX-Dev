@@ -172,14 +172,14 @@
         </template>
         <template #action>
           <v-text-field
-            :model-value="agentLocal ? (agentModel || t('pbtadmin.noModels')) : agentModel"
+            :model-value="agentModel"
             :readonly="agentLocal"
             @update:model-value="value => { if (!agentLocal) agentModel = value }"
             variant="outlined"
             density="compact"
             class="setting-item-input"
             hide-details
-            :placeholder="agentProviderMode === 'custom' ? t('setting.aiAgentModelPlaceholder') : agentResolvedModel"
+            :placeholder="agentLocal ? '—' : t('setting.aiAgentModelPlaceholder')"
           />
         </template>
     </SettingItem>
@@ -193,17 +193,22 @@
         </template>
         <template #action>
           <v-text-field
-            :model-value="agentLocal ? (agentDetectedEndpoint || t('pbtadmin.stopped')) : agentEndpoint"
+            :model-value="agentLocal ? agentDetectedEndpoint : agentEndpoint"
             :readonly="agentLocal"
             @update:model-value="value => { if (!agentLocal) agentEndpoint = value }"
             variant="outlined"
             density="compact"
             class="setting-item-input"
             hide-details
-            :placeholder="agentProviderMode === 'custom' ? t('setting.aiAgentEndpointPlaceholder') : agentResolvedEndpoint"
+            :placeholder="agentLocal ? '—' : t('setting.aiAgentEndpointPlaceholder')"
           />
         </template>
     </SettingItem>
+    <div v-if="agentLocal" class="px-4 py-3 agent-runtime-status" role="status" aria-live="polite">
+      {{ t(agentStatusKey) }}
+      <div v-if="agentRuntimeError" class="text-error">{{ t('ollamaRuntime.diagnostic', { code: agentRuntimeError }) }}</div>
+      <v-btn :loading="agentChecking" @click="checkAgentConnection">{{ t('pbtadmin.detect') }}</v-btn>
+    </div>
   </SettingCard>
 </template>
 
@@ -264,10 +269,21 @@ const {
   error: agentSettingsError,
   resolvedEndpoint: agentResolvedEndpoint,
   detectedEndpoint: agentDetectedEndpoint,
+  runtimeError: agentRuntimeError,
+  statusKey: agentStatusKey,
+  refreshStatus: refreshAgentConnection,
   resolvedModel: agentResolvedModel,
   updateApiKey: updateAgentApiKey,
   clearApiKey: clearAgentApiKey,
 } = useAgentSettings()
+const agentChecking = ref(false)
+onMounted(() => { void checkAgentConnection() })
+async function checkAgentConnection() {
+  if (agentChecking.value) return
+  agentChecking.value = true
+  try { await refreshAgentConnection() } catch { agentSettingsError.value = 'pbtadmin.detectFailed' }
+  finally { agentChecking.value = false }
+}
 const agentLocal = computed(() => isOllamaEndpoint(agentEndpoint.value || OLLAMA_ENDPOINT))
 const showAgentApiKey = ref(false)
 // Re-hide the key when the field empties (provider switch, or the user cleared it)
@@ -311,7 +327,9 @@ const { show: onMigrateFromOther } = useDialog('migrate-wizard')
 }
 
 .setting-item-input {
-  min-width: 320px;
+  min-width: 0;
+  width: 100%;
   max-width: 460px;
 }
+.agent-runtime-status { overflow-wrap: anywhere; white-space: normal; }
 </style>

@@ -142,6 +142,7 @@ export interface AgentProviderSettings {
   endpoint: string
   /** Detected transport URL; never persisted as the provider selector. */
   detectedEndpoint?: string
+  runtimeError?: string
   model: string
   configured: boolean
   toolsSupported?: boolean

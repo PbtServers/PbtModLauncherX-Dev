@@ -7,6 +7,7 @@ import {
 } from '@xmcl/runtime-api'
 import { useService } from '../service'
 import { useLowResourceMode } from '../lowResource'
+import { readProviderSnapshot } from './providerSnapshot'
 import { providerStatusKey } from './providerStatus'
 
 export const useAgentSettings = createSharedComposable(() => {
@@ -24,11 +25,7 @@ export const useAgentSettings = createSharedComposable(() => {
   const providerConfigured = ref(false)
   const toolsSupported = ref(true)
   const ollamaStatus = ref<OllamaStatus>()
-  async function inspectLocal() {
-    if (isOllamaEndpoint(endpoint.value || OLLAMA_ENDPOINT)) {
-      ollamaStatus.value = await service.getOllamaStatus().catch(() => undefined)
-    }
-  }
+  const runtimeError = ref('')
   const resolvedMode = ref<'builtin' | 'custom' | 'unconfigured'>('unconfigured')
   const mode = computed(() => resolvedMode.value)
   const loaded = ref(false)
@@ -47,12 +44,20 @@ export const useAgentSettings = createSharedComposable(() => {
     checkingAccess.value = true
     providerConfigured.value = false
     try {
-      const settings = await service.getProviderSettings()
+      const snapshot = await readProviderSnapshot(service)
+      const { settings } = snapshot
+      if (!loaded.value) {
+        endpoint.value = settings.endpoint
+        model.value = settings.model
+        historyEnabled.value = settings.historyEnabled !== false
+        loaded.value = true
+      }
+      ollamaStatus.value = snapshot.status
+      runtimeError.value = snapshot.status?.runtimeError || settings.runtimeError || ''
       detectedEndpoint.value = settings.detectedEndpoint || ''
       if (!model.value.trim() && isOllamaEndpoint(endpoint.value || OLLAMA_ENDPOINT) && settings.model) model.value = settings.model
       providerConfigured.value = settings.configured
       toolsSupported.value = settings.toolsSupported !== false
-      await inspectLocal()
       resolvedMode.value = settings.mode
       contextWindow.value = settings.contextWindow ?? 8192
     } finally {
@@ -63,7 +68,10 @@ export const useAgentSettings = createSharedComposable(() => {
 
   const ready = (async () => {
     try {
-      const settings = await service.getProviderSettings()
+      const snapshot = await readProviderSnapshot(service)
+      const { settings } = snapshot
+      ollamaStatus.value = snapshot.status
+      runtimeError.value = snapshot.status?.runtimeError || settings.runtimeError || ''
       endpoint.value = settings.endpoint
       detectedEndpoint.value = settings.detectedEndpoint || ''
       model.value = settings.model
@@ -73,7 +81,10 @@ export const useAgentSettings = createSharedComposable(() => {
       resolvedMode.value = settings.mode
       loaded.value = true
       toolsSupported.value = settings.toolsSupported !== false
-      await inspectLocal()
+    } catch {
+      // IPC failure is recoverable through the explicit connection check.
+      runtimeError.value = 'ollama_state_unavailable'
+      error.value = 'pbtadmin.detectFailed'
     } finally {
       accessCheckCount -= 1
       checkingAccess.value = accessCheckCount > 0
@@ -177,7 +188,7 @@ export const useAgentSettings = createSharedComposable(() => {
 
   const resolvedEndpoint = computed(() => endpoint.value.trim() || OLLAMA_ENDPOINT)
   const resolvedModel = computed(() => model.value.trim() || '')
-  const statusKey = computed(() => lowResourceMode.value && !manuallyStarted.value && isOllamaEndpoint(resolvedEndpoint.value) ? 'lowResources.agentPaused' : providerStatusKey(resolvedEndpoint.value, resolvedModel.value, providerConfigured.value, ollamaStatus.value, toolsSupported.value))
+  const statusKey = computed(() => checkingAccess.value && isOllamaEndpoint(resolvedEndpoint.value) ? 'ollamaRuntime.checking' : lowResourceMode.value && !manuallyStarted.value && isOllamaEndpoint(resolvedEndpoint.value) ? 'lowResources.agentPaused' : providerStatusKey(resolvedEndpoint.value, resolvedModel.value, providerConfigured.value, ollamaStatus.value, toolsSupported.value))
   const configured = computed(() => {
     if (checkingAccess.value) return false
     return providerConfigured.value
@@ -200,9 +211,12 @@ export const useAgentSettings = createSharedComposable(() => {
     // provider's endpoint, so reading `configured` before it settles would report
     // the wrong provider's state.
     void keySave.then(() => flush()).then(async () => {
-      const settings = await service.getProviderSettings()
+      const snapshot = await readProviderSnapshot(service)
+      const { settings } = snapshot
       // Ignore a stale response if the user switched again while this was in flight.
       if (token === refreshToken) {
+        ollamaStatus.value = snapshot.status
+        runtimeError.value = snapshot.status?.runtimeError || settings.runtimeError || ''
         providerConfigured.value = settings.configured
         toolsSupported.value = settings.toolsSupported !== false
         resolvedMode.value = settings.mode
@@ -235,6 +249,7 @@ export const useAgentSettings = createSharedComposable(() => {
     clearApiKey,
     resolvedEndpoint,
     detectedEndpoint,
+    runtimeError,
     resolvedModel,
   }
 })

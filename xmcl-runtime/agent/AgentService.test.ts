@@ -33,6 +33,15 @@ const { kFlights } = await import('~/infra')
 const { kSettings } = await import('~/settings')
 
 describe('low resource local engine policy', () => {
+  test('reports readiness failure separately from a missing model and recovers on a later query', async () => {
+    const context = createServiceContext({})
+    context.engine.ensure.mockRejectedValueOnce(new Error('ollama_readiness_timeout'))
+    context.ollama.resolveModel.mockResolvedValue({ name: HF_FACTORY_MODEL, compatible: true, size: 1, contextWindow: 4096 } as any)
+    const service = Object.assign(Object.create(AgentService.prototype), context, { warn: vi.fn() })
+    expect(await service.getProviderSettings()).toMatchObject({ configured: false, runtimeError: 'ollama_readiness_timeout', model: '' })
+    expect(context.ollama.resolveModel).not.toHaveBeenCalled()
+    expect(await service.getProviderSettings()).toMatchObject({ configured: true, model: HF_FACTORY_MODEL, detectedEndpoint: 'http://127.0.0.1:32123/v1/chat/completions' })
+  })
   test('does not stop a live native chat stream; releases the activity lease on close', async () => {
     const ctx = { request: { body: Buffer.from(JSON.stringify({ messages: [] })) }, response: {} } as any
     await handleOllamaChat(ctx, { model: 'local', localOrigin: 'http://127.0.0.1:32123' }, vi.fn(async () => new Response('{"done":true}\n')) as any)

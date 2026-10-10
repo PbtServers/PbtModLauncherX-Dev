@@ -33,7 +33,8 @@ export class ManagedOllama {
   private lockPath?: string
   private lockRelease?: Promise<void>
   private abort?: AbortController
-  constructor(readonly options: ManagedOllamaOptions, private fetch = globalThis.fetch) {}
+  constructor(readonly options: ManagedOllamaOptions, private fetch = globalThis.fetch,
+    private diagnostic: (event: string, details?: Record<string, string | number>) => void = () => {}) {}
 
   async configuration(): Promise<LocalRuntimeConfig> {
     try { return JSON.parse(await readFile(join(this.options.data, 'config.json'), 'utf8')) } catch (e) {
@@ -71,11 +72,15 @@ export class ManagedOllama {
   ensure(): Promise<string> {
     if (this.stopping) return Promise.reject(new Error('ollama_stopping'))
     if (this.origin && (!this.child || this.child.exitCode === null)) return Promise.resolve(this.origin)
-    if (!this.pending) this.pending = this.start().finally(() => { this.pending = undefined })
+    if (!this.pending) this.pending = this.start().catch(error => {
+      this.diagnostic('start.error', { code: error.code || (/^ollama_[a-z_]+$/.test(error.message) ? error.message : 'unknown') })
+      throw error
+    }).finally(() => { this.pending = undefined })
     return this.pending
   }
 
   private async start() {
+    this.diagnostic('start', { executable: process.execPath, bundle: this.options.bundle, seed: this.options.seed || '', data: this.options.data, arch: process.arch })
     const controller = new AbortController()
     this.abort = controller
     const config = await this.configuration()
@@ -92,6 +97,7 @@ export class ManagedOllama {
       throw e
     }
     const models = modelDirectory(this.options, config)
+    this.diagnostic('storage', { models })
     await mkdir(models, { recursive: true })
     await mkdir(join(this.options.data, 'home'), { recursive: true })
     await mkdir(join(this.options.data, 'tmp'), { recursive: true })
@@ -100,7 +106,14 @@ export class ManagedOllama {
     const reservation = createServer()
     try {
       await this.lock.writeFile(JSON.stringify({ pid: process.pid }))
-      if (this.options.seed) await installFactoryModel(this.options.seed, models)
+      if (this.options.seed) {
+        this.diagnostic('seed.begin')
+        try { await installFactoryModel(this.options.seed, models) } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new Error('ollama_seed_missing')
+          throw error
+        }
+        this.diagnostic('seed.ready')
+      }
       if (controller.signal.aborted) throw new Error('ollama_start_cancelled')
       await new Promise<void>((done, reject) => { reservation.once('error', reject); reservation.listen(0, '127.0.0.1', done) })
       const port = (reservation.address() as { port: number }).port
@@ -111,6 +124,7 @@ export class ManagedOllama {
       // The supervisor detects parent death via stdin and owns only this engine's tree.
       const child = spawn(process.execPath, ['-e', OLLAMA_SUPERVISOR, bundle.executable], { cwd: this.options.data, env: { ...env, ELECTRON_RUN_AS_NODE: '1' }, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
       this.child = child
+      this.diagnostic('supervisor.spawn', { pid: child.pid || 0, origin })
       let enginePid = 0
       let info = ''
       child.stdout?.on('data', data => {
@@ -119,9 +133,10 @@ export class ManagedOllama {
         if (info.includes('\n')) { try { enginePid = Number(JSON.parse(info.trim()).pid) } catch { controller.abort() } }
       })
       let failure: Error | undefined
-      child.on('error', () => { failure = new Error('ollama_spawn_failed') })
+      child.on('error', error => { this.diagnostic('supervisor.error', { code: (error as NodeJS.ErrnoException).code || 'unknown' }); failure = new Error('ollama_spawn_failed') })
       child.stderr?.resume() // Drain diagnostics without logging paths, prompts or keys.
       child.once('exit', code => {
+        this.diagnostic('supervisor.exit', { code: code ?? -1 })
         this.origin = undefined
         // Failed tree cleanup cannot authorize a new engine against the same store.
         if (code === 0) {
@@ -131,17 +146,27 @@ export class ManagedOllama {
       })
       const timeout = AbortSignal.timeout(this.options.readinessTimeoutMs ?? 20000)
       const signal = AbortSignal.any([timeout, controller.signal])
+      let readinessReason = 'not_listening'
       while (!signal.aborted) {
         if (failure) throw failure
         if (child.exitCode !== null || child.signalCode !== null) throw new Error('ollama_process_exited')
         try {
           const response = await this.fetch(origin + '/api/version', { signal: AbortSignal.any([signal, AbortSignal.timeout(500)]), redirect: 'error' })
-          if (response.ok && (await response.json() as any).version === bundle.manifest.version.replace(/^v/, '') && enginePid && await ownsOllamaPort(enginePid, port) && child.exitCode === null && !signal.aborted) { this.origin = origin; return origin }
-        } catch { /* Readiness polling has a deadline; no launcher startup wait. */ }
+          if (!response.ok) readinessReason = `http_${response.status}`
+          else if ((await response.json() as any).version !== bundle.manifest.version.replace(/^v/, '')) readinessReason = 'version_mismatch'
+          else if (!enginePid) readinessReason = 'supervisor_pid_missing'
+          else if (!await ownsOllamaPort(enginePid, port)) readinessReason = 'port_owner_mismatch'
+          else if (child.exitCode === null && !signal.aborted) { this.origin = origin; this.diagnostic('ready', { pid: enginePid, origin }); return origin }
+        } catch (error) {
+          const code = (error as NodeJS.ErrnoException).code || (error as { cause?: { code?: string } }).cause?.code || (error as Error).name
+          readinessReason = /^[a-zA-Z0-9_]+$/.test(code || '') ? code! : 'connection_error'
+        }
         await new Promise<void>(done => { const timer = setTimeout(done, 100); timer.unref() })
       }
+      this.diagnostic('readiness.failed', { reason: readinessReason, pid: enginePid, origin })
       throw new Error(controller.signal.aborted ? 'ollama_start_cancelled' : 'ollama_readiness_timeout')
     } catch (e) {
+      this.diagnostic('start.failed', { code: (e as NodeJS.ErrnoException).code || (/^ollama_[a-z_]+$/.test((e as Error).message) ? (e as Error).message : 'unknown') })
       reservation.close()
       await this.stopChild()
       await this.releaseLock()

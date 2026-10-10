@@ -373,3 +373,28 @@ The reader now accepts strings and streamed UTF-8 bytes, preserves split Unicode
 The corrected validator was committed as e16abed1. External execution against win-unpacked used pbtadmin-qwen3:4b-q4_K_M (qwen3, 4.0B, Q4_K_M; tools/thinking/completion) at http://127.0.0.1:51157. The production chat bridge returned 282 content chunks; exitCode=0 and cleanupConfirmed=true were independently read from temp/phase156-factory-chat-0f64ae06-77a0-4def-a069-f3861c31e4b0.result.json. The authentic answer identifies PbtAdmin and PbtinaDev as its female creator, owner and administrator. UTF-8 evidence contains correct accented characters and no U+FFFD replacement characters; the pasted console mojibake is not present in the saved answer.
 
 Status: native packaged-resource inference APPROVED. This is not visual launcher validation, not a ZIP/installer execution test, and not a proof of lore retrieval or diagnostic tool execution (this validator supplies no tools). The model calling itself fictional is imprecise wording and must not be treated as a verified historical fact. GUI automatic settings, model selection, chat, offline restart and portable relocation remain NOT EXECUTED in this run. No downloads or rebuilds were repeated.
+
+### Corrección de detección y estado en la interfaz del portable
+
+Base confirmada: `58f64601`, rama `dev/upstream-v1.0.7`, árbol inicialmente limpio. La usuaria identifica `build/output/win-unpacked` como el paquete abierto. Se inspeccionó `xmcl-electron-app/build/output/win-unpacked/PbtModLauncherX.exe`, modificado el 2026-10-11 a las 00:42:02 +02:00. No se pudo identificar un PID activo ni observar su ventana durante esta comprobación; no se asume que los nuevos cambios estén ya dentro de ese ejecutable.
+
+**Recursos comprobados:** validación criptográfica del paquete existente correcta: Ollama v0.34.0, 84 archivos; modelo `pbtadmin-qwen3:4b-q4_K_M`, 2497291968 bytes en cinco archivos de almacén. Los pesos conservan el SHA-256 oficial documentado anteriormente. No hubo descargas nuevas. Esta inspección no acredita qué almacén estaba usando la ejecución visual de la usuaria.
+
+**Defectos confirmados y correcciones:**
+
+- `resolveModel` convertía un fallo de arranque/conexión en un resultado vacío. El servicio ahora termina la preparación verificada del motor antes de interpretar sus tags; los errores de readiness y recursos se transmiten por separado mediante `runtimeError`.
+- El composable podía guardar un proveedor no configurado y luego descubrir modelos sin volver a resolver la selección. `readProviderSnapshot` resincroniza ese caso con un segundo intento acotado. No hay sondeo infinito ni sustitución de selecciones existentes. Una inspección que indique motor detenido invalida el estado listo y su endpoint activo.
+- Se evita otra inspección que vuelva a arrancar el motor después de que esa misma consulta haya fallado. Una comprobación explícita posterior permite recuperar el estado. Se mantiene la pausa intencionada del modo de bajos recursos y el arranque manual de PbtAdmin.
+- Ajustes colocaba `noModels` y `stopped` dentro de los campos aunque no fueran estados observados. Los inputs ahora muestran únicamente modelo seleccionado y endpoint detectado. El estado y el diagnóstico aparecen debajo, completos, con `role=status`, `aria-live`, ajuste de palabras y un botón de comprobación protegido contra clics concurrentes.
+- Se vuelve a comprobar el estado al abrir Ajustes. Las respuestas obsoletas durante cambios de proveedor no reemplazan el diagnóstico vigente. Se informa del trabajo de inicialización y se permite recuperar fallos de IPC.
+- Los logs propios de arranque registran ejecutable, arquitectura, recursos, almacén, inicio/final de preparación, PID del supervisor, endpoint, disponibilidad y causa final de readiness (HTTP, conexión, versión o propietario del puerto). No se registran stderr arbitrario del motor, prompts, respuestas, claves ni tokens. La verificación de propiedad del puerto y TLS se mantienen.
+
+No se ha probado que un defecto de spawn, permisos, transporte Electron o un lock explique el fallo original de esa ejecución específica: se necesita su nueva traza real. No se presenta una causa ambiental posible como confirmada.
+
+**Validación de esta corrección:** 46 tests pertinentes aprobados, cero fallidos; typecheck y lint con salida 0; traducciones sin errores de claves, sintaxis o interpolaciones; Keystone UI compilada y bundle verificado. La batería incluye recuperación después de readiness fallido, resincronización posterior, endpoint dinámico, recursos ausentes, proveedores externos y regresiones del gestor. Son pruebas automatizadas, no una conversación visual real.
+
+`pnpm dev:main` con perfil temporal y el build portable Electron siguen BLOQUEADOS por `uv_os_get_passwd returned ENOMEM`. No se generó un nuevo ejecutable o instalador con esta corrección dentro del sandbox. Los logs están en `temp/ollama-sync-*.log`.
+
+**Pendiente obligatorio:** reconstruir fuera del sandbox, abrir exclusivamente el nuevo `win-unpacked/PbtModLauncherX.exe` con `PBT_PORTABLE_DATA` apuntando a un perfil temporal nuevo, comprobar modelo/endpoint visibles, conversar mediante PbtAdmin, cerrar y reabrir el mismo perfil. Revisar únicamente las líneas `[local.runtime]` de sus logs y confirmar el cierre de procesos propios. La inferencia anterior por script sigue siendo evidencia independiente y no sustituye esta prueba. Linux/macOS no se han ejecutado nativamente.
+
+Si `.git/index.lock` impide el commit, esta corrección se preserva mediante ZIP verificado, manifiesto SHA-256 y parche bajo `temp/ollama-sync-preservacion-20261011.*`, sin binarios ni pesos. No hay push, merge, tags ni release.

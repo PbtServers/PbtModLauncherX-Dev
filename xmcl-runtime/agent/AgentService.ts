@@ -62,7 +62,7 @@ export class AgentService extends AbstractService implements IAgentService {
     @Inject(kOllamaResourceRoot) resourceRoot: string,
   ) {
     super(app)
-    this.engine = new ManagedOllama({ bundle: resourceRoot, seed: join(resourceRoot, '..', 'ollama-model'), data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args))
+    this.engine = new ManagedOllama({ bundle: resourceRoot, seed: join(resourceRoot, '..', 'ollama-model'), data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args), (event, details) => this.logAgent(`[local.runtime] ${JSON.stringify({ event, ...details })}`))
     this.ollama = new OllamaController((...args) => app.fetch(...args), async () => {
       try { await validateOllamaBundle(resourceRoot); return true } catch { return false }
     }, undefined, () => this.engine.ensure())
@@ -73,7 +73,15 @@ export class AgentService extends AbstractService implements IAgentService {
   async getProviderSettings(): Promise<AgentProviderSettings> {
     const settings = await this.app.registry.get(kSettings)
     const endpoint = settings.agentEndpoint || OLLAMA_ENDPOINT
-    const provider = await this[kResolvedAgentProvider]()
+    let runtimeError: string | undefined
+    let provider: ResolvedAgentProvider
+    try { provider = await this[kResolvedAgentProvider]() } catch (error) {
+      if (!isOllamaEndpoint(endpoint)) throw error
+      const message = (error as Error).message
+      runtimeError = /^ollama_[a-z_]+$/.test(message) ? message : (error as NodeJS.ErrnoException).code === 'ENOENT' ? 'ollama_runtime_missing' : 'ollama_runtime_unavailable'
+      this.warn(`[local.runtime] provider unavailable: ${runtimeError}`)
+      provider = { mode: 'unconfigured' }
+    }
     const configured = provider.mode === 'custom'
       ? true
       : provider.mode === 'builtin' && !!await this.app.registry.getOrCreate(XmclAccountService)
@@ -81,6 +89,7 @@ export class AgentService extends AbstractService implements IAgentService {
         .catch(() => undefined)
     return {
       endpoint,
+      ...(runtimeError ? { runtimeError } : {}),
       model: provider.mode === 'custom' ? provider.model : settings.agentModel || DEFAULT_AGENT_MODEL,
       ...(provider.mode === 'custom' && provider.localOrigin ? { detectedEndpoint: new URL('/v1/chat/completions', provider.localOrigin).href } : {}),
       configured,
@@ -123,6 +132,9 @@ export class AgentService extends AbstractService implements IAgentService {
     const endpoint = settings.agentEndpoint.trim() || OLLAMA_ENDPOINT
     let model = settings.agentModel.trim()
     if (settings.lowResourceMode && !this.localAgentRequested && isOllamaEndpoint(endpoint)) return { mode: 'unconfigured' }
+    // Finish verified seed publication and readiness before interpreting tags.
+    // Otherwise a startup failure is swallowed by resolveModel as "no model".
+    if (isOllamaEndpoint(endpoint)) await this.engine.ensure()
     if (!model && isOllamaEndpoint(endpoint)) {
       const local = await this.ollama.resolveModel(HF_FACTORY_MODEL) || await this.ollama.resolveModel(FACTORY_MODEL)
       if (local) {
@@ -164,6 +176,7 @@ export class AgentService extends AbstractService implements IAgentService {
       const message = (e as Error).message
       runtimeError = message.startsWith('ollama_') ? message : (e as NodeJS.ErrnoException).code === 'ENOENT' ? 'ollama_runtime_missing' : 'ollama_runtime_unavailable'
     }
+    if (runtimeError) return { installed: undefined, running: false, models: [], recommendedModels: [], totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length, runtimeError }
     const status = await this.ollama.inspect()
     if (runtimeError) return { ...status, runtimeError }
     const storage = await this.engine.storage()

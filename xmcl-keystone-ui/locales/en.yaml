@@ -2810,3 +2810,6 @@ lowResources:
   agentPaused: PbtAdmin is paused to save resources. Start it when you need it.
   agentMemory: Qwen3 4B needs several GB of RAM. You can choose a lighter model in Settings. Closing chat releases the managed engine when no operations are active.
   startAgent: Start PbtAdmin
+ollamaRuntime:
+  diagnostic: 'Local engine diagnostic: {code}'
+  checking: Checking resources, model and connection to the local engine…
