@@ -85,7 +85,7 @@ function renderJourneyMarkdown(m: JourneyManifest, assetsRel: string): string {
 
 function renderIndex(locale: string, manifests: JourneyManifest[]): string {
   const lines: string[] = []
-  lines.push(`# XMCL Tutorial (${locale})`)
+  lines.push(`# PbtModLauncherX Tutorial (${locale})`)
   lines.push('')
   lines.push('This tutorial is generated from the end-to-end test suite. Every step you see below is automatically exercised on every CI run, so the screenshots cannot drift from the real launcher.')
   lines.push('')

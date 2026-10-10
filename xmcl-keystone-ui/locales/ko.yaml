@@ -341,7 +341,7 @@ importModpack:
   selectVersionDescription: '설치할 {name} 버전을 선택하세요:'
   pmcProtected: Planet Minecraft는 Cloudflare로 보호됩니다. 페이지에서 직접 다운로드 링크 또는 미러 링크를 복사하세요.
   netdiskTitle: 클라우드 드라이브에서 다운로드
-  netdiskDescription: 이 모드팩 버전은 외부 클라우드 드라이브에 저장되어 있습니다. 아래 버튼을 눌러 브라우저에서 다운로드 페이지를 연 다음, 다운로드한 .zip 또는 .mrpack 파일을 XMCL로 끌어다 놓으세요.
+  netdiskDescription: 이 모드팩 버전은 외부 클라우드 드라이브에 저장되어 있습니다. 아래 버튼을 눌러 브라우저에서 다운로드 페이지를 연 다음, 다운로드한 .zip 또는 .mrpack 파일을 PbtModLauncherX로 끌어다 놓으세요.
   openNetdisk: 클라우드 드라이브 열기
   netdiskOpened: 클라우드 드라이브 링크를 브라우저에서 열고 클립보드에 복사했습니다.
   noReleasesFound: 이 저장소에서 .mrpack 또는 .zip 모드팩 릴리스를 찾을 수 없습니다.
@@ -496,7 +496,7 @@ instances:
   addMMCDescription: 기존 MultiMC 인스턴스 가져오기. MultiMC의 데이터 폴더를 선택해야 합니다.
   addModrinthDescription: 기존 Modrinth 인스턴스 가져오기. Modrinth 루트 데이터 폴더를 선택해야 합니다.
   addVanilla: 바닐라 마인크래프트에서 생성
-  addVanillaDescription: 일반 .minecraft 폴더에서 가져오기. 원본 게임 프로필을 XMCL로 복제합니다.
+  addVanillaDescription: 일반 .minecraft 폴더에서 가져오기. 원본 게임 프로필을 PbtModLauncherX로 복제합니다.
   fix: 수리
   folderSetting: 폴더 설정
   importFolderDescription: 마인크래프트를 런처로 가져오기
@@ -968,7 +968,7 @@ multiplayer:
   openConsumerPortal: 소비자 포털 열기
   refundHint: 환불이 필요하신가요? Waffo 소비자 포털에서 주문과 구독을 관리하세요.
   togetherSupportHint: 멀티플레이가 작동하지 않으면 Discord에 참여하여 개발팀에 문의하세요. 문제 해결을 도와드리겠습니다.
-  autoShareAmbiguous: 여러 게임이 실행 중입니다. XMCL이 공유할 수 있도록 LAN 월드를 호스팅하는 인스턴스를 선택하세요.
+  autoShareAmbiguous: 여러 게임이 실행 중입니다. PbtModLauncherX이 공유할 수 있도록 LAN 월드를 호스팅하는 인스턴스를 선택하세요.
   editSharingScope: 공유 범위 편집
   gameAvailable: LAN 게임 사용 가능
   joinGame: 게임 참가
@@ -1404,7 +1404,7 @@ setting:
   about: 정보
   aboutBmclDescription: BMCL API는 중국 본토의 사용자를 위한 편리한 다운로드를 제공합니다
   aboutContributors: 🧑‍💻 기여자 🧑‍💻
-  aboutDenoDescription: XMCL은 서버리스 JavaScript 애플리케이션을 위해 Deno Deploy의 간편한 플랫폼을 활용합니다
+  aboutDenoDescription: PbtModLauncherX은 서버리스 JavaScript 애플리케이션을 위해 Deno Deploy의 간편한 플랫폼을 활용합니다
   aboutLicense: MIT LICENSE
   aboutLicenseInfo: SignPath.io가 제공하는 Windows의 무료 코드 서명, SignPath Foundation에서 인증
   aboutSponsors: 😇 스폰서 😇
@@ -1465,7 +1465,7 @@ setting:
   developerMode: 개발자 모드
   developerModeDescription: 개발자 모드는 자신의 모드를 테스트하기 위한 것입니다
   disableTelemetry: 원격 분석 비활성화
-  disableTelemetryDescription: XMCL이 게임 실행 및 사용자 로그인 이벤트를 수집합니다.
+  disableTelemetryDescription: PbtModLauncherX이 게임 실행 및 사용자 로그인 이벤트를 수집합니다.
   enableDedicatedGPUOptimization: 전용 GPU 할당
   enableDedicatedGPUOptimizationDescription: 이 옵션은 마인크래프트 프로세스에 전용 GPU를 할당합니다.
   enableDiscord: Discord 상태 표시 활성화
@@ -1619,7 +1619,7 @@ setup:
   appearance:
     name: '@:setting.appearance'
   dataRoot:
-    description: 최상위 폴더가 일반적인 .minecraft 디렉터리가 아닙니다.  XMCL 데이터 디렉터리 구조는 기본 버전과 다르기 때문에, 일반적인 .minecraft 디렉터리를 최상위 폴더로 사용하는 것을 권장하지 않습니다.
+    description: 최상위 폴더가 일반적인 .minecraft 디렉터리가 아닙니다.  PbtModLauncherX 데이터 디렉터리 구조는 기본 버전과 다르기 때문에, 일반적인 .minecraft 디렉터리를 최상위 폴더로 사용하는 것을 권장하지 않습니다.
     drives: 권장 위치
     name: 데이터 디렉터리 설정
   defaultLayoutDescription: 기본 레이아웃은 게임 "인스턴스" 개념을 향상시키려고 합니다. Discord와 같은 앱처럼 보입니다. Steam과 같은 다른 게임 런처 앱에서도 영감을 받았습니다.
@@ -1750,8 +1750,8 @@ theme:
   selectImage: 이미지 선택
   selectMusic: 음악 선택
   selectVideo: 비디오 선택
-  title: XMCL
-title: XMCL
+  title: PbtModLauncherX
+title: PbtModLauncherX
 transportType:
   host: 호스트 후보
   prflx: 피어 반사 후보
@@ -2032,7 +2032,7 @@ agent:
   suggestion2: 모드가 충돌합니다 — 원인을 찾고 해결 방법을 알려주세요.
   suggestion3: '모드팩 빌드: 원하는 기능이 있는 모드를 찾아 이 인스턴스에 설치해 주세요.'
   thinking: 생각 중…
-  title: XMCL 에이전트
+  title: PbtModLauncherX 에이전트
   toggleHint: 토글하려면
 difficulty:
   easy: 쉬움

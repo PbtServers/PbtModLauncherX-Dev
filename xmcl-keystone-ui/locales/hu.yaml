@@ -333,7 +333,7 @@ importModpack:
   selectVersionDescription: 'Válaszd ki a(z) {name} telepítendő verzióját:'
   pmcProtected: A Planet Minecraftot a Cloudflare védi. Másold ki az oldalról a közvetlen letöltési vagy tükörhivatkozást.
   netdiskTitle: Letöltés felhőtárhelyről
-  netdiskDescription: Ez a modcsomagverzió külső felhőtárhelyen található. Kattints alább a letöltési oldal böngészőben való megnyitásához, majd húzd a letöltött .zip vagy .mrpack fájlt az XMCL-be.
+  netdiskDescription: Ez a modcsomagverzió külső felhőtárhelyen található. Kattints alább a letöltési oldal böngészőben való megnyitásához, majd húzd a letöltött .zip vagy .mrpack fájlt az PbtModLauncherX-be.
   openNetdisk: Felhőtárhely megnyitása
   netdiskOpened: A felhőtárhely hivatkozása megnyílt a böngészőben, és a vágólapra lett másolva.
   noReleasesFound: Nem található .mrpack vagy .zip modcsomagkiadás ebben a tárolóban.
@@ -510,7 +510,7 @@ instances:
     Ki kell választania a Modrinth gyökér adatmappát.
   addVanilla: Létrehozás vanilla-szerű Minecraftból
   addVanillaDescription: >-
-    Importálás a közös .minecraft mappából. Ez duplikálja az eredeti játékprofilt az XMCL-be.
+    Importálás a közös .minecraft mappából. Ez duplikálja az eredeti játékprofilt az PbtModLauncherX-be.
   fix: Javítás
   folder: Mappa
   folderSetting: Mappa beállításai
@@ -1012,7 +1012,7 @@ multiplayer:
   openConsumerPortal: Ügyfélportál megnyitása
   refundHint: Visszatérítést szeretnél? Rendeléseid és előfizetéseid kezeléséhez keresd fel a Waffo ügyfélportálját.
   togetherSupportHint: Ha a többjátékos mód nem működik, csatlakozz a Discordunkhoz, és lépj kapcsolatba a fejlesztőcsapattal. Segítünk megoldani a problémát.
-  autoShareAmbiguous: Több játék is fut. Válaszd ki a LAN-világot futtató példányt, hogy az XMCL megoszthassa.
+  autoShareAmbiguous: Több játék is fut. Válaszd ki a LAN-világot futtató példányt, hogy az PbtModLauncherX megoszthassa.
   editSharingScope: Megosztási kör szerkesztése
   gameAvailable: LAN-játék érhető el
   joinGame: Csatlakozás a játékhoz
@@ -1445,7 +1445,7 @@ setting:
     A BMCL API kényelmes letöltéseket biztosít a Kínai Kontinensen lévő felhasználók számára
   aboutContributors: 🧑‍💻 Közreműködők 🧑‍💻
   aboutDenoDescription: >-
-    Az XMCL a Deno Deploy egyszerű platformját használja kiszolgáló nélküli JavaScript alkalmazásokhoz
+    Az PbtModLauncherX a Deno Deploy egyszerű platformját használja kiszolgáló nélküli JavaScript alkalmazásokhoz
   aboutLicense: MIT LICENSE
   aboutLicenseInfo: >-
     Ingyenes kódaláírás Windows alatt a SignPath.io által biztosított, SignPath Foundation által tanúsított
@@ -1509,7 +1509,7 @@ setting:
   developerModeDescription: Fejlesztői mód a saját írt mod tesztelésére irányul
   disableTelemetry: Telemetria kikapcsolása
   disableTelemetryDescription: >-
-    Az XMCL összegyűjti a játékindítási és a felhasználói bejelentkezési eseményeket.
+    Az PbtModLauncherX összegyűjti a játékindítási és a felhasználói bejelentkezési eseményeket.
   enableDedicatedGPUOptimization: Dedikált GPU hozzárendelése
   enableDedicatedGPUOptimizationDescription: Ez az opció dedikált GPU-t rendel a Minecraft folyamathoz.
   enableDiscord: Discord státusz engedélyezése
@@ -1647,7 +1647,7 @@ setup:
     name: '@:setting.appearance'
   dataRoot:
     description: >-
-      Az adatgyökér nem egy közös .minecraft könyvtár. Mivel az XMCL adatok könyvtárszerkezet különbözik a vanilla könyvtárszerkezettől, nem javasoljuk, hogy a a közös .minecraft könyvtárat adatgyökérként használni.
+      Az adatgyökér nem egy közös .minecraft könyvtár. Mivel az PbtModLauncherX adatok könyvtárszerkezet különbözik a vanilla könyvtárszerkezettől, nem javasoljuk, hogy a a közös .minecraft könyvtárat adatgyökérként használni.
     drives: Ajánlott helyek
     name: Adatmappa beállítása
   defaultLayoutDescription: >-
@@ -1783,8 +1783,8 @@ theme:
   selectImage: Válassza a Kép lehetőséget
   selectMusic: Válassza a Zene lehetőséget
   selectVideo: Válassza a Videó lehetőséget
-  title: XMCL
-title: XMCL
+  title: PbtModLauncherX
+title: PbtModLauncherX
 transportType:
   host: Kiszolgáló jelölt
   prflx: Peer Reflexív jelölt

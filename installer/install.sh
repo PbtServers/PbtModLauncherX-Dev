@@ -1,180 +1,90 @@
 #!/bin/sh
-# Portable installer for X Minecraft Launcher (XMCL) — macOS & Linux.
-#
-# Reconstructs a runnable launcher — equivalent to extracting the official
-# tar.xz (Linux) or the dmg's .app (macOS) — by downloading the matching
-# Electron prebuilt from the npmmirror Electron mirror and the app.asar from the
-# per-platform @xmcl/app-<platform> npm package. Intended for users behind the
-# GFW who have not installed XMCL yet.
-#
-# Usage:
-#   curl -fsSL https://xmcl.app/install.sh | sh
-#   curl -fsSL https://xmcl.app/install.sh | sh -s -- --launch
-#   ./install.sh --install-dir ~/Apps --version 0.56.6 --launch
-#
-# Env overrides: XMCL_REGISTRY, XMCL_ELECTRON_MIRROR, XMCL_INSTALL_DIR.
+# PbtModLauncherX portable installer for macOS and Linux (MIT).
+# Original XMCL npm reconstruction is preserved in upstream/install.sh.
+# Downloads only PbtServers artifacts and verifies their SHA-256.
 set -eu
-
-REGISTRY="${XMCL_REGISTRY:-https://registry.npmmirror.com}"
-ELECTRON_MIRROR="${XMCL_ELECTRON_MIRROR:-https://npmmirror.com/mirrors/electron}"
-APP_NAME="X Minecraft Launcher"
-
-VERSION="latest"
-INSTALL_DIR="${XMCL_INSTALL_DIR:-}"
+VERSION=latest
+INSTALL_DIR="${PBTMODLAUNCHERX_INSTALL_DIR:-${XMCL_INSTALL_DIR:-}}"
 LAUNCH=0
-SKIP_ICON=0
-
-while [ $# -gt 0 ]; do
+while [ "$#" -gt 0 ]; do
   case "$1" in
     --version) VERSION="$2"; shift 2 ;;
     --install-dir) INSTALL_DIR="$2"; shift 2 ;;
     --launch) LAUNCH=1; shift ;;
-    --skip-icon) SKIP_ICON=1; shift ;;
-    *) echo "Unknown option: $1" >&2; exit 1 ;;
+    *) echo "PbtModLauncherX: unknown option $1" >&2; exit 1 ;;
   esac
 done
-
-step() { printf '\033[36m==> %s\033[0m\n' "$1"; }
-die()  { printf 'error: %s\n' "$1" >&2; exit 1; }
-
-# --- prerequisites -----------------------------------------------------------
-if command -v curl >/dev/null 2>&1; then
-  fetch()    { curl -fsSL "$1"; }
-  download() { curl -fsSL "$1" -o "$2"; }
-elif command -v wget >/dev/null 2>&1; then
-  fetch()    { wget -qO- "$1"; }
-  download() { wget -qO "$2" "$1"; }
-else
-  die "need curl or wget"
+die() { echo "PbtModLauncherX: $*" >&2; exit 1; }
+command -v curl >/dev/null 2>&1 || die 'curl is required'
+command -v tar >/dev/null 2>&1 || die 'tar is required'
+base=https://github.com/PbtServers/PbtModLauncherX-Dev/releases
+if [ "$VERSION" = latest ]; then
+  resolved=$(curl -fsSL -o /dev/null -w '%{url_effective}' "$base/latest")
+  VERSION=${resolved##*/}
 fi
-
-sha256_of() {
-  if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
-  elif command -v shasum   >/dev/null 2>&1; then shasum -a 256 "$1" | cut -d' ' -f1
-  fi
+VERSION=${VERSION#v}
+case "$VERSION" in ''|*[!0-9A-Za-z.+-]*) die 'invalid release version' ;; esac
+case "$VERSION" in [0-9]*) ;; *) die 'invalid release version' ;; esac
+case "$(uname -m)" in x86_64|amd64) arch=x64 ;; arm64|aarch64) arch=arm64 ;; *) die 'unsupported architecture' ;; esac
+case "$(uname -s)" in
+  Linux)
+    os=linux
+    [ -n "$INSTALL_DIR" ] || INSTALL_DIR="$HOME/.local/share/pbtmodlauncherx"
+    destination=$INSTALL_DIR
+    artifact="pbtmodlauncherx-$VERSION-$arch.tar.xz"
+    ;;
+  Darwin)
+    os=mac
+    [ -n "$INSTALL_DIR" ] || INSTALL_DIR="$HOME/Applications"
+    destination="$INSTALL_DIR/PbtModLauncherX.app"
+    artifact="pbtmodlauncherx-$VERSION-darwin-$arch.zip"
+    if ! curl -fsSI "$base/download/v$VERSION/$artifact" >/dev/null 2>&1; then artifact="pbtmodlauncherx-$VERSION-$arch.dmg"; fi
+    ;;
+  *) die 'only macOS and Linux are supported' ;;
+esac
+[ ! -e "$destination" ] && [ ! -L "$destination" ] || die "destination already exists: $destination"
+temporary=$(mktemp -d "${TMPDIR:-/tmp}/pbtmodlauncherx-install.XXXXXXXX")
+mountpoint=
+cleanup() {
+  if [ -n "$mountpoint" ]; then hdiutil detach "$mountpoint" >/dev/null 2>&1 || true; fi
+  case "$temporary" in "${TMPDIR:-/tmp}"/pbtmodlauncherx-install.*) rm -rf -- "$temporary" ;; esac
 }
-
-# --- resolve platform / arch -------------------------------------------------
-os="$(uname -s)"
-arch="$(uname -m)"
-
-case "$os" in
-  Darwin) el_os="darwin"; plat_base="mac" ;;
-  Linux)  el_os="linux";  plat_base="linux" ;;
-  *) die "unsupported OS: $os" ;;
-esac
-
-case "$arch" in
-  x86_64|amd64)  el_arch="x64";   plat_suffix="" ;;
-  arm64|aarch64) el_arch="arm64"; plat_suffix="-arm64" ;;
-  *) die "unsupported arch: $arch" ;;
-esac
-
-platform="${plat_base}${plat_suffix}"   # mac | mac-arm64 | linux | linux-arm64
-pkg="@xmcl/app-${platform}"
-
-if [ -z "$INSTALL_DIR" ]; then
-  if [ "$os" = "Darwin" ]; then INSTALL_DIR="$HOME/Applications"; else INSTALL_DIR="$HOME/.local/share/xmcl"; fi
-fi
-
-# --- resolve version + electron from npm metadata ----------------------------
-step "Resolving $pkg@$VERSION"
-meta="$(fetch "$REGISTRY/$pkg/$VERSION")" || die "cannot reach $REGISTRY"
-app_version="$(printf '%s' "$meta" | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)"
-electron="$(printf '%s' "$meta"    | grep -o '"electron":"[^"]*"' | head -1 | cut -d'"' -f4)"
-[ -n "$app_version" ] || die "could not read version from $pkg metadata"
-[ -n "$electron" ]    || die "$pkg@$app_version has no 'electron' field"
-printf '    app=%s electron=%s arch=%s\n' "$app_version" "$electron" "$el_arch"
-
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT INT TERM
-
-# --- download Electron prebuilt + app tarball --------------------------------
-step "Downloading Electron $electron"
-download "$ELECTRON_MIRROR/$electron/electron-v$electron-$el_os-$el_arch.zip" "$tmp/electron.zip"
-
-step "Downloading app.asar ($app_version)"
-download "$REGISTRY/$pkg/-/app-$platform-$app_version.tgz" "$tmp/app.tgz"
-mkdir -p "$tmp/app"
-tar -xzf "$tmp/app.tgz" -C "$tmp/app"   # -> $tmp/app/package/{app.asar,app.asar.sha256,icon.icns}
-asar_src="$tmp/app/package/app.asar"
-[ -f "$asar_src" ] || die "app.asar missing from $pkg tarball"
-
-# --- verify checksum (before placing it) -------------------------------------
-if [ -f "$tmp/app/package/app.asar.sha256" ]; then
-  expected="$(cut -d' ' -f1 <"$tmp/app/package/app.asar.sha256" | tr -d '[:space:]')"
-  actual="$(sha256_of "$asar_src")"
-  if [ -n "$actual" ] && [ -n "$expected" ] && [ "$expected" != "$actual" ]; then
-    die "checksum mismatch for app.asar (expected $expected, got $actual)"
-  fi
-  [ -n "$actual" ] && echo "    checksum ok"
-fi
-
-# --- assemble --------------------------------------------------------------
-if [ "$os" = "Darwin" ]; then
-  step "Building $APP_NAME.app in $INSTALL_DIR"
-  mkdir -p "$tmp/ex" "$INSTALL_DIR"
-  ditto -x -k "$tmp/electron.zip" "$tmp/ex"
-  app="$INSTALL_DIR/$APP_NAME.app"
-  rm -rf "$app"
-  mv "$tmp/ex/Electron.app" "$app"
-
-  contents="$app/Contents"
-  rm -f "$contents/Resources/default_app.asar"
-  mv "$asar_src" "$contents/Resources/app.asar"
-
-  # Rename the main executable and point the bundle at it + our identity, so
-  # the reconstructed app matches the official dmg (same name, icon, identifier
-  # => same userData, zero migration).
-  if [ -f "$contents/MacOS/Electron" ]; then
-    mv "$contents/MacOS/Electron" "$contents/MacOS/$APP_NAME"
-  fi
-  plist="$contents/Info.plist"
-  pb() { /usr/libexec/PlistBuddy -c "$1" "$plist" >/dev/null 2>&1 || true; }
-  pb "Set :CFBundleExecutable $APP_NAME"
-  pb "Set :CFBundleName $APP_NAME"
-  pb "Set :CFBundleIdentifier xmcl"
-  # CFBundleDisplayName may be absent in Electron's plist, so add it if Set fails.
-  /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$plist" >/dev/null 2>&1 \
-    || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $APP_NAME" "$plist" >/dev/null 2>&1 || true
-
-  if [ "$SKIP_ICON" != "1" ] && [ -f "$tmp/app/package/icon.icns" ]; then
-    # Electron's default bundle icon is electron.icns; overwrite in place so
-    # Info.plist's CFBundleIconFile keeps pointing at it.
-    cp "$tmp/app/package/icon.icns" "$contents/Resources/electron.icns"
-  fi
-
-  # Ad-hoc re-sign: modifying the bundle invalidates Electron's signature, and
-  # Apple Silicon refuses to run an app with a broken/absent signature.
-  if command -v codesign >/dev/null 2>&1; then
-    step "Ad-hoc signing"
-    codesign --force --deep --sign - "$app" >/dev/null 2>&1 || echo "    warn: codesign failed; app may be blocked on Apple Silicon"
-  fi
-
-  step "Installed to $app"
-  [ "$LAUNCH" = "1" ] && open "$app"
+trap cleanup EXIT
+trap 'exit 1' INT TERM
+archive="$temporary/$artifact"
+echo "Installing PbtModLauncherX $VERSION ($arch)"
+curl -fsSL "$base/download/v$VERSION/$artifact" -o "$archive"
+curl -fsSL "$base/download/v$VERSION/$artifact.sha256" -o "$archive.sha256"
+expected=$(awk 'NR == 1 {print $1}' "$archive.sha256" | tr 'A-F' 'a-f')
+[ "${#expected}" -eq 64 ] || die 'invalid SHA-256'
+case "$expected" in *[!0-9a-f]*) die 'invalid SHA-256' ;; esac
+if command -v sha256sum >/dev/null 2>&1; then actual=$(sha256sum "$archive" | awk '{print $1}')
+elif command -v shasum >/dev/null 2>&1; then actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+else die 'sha256sum or shasum is required'; fi
+[ "$expected" = "$actual" ] || die 'portable archive SHA-256 mismatch'
+mkdir "$temporary/application"
+if [ "$os" = linux ]; then
+  tar -xJf "$archive" -C "$temporary/application"
+  [ -f "$temporary/application/pbtmodlauncherx" ] || die 'archive has no pbtmodlauncherx executable'
+  [ ! -e "$destination" ] && [ ! -L "$destination" ] || die 'destination now exists'
+  mkdir -p "$(dirname "$destination")"
+  mv "$temporary/application" "$destination"
+  echo "PbtModLauncherX installed at $destination"
+  if [ "$LAUNCH" -eq 1 ]; then "$destination/pbtmodlauncherx" >/dev/null 2>&1 & fi
 else
-  command -v unzip >/dev/null 2>&1 || die "need unzip"
-  step "Extracting to $INSTALL_DIR"
-  rm -rf "$INSTALL_DIR"; mkdir -p "$INSTALL_DIR"
-  unzip -q "$tmp/electron.zip" -d "$INSTALL_DIR"
-
-  rm -f "$INSTALL_DIR/resources/default_app.asar"
-  mv "$asar_src" "$INSTALL_DIR/resources/app.asar"
-
-  mv "$INSTALL_DIR/electron" "$INSTALL_DIR/xmcl"
-  chmod +x "$INSTALL_DIR/xmcl"
-
-  # chrome-sandbox must be root-owned + setuid, which needs privileges we may
-  # not have in a portable install. Best-effort; otherwise --no-sandbox works.
-  if [ -f "$INSTALL_DIR/chrome-sandbox" ]; then
-    if [ "$(id -u)" = "0" ]; then
-      chown root:root "$INSTALL_DIR/chrome-sandbox" 2>/dev/null || true
-      chmod 4755 "$INSTALL_DIR/chrome-sandbox" 2>/dev/null || true
-    fi
-  fi
-
-  step "Installed to $INSTALL_DIR/xmcl"
-  echo "    if it fails with a sandbox error, run: $INSTALL_DIR/xmcl --no-sandbox"
-  [ "$LAUNCH" = "1" ] && "$INSTALL_DIR/xmcl" >/dev/null 2>&1 &
+  case "$artifact" in
+    *.zip) ditto -x -k "$archive" "$temporary/application"; source="$temporary/application/PbtModLauncherX.app" ;;
+    *.dmg)
+      mountpoint="$temporary/mount"
+      mkdir "$mountpoint"
+      hdiutil attach "$archive" -mountpoint "$mountpoint" -nobrowse -readonly >/dev/null
+      source="$mountpoint/PbtModLauncherX.app"
+      ;;
+  esac
+  [ -d "$source" ] || die 'archive has no PbtModLauncherX.app'
+  [ ! -e "$destination" ] && [ ! -L "$destination" ] || die 'destination now exists'
+  mkdir -p "$INSTALL_DIR"
+  ditto "$source" "$destination"
+  echo "PbtModLauncherX installed at $destination"
+  if [ "$LAUNCH" -eq 1 ]; then open "$destination"; fi
 fi

@@ -343,7 +343,7 @@ importModpack:
   selectVersionDescription: 'اختر إصدار {name} المراد تثبيته:'
   pmcProtected: موقع Planet Minecraft محمي بواسطة Cloudflare. يرجى نسخ رابط التنزيل المباشر أو رابط بديل من الصفحة.
   netdiskTitle: التنزيل من التخزين السحابي
-  netdiskDescription: هذا الإصدار من حزمة التعديلات مستضاف على خدمة تخزين سحابي خارجية. انقر أدناه لفتح صفحة التنزيل في المتصفح، ثم اسحب ملف .zip أو .mrpack الذي نزّلته وأفلته في XMCL.
+  netdiskDescription: هذا الإصدار من حزمة التعديلات مستضاف على خدمة تخزين سحابي خارجية. انقر أدناه لفتح صفحة التنزيل في المتصفح، ثم اسحب ملف .zip أو .mrpack الذي نزّلته وأفلته في PbtModLauncherX.
   openNetdisk: فتح التخزين السحابي
   netdiskOpened: فُتح رابط التخزين السحابي في المتصفح ونُسخ إلى الحافظة.
   noReleasesFound: لم يُعثر على إصدارات حزم تعديلات بصيغة .mrpack أو .zip في هذا المستودع.
@@ -515,7 +515,7 @@ instances:
   addPrismDescription: 'استيراد مثيل PrismLauncher الموجود.'
   addVanilla: 'اصنع من لعبة Minecraft الشبيهة بالفانيليا'
   addVanillaDescription: >-
-    قم بالاستيراد من مجلد .minecraft المشترك. سيؤدي هذا إلى تكرار ملف تعريف اللعبة الأصلي إلى XMCL.
+    قم بالاستيراد من مجلد .minecraft المشترك. سيؤدي هذا إلى تكرار ملف تعريف اللعبة الأصلي إلى PbtModLauncherX.
   fix: 'بصلح'
   folder: 'مجلد'
   folderSetting: 'إعدادات المجلد'
@@ -1021,7 +1021,7 @@ multiplayer:
   openConsumerPortal: افتح بوابة المستهلك
   refundHint: هل تحتاج إلى استرداد أموالك؟ تفضل بزيارة بوابة Waffo للمستهلك لإدارة طلباتك واشتراكاتك.
   togetherSupportHint: إذا لم يعمل اللعب الجماعي، انضم إلى Discord وتواصل مع فريق التطوير. سنساعدك في حل المشكلة.
-  autoShareAmbiguous: هناك عدة ألعاب قيد التشغيل. حدد النسخة التي تستضيف عالم الشبكة المحلية لكي يتمكن XMCL من مشاركتها.
+  autoShareAmbiguous: هناك عدة ألعاب قيد التشغيل. حدد النسخة التي تستضيف عالم الشبكة المحلية لكي يتمكن PbtModLauncherX من مشاركتها.
   editSharingScope: تحرير نطاق المشاركة
   gameAvailable: لعبة شبكة محلية متاحة
   joinGame: الانضمام إلى اللعبة
@@ -1446,7 +1446,7 @@ setting:
   aboutBmclDescription: 'يوفر BMCL API تنزيلات مريحة للمستخدمين في البر الرئيسي الصيني'
   aboutContributors: '🧑‍💻 المساهمون 🧑‍💻'
   aboutDenoDescription: >-
-    تستفيد XMCL من منصة Deno Deploy الخالية من المتاعب لتطبيقات JavaScript بدون خادم
+    تستفيد PbtModLauncherX من منصة Deno Deploy الخالية من المتاعب لتطبيقات JavaScript بدون خادم
   aboutLicense: 'رخصة معهد ماساتشوستس للتكنولوجيا'
   aboutLicenseInfo: >-
     توقيع رمز مجاني على Windows مقدم من SignPath.io، وشهادة من SignPath Foundation
@@ -1527,7 +1527,7 @@ setting:
   developerMode: 'وضع المطور'
   developerModeDescription: 'وضع المطور مخصص لاختبار التعديلات الخاصة بك'
   disableTelemetry: 'تعطيل القياس عن بعد'
-  disableTelemetryDescription: 'سيقوم XMCL بجمع أحداث إطلاق اللعبة وتسجيل دخول المستخدم.'
+  disableTelemetryDescription: 'سيقوم PbtModLauncherX بجمع أحداث إطلاق اللعبة وتسجيل دخول المستخدم.'
   enableDedicatedGPUOptimization: 'تعيين GPU مخصص'
   enableDedicatedGPUOptimizationDescription: 'سيقوم هذا الخيار بتعيين GPU مخصص لعملية Minecraft.'
   enableDiscord: 'تمكين وجود الخلاف'
@@ -1657,7 +1657,7 @@ setup:
     name: '@:الإعدادات.المظهر'
   dataRoot:
     description: >-
-      جذر البيانات ليس دليلاً شائعًا لـ .minecraft. نظرًا لأن بنية دليل بيانات XMCL تختلف عن الفانيليا، فإننا لا نوصي باستخدام دليل .minecraft الشائع كجذر للبيانات.
+      جذر البيانات ليس دليلاً شائعًا لـ .minecraft. نظرًا لأن بنية دليل بيانات PbtModLauncherX تختلف عن الفانيليا، فإننا لا نوصي باستخدام دليل .minecraft الشائع كجذر للبيانات.
     drives: 'يوصي المواقع'
     name: 'قم بتعيين دليل البيانات'
   defaultLayoutDescription: >-
@@ -1791,8 +1791,8 @@ theme:
   selectImage: 'حدد الصورة'
   selectMusic: 'حدد الموسيقى'
   selectVideo: 'حدد فيديو'
-  title: 'X ماين كرافت قاذفة'
-title: 'X ماين كرافت قاذفة'
+  title: 'PbtModLauncherX'
+title: 'PbtModLauncherX'
 transportType:
   host: 'المرشح المضيف'
   prflx: 'المرشح الانعكاسي'

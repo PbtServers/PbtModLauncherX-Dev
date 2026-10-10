@@ -50,7 +50,7 @@ constraints or when the task explicitly changes those constraints.
   `9222` by default, but VS Code launch configurations may choose a different
   port such as `9300`. Discover the active port from process arguments or task
   output, inspect `/json/list`, then use the CLI to select the real
-  `X Minecraft Launcher` page.
+  `PbtModLauncherX` page.
 4. Drive the real launcher through the CLI and validate the complete user
   workflow, not only the changed control. Use accessibility snapshots,
   renderer console/network inspection, main logs, and the local/WSL environment.

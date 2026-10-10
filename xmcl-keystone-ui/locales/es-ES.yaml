@@ -83,7 +83,7 @@ agent:
   suggestion2: Mis mods están fallando — encuentra la causa y dime cómo arreglarlo
   suggestion3: 'Crea un modpack: encuentra mods para una función que quiero e instálalos en esta instancia'
   thinking: pensando…
-  title: Agente XMCL
+  title: Agente PbtModLauncherX
   toggleHint: para activar/desactivar
 ago:
   day: hace {duration} dia | hace {duration} dias
@@ -446,7 +446,7 @@ importModpack:
   selectVersionDescription: 'Elige la versión de {name} que quieres instalar:'
   pmcProtected: Planet Minecraft está protegido por Cloudflare. Copia el enlace de descarga directa o un enlace alternativo de la página.
   netdiskTitle: Descarga desde la nube
-  netdiskDescription: Esta versión del modpack está alojada en un servicio de almacenamiento en la nube externo. Haz clic abajo para abrir la página de descarga en el navegador y después arrastra el archivo .zip o .mrpack descargado a XMCL.
+  netdiskDescription: Esta versión del modpack está alojada en un servicio de almacenamiento en la nube externo. Haz clic abajo para abrir la página de descarga en el navegador y después arrastra el archivo .zip o .mrpack descargado a PbtModLauncherX.
   openNetdisk: Abrir almacenamiento en la nube
   netdiskOpened: El enlace del almacenamiento en la nube se ha abierto en el navegador y se ha copiado al portapapeles.
   noReleasesFound: No se han encontrado versiones de modpacks .mrpack o .zip en este repositorio.
@@ -1177,7 +1177,7 @@ multiplayer:
   openConsumerPortal: Abrir el portal del consumidor
   refundHint: ¿Necesitas un reembolso? Visita el portal del consumidor de Waffo para gestionar tus pedidos y suscripciones.
   togetherSupportHint: Si el modo multijugador no funciona, únete a nuestro Discord y contacta con el equipo de desarrollo. Te ayudaremos a resolver el problema.
-  autoShareAmbiguous: Hay varias partidas en ejecución. Selecciona la instancia que aloja el mundo LAN para que XMCL pueda compartirla.
+  autoShareAmbiguous: Hay varias partidas en ejecución. Selecciona la instancia que aloja el mundo LAN para que PbtModLauncherX pueda compartirla.
   editSharingScope: Editar alcance compartido
   gameAvailable: Partida LAN disponible
   joinGame: Unirse a la partida
@@ -1674,7 +1674,7 @@ setting:
   about: Acerca de
   aboutBmclDescription: BMCL API proporciona descargas convenientes para usuarios en China continental
   aboutContributors: 🧑‍💻 Contribuyentes 🧑‍💻
-  aboutDenoDescription: XMCL aprovecha la plataforma sin complicaciones de Deno Deploy para aplicaciones JavaScript sin servidor
+  aboutDenoDescription: PbtModLauncherX aprovecha la plataforma sin complicaciones de Deno Deploy para aplicaciones JavaScript sin servidor
   aboutLicense: MIT LICENSE
   aboutLicenseInfo: Firma de código gratuita en Windows proporcionada por SignPath.io, certificado por SignPath Foundation
   aboutSponsors: 😇 Patrocinadores 😇
@@ -2051,7 +2051,7 @@ theme:
   selectImage: Seleccionar imagen
   selectMusic: Seleccionar música
   selectVideo: Seleccionar vídeo
-  title: XMCL
+  title: PbtModLauncherX
 title: PbtModLauncherX
 transportType:
   host: Candidato de Anfitrión
@@ -2430,7 +2430,7 @@ gamepad:
   steamAddedNotify: ¡Lanzador añadido a la biblioteca de Steam correctamente! Reinicia Steam para verlo.
   steamAlreadyAddedNotify: El lanzador ya está en tu biblioteca de Steam.
   steamDeckTitle: Steam Deck detectado
-  steamDeckDesc: Detectamos que estás ejecutando Steam Deck. ¿Te gustaría añadir X Minecraft Launcher a tu biblioteca de Steam como un juego no Steam para tener la superposición completa de Steam y la integración del mando en el modo de juego?
+  steamDeckDesc: Detectamos que estás ejecutando Steam Deck. ¿Te gustaría añadir PbtModLauncherX a tu biblioteca de Steam como un juego no Steam para tener la superposición completa de Steam y la integración del mando en el modo de juego?
   steamDeckAddBtn: Añadir a Steam ({btn})
   steamDeckCancelBtn: Cancelar ({btn})
 downloadModMetadataDb:

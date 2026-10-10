@@ -13,6 +13,8 @@ on:
 
 jobs:
   page-deploy:
+    # Keep upstream documentation publishing and notifications upstream-only.
+    if: ${{ github.repository == 'Voxelum/x-minecraft-launcher' }}
     runs-on: ubuntu-latest
 
     strategy:

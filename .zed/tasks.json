@@ -66,7 +66,7 @@
   },
   {
     "label": "Electron: Main (Production - Windows)",
-    "command": "${ZED_WORKTREE_ROOT}/xmcl-electron-app/build/output/win-unpacked/X Minecraft Launcher.exe",
+    "command": "${ZED_WORKTREE_ROOT}/xmcl-electron-app/build/output/win-unpacked/PbtModLauncherX.exe",
     "args": [
       "--remote-debugging-port=9300",
       "--trace-uncaught",
@@ -81,7 +81,7 @@
   },
   {
     "label": "Electron: Main (Production - Linux)",
-    "command": "${ZED_WORKTREE_ROOT}/xmcl-electron-app/build/output/linux-unpacked/xmcl",
+    "command": "${ZED_WORKTREE_ROOT}/xmcl-electron-app/build/output/linux-unpacked/pbtmodlauncherx",
     "args": [
       "--remote-debugging-port=9300",
       "--trace-uncaught",
@@ -96,7 +96,7 @@
   },
   {
     "label": "Electron: Main (Production - macOS)",
-    "command": "${ZED_WORKTREE_ROOT}/xmcl-electron-app/build/output/mac/X Minecraft Launcher.app/Contents/MacOS/X Minecraft Launcher",
+    "command": "${ZED_WORKTREE_ROOT}/xmcl-electron-app/build/output/mac/PbtModLauncherX.app/Contents/MacOS/PbtModLauncherX",
     "args": [
       "--remote-debugging-port=9300",
       "--trace-uncaught",

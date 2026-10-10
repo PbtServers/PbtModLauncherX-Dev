@@ -18,9 +18,9 @@ describe('Agent session context', () => {
     expect(resolveAgentSessionSystemPrompt(undefined, 'initial', false)).toBe('initial')
   })
 
-  test('refreshes a frozen prompt after the virtual shell tool rename', () => {
+  test.each(['XMCL', 'PbtModLauncherX'])('refreshes a legacy prompt for the %s virtual shell', (brand) => {
     const stored = 'The `bash` tool is a virtual XMCL command runner'
-    const generated = 'The `vfs_shell` tool is a virtual XMCL command runner'
+    const generated = `The \`vfs_shell\` tool is a virtual ${brand} command runner`
     expect(resolveAgentSessionSystemPrompt(stored, generated, false)).toBe(generated)
   })
 

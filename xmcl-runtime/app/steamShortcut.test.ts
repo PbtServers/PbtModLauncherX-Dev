@@ -39,11 +39,11 @@ describe('addSteamShortcutToVdf', () => {
       existing.subarray(0, existing.length - 1),
     )
     expect(updated![updated!.length - 1]).toBe(0x08)
-    expect(updated!.toString('utf8')).toContain('XMCL')
+    expect(updated!.toString('utf8')).toContain('AppName\0PbtModLauncherX\0')
   })
 
-  test('does not add a second launcher shortcut', () => {
-    const launcher = object('0', string('AppName', 'XMCL'))
+  test.each(['XMCL', 'PbtModLauncherX'])('does not duplicate an existing %s shortcut', (name) => {
+    const launcher = object('0', string('AppName', name))
     const existing = Buffer.concat([
       Buffer.from([0x00, ...Buffer.from('shortcuts\0')]),
       launcher,

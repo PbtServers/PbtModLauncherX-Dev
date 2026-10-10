@@ -14,7 +14,8 @@ jobs:
       contents: read
       id-token: write
 
-    if: ${{ startsWith(github.event.head_commit.message, 'chore(release)') }}
+    # These packages belong to upstream's npm namespace, not the fork release.
+    if: ${{ github.repository == 'Voxelum/x-minecraft-launcher' && startsWith(github.event.head_commit.message, 'chore(release)') }}
 
     steps:
     - uses: actions/checkout@v5

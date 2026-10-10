@@ -16,7 +16,7 @@ task:
   continue: LOOK IN LAUNCHAR
   fail: OH NOES! TASK FAILED!
   success: WIN! TASK DUN GUD!
-title: X MINECRAFT LAUNCHAR
+title: PbtModLauncherX
 urlFailed: HALP! CANT FIND {url}. CHECK UR LINKZ OR ASK TEH DEVELOPR KITTEH!
 urlSuccess: YAY! U CAN HAZ CLOSE DIS WINDOE N GO BAK 2 LAUNCHAR!
 multiplayer: PLAY WIF FRENZ

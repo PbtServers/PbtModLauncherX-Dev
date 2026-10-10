@@ -47,12 +47,12 @@ export const config = {
   }],
   artifactName: 'pbtmodlauncherx-${version}-${platform}-${arch}.${ext}',
   appx: {
-    displayName: 'PbtModLauncherX (Beta)',
+    displayName: 'PbtModLauncherX',
     applicationId: 'pbtmodlauncherx',
     identityName: 'pbtmodlauncherx',
     backgroundColor: 'transparent',
     publisher: process.env.PUBLISHER || 'CN=DAFB9390-F5BD-4F94-828C-242F8DAA6FDE',
-    publisherDisplayName: 'CI010',
+    publisherDisplayName: 'PbtServers',
     setBuildNumber: true,
   },
   dmg: {
@@ -116,7 +116,7 @@ export const config = {
       },
     },
     category: 'Game',
-    icon: 'icons/dark.icns',
+    icon: 'icons/dark@256x256.png',
     artifactName: 'pbtmodlauncherx-${version}-${arch}.${ext}',
     target: [
       { target: 'deb', arch: ['x64', 'arm64'] },

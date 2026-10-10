@@ -37,7 +37,7 @@ SettingMigrationDialog:
 agent:
   accessRequiredHint: Оформіть підписку XMCL, щоб використовувати вбудований Agent, або налаштуйте власного постачальника ШІ в налаштуваннях.
   subscribeXmcl: Оформити підписку XMCL
-  title: XMCL Agent
+  title: PbtModLauncherX Agent
   statusReady: Готово
   statusWorking: Працюю…
   statusDisabled: Вимкнено — немає API key
@@ -374,7 +374,7 @@ importModpack:
   selectVersionDescription: "Виберіть версію {name} для встановлення:"
   pmcProtected: "Planet Minecraft захищений Cloudflare. Будь ласка, скопіюйте пряме посилання для завантаження або дзеркало зі сторінки."
   netdiskTitle: Завантаження з хмарного диску
-  netdiskDescription: "Ця версія модпаку розміщена на хмарному диску (Quark / Baidu / 123pan). Натисніть кнопку нижче, щоб відкрити сторінку завантаження, а після звантаження перетягніть отриманий файл .zip або .mrpack у вікно XMCL."
+  netdiskDescription: "Ця версія модпаку розміщена на хмарному диску (Quark / Baidu / 123pan). Натисніть кнопку нижче, щоб відкрити сторінку завантаження, а після звантаження перетягніть отриманий файл .zip або .mrpack у вікно PbtModLauncherX."
   openNetdisk: Відкрити хмарний диск
   netdiskOpened: "Посилання на хмарний диск скопійовано та відкрито у вашому браузері."
   noReleasesFound: "У цьому репозиторії не знайдено релізів модпаків (.mrpack або .zip)."
@@ -533,7 +533,7 @@ instances:
     Імпортувати наявний екземпляр Modrinth. Вам потрібно вибрати кореневу папку даних Modrinth.
   addVanilla: Створити з ванільного Minecraft
   addVanillaDescription: >-
-    Імпортувати зі звичайної папки .minecraft. Це продублює оригінальний ігровий профіль в XMCL.
+    Імпортувати зі звичайної папки .minecraft. Це продублює оригінальний ігровий профіль в PbtModLauncherX.
   fix: Відновити
   folderSetting: Налаштування папки
   importFolderDescription: Імпортувати Minecraft в лаунчер
@@ -1027,7 +1027,7 @@ multiplayer:
   openConsumerPortal: Відкрити портал клієнта
   refundHint: Потрібне повернення коштів? Перейдіть на клієнтський портал Waffo, щоб керувати замовленнями та підписками.
   togetherSupportHint: Якщо багатокористувацький режим не працює, приєднайтеся до нашого Discord і зв’яжіться з командою розробників. Ми допоможемо вирішити проблему.
-  autoShareAmbiguous: Запущено кілька ігор. Виберіть збірку, у якій відкрито світ для локальної мережі, щоб XMCL міг нею поділитися.
+  autoShareAmbiguous: Запущено кілька ігор. Виберіть збірку, у якій відкрито світ для локальної мережі, щоб PbtModLauncherX міг нею поділитися.
   editSharingScope: Змінити область поширення
   gameAvailable: Доступна гра в локальній мережі
   joinGame: Приєднатися до гри
@@ -1514,7 +1514,7 @@ setting:
   developerMode: Режим розробника
   developerModeDescription: Режим розробника призначений для тестування ваших власних модів
   disableTelemetry: Вимкнути телеметрію
-  disableTelemetryDescription: XMCL збиратиме події запуску гри та входу користувачів.
+  disableTelemetryDescription: PbtModLauncherX збиратиме події запуску гри та входу користувачів.
   enableDedicatedGPUOptimization: Призначити дискретну відеокарту
   enableDedicatedGPUOptimizationDescription: Ця опція призначить дискретну відеокарту процесу Minecraft.
   enableDiscord: Увімкнути присутність Discord
@@ -1652,7 +1652,7 @@ setup:
     name: '@:setting.appearance'
   dataRoot:
     description: >-
-      Кореневий каталог даних - це не звичайний каталог .minecraft. Оскільки структура каталогу даних XMCL відрізняється від ванільної, ми не рекомендуємо використовувати звичайний каталог .minecraft як кореневий каталог даних.
+      Кореневий каталог даних - це не звичайний каталог .minecraft. Оскільки структура каталогу даних PbtModLauncherX відрізняється від ванільної, ми не рекомендуємо використовувати звичайний каталог .minecraft як кореневий каталог даних.
     drives: Рекомендовані місця
     name: Встановити каталог даних
   defaultLayoutDescription: >-
@@ -1784,8 +1784,8 @@ theme:
   selectImage: Вибрати зображення
   selectMusic: Вибрати музику
   selectVideo: Вибрати відео
-  title: XMCL
-title: XMCL
+  title: PbtModLauncherX
+title: PbtModLauncherX
 transportType:
   host: Кандидат хоста
   prflx: Кандидат Peer Reflexive
@@ -2115,7 +2115,7 @@ gamepad:
   steamAddedNotify: Лаунчер успішно додано до вашої бібліотеки Steam! Будь ласка, перезапустіть Steam, щоб побачити зміни.
   steamAlreadyAddedNotify: Лаунчер вже додано до вашої бібліотеки Steam.
   steamDeckTitle: Виявлено Steam Deck
-  steamDeckDesc: Ми виявили, що ви граєте на Steam Deck. Бажаєте додати XMCL до вашої бібліотеки Steam як сторонню гру для повної інтеграції оверлея та контролера в Gaming Mode?
+  steamDeckDesc: Ми виявили, що ви граєте на Steam Deck. Бажаєте додати PbtModLauncherX до вашої бібліотеки Steam як сторонню гру для повної інтеграції оверлея та контролера в Gaming Mode?
   steamDeckAddBtn: Додати до Steam ({btn})
   steamDeckCancelBtn: Скасувати ({btn})
 blueprint:

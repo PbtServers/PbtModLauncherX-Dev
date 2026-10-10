@@ -6,7 +6,7 @@ import { config } from './electron-builder.config'
 describe('macOS packaging', () => {
   it('declares local network access for XMCL and its Minecraft subprocesses', () => {
     expect(config.mac.extendInfo.NSLocalNetworkUsageDescription).toBe(
-      'XMCL and Minecraft need access to your local network to discover and connect to LAN games and servers.',
+      'PbtModLauncherX and Minecraft need access to your local network to discover and connect to LAN games and servers.',
     )
   })
 })
@@ -29,7 +29,7 @@ describe('Linux system packaging', () => {
   it('allows namespaces for the actual installed executable', () => {
     const profile = readFileSync(resolve(__dirname, '..', config.deb.appArmorProfile), 'utf8')
       .replaceAll('${executable}', config.linux.executableName)
-    expect(profile).toContain('profile "xmcl" "/opt/xmcl/xmcl" flags=(unconfined)')
+    expect(profile).toContain('profile "pbtmodlauncherx" "/opt/PbtModLauncherX/pbtmodlauncherx" flags=(unconfined)')
     expect(profile).toContain('userns,')
   })
 })

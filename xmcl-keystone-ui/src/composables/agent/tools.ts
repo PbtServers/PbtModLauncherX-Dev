@@ -1790,7 +1790,7 @@ export function useAgentToolFactory() {
       const commandHelp = allowedCommands()
         .map(({ command, name }) => `  ${name.padEnd(28)} ${command.title}`)
         .join('\n')
-      return `Allowed XMCL commands:\n${commandHelp}\n\nAgent renderer commands:\n${runtimeHelp}\n\nRun \`help <command>\` for exact syntax.`
+      return `Allowed PbtModLauncherX commands:\n${commandHelp}\n\nAgent renderer commands:\n${runtimeHelp}\n\nRun \`help <command>\` for exact syntax.`
     }
     const commandHelp = (name: string) => {
       const runtime = runtimeByName.get(name)
@@ -1801,8 +1801,8 @@ export function useAgentToolFactory() {
     }
     return {
       name: 'vfs_shell',
-      label: 'XMCL command',
-      description: 'Run one virtual XMCL command. This is not an OS shell and cannot inspect source code, repositories, or arbitrary host files; use `help` to discover supported commands.',
+      label: 'PbtModLauncherX command',
+      description: 'Run one virtual PbtModLauncherX command. This is not an OS shell and cannot inspect source code, repositories, or arbitrary host files; use `help` to discover supported commands.',
       parameters: Type.Object({ command: Type.String() }),
       executionMode: 'sequential',
       async execute(_id, args: any, signal) {
@@ -1860,7 +1860,7 @@ export function useCssAgentToolFactory() {
   const uiTool: AgentTool = {
     name: 'ui',
     label: 'Launcher UI',
-    description: 'Inspect the XMCL user interface for CSS selectors and computed styles.',
+    description: 'Inspect the PbtModLauncherX user interface for CSS selectors and computed styles.',
     parameters: actionObjectSchema(
       ['query_dom', 'get_computed_style', 'get_dom_outline'],
       {

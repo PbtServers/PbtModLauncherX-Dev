@@ -64,7 +64,7 @@ agent:
     Build a modpack: find mods for a feature I want and install them into this
     instance
   thinking: thinking…
-  title: XMCL Agent
+  title: PbtModLauncherX Agent
   toggleHint: to toggle
 ago:
   day: '{duration} day ago | {duration} days ago'
@@ -442,7 +442,7 @@ importModpack:
   selectVersionDescription: 'Choose the version of {name} to install:'
   pmcProtected: Planet Minecraft is protected by Cloudflare. Please copy the direct download or mirror link from the page.
   netdiskTitle: Cloud Drive Download
-  netdiskDescription: This modpack version is hosted on an external cloud drive. Click below to open the download page in your browser, then drag and drop the downloaded .zip or .mrpack file into XMCL.
+  netdiskDescription: This modpack version is hosted on an external cloud drive. Click below to open the download page in your browser, then drag and drop the downloaded .zip or .mrpack file into PbtModLauncherX.
   openNetdisk: Open Cloud Drive
   netdiskOpened: The cloud drive link has been opened in your browser and copied to the clipboard.
   noReleasesFound: No .mrpack or .zip modpack releases found for this repository.
@@ -625,7 +625,7 @@ instances:
   addVanilla: Create from vanilla-like Minecraft
   addVanillaDescription: >-
     Import from common .minecraft folder. This will duplciate the original game
-    profile to XMCL.
+    profile to PbtModLauncherX.
   edition: Edition
   editionJava: Java Edition
   editionBedrock: Bedrock Edition
@@ -1194,7 +1194,7 @@ multiplayer:
   openConsumerPortal: Open Consumer Portal
   refundHint: Need a refund? Visit the Waffo Consumer Portal to manage your orders and subscriptions.
   togetherSupportHint: If multiplayer is not working, join our Discord and contact the development team. We will help you resolve the problem.
-  autoShareAmbiguous: Multiple games are running. Select the instance hosting the LAN world so XMCL can share it.
+  autoShareAmbiguous: Multiple games are running. Select the instance hosting the LAN world so PbtModLauncherX can share it.
   editSharingScope: Edit Sharing Scope
   gameAvailable: LAN game available
   joinGame: Join game
@@ -1728,7 +1728,7 @@ setting:
   aboutBmclDescription: BMCL API provides convenient downloads for users in Chinese Mainland
   aboutContributors: 🧑‍💻 Contributors 🧑‍💻
   aboutDenoDescription: >-
-    XMCL leverages Deno Deploy's hassle-free platform for serverless JavaScript
+    PbtModLauncherX leverages Deno Deploy's hassle-free platform for serverless JavaScript
     applications
   aboutLicense: MIT LICENSE
   aboutLicenseInfo: >-
@@ -1818,7 +1818,7 @@ setting:
   developerMode: Developer Mode
   developerModeDescription: Developer Mode is for testing your own mods
   disableTelemetry: Disable Telemetry
-  disableTelemetryDescription: XMCL will collect the game launch and user login events.
+  disableTelemetryDescription: PbtModLauncherX will collect the game launch and user login events.
   enableDedicatedGPUOptimization: Assign Dedicated GPU
   enableDedicatedGPUOptimizationDescription: This option will assign dedicated GPU to Minecraft process.
   enableDiscord: Enable Discord Presence
@@ -1975,7 +1975,7 @@ setup:
     name: '@:setting.appearance'
   dataRoot:
     description: >-
-      The data root is not a common .minecraft directory. Since XMCL data
+      The data root is not a common .minecraft directory. Since PbtModLauncherX data
       directory structure is different from vanilla, we do not recommend to use
       the common .minecraft directory as a data root.
     drives: Recommend Locations
@@ -2125,8 +2125,8 @@ theme:
   selectImage: Select Image
   selectMusic: Select Music
   selectVideo: Select Video
-  title: XMCL
-title: XMCL
+  title: PbtModLauncherX
+title: PbtModLauncherX
 transportType:
   host: Host Candidate
   prflx: Peer Reflexive Candidate
@@ -2415,6 +2415,6 @@ gamepad:
   steamAddedNotify: Launcher added to Steam Library successfully! Please restart Steam to see it.
   steamAlreadyAddedNotify: Launcher is already in your Steam Library.
   steamDeckTitle: Steam Deck Detected
-  steamDeckDesc: We detected that you are running on Steam Deck. Would you like to add XMCL to your Steam Library as a non-Steam game for full Steam overlay and controller integration in Gaming Mode?
+  steamDeckDesc: We detected that you are running on Steam Deck. Would you like to add PbtModLauncherX to your Steam Library as a non-Steam game for full Steam overlay and controller integration in Gaming Mode?
   steamDeckAddBtn: Add to Steam ({btn})
   steamDeckCancelBtn: Cancel ({btn})

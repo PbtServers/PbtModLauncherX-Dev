@@ -173,10 +173,10 @@ class LauncherTransport {
         this.readyWaiters.clear()
         await readTransportFrames(channel.readable, message => this.receive(message))
       } catch (error) {
-        console.error('XMCL transport disconnected', error)
+        console.error('PbtModLauncherX transport disconnected', error)
       } finally {
         if (this.channel === channel) this.channel = undefined
-        const error = new Error('XMCL transport disconnected')
+        const error = new Error('PbtModLauncherX transport disconnected')
         for (const pending of this.pending.values()) pending.reject(error)
         this.pending.clear()
       }
@@ -451,7 +451,7 @@ function applyPendingMigration() {
     history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
     localStorage.removeItem(pendingMigrationKey)
   } catch (error) {
-    console.error('Cannot restore the XMCL migration result', error)
+    console.error('Cannot restore the PbtModLauncherX migration result', error)
   }
 }
 

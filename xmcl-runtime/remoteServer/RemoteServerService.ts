@@ -65,7 +65,7 @@ function isSafeDeploymentPath(path: string): boolean {
 function buildUnitFile(profile: RemoteServerConnection, serviceName: string, startCommand: string): string {
   return [
     '[Unit]',
-    `Description=XMCL managed Minecraft server (${serviceName})`,
+    `Description=PbtModLauncherX managed Minecraft server (${serviceName})`,
     'After=network.target',
     '',
     '[Service]',

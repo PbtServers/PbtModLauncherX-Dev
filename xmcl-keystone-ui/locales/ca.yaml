@@ -1146,7 +1146,7 @@ agent:
   suggestion2: Els meus mods fallen — troba la causa i explica'm com arreglar-ho
   suggestion3: 'Crea un modpack: troba mods per a una funció que vull i instal·la''ls en aquesta instància'
   thinking: pensant…
-  title: Agent XMCL
+  title: Agent PbtModLauncherX
   toggleHint: per activar/desactivar
 askAICrash:
   agentNotConfigured: Afegeix un proveïdor d'IA i una clau API als ajustes perquè l'agent integrat del launcher diagnostiqui i solucioni això per tu.

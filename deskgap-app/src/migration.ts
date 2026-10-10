@@ -78,7 +78,7 @@ async function connectEventChannel(
     try {
       await readEventFrames(channel.readable, receive)
     } catch (error) {
-      console.error('XMCL migration event channel disconnected', error)
+      console.error('PbtModLauncherX migration event channel disconnected', error)
     }
     await new Promise(resolve => setTimeout(resolve, 100))
   }

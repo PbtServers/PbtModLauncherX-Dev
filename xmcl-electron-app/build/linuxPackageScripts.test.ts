@@ -24,19 +24,19 @@ describe('Linux package scripts', () => {
     bin = join(directory, 'commands')
     log = join(directory, 'commands.log')
     paths = {
-      '/opt/xmcl': join(directory, 'opt', 'xmcl'),
+      '/opt/PbtModLauncherX': join(directory, 'opt', 'pbtmodlauncherx'),
       '/opt': join(directory, 'opt'),
       '/usr/bin': join(directory, 'usr', 'bin'),
       '/etc/apparmor.d': join(directory, 'etc', 'apparmor.d'),
       '/etc/alternatives': join(directory, 'etc', 'alternatives'),
     }
-    for (const path of [bin, ...Object.values(paths), join(paths['/opt/xmcl'], 'resources')]) {
+    for (const path of [bin, ...Object.values(paths), join(paths['/opt/PbtModLauncherX'], 'resources')]) {
       mkdirSync(path, { recursive: true })
     }
-    sandbox = join(paths['/opt/xmcl'], 'chrome-sandbox')
-    installedProfile = join(paths['/etc/apparmor.d'], 'xmcl')
+    sandbox = join(paths['/opt/PbtModLauncherX'], 'chrome-sandbox')
+    installedProfile = join(paths['/etc/apparmor.d'], 'pbtmodlauncherx')
     writeFileSync(sandbox, 'sandbox fixture')
-    writeFileSync(join(paths['/opt/xmcl'], 'resources', 'apparmor-profile'), template(config.deb.appArmorProfile))
+    writeFileSync(join(paths['/opt/PbtModLauncherX'], 'resources', 'apparmor-profile'), template(config.deb.appArmorProfile))
     writeFileSync(log, '')
 
     const command = `#!/bin/bash
@@ -71,7 +71,7 @@ esac
   })
 
   function run(path: string, env: NodeJS.ProcessEnv = {}, args: string[] = []) {
-    const input = template(path).replace(/\/opt\/xmcl|\/opt(?=[\s/'"])|\/usr\/bin|\/etc\/apparmor\.d|\/etc\/alternatives/g,
+    const input = template(path).replace(/\/opt\/PbtModLauncherX|\/opt(?=[\s/'"])|\/usr\/bin|\/etc\/apparmor\.d|\/etc\/alternatives/g,
       match => shellPath(paths[match]))
     return spawnSync('sh', ['-s', '--', ...args], {
       input: `export PATH='${shellPath(bin)}':"$PATH"\n${input}`,
@@ -97,13 +97,13 @@ esac
     expect(commands()).not.toContain('chmod 0755')
     expect(commands()).toContain('update-alternatives --install')
     expect(commands()).toContain('apparmor_parser --replace --write-cache --skip-read-cache')
-    expect(readFileSync(installedProfile, 'utf8')).toContain('"/opt/xmcl/xmcl"')
+    expect(readFileSync(installedProfile, 'utf8')).toContain('"/opt/PbtModLauncherX/pbtmodlauncherx"')
   })
 
   it.each(['chown', 'chmod'])('fails installation when %s fails', (command) => {
     const result = run(config.deb.afterInstall, { XMCL_FAIL_COMMAND: command })
     expect(result.status).not.toBe(0)
-    expect(result.stderr).toContain('XMCL installation failed')
+    expect(result.stderr).toContain('PbtModLauncherX installation failed')
     expect(commands()).not.toContain('update-alternatives')
     if (command === 'chown') expect(commands()).not.toContain('chmod 4755')
   })
@@ -164,7 +164,7 @@ if [ "$1" = "--replace" ]; then exit 1; fi
 `, { mode: 0o755 })
     const retry = run(config.deb.afterInstall)
     expect(retry.status).not.toBe(0)
-    expect(retry.stderr).toContain('cannot load the XMCL AppArmor profile')
+    expect(retry.stderr).toContain('cannot load the PbtModLauncherX AppArmor profile')
   })
 
   it('installs the profile without loading it inside a chroot', () => {
@@ -188,7 +188,7 @@ if [ "$1" = "--replace" ]; then exit 1; fi
     writeFileSync(log, '')
     const result = run(config.deb.afterRemove, {}, ['0'])
     expect(result.status, result.stderr).toBe(0)
-    expect(commands()).toContain(`update-alternatives --remove xmcl ${shellPath(paths['/opt/xmcl'])}/xmcl`)
+    expect(commands()).toContain(`update-alternatives --remove pbtmodlauncherx ${shellPath(paths['/opt/PbtModLauncherX'])}/pbtmodlauncherx`)
     expect(commands()).toContain(`apparmor_parser --remove ${shellPath(installedProfile)}`)
     expect(existsSync(installedProfile)).toBe(false)
   })

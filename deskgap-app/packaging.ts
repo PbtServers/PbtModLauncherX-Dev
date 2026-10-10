@@ -4,7 +4,7 @@ import { cp, mkdir, open, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { valid } from 'semver'
 
-export const productName = 'PbtModLauncherX DeskGap'
+export const productName = 'PbtModLauncherX'
 
 export function assetNames(version: string) {
   if (typeof version !== 'string' || !/^\d/.test(version) || version.trim() !== version || !valid(version)) {
@@ -100,14 +100,14 @@ export async function assertClickToRun(path: string, version: string) {
     if (identity.toString('utf8', 0, nameLength) !== productName ||
       identity.toString('utf8', nameLength, nameLength + entryLength) !== 'DeskGap.exe' ||
       identity.toString('utf8', nameLength + entryLength) !== version) {
-      throw new Error('Click-to-run has the wrong XMCL identity or version')
+      throw new Error('Click-to-run has the wrong PbtModLauncherX identity or version')
     }
     const hash = createHash('sha256')
     for await (const bytes of createReadStream(path, { start: identityOffset - Number(applicationSize), end: identityOffset - 1 })) {
       hash.update(bytes)
     }
     if (hash.digest('hex') !== footer.subarray(76, 108).toString('hex')) {
-      throw new Error('Embedded XMCL application payload checksum mismatch')
+      throw new Error('Embedded PbtModLauncherX application payload checksum mismatch')
     }
   } finally {
     await file.close()

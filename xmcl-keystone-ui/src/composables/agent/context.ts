@@ -48,7 +48,7 @@ export function readAgentSessionContext(context: Record<string, unknown> | undef
 }
 
 export function resolveAgentSessionSystemPrompt(stored: string | undefined, generated: string, compacted: boolean) {
-  const renamedVfsShell = stored?.includes('The `bash` tool is a virtual XMCL command runner') && generated.includes('The `vfs_shell` tool is a virtual XMCL command runner')
+  const renamedVfsShell = stored?.includes('The `bash` tool is a virtual XMCL command runner') && (generated.includes('The `vfs_shell` tool is a virtual XMCL command runner') || generated.includes('The `vfs_shell` tool is a virtual PbtModLauncherX command runner'))
   return !stored || compacted || renamedVfsShell ? generated : stored
 }
 

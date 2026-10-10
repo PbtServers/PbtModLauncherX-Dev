@@ -7,7 +7,7 @@
         <div class="d-flex align-center flex-wrap gap-4 mb-6">
           <v-img
             :src="logo"
-            alt="XMCL Logo"
+            alt="PbtModLauncherX Logo"
             width="64"
             height="64"
             class="mr-4 rounded-lg flex-grow-0 flex-shrink-0"
@@ -15,11 +15,11 @@
           <div>
             <a
               class="text-h5 font-weight-bold text-decoration-none"
-              href="https://www.xmcl.app"
+              href="https://mods.pbtservers.com"
               target="_blank"
-              v-shared-tooltip="() => 'XMCL'"
+              v-shared-tooltip="() => 'PbtModLauncherX'"
             >
-              XMCL
+              PbtModLauncherX
             </a>
             <div class="d-flex items-center gap-2 mt-2">
               <a
@@ -54,6 +54,8 @@
           NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
         </div>
 
+        <!-- Original project attribution -->
+        <p class="text-caption">Based on <a href="https://github.com/Voxelum/x-minecraft-launcher" target="_blank" rel="noopener noreferrer">XMCL by Voxelum / ci010</a> (MIT).</p>
         <!-- Debug Info Box -->
         <div class="mb-8">
           <div class="text-subtitle-2 font-weight-bold mb-2 opacity-80">
@@ -219,7 +221,7 @@ import { injection } from '@/util/inject'
 import useSWRV from 'swrv'
 import { useId } from 'vue'
 import kofi from '../assets/kofi.webp'
-import logo from '../assets/logo.webp'
+import logo from '../assets/pbtmodlauncherx.png'
 
 const env = injection(kEnvironment)
 const flights = injection(kFlights)

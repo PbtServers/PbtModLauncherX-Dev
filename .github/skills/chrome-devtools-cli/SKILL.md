@@ -1,11 +1,11 @@
 ---
 name: chrome-devtools-cli
-description: "Use when: validating XMCL UI, Electron main/preload/runtime integration, renderer behavior, console errors, network requests, screenshots, or performance in the real development launcher through the Chrome DevTools CLI."
+description: "Use when: validating PbtModLauncherX UI, Electron main/preload/runtime integration, renderer behavior, console errors, network requests, screenshots, or performance in the real development launcher through the Chrome DevTools CLI."
 ---
 
 # Chrome DevTools CLI
 
-Use the official `chrome-devtools` CLI to inspect and drive the running XMCL
+Use the official `chrome-devtools` CLI to inspect and drive the running PbtModLauncherX
 Electron app. Do not configure, enable, or call Chrome DevTools through MCP
 tools. The npm package name still contains `mcp`, but the `chrome-devtools`
 binary is its standalone CLI client and does not require an MCP client config.
@@ -16,7 +16,7 @@ Use this command prefix without adding a project dependency:
 npx -y -p chrome-devtools-mcp@latest chrome-devtools
 ```
 
-## Connect to XMCL
+## Connect to PbtModLauncherX
 
 1. Reuse the running `dev:main` and `dev:renderer` tasks. Do not start duplicate
    tasks or another Electron app.
@@ -37,7 +37,7 @@ npx -y -p chrome-devtools-mcp@latest chrome-devtools
    npx -y -p chrome-devtools-mcp@latest chrome-devtools list_pages --output-format=json
    ```
 
-   The real development page must be titled `X Minecraft Launcher` or `XMCL`
+   The real development page must be titled `PbtModLauncherX`
    and load from `http://localhost:3000`, not `http://xmcl.runtime`. Keep its
    numeric page ID for every page-scoped command.
 

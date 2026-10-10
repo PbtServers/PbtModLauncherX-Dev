@@ -63,7 +63,7 @@ export function createXmclBuiltInPayload(payload: unknown, context: XmclBuiltInA
 
 export function renderAgentSessionContext(profile: Pick<AgentPromptProfile, 'role' | 'sessionContext'>) {
   if (!profile.sessionContext) return ''
-  if (profile.role === 'css-main') return 'Global XMCL custom CSS scope.'
+  if (profile.role === 'css-main') return 'Global PbtModLauncherX custom CSS scope.'
   if (profile.role === 'modpack-changelog-main') {
     return 'releaseContext' in profile.sessionContext ? profile.sessionContext.releaseContext : ''
   }
@@ -89,7 +89,7 @@ function capabilitySection(profile: AgentPromptProfile) {
       : 'Use only the tools listed above. Read current state before modifying it.',
   ]
   if (names.has('vfs_shell')) {
-    lines.push('The `vfs_shell` tool is a virtual XMCL command runner scoped to the selected instance, not an operating-system shell. It accepts exactly one XMCL command and cannot inspect launcher source code, arbitrary host paths, or a repository checkout. Do not use shell utilities, pipes, redirects, `&&`, or `||`, and do not prefix the input with `vfs_shell`.')
+    lines.push('The `vfs_shell` tool is a virtual PbtModLauncherX command runner scoped to the selected instance, not an operating-system shell. It accepts exactly one PbtModLauncherX command and cannot inspect launcher source code, arbitrary host paths, or a repository checkout. Do not use shell utilities, pipes, redirects, `&&`, or `||`, and do not prefix the input with `vfs_shell`.')
     lines.push('Use `help` to discover commands and `help <command>` for syntax. For questions about a command or provider API surface, inspect its help and verify behavior with that command; never search implementation source.')
     if (profile.documents?.length) {
       lines.push('### Built-in documents')
@@ -118,9 +118,9 @@ function capabilitySection(profile: AgentPromptProfile) {
   return lines.join('\n')
 }
 
-const launcherIdentity = `You are the primary XMCL (XMCL) assistant. Help the user manage the explicitly selected Minecraft instance, resources, Java, local servers, worlds, launch failures, and launcher settings.`
-const cssIdentity = `You are the XMCL Custom CSS assistant. Your only responsibility is inspecting the launcher UI and maintaining the global custom CSS document. Do not manage Minecraft instances, resources, accounts, or game launch.`
-const modpackChangelogIdentity = `You are the XMCL Modrinth modpack release-notes writer. Your only responsibility is proposing a version number and a changelog for a new modpack version, based on the provided mod/file diff and any draft notes.`
+const launcherIdentity = `You are the primary PbtModLauncherX (PbtModLauncherX) assistant. Help the user manage the explicitly selected Minecraft instance, resources, Java, local servers, worlds, launch failures, and launcher settings.`
+const cssIdentity = `You are the PbtModLauncherX Custom CSS assistant. Your only responsibility is inspecting the launcher UI and maintaining the global custom CSS document. Do not manage Minecraft instances, resources, accounts, or game launch.`
+const modpackChangelogIdentity = `You are the PbtModLauncherX Modrinth modpack release-notes writer. Your only responsibility is proposing a version number and a changelog for a new modpack version, based on the provided mod/file diff and any draft notes.`
 
 export function buildAgentSystemPrompt(profile: AgentPromptProfile) {
   const rules = [

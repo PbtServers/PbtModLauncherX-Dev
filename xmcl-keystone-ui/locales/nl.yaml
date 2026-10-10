@@ -329,7 +329,7 @@ importModpack:
   selectVersionDescription: 'Kies de versie van {name} die je wilt installeren:'
   pmcProtected: Planet Minecraft wordt beschermd door Cloudflare. Kopieer de directe downloadlink of een mirrorlink van de pagina.
   netdiskTitle: Downloaden uit cloudopslag
-  netdiskDescription: Deze modpackversie staat op externe cloudopslag. Klik hieronder om de downloadpagina in je browser te openen en sleep daarna het gedownloade .zip- of .mrpack-bestand naar XMCL.
+  netdiskDescription: Deze modpackversie staat op externe cloudopslag. Klik hieronder om de downloadpagina in je browser te openen en sleep daarna het gedownloade .zip- of .mrpack-bestand naar PbtModLauncherX.
   openNetdisk: Cloudopslag openen
   netdiskOpened: De cloudopslaglink is in je browser geopend en naar het klembord gekopieerd.
   noReleasesFound: Geen modpackreleases met .mrpack- of .zip-bestanden gevonden in deze repository.
@@ -495,7 +495,7 @@ instances:
     Importeer een bestaande Modrinth instance. U moet de Modrinth hoofddatamap selecteren.
   addVanilla: Aanmaken vanaf vanilla-achtige Minecraft
   addVanillaDescription: >-
-    Importeer vanuit een standaard .minecraft map. Dit zal het originele spelprofiel dupliceren naar XMCL.
+    Importeer vanuit een standaard .minecraft map. Dit zal het originele spelprofiel dupliceren naar PbtModLauncherX.
   fix: Repareren
   folder: Map
   folderSetting: Map Instellingen
@@ -984,7 +984,7 @@ multiplayer:
   openConsumerPortal: Consumentenportaal openen
   refundHint: Heb je een terugbetaling nodig? Ga naar het Waffo-consumentenportaal om je bestellingen en abonnementen te beheren.
   togetherSupportHint: Werkt multiplayer niet? Neem dan deel aan onze Discord en neem contact op met het ontwikkelteam. We helpen je het probleem op te lossen.
-  autoShareAmbiguous: Er zijn meerdere spellen actief. Selecteer de instantie die de LAN-wereld host, zodat XMCL deze kan delen.
+  autoShareAmbiguous: Er zijn meerdere spellen actief. Selecteer de instantie die de LAN-wereld host, zodat PbtModLauncherX deze kan delen.
   editSharingScope: Deelbereik bewerken
   gameAvailable: LAN-spel beschikbaar
   joinGame: Deelnemen aan spel
@@ -1411,7 +1411,7 @@ setting:
   aboutBmclDescription: BMCL API biedt handige downloads voor gebruikers in Chinees Vasteland
   aboutContributors: 🧑‍💻 Bijdragers 🧑‍💻
   aboutDenoDescription: >-
-    XMCL maakt gebruik van het probleemloze platform van Deno Deploy voor serverloze JavaScript-toepassingen
+    PbtModLauncherX maakt gebruik van het probleemloze platform van Deno Deploy voor serverloze JavaScript-toepassingen
   aboutLicense: MIT LICENSE
   aboutLicenseInfo: >-
     Gratis codetekening op Windows verzorgd door SignPath.io, certificaat door SignPath Foundation
@@ -1474,7 +1474,7 @@ setting:
   developerMode: Ontwikkelaarsmodus
   developerModeDescription: Ontwikkelaarsmodus is voor het testen van uw eigen mods
   disableTelemetry: Telemetrie Uitschakelen
-  disableTelemetryDescription: XMCL zal game-start en gebruikersinloggebeurtenissen verzamelen.
+  disableTelemetryDescription: PbtModLauncherX zal game-start en gebruikersinloggebeurtenissen verzamelen.
   enableDedicatedGPUOptimization: Toewijzen van Dedicated GPU
   enableDedicatedGPUOptimizationDescription: Deze optie zal een dedicated GPU toewijzen aan het Minecraft-proces.
   enableDiscord: Discord Presence Inschakelen
@@ -1607,7 +1607,7 @@ setup:
     name: '@:setting.appearance'
   dataRoot:
     description: >-
-      De data root is geen gewone .minecraft map. Omdat de XMCL data mapstructuur anders is dan vanilla, raden we af om de gewone .minecraft map als data root te gebruiken.
+      De data root is geen gewone .minecraft map. Omdat de PbtModLauncherX data mapstructuur anders is dan vanilla, raden we af om de gewone .minecraft map als data root te gebruiken.
     drives: Aanbevolen Locaties
     name: Stel Data Map In
   defaultLayoutDescription: >-
@@ -1739,7 +1739,7 @@ theme:
   selectImage: Selecteer Afbeelding
   selectMusic: Selecteer Muziek
   selectVideo: Selecteer Video
-  title: XMCL
+  title: PbtModLauncherX
 transportType:
   host: Host Kandidaat
   prflx: Peer Reflexive Kandidaat
