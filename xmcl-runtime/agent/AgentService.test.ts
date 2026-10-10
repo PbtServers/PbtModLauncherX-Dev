@@ -72,11 +72,11 @@ describe('AgentService provider resolution', () => {
       .resolves.toEqual({ mode: 'unconfigured' })
   })
 
-  test('selects the built-in provider only when its flight is enabled', async () => {
+  test('ignores a legacy enabled XMCL built-in flight', async () => {
     const service = createServiceContext({ [BUILTIN_AGENT_FLIGHT]: true })
 
     await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service))
-      .resolves.toEqual({ mode: 'builtin' })
+      .resolves.toEqual({ mode: 'unconfigured' })
   })
 
   test('requires endpoint, model, and API key for a custom provider', async () => {
@@ -109,5 +109,13 @@ describe('AgentService provider resolution', () => {
 
     await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service))
       .resolves.toEqual({ mode: 'unconfigured' })
+  })
+})
+test('uses a local AI server without an XMCL account or a fabricated API key', async () => {
+  const service = createServiceContext({ builtinAgent: true })
+  service.settings.agentEndpoint = 'http://127.0.0.1:11434/v1/chat/completions'
+  service.settings.agentModel = 'local-model'
+  await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toEqual({
+    mode: 'custom', endpoint: service.settings.agentEndpoint, model: 'local-model', apiKey: '',
   })
 })

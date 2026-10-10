@@ -3035,3 +3035,6 @@ accessibility:
   instanceGroup: Grup d'instàncies
   selectedCount: '{count} seleccionats'
   moreCount: '+{count} més'
+
+independence:
+  localServices: Les inst?ncies, els ajustos, les col?leccions i l?historial es desen localment. Els comptes i els serveis de pagament d?XMCL no estan disponibles a PbtModLauncherX. Pots configurar el teu prove?dor d?IA i utilitzar c?pies de seguretat locals.

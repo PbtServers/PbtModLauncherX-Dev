@@ -1,6 +1,7 @@
-import { BUILTIN_AGENT_ENDPOINT } from '@xmcl/runtime-api'
+import { BUILTIN_AGENT_ENDPOINT, LOCAL_AGENT_TRANSPORT_ENDPOINT } from '@xmcl/runtime-api'
 import { describe, expect, test, vi } from 'vitest'
 import type { Context } from '~/app'
+import { LauncherProtocolHandler } from '../app/LauncherProtocolHandler'
 import { createAgentProtocolHandler } from './providerProtocol'
 
 function context(url = BUILTIN_AGENT_ENDPOINT, headers: Record<string, any> = {}): Context {
@@ -17,6 +18,20 @@ function context(url = BUILTIN_AGENT_ENDPOINT, headers: Record<string, any> = {}
 }
 
 describe('agent protocol', () => {
+  test('routes a keyless local provider without forwarding an XMCL authorization header', async () => {
+    const authorization = vi.fn()
+    const handler = createAgentProtocolHandler(
+      async () => ({ mode: 'custom', endpoint: 'http://127.0.0.1:11434/v1/chat/completions', model: 'local', apiKey: '' }),
+      authorization,
+    )
+    const ctx = context(BUILTIN_AGENT_ENDPOINT, { Authorization: 'old-xmcl-token', DPoP: 'old-proof' })
+    await handler(ctx)
+    expect(ctx.request.url.hostname).toBe('127.0.0.1')
+    expect(ctx.request.headers).not.toHaveProperty('Authorization')
+    expect(ctx.request.headers).not.toHaveProperty('DPoP')
+    expect(ctx.request.headers).not.toHaveProperty('authorization')
+    expect(authorization).not.toHaveBeenCalled()
+  })
   test('routes custom mode to its endpoint with its stored key', async () => {
     const handler = createAgentProtocolHandler(
       async () => ({
@@ -125,4 +140,23 @@ describe('agent protocol', () => {
     expect(resolveProvider).not.toHaveBeenCalled()
     expect(ctx.response.status).toBeUndefined()
   })
+})
+
+ test('dispatches the local virtual transport through the guarded protocol without XMCL credentials', async () => {
+  const protocol = new LauncherProtocolHandler()
+  const authorization = vi.fn()
+  const sink = vi.fn(({ request, response }: Context) => {
+    expect(request.url.hostname).toBe('127.0.0.1')
+    expect(request.headers).toEqual({})
+    response.status = 200
+  })
+  protocol.registerHandler('https', createAgentProtocolHandler(
+    async () => ({ mode: 'custom', endpoint: 'http://127.0.0.1:11434/v1/chat/completions', model: 'local', apiKey: '' }), authorization,
+  ))
+  protocol.registerHandler('http', sink, true)
+  expect((await protocol.handle({ url: LOCAL_AGENT_TRANSPORT_ENDPOINT, method: 'POST', headers: { Authorization: 'stale', DPoP: 'stale' } })).status).toBe(200)
+  expect(sink).toHaveBeenCalledOnce()
+  expect(authorization).not.toHaveBeenCalled()
+  expect((await protocol.handle({ url: BUILTIN_AGENT_ENDPOINT })).status).toBe(503)
+  expect(sink).toHaveBeenCalledOnce()
 })

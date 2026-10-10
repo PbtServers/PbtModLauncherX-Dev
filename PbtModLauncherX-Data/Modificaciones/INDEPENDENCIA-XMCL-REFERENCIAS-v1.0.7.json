@@ -1,0 +1,3443 @@
+{
+  "scope": "tracked text files; test, legal and historical references retained; URLs without query/fragment",
+  "references": [
+    {
+      "file": ".github/actions/prepare-pr/index.ts",
+      "line": 211,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/${reason.hash}",
+      "category": "open-source public data"
+    },
+    {
+      "file": ".github/actions/prepare-pr/index.ts",
+      "line": 248,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/${commit.hash}",
+      "category": "open-source public data"
+    },
+    {
+      "file": ".github/skills/chrome-devtools-cli/SKILL.md",
+      "line": 41,
+      "url": "http://xmcl.runtime",
+      "category": "credit/documentation"
+    },
+    {
+      "file": ".github/workflows/build.yml",
+      "line": 115,
+      "url": "https://github.com/Voxelum/DeskGap/releases/download/v$env:DESKGAP_VERSION",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "AGENTS.md",
+      "line": 35,
+      "url": "http://xmcl.runtime",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "CONTRIBUTE.md",
+      "line": 28,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "CONTRIBUTING.md",
+      "line": 37,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "CONTRIBUTING.md",
+      "line": 89,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "CONTRIBUTING.md",
+      "line": 348,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "PbtModLauncherX-Data/Modificaciones/AUDITORIA-v1.0.7.md",
+      "line": 12,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "historical/test"
+    },
+    {
+      "file": "PbtModLauncherX-Data/Modificaciones/COMPATIBILIDAD-MINECRAFT-26X-v1.0.7.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/issues/1365",
+      "category": "historical/test"
+    },
+    {
+      "file": "PbtModLauncherX-Data/Modificaciones/REPARACION-MOD-LOADERS-v1.0.7.md",
+      "line": 35,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/issues/1325",
+      "category": "historical/test"
+    },
+    {
+      "file": "README.md",
+      "line": 5,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "README.md",
+      "line": 11,
+      "url": "https://github.com/PbtServers/PbtModLauncherX-Dev/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "README.md",
+      "line": 12,
+      "url": "https://github.com/PbtServers/PbtModLauncherX-Dev/blob/master/xmcl-electron-app/icons/dark@Square44x44Logo.targetsize-256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "deskgap-app/src/updater.test.ts",
+      "line": 21,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v${version}/${name}",
+      "category": "historical/test"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.de.md",
+      "line": 29,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.de.md",
+      "line": 80,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.de.md",
+      "line": 156,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ko.md",
+      "line": 29,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ko.md",
+      "line": 81,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ko.md",
+      "line": 156,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.pl.md",
+      "line": 29,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.pl.md",
+      "line": 80,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.pl.md",
+      "line": 156,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ru.md",
+      "line": 30,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ru.md",
+      "line": 82,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ru.md",
+      "line": 158,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ua.md",
+      "line": 30,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ua.md",
+      "line": 82,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.ua.md",
+      "line": 158,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.zh.md",
+      "line": 30,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.zh.md",
+      "line": 81,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/CONTRIBUTING.zh.md",
+      "line": 157,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.de.md",
+      "line": 59,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 64,
+      "url": "https://deepwiki.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.es.md",
+      "line": 68,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 65,
+      "url": "https://deepwiki.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.hu.md",
+      "line": 69,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.jp.md",
+      "line": 60,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 34,
+      "url": "https://xmcl.app/ko",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 65,
+      "url": "https://deepwiki.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ko.md",
+      "line": 69,
+      "url": "https://xmcl.app/ko/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.kz.md",
+      "line": 60,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.pl.md",
+      "line": 59,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.ru.md",
+      "line": 59,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 32,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 34,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.uk.md",
+      "line": 59,
+      "url": "https://docs.xmcl.app/en/guide/i18n",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 2,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 3,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/xmcl-electron-app/icons/dark@256x256.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 8,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 12,
+      "url": "https://img.shields.io/npm/l/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 22,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 25,
+      "url": "https://img.shields.io/endpoint",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 27,
+      "url": "https://patreon.com/xmcl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 28,
+      "url": "https://img.shields.io/endpoint.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 33,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-page/master/.vitepress/theme/assets/home.png",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "i18n/README.zh.md",
+      "line": 35,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "installer/README.md",
+      "line": 24,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "installer/install.test.ts",
+      "line": 38,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/releases/download/v1.0.6/",
+      "category": "historical/test"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 35,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777937",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 69,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777909",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 103,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777939",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 137,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777906",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 171,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777935",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 205,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777908",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 239,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777938",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 273,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777913",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 307,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777932",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 341,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777907",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 375,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777936",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 409,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777910",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 443,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777911",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 477,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777912",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 511,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777914",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 545,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777915",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 579,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777917",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 613,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777942",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 647,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777922",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 681,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777945",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 715,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777918",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 749,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777955",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 783,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777916",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 817,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777940",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 851,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777919",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 885,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777941",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 919,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777920",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 953,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777947",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 987,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777921",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1021,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777923",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1055,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777948",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1089,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777926",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1123,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777924",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1157,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777951",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1191,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777925",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1225,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777957",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1259,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777928",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1293,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777953",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1327,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777929",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1361,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777944",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1395,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777927",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1429,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777954",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1463,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777930",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1497,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777946",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1531,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777931",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1565,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777952",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1599,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777943",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1633,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777933",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1667,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/assets/153777934",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1670,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/143768188/assets",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/420c201644f3baff64f3392194cad2783fc797c2",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/59190c18d73d06a7e4af709192e55aae4cffdc76",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/eda51b26b7517132ad56dbf72b2f80f593182123",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/a0813944f90fb992af6e6b589a90c0a4f5159c4d",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/6647630b0e92e5375aeb408140109e30e1b136c6",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/6e7ef5642a49cf766ec9bdeb5041beedd80ef029",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/8a7a6c2d29dd7a0e7afcdfff3e0caf627424bf94",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/0cbbb3f406b5a4f5fd16a20258dcc6f7abb7afe2",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/4107aecd1def11867a4048427450530094bf552d",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/0ae7bc1276e68263f320ba3e8f4fb76584761c64",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/62f743fba61428139887ab70bb372c95ac12a5ee",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/f6df0ed9b4deb8a5ab3c94096ca1e17f0f43a011",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/5648d50679a512a93a3c85148b49f9806dcab02f",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1691,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/commit/85a31fd73896d1aa65fd2dabefd6b821d42a7aeb",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1701,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/tarball/v1.0.6",
+      "category": "open-source public data"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1703,
+      "url": "https://uploads.github.com/repos/Voxelum/x-minecraft-launcher/releases/143768188/assets{",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1704,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/releases/143768188",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "latest_version.json",
+      "line": 1705,
+      "url": "https://api.github.com/repos/Voxelum/x-minecraft-launcher/zipball/v1.0.6",
+      "category": "open-source public data"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/asm.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/asm",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/asm.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/asm",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/package.json",
+      "line": 21,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/package.json",
+      "line": 31,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/asm/package.json",
+      "line": 33,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bore/package.json",
+      "line": 21,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bore/package.json",
+      "line": 31,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bore/package.json",
+      "line": 33,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/bytebuffer.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/bytebuffer",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/bytebuffer.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/bytebuffer",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/package.json",
+      "line": 43,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/package.json",
+      "line": 54,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/bytebuffer/package.json",
+      "line": 56,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/client.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/client",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/client.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/client",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/package.json",
+      "line": 26,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/package.json",
+      "line": 38,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/client/package.json",
+      "line": 40,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/core",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/core",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/package.json",
+      "line": 25,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/package.json",
+      "line": 38,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/core/package.json",
+      "line": 40,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/curseforge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/curseforge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/curseforge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/curseforge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/package.json",
+      "line": 25,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/package.json",
+      "line": 41,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/curseforge/package.json",
+      "line": 43,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/discord-rpc/package.json",
+      "line": 29,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/discord-rpc/package.json",
+      "line": 32,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/discord-rpc/package.json",
+      "line": 34,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/file-transfer.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/file-transfer",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/file-transfer.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/file-transfer",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/package.json",
+      "line": 24,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/package.json",
+      "line": 37,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/file-transfer/package.json",
+      "line": 39,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/forge-installer.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/forge-installer",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/forge-installer.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/forge-installer",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/README.md",
+      "line": 11,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/package.json",
+      "line": 24,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/package.json",
+      "line": 40,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/forge-site-parser/package.json",
+      "line": 42,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/world.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/world",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/world.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/world",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/package.json",
+      "line": 25,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/package.json",
+      "line": 39,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/game-data/package.json",
+      "line": 41,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/gamesetting.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/gamesetting",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/gamesetting.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/gamesetting",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/package.json",
+      "line": 21,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/package.json",
+      "line": 33,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/gamesetting/package.json",
+      "line": 35,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/installer/package.json",
+      "line": 33,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/installer/package.json",
+      "line": 46,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/installer/package.json",
+      "line": 48,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/instance/package.json",
+      "line": 19,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/mod-parser.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/mod-parser",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/mod-parser.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/mod-parser",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/package.json",
+      "line": 26,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/package.json",
+      "line": 44,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/mod-parser/package.json",
+      "line": 46,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/model.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/model",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/model.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/model",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/README.md",
+      "line": 16,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/tree/master/packages/resourcepack/README.md",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/package.json",
+      "line": 24,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/package.json",
+      "line": 37,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/model/package.json",
+      "line": 39,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/modrinth.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/modrinth",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/modrinth.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/modrinth",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/package.json",
+      "line": 25,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/package.json",
+      "line": 41,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/modrinth/package.json",
+      "line": 43,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nat-api/package.json",
+      "line": 45,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nat-api/package.json",
+      "line": 48,
+      "url": "https://github.com/voxelum/nat-api/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nat-api/package.json",
+      "line": 50,
+      "url": "https://github.com/voxelum/nat-api",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/nbt.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/nbt",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/nbt.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/nbt",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/package.json",
+      "line": 23,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/package.json",
+      "line": 40,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/nbt/package.json",
+      "line": 42,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resource/package.json",
+      "line": 20,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/resourcepack.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/resourcepack",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/resourcepack.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/resourcepack",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/package.json",
+      "line": 24,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/package.json",
+      "line": 37,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/resourcepack/package.json",
+      "line": 39,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/schematic/package.json",
+      "line": 24,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/schematic/package.json",
+      "line": 38,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/schematic/package.json",
+      "line": 40,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/semver.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/semver",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/semver.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/semver",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/semver/package.json",
+      "line": 22,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/sqlite/package.json",
+      "line": 23,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/system.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/system",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/system.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/system",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/package.json",
+      "line": 29,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/package.json",
+      "line": 50,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/system/package.json",
+      "line": 52,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/text-component.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/text-component",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/text-component.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/text-component",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/package.json",
+      "line": 21,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/package.json",
+      "line": 35,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/text-component/package.json",
+      "line": 37,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/unzip.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/unzip",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/unzip.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/unzip",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 6,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 7,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/README.md",
+      "line": 25,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/package.json",
+      "line": 27,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/package.json",
+      "line": 41,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/unzip/package.json",
+      "line": 43,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 3,
+      "url": "https://img.shields.io/npm/v/@xmcl/user.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 3,
+      "url": "https://www.npmjs.com/package/@xmcl/user",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 4,
+      "url": "https://img.shields.io/npm/dm/@xmcl/user.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 4,
+      "url": "https://npmjs.com/@xmcl/user",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 5,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 6,
+      "url": "https://img.shields.io/npm/dm/@xmcl/user.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 6,
+      "url": "https://npmjs.com/@xmcl/user",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 7,
+      "url": "https://packagephobia.now.sh/badge",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 7,
+      "url": "https://packagephobia.now.sh/result",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 8,
+      "url": "https://img.shields.io/npm/l/@xmcl/minecraft-launcher-core.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 8,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/blob/master/LICENSE",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 9,
+      "url": "https://github.com/voxelum/minecraft-launcher-core-node/workflows/Build/badge.svg",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 9,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/actions",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/README.md",
+      "line": 32,
+      "url": "https://github.com/voxelum/x-minecraft-launcher/blob/master/xmcl-runtime/lib/clients/MicrosoftOAuthClient.ts",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/package.json",
+      "line": 28,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/package.json",
+      "line": 43,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/user/package.json",
+      "line": 45,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/utils/package.json",
+      "line": 12,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/worker/package.json",
+      "line": 24,
+      "url": "https://github.com/Voxelum/minecraft-launcher-core-node",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/yauzl/package.json",
+      "line": 22,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/yauzl/package.json",
+      "line": 37,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/issues",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "packages/yauzl/package.json",
+      "line": 39,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/tree/master/packages/yauzl",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "scripts/docs.ts",
+      "line": 6,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/blob/master/${fileName}",
+      "category": "open-source public data"
+    },
+    {
+      "file": "xmcl-asar/README.md",
+      "line": 3,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-asar/README.md",
+      "line": 37,
+      "url": "https://registry.npmmirror.com/@xmcl/app-win/-/app-win-",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-asar/package.json",
+      "line": 9,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher.git",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-asar/package.json",
+      "line": 12,
+      "url": "https://xmcl.app",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-electron-app/build/appinstaller-builder.ts.bak",
+      "line": 8,
+      "url": "https://xmcl.blob.core.windows.net/releases/xmcl.appinstaller",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-electron-app/build/appinstaller-builder.ts.bak",
+      "line": 14,
+      "url": "https://cdn.xmcl.app/releases/xmcl-${version}-win32-x64.appx",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-electron-app/main/constant.ts.bak",
+      "line": 4,
+      "url": "https://cdn.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-electron-app/main/utils/updater.ts.old",
+      "line": 119,
+      "url": "https://xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/components/UserLoginForm.vue",
+      "line": 189,
+      "url": "https://xmcl.app/en/guide/microsoft-login-issues",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/components/UserLoginForm.vue",
+      "line": 581,
+      "url": "https://xmcl.app/en/guide/microsoft-login-issues",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/views/AppFeedbackDialog.vue",
+      "line": 105,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher/issues/new",
+      "category": "open-source public data"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/views/AppFeedbackDialog.vue",
+      "line": 114,
+      "url": "https://www.reddit.com/r/XMCL/",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/views/AppUnauthenticatedWarningDialog.vue",
+      "line": 148,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "open-source public data"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/views/BaseSettingSync.vue",
+      "line": 51,
+      "url": "https://xmcl.app/faq/",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/views/SettingAbout.vue",
+      "line": 58,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher",
+      "category": "open-source public data"
+    },
+    {
+      "file": "xmcl-keystone-ui/src/views/SettingAbout.vue",
+      "line": 241,
+      "url": "https://api.github.com/repos/voxelum/x-minecraft-launcher/contributors",
+      "category": "open-source public data"
+    },
+    {
+      "file": "xmcl-runtime-api/docs/GETTING_STARTED_ru.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher-template,",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-runtime-api/docs/GETTING_STARTED_ru.md",
+      "line": 106,
+      "url": "https://xmcl.app/zh/faq",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-runtime-api/docs/GETTING_STARTED_ua.md",
+      "line": 7,
+      "url": "https://github.com/Voxelum/x-minecraft-launcher-template,",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-runtime-api/docs/GETTING_STARTED_ua.md",
+      "line": 106,
+      "url": "https://xmcl.app/zh/faq",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-runtime-api/package.json",
+      "line": 15,
+      "url": "https://github.com/voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-runtime-api/src/services/AgentService.test.ts",
+      "line": 29,
+      "url": "https://ai.xmcl.app.attacker.example/chat/completions",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime-api/src/services/AgentService.ts",
+      "line": 4,
+      "url": "https://ai.xmcl.app/v1/chat/completions",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime-api/src/services/XmclApiEndpoints.ts",
+      "line": 1,
+      "url": "https://api.xmcl.app",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime-api/src/services/XmclApiEndpoints.ts",
+      "line": 2,
+      "url": "https://ai.xmcl.app",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime-api/src/services/XmclApiEndpoints.ts",
+      "line": 3,
+      "url": "https://signaling.xmcl.app",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime-api/src/telemetry.ts",
+      "line": 4,
+      "url": "https://eastasia-0.in.applicationinsights.azure.com/;LiveEndpoint=https://eastasia.livediagnostics.monitor.azure.com/;ApplicationId=be48ffb5-2543-4ab6-a75c-37ef9deda34a",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime-api/src/util/sdp.ts",
+      "line": 10,
+      "url": "https://xmcl.app/peer",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime-api/src/util/sdp.ts",
+      "line": 14,
+      "url": "https://xmcl.app/peer",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime/agent/pluginAgentProtocol.test.ts",
+      "line": 65,
+      "url": "https://ai.xmcl.app/v1/chat/completions",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/agent/pluginAgentProtocol.test.ts",
+      "line": 90,
+      "url": "https://ai.xmcl.app/v1/chat/completions",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/agent/pluginAgentProtocol.test.ts",
+      "line": 135,
+      "url": "https://api.xmcl.api/other",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/agent/providerProtocol.ts",
+      "line": 6,
+      "url": "https://ai.xmcl.app/v1/chat/completions",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime/app/LauncherProtocolHandler.test.ts",
+      "line": 74,
+      "url": "https://api.xmcl.app/auth",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/app/LauncherProtocolHandler.test.ts",
+      "line": 83,
+      "url": "https://ai.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/app/pluginApiFallback.test.ts",
+      "line": 54,
+      "url": "https://signaling.xmcl.app/v1/rtc/official",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/app/pluginApiFallback.test.ts",
+      "line": 74,
+      "url": "https://signaling.xmcl.app/v1/multiplayer/rooms",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/app/pluginApiFallback.test.ts",
+      "line": 99,
+      "url": "https://signaling.xmcl.app/v1/rtc/official",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/app/pluginCommonProtocol.test.ts",
+      "line": 30,
+      "url": "https://api.xmcl.app/translation",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/app/pluginCommonProtocol.test.ts",
+      "line": 34,
+      "url": "https://api.xmcl.app/translation",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/app/xmclApiBaseUrl.test.ts",
+      "line": 29,
+      "url": "https://signaling.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/elyby/ElyByService.ts",
+      "line": 30,
+      "url": "https://api.xmcl.app/elyby/authlib",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime/infra/plugins/flights.test.ts",
+      "line": 11,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/infra/plugins/flights.test.ts",
+      "line": 16,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/infra/plugins/flights.test.ts",
+      "line": 23,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/infra/plugins/flights.test.ts",
+      "line": 26,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/infra/plugins/flights.test.ts",
+      "line": 34,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/infra/plugins/flights.test.ts",
+      "line": 39,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/infra/plugins/flights.ts",
+      "line": 7,
+      "url": "https://api-staging.xmcl.app",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime/infra/telemetry_resource.ts",
+      "line": 29,
+      "url": "https://eastasia-0.in.applicationinsights.azure.com/;LiveEndpoint=https://eastasia.livediagnostics.monitor.azure.com/;ApplicationId=4f19b6fd-9974-4da8-a399-77aac5b3e800",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime/java/zulu.ts",
+      "line": 91,
+      "url": "https://raw.githubusercontent.com/Voxelum/xmcl-static-resource/refs/heads/main/zulu.json",
+      "category": "open-source public data"
+    },
+    {
+      "file": "xmcl-runtime/moddb/databaseDownload.test.ts",
+      "line": 20,
+      "url": "https://github.com/Voxelum/minecraft-mods-database/releases/latest/download/db.sqlite",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/moddb/databaseDownload.test.ts",
+      "line": 23,
+      "url": "https://github.com/Voxelum/xmcl-commuity-content-i18n/releases/latest/download/zh-cn.sqlite.gz",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/moddb/databaseDownload.test.ts",
+      "line": 51,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/moddb/databaseDownload.test.ts",
+      "line": 63,
+      "url": "https://api.xmcl.app",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/package.json",
+      "line": 14,
+      "url": "https://github.com/voxelum/x-minecraft-launcher",
+      "category": "credit/documentation"
+    },
+    {
+      "file": "xmcl-runtime/xmclAccount/XmclAccountApi.test.ts",
+      "line": 379,
+      "url": "https://billing.example.test/v1/xmcl-plus/trial",
+      "category": "historical/test"
+    },
+    {
+      "file": "xmcl-runtime/xmclAccount/XmclAccountApi.ts",
+      "line": 94,
+      "url": "https://api.xmcl.app",
+      "category": "exclusive service or public release; see report"
+    },
+    {
+      "file": "xmcl-runtime/xmclAccount/XmclAccountService.test.ts",
+      "line": 312,
+      "url": "https://signaling.xmcl.app/v1/rtc/official",
+      "category": "historical/test"
+    }
+  ]
+}

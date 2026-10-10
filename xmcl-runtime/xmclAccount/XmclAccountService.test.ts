@@ -142,18 +142,13 @@ describe('XmclAccountService authentication', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true })
   })
 
-  it('authorizes the XMCL Microsoft identity interactively without a game account login', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true })
-    oauth.authenticate.mockResolvedValue({ result: { accessToken: 'microsoft-graph-token' } })
+  it('rejects XMCL Microsoft identity exchange before accessing official credentials', async () => {
     const { service } = createXmclService()
+    oauth.authenticate.mockClear()
     const bootstrapCredential = vi.mocked((service as any).bootstrapCredential)
-
-    await service.authorizeMicrosoft()
-
-    expect(oauth.authenticate).toHaveBeenCalledWith('', ['User.Read'], {
-      useNativeBroker: true,
-    })
-    expect(bootstrapCredential).toHaveBeenCalledWith('microsoft', 'microsoft-graph-token')
+    await expect(service.authorizeMicrosoft()).rejects.toThrow('pbt_xmcl_cloud_disabled')
+    expect(oauth.authenticate).not.toHaveBeenCalled()
+    expect(bootstrapCredential).not.toHaveBeenCalled()
   })
 
   it('persists the rotated credential when the subsequent account snapshot fails', async () => {
@@ -796,7 +791,7 @@ describe('XmclAccountService provider bootstrap queue', () => {
 })
 
 describe('XmclAccountService DPoP device key lifecycle', () => {
-  it('migrates an embedded device key into dedicated secret storage', async () => {
+  it('keeps legacy XMCL credentials untouched and inactive', async () => {
     const { app, service } = createXmclService()
     const key = generateXmclDpopKey()
     const auth = createAuthResult('modrinth', 'account-1')
@@ -816,15 +811,10 @@ describe('XmclAccountService DPoP device key lifecycle', () => {
 
     await service.getXmclAccountState()
 
-    expect(app.secretStorage.put).toHaveBeenCalledWith(
-      'xmcl-xmcl-account',
-      'dpop-device-key',
-      JSON.stringify({ privateJwk: serializeXmclDpopKey(key) }),
-    )
-    const migratedSession = app.secretStorage.put.mock.calls.find(
-      (call) => call[1] === 'current-session',
-    )?.[2]
-    expect(JSON.parse(migratedSession ?? '{}')).not.toHaveProperty('dpopPrivateJwk')
+    expect(app.secretStorage.get).not.toHaveBeenCalled()
+    expect(app.secretStorage.put).not.toHaveBeenCalled()
+    expect(service.state.account).toBeUndefined()
+
   })
 
   it('keeps the cached device key across sign-out', async () => {

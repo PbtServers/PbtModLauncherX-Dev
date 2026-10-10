@@ -1,3 +1,4 @@
+import { assertIndependentUrl } from '@xmcl/runtime-api'
 import { Socket } from 'net'
 import { setTimeout as timeout } from 'timers/promises'
 import {
@@ -238,6 +239,7 @@ export class NetworkAgent extends Dispatcher {
 
     throwIfProxyAuthIsSent(headers)
 
+    assertIndependentUrl(new URL(opts.path, String(opts.origin)))
     return this.#dispatcher.dispatch(
       {
         ...opts,

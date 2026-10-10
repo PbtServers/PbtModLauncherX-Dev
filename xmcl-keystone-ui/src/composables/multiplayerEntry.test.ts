@@ -17,6 +17,7 @@ describe('multiplayer entry', () => {
         shown.value = false
       },
       openWindow,
+      true,
     )
 
     controller.request()
@@ -40,6 +41,7 @@ describe('multiplayer entry', () => {
         shown.value = false
       },
       openWindow,
+      true,
     )
 
     controller.request()
@@ -68,6 +70,7 @@ describe('multiplayer entry', () => {
         shown.value = false
       },
       openWindow,
+      true,
     )
 
     controller.request()
@@ -96,6 +99,7 @@ describe('multiplayer entry', () => {
         shown.value = false
       },
       openWindow,
+      true,
     )
 
     controller.request()
@@ -111,4 +115,13 @@ describe('multiplayer entry', () => {
     expect(openWindow).not.toHaveBeenCalled()
     controller.dispose()
   })
+})
+it('opens local multiplayer without an XMCL account or login request', () => {
+  const open = vi.fn()
+  const show = vi.fn()
+  const controller = createMultiplayerEntryController(ref(undefined), ref(false), show, vi.fn(), open)
+  controller.request()
+  expect(open).toHaveBeenCalledOnce()
+  expect(show).not.toHaveBeenCalled()
+  controller.dispose()
 })

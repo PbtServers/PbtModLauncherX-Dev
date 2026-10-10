@@ -1,3 +1,4 @@
+import { XMCL_CLOUD_ENABLED } from '@xmcl/runtime-api'
 import { UpdateResourcePayload } from '@xmcl/resource'
 import {
   AGENT_TELEMETRY_FLIGHT,
@@ -67,6 +68,13 @@ function getInstallOperation(serviceName: string, serviceMethod: string) {
 }
 
 export const pluginTelemetry: LauncherAppPlugin = async (app) => {
+  if (!XMCL_CLOUD_ENABLED) {
+    setRuntimeTelemetryEnabled(false)
+    for (const channel of ['renderer-telemetry-exception', 'renderer-telemetry-flush', 'renderer-telemetry-action-start', 'renderer-telemetry-action-end']) {
+      app.controller.handle(channel, () => undefined)
+    }
+    return
+  }
   const logger = app.getLogger('Telemtry')
   const diagnose = new ErrorDiagnose(app)
   disableAzureMonitorDiagnostics()

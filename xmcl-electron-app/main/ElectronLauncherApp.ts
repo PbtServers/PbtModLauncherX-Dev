@@ -1,3 +1,4 @@
+import { assertIndependentUrl } from '@xmcl/runtime-api'
 import { NetworkErrorCode, NetworkException } from '@xmcl/runtime-api'
 import { LauncherApp, Shell } from '@xmcl/runtime/app'
 import { LAUNCHER_NAME } from '@xmcl/runtime/constant'
@@ -208,6 +209,7 @@ export default class ElectronLauncherApp extends LauncherApp {
   }
 
   fetch: typeof fetch = async (...args: any[]) => {
+    assertIndependentUrl(args[0])
     const bodies = splitFetchBody(
       await adaptFormDataForElectron(args[1]?.body),
       isReplayableFetchBody(args[1]?.headers),

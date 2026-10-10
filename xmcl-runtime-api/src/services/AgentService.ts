@@ -1,6 +1,7 @@
 import type { ServiceKey } from './Service'
 
 /** Internal endpoint intercepted by the launcher runtime before it reaches the network. */
+export const LOCAL_AGENT_TRANSPORT_ENDPOINT = 'https://agent.runtime/v1/chat/completions'
 export const BUILTIN_AGENT_ENDPOINT = 'https://ai.xmcl.app/v1/chat/completions'
 /** Model selected by the built-in XMCL provider. */
 export const BUILTIN_AGENT_MODEL = 'xmcl-agent'

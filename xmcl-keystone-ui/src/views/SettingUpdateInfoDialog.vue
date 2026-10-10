@@ -92,7 +92,7 @@
       hover
 
       style="width: 100%"
-      to="https://github.com/voxelum/x-minecraft-launcher/releases"
+      to="https://github.com/PbtServers/PbtModLauncherX-Dev/releases"
       target="browser"
       push
     >
@@ -140,10 +140,10 @@ const hintRedownload = computed(() =>
 )
 
 const openOfficialWebsite = () => {
-  window.open('https://xmcl.app', 'browser')
+  window.open('https://pbtservers.com', 'browser')
 }
 const openGithub = () => {
-  window.open('https://github.com/voxelum/x-minecraft-launcher/releases', 'browser')
+  window.open('https://github.com/PbtServers/PbtModLauncherX-Dev/releases', 'browser')
 }
 </script>
 

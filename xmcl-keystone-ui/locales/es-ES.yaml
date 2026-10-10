@@ -2989,3 +2989,6 @@ accessibility:
   instanceGroup: Grupo de instancias
   selectedCount: '{count} seleccionados'
   moreCount: '+{count} más'
+
+independence:
+  localServices: Las instancias, los ajustes, las colecciones y el historial se guardan localmente. Las cuentas y los servicios de pago de XMCL no est?n disponibles en PbtModLauncherX. Puedes configurar tu proveedor de IA y usar copias de seguridad locales.

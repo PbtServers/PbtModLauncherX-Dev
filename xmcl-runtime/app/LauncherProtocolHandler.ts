@@ -1,3 +1,4 @@
+import { isXmclExclusiveUrl } from '@xmcl/runtime-api'
 import { Readable } from 'stream'
 
 export interface Context {
@@ -81,8 +82,18 @@ export class LauncherProtocolHandler {
   async handle(request: RequestOptions): Promise<ResolvedResponse> {
     const handle: Handler = async (ctx) => {
       const handers = this.handlers.filter(v => `${v[0]}:` === ctx.request.url.protocol).map(v => v[1])
+      const rejectCloud = () => {
+        if (!isXmclExclusiveUrl(ctx.request.url)) return false
+        ctx.response.status = 503
+        ctx.response.headers = { 'content-type': 'application/json' }
+        ctx.response.body = JSON.stringify({ error: 'pbt_xmcl_cloud_disabled' })
+        ctx.response.handled = true
+        return true
+      }
+      if (rejectCloud()) return
       for (const handler of handers) {
         await handler(ctx)
+        if (rejectCloud()) return
         if (ctx.response.handled) return
         if (ctx.request.skipRemainingHandlers) break
       }

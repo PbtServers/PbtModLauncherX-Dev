@@ -1,3 +1,4 @@
+import { assertIndependentUrl } from '@xmcl/runtime-api'
 import type { InstalledAppManifest } from '@xmcl/runtime-api'
 import { BaseService, LauncherApp, type SecretStorage, type Shell } from '@xmcl/runtime/app'
 import { LAUNCHER_NAME } from '@xmcl/runtime/constant'
@@ -135,8 +136,10 @@ export class DeskGapLauncherApp extends LauncherApp {
     })
   }
 
-  fetch: typeof fetch = (input: RequestInfo | URL, init?: RequestInit) =>
-    this.networkSession.fetch(typeof input === 'string' || input instanceof URL ? input : input.url, init)
+  fetch: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    assertIndependentUrl(input)
+    return this.networkSession.fetch(typeof input === 'string' || input instanceof URL ? input : input.url, init)
+  }
 
   setProxy(url: string) {
     void this.networkSession.setProxy(url ? { proxyRules: url } : { mode: 'system' })

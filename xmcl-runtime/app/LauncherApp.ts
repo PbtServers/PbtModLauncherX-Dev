@@ -1,3 +1,4 @@
+import { assertIndependentUrl } from '@xmcl/runtime-api'
 import { getPlatform } from '@xmcl/core'
 import type { InstallEvent } from '@xmcl/installer'
 import { AgentRunTrace, InstalledAppManifest, Platform, createPromiseSignal } from '@xmcl/runtime-api'
@@ -136,7 +137,7 @@ export class LauncherApp extends EventEmitter {
 
   get userAgent() {
     const version = IS_DEV ? '0.0.0' : this.host.getVersion()
-    return `voxelum/x_minecraft_launcher/${version} (xmcl.app)`
+    return `pbtservers/pbtmodlauncherx/${version}`
   }
 
   #disposed = false
@@ -485,7 +486,10 @@ export class LauncherApp extends EventEmitter {
     this.logger.log('App booted')
   }
 
-  fetch = fetch
+  fetch: typeof fetch = async (input, init) => {
+    assertIndependentUrl(input)
+    return fetch(input, init)
+  }
 
   setProxy(url: string) {}
 }

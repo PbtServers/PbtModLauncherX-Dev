@@ -2710,3 +2710,6 @@ accessibility:
   instanceGroup: Instance group
   selectedCount: '{count} selected'
   moreCount: '+{count} more'
+
+independence:
+  localServices: Instances, settings, collections and history are stored locally. XMCL accounts and paid cloud services are unavailable in PbtModLauncherX. You can configure your own AI provider and use local backups.

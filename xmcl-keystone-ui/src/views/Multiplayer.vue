@@ -37,7 +37,7 @@
               }}
             </template>
             <template v-else>
-              {{ t('multiplayer.joinOrCreateGroupHint') }}
+              {{ t(XMCL_CLOUD_ENABLED ? 'multiplayer.joinOrCreateGroupHint' : 'independence.localServices') }}
             </template>
           </div>
 
@@ -96,6 +96,7 @@
           <v-btn
             id="join-group-button"
             data-testid="multiplayer-join"
+            :disabled="!XMCL_CLOUD_ENABLED"
             v-shared-tooltip="
               () => (!group ? t('multiplayer.joinOrCreateGroup') : t('multiplayer.leaveGroup'))
             "
@@ -573,7 +574,7 @@
           </v-list-item>
         </template>
         <MultiplayerBilling
-          v-else
+          v-else-if="XMCL_CLOUD_ENABLED"
           :overview="togetherOverview"
           :order="togetherOrder"
           :loading="togetherLoading"
@@ -594,7 +595,7 @@
           <span> {{ t('setting.name') }} </span>
           <v-icon> settings </v-icon>
         </v-btn>
-        <v-btn value="billing">
+        <v-btn v-if="XMCL_CLOUD_ENABLED" value="billing">
           <span> {{ t('multiplayer.billing') }} </span>
           <v-icon> payments </v-icon>
         </v-btn>
@@ -617,6 +618,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+import { XMCL_CLOUD_ENABLED } from '@xmcl/runtime-api'
 import Hint from '@/components/Hint.vue'
 import { useTutorial } from '@/composables/tutorial'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
@@ -654,10 +656,10 @@ const { show: showAddInstasnce } = useDialog(AddInstanceDialogKey)
 const { show: showReceive } = useDialog('peer-receive')
 const route = inject(routeLocationKey, undefined)
 const navigation = ref<'connections' | 'settings' | 'billing'>(
-  route?.query.target === 'billing' ? 'billing' : 'connections',
+  XMCL_CLOUD_ENABLED && route?.query.target === 'billing' ? 'billing' : 'connections',
 )
 watch(() => route?.query.target, (target) => {
-  if (target === 'billing') navigation.value = 'billing'
+  if (XMCL_CLOUD_ENABLED && target === 'billing') navigation.value = 'billing'
 })
 const togetherService = useService(XmclAccountServiceKey)
 const togetherOverview = shallowRef<XmclTogetherOverview>()
@@ -679,6 +681,7 @@ async function runTogether(action: () => Promise<void>) {
 }
 
 function refreshTogether() {
+  if (!XMCL_CLOUD_ENABLED) return Promise.resolve()
   return runTogether(async () => {
     if (togetherOrder.value?.status === 'pending') {
       togetherOrder.value = await togetherService.getTogetherOrder(togetherOrder.value.orderId)
@@ -993,6 +996,7 @@ const onCopy = (val: string) => {
 }
 
 const onJoin = () => {
+  if (!XMCL_CLOUD_ENABLED) return
   if (!group.value) {
     const roomId = groupId.value.trim()
     if (roomId) {

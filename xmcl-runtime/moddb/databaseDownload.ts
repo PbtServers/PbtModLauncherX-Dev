@@ -1,7 +1,6 @@
 import type { DownloadController, DownloadSample } from '@xmcl/file-transfer'
 
 const GITHUB_ORIGIN = 'https://github.com'
-const DATABASE_PROXY_ORIGIN = 'https://api.xmcl.app'
 const DATABASE_FETCH_TIMEOUT = 8_000
 const SLOW_DOWNLOAD_THRESHOLD = 128 * 1024
 
@@ -10,14 +9,12 @@ type Fetcher = (input: string, init?: RequestInit) => Promise<Response>
 export function getModMetadataDownloadUrls(asset: 'db.sqlite' | 'db.sqlite.sha1') {
   return [
     `${GITHUB_ORIGIN}/Voxelum/minecraft-mods-database/releases/latest/download/${asset}`,
-    `${DATABASE_PROXY_ORIGIN}/downloads/databases/mod-metadata/${asset}`,
   ]
 }
 
 export function getProjectMappingDownloadUrls(asset: string) {
   return [
     `${GITHUB_ORIGIN}/Voxelum/xmcl-commuity-content-i18n/releases/latest/download/${asset}`,
-    `${DATABASE_PROXY_ORIGIN}/downloads/databases/project-mapping/${asset}`,
   ]
 }
 
@@ -40,7 +37,7 @@ export async function fetchDatabaseText(fetcher: Fetcher, urls: string[], init: 
     try {
       const response = await fetcher(url, {
         ...init,
-        signal: i < urls.length - 1 ? createAttemptSignal(init.signal) : init.signal,
+        signal: createAttemptSignal(init.signal),
       })
       if (response.ok) {
         return (await response.text()).trim()
@@ -62,7 +59,7 @@ export async function databaseAssetExists(fetcher: Fetcher, urls: string[]) {
     try {
       const response = await fetcher(url, {
         method: 'HEAD',
-        signal: i < urls.length - 1 ? createAttemptSignal(undefined) : undefined,
+        signal: createAttemptSignal(undefined),
       })
       await response.body?.cancel().catch(() => {})
       if (response.ok) return true

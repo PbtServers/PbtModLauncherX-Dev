@@ -1,3 +1,4 @@
+import { XMCL_CLOUD_ENABLED } from '@xmcl/runtime-api'
 import {
   XmclAccountServiceKey,
   XmclAccountState,
@@ -202,6 +203,7 @@ export class XmclAccountService
 
   @Singleton()
   async authorizeMicrosoft(): Promise<void> {
+    if (!XMCL_CLOUD_ENABLED) throw new Error('pbt_xmcl_cloud_disabled')
     await this.initialize()
     const oauthClient = new MicrosoftOAuthClient(
       (...args) => this.app.fetch(...args),
@@ -231,6 +233,7 @@ export class XmclAccountService
 
   @Singleton()
   async authorizeModrinth(): Promise<void> {
+    if (!XMCL_CLOUD_ENABLED) throw new Error('pbt_xmcl_cloud_disabled')
     await this.initialize()
     const credential = await (await this.getExternalCredentials()).getValidAccessToken('modrinth')
     if (credential.status !== 'valid') return
@@ -241,6 +244,7 @@ export class XmclAccountService
   async authorizeProvider(
     provider: Extract<XmclOAuthProvider, 'google' | 'discord'>,
   ): Promise<void> {
+    if (!XMCL_CLOUD_ENABLED) throw new Error('pbt_xmcl_cloud_disabled')
     await this.initialize()
     const verifier = toBase64Url(randomBytes(32))
     const state = toBase64Url(randomBytes(32))
@@ -580,6 +584,7 @@ export class XmclAccountService
   }
 
   private async restore() {
+    if (!XMCL_CLOUD_ENABLED) return
     const raw = await this.app.secretStorage.get(SESSION_SERVICE, SESSION_ACCOUNT)
     if (!raw) return
     try {

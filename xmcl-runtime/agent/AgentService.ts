@@ -1,3 +1,4 @@
+import { XMCL_CLOUD_ENABLED, assertIndependentUrl, isXmclExclusiveUrl, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import {
   AgentServiceKey,
   BUILTIN_AGENT_FLIGHT,
@@ -73,6 +74,7 @@ export class AgentService extends AbstractService implements IAgentService {
   async setProviderSettings(input: UpdateAgentProviderSettings) {
     const settings = await this.app.registry.get(kSettings)
     const endpoint = input.endpoint.trim()
+    if (endpoint) assertIndependentUrl(endpoint)
     this.logAgent(`[provider.settings] ${sanitizeAgentLog({
       endpoint: sanitizeAgentEndpoint(endpoint),
       model: input.model,
@@ -96,14 +98,14 @@ export class AgentService extends AbstractService implements IAgentService {
     const endpoint = settings.agentEndpoint.trim()
     const model = settings.agentModel.trim()
     if (endpoint || model) {
-      if (!endpoint || !model) return { mode: 'unconfigured' }
-      const apiKey = await this.apiKeys.get(endpoint)
-      if (!apiKey) return { mode: 'unconfigured' }
+      if (!endpoint || !model || isXmclExclusiveUrl(endpoint)) return { mode: 'unconfigured' }
+      const apiKey = (await this.apiKeys.get(endpoint)) ?? ''
+      if (!apiKey && !isLoopbackServiceUrl(endpoint)) return { mode: 'unconfigured' }
       return { mode: 'custom', endpoint, model, apiKey }
     }
 
     const flights = await this.app.registry.get(kFlights).catch((): Record<string, any> => ({}))
-    return flights[BUILTIN_AGENT_FLIGHT] === true ? { mode: 'builtin' } : { mode: 'unconfigured' }
+    return XMCL_CLOUD_ENABLED && flights[BUILTIN_AGENT_FLIGHT] === true ? { mode: 'builtin' } : { mode: 'unconfigured' }
   }
 
   getConversation(key: AgentConversationKey) {

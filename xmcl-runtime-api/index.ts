@@ -1,3 +1,4 @@
+export * from './src/entities/servicePolicy'
 export * from './src/entities/collection.schema'
 export * from './src/entities/xmclAccount'
 export * from './src/entities/component'

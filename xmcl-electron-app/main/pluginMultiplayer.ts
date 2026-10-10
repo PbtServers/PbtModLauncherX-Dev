@@ -4,7 +4,7 @@ import {
   type MultiplayerHost,
 } from '@xmcl/runtime/peer'
 import { createTogetherMultiplayer } from '@xmcl/multiplayer-core/multiplayer'
-import { createTogetherRoomApi } from '@xmcl/multiplayer-core/room'
+import { createLocalMultiplayerRoomApi } from './localMultiplayerPolicy'
 import ElectronLauncherApp from './ElectronLauncherApp'
 import { ElectronController } from './ElectronController'
 import defaultApp from './defaultApp'
@@ -37,7 +37,7 @@ export const pluginMultiplayer: LauncherAppPlugin = (rawApp) => {
       getAccountId: options.getTelemetryAccountId,
       launcherVersion: app.version,
       launcherBuild: String(app.build),
-      isEnabled: options.isTelemetryEnabled,
+      isEnabled: () => false,
       fetch: (url, init) => electronSession.fetch(url, init),
       warn: (message) => app.getLogger('MultiplayerTelemetry').warn(message),
     })
@@ -63,10 +63,7 @@ export const pluginMultiplayer: LauncherAppPlugin = (rawApp) => {
       logger: { emit: options.log },
       createTelemetryAttempt: telemetry.beginAttempt,
       setDownloadPort: async (port) => options.setDownloadPort(port),
-      roomApi: createTogetherRoomApi({
-        getBaseUrl: () => options.init.signalingBaseUrl,
-        fetch: (url, init) => electronSession.fetch(url, init),
-      }),
+      roomApi: createLocalMultiplayerRoomApi(),
     })
 
     try {

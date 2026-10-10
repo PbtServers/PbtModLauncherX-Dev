@@ -1,8 +1,8 @@
-import { BUILTIN_AGENT_ENDPOINT } from '@xmcl/runtime-api'
+import { BUILTIN_AGENT_ENDPOINT, LOCAL_AGENT_TRANSPORT_ENDPOINT, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import type { Handler } from '~/app'
 import type { ResolvedAgentProvider } from './AgentService'
 
-const builtinUrl = new URL(BUILTIN_AGENT_ENDPOINT)
+const transportUrls = [BUILTIN_AGENT_ENDPOINT, LOCAL_AGENT_TRANSPORT_ENDPOINT].map(value => new URL(value))
 const builtinProviderUrl = 'https://ai.xmcl.app/v1/chat/completions'
 
 export interface AgentXmclAuthorization {
@@ -31,7 +31,7 @@ export function createAgentProtocolHandler(
   ) => Promise<AgentXmclAuthorization | undefined>,
 ): Handler {
   return async ({ request, response }) => {
-    if (request.url.origin !== builtinUrl.origin || request.url.pathname !== builtinUrl.pathname)
+    if (!transportUrls.some(url => request.url.origin === url.origin && request.url.pathname === url.pathname))
       return
 
     setHeader(request.headers, 'authorization')
@@ -39,7 +39,7 @@ export function createAgentProtocolHandler(
     setHeader(request.headers, 'x-xmcl-account-id')
     const provider = await resolveProvider()
     if (provider.mode === 'custom') {
-      if (!provider.apiKey) {
+      if (!provider.apiKey && !isLoopbackServiceUrl(provider.endpoint)) {
         response.status = 401
         response.headers = { 'content-type': 'application/json' }
         response.body = JSON.stringify({ error: { message: 'Agent API key is not configured' } })
@@ -59,7 +59,7 @@ export function createAgentProtocolHandler(
         return
       }
       request.url = endpoint
-      setHeader(request.headers, 'authorization', `Bearer ${provider.apiKey}`)
+      setHeader(request.headers, 'authorization', provider.apiKey ? `Bearer ${provider.apiKey}` : undefined)
       request.skipRemainingHandlers = true
       return
     }

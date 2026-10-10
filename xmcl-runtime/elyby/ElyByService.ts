@@ -1,3 +1,4 @@
+import { XMCL_CLOUD_ENABLED } from '@xmcl/runtime-api'
 import { LibraryInfo, Version } from '@xmcl/core'
 import { ElyByServiceKey, type ElyByService as IElyByService } from '@xmcl/runtime-api'
 import { open, openEntryReadStream, walkEntriesGenerator } from '@xmcl/unzip'
@@ -22,6 +23,7 @@ export class ElyByService extends AbstractService implements IElyByService {
   }
 
   async #init() {
+    if (!XMCL_CLOUD_ENABLED) return
     const cachePath = join(this.app.appDataPath, 'ely-authlib.cache.json')
     const content = await readJSON(cachePath, 'utf-8').catch(() => undefined)
     const etag = content?.etag

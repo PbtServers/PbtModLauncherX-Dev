@@ -1,3 +1,4 @@
+import { XMCL_CLOUD_ENABLED } from '@xmcl/runtime-api'
 import { kXmclAccount } from '@/composables/xmclAccount'
 import { injection } from '@/util/inject'
 import { watch, type InjectionKey, type Ref } from 'vue'
@@ -29,6 +30,7 @@ export function createMultiplayerEntryController<T>(
   showDialog: () => void,
   hideDialog: () => void,
   openWindow: () => void,
+  requiresAccount = XMCL_CLOUD_ENABLED,
 ) {
   let waitingForLogin = false
   let handingOff = false
@@ -46,7 +48,7 @@ export function createMultiplayerEntryController<T>(
   })
 
   function request() {
-    if (account.value) {
+    if (!requiresAccount || account.value) {
       openWindow()
       return
     }

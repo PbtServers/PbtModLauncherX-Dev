@@ -31,6 +31,7 @@
             @click="section = 'settings'"
           />
           <v-list-item
+            v-if="XMCL_CLOUD_ENABLED"
             :active="section === 'billing'"
             prepend-icon="payments"
             :title="t('multiplayer.billing')"
@@ -121,7 +122,7 @@
               </v-chip>
             </div>
             <div class="text-body-2 text-medium-emphasis">
-              {{ group ? t('multiplayer.copyGroupToFriendHint') : t('multiplayer.joinOrCreateGroupHint') }}
+              {{ group ? t('multiplayer.copyGroupToFriendHint') : t(XMCL_CLOUD_ENABLED ? 'multiplayer.joinOrCreateGroupHint' : 'independence.localServices') }}
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -161,6 +162,7 @@
           />
           <v-btn
             data-testid="multiplayer-join"
+            :disabled="!XMCL_CLOUD_ENABLED"
             color="primary"
             :variant="group ? 'tonal' : 'flat'"
             :prepend-icon="group ? 'logout' : 'group_add'"
@@ -404,7 +406,7 @@
         </template>
 
         <MultiplayerBilling
-          v-else
+          v-else-if="XMCL_CLOUD_ENABLED"
           :overview="togetherOverview"
           :order="togetherOrder"
           :loading="togetherLoading"
@@ -448,6 +450,7 @@
 </template>
 
 <script lang="ts" setup>
+import { XMCL_CLOUD_ENABLED } from '@xmcl/runtime-api'
 import Hint from '@/components/Hint.vue'
 import { useTutorial } from '@/composables/tutorial'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
@@ -738,6 +741,7 @@ async function joinPeerGame(
 }
 
 async function onJoin() {
+  if (!XMCL_CLOUD_ENABLED) return
   if (joiningGroup.value) return
   joiningGroup.value = true
   try {
@@ -823,6 +827,7 @@ async function runTogether(action: () => Promise<void>) {
   try { await action() } catch (error) { togetherError.value = error } finally { togetherLoading.value = false }
 }
 function refreshTogether() {
+  if (!XMCL_CLOUD_ENABLED) return Promise.resolve()
   return runTogether(async () => {
     if (togetherOrder.value?.status === 'pending') togetherOrder.value = await togetherService.getTogetherOrder(togetherOrder.value.orderId)
     togetherOverview.value = await togetherService.getTogetherOverview()

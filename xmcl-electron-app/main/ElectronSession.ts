@@ -1,3 +1,4 @@
+import { isXmclExclusiveUrl } from '@xmcl/runtime-api'
 import { Session, session } from 'electron'
 import { existsSync } from 'fs'
 import { createReadStream } from 'fs-extra'
@@ -40,6 +41,9 @@ export class ElectronSession {
     const ua = this.app.userAgent
     const sess = this.#resolve(url)
 
+    sess.webRequest.onBeforeRequest((details, callback) => {
+      callback({ cancel: isXmclExclusiveUrl(details.url) })
+    })
     sess.setUserAgent(ua)
     sess.setProxy(this.proxy ? { proxyRules: this.proxy } : { mode: 'system' })
 
