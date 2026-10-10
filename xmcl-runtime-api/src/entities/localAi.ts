@@ -28,6 +28,8 @@ export interface LocalAiModel {
   name: string
   size: number
   compatible: boolean
+  /** Verified local completion capability, independently of tool support. */
+  chatCompatible?: boolean
   contextWindow: number
 }
 
@@ -39,7 +41,7 @@ export interface OllamaStatus {
   freeMemory: number
   cpuCount: number
   recommendedModels: string[]
-  error?: 'unavailable' | 'invalidResponse'
+  error?: 'unavailable' | 'invalidResponse' | 'connectionFailed'
 }
 
 export interface OllamaDownloadPreview {

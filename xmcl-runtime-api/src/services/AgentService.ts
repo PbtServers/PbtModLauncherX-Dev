@@ -142,6 +142,7 @@ export interface AgentProviderSettings {
   endpoint: string
   model: string
   configured: boolean
+  toolsSupported?: boolean
   mode: 'builtin' | 'custom' | 'unconfigured'
   historyEnabled?: boolean
   contextWindow?: number

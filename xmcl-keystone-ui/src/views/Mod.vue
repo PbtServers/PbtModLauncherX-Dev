@@ -92,12 +92,6 @@
         @update:modrinth-environment="modrinthEnvironment = $event"
       >
         <template #local>
-          <v-select v-model="serverClassification.typeFilter.value" :items="serverTypeItems" :label="t('modServer.type')" clearable density="compact" />
-          <v-select v-model="serverClassification.serverFilter.value" :items="serverNeedItems" :label="t('modServer.server')" clearable density="compact" />
-          <v-btn :loading="serverClassification.loading.value" @click="serverClassification.refresh()">{{ t('modServer.refreshLocal') }}</v-btn>
-          <v-btn :disabled="serverClassification.loading.value" @click="serverClassification.refresh(true)">{{ t('modServer.refreshOnline') }}</v-btn>
-          <p class="text-xs">{{ t('modServer.onlineHint') }}</p>
-          <v-alert v-if="serverClassification.failed.value" type="warning">{{ t('modServer.loadFailed') }}</v-alert>
           <div class="filter-subheader flex">
             <v-icon size="16" class="mr-1">filter_alt</v-icon>
             {{ t('mod.filter') }}
@@ -162,8 +156,6 @@
       <ModItem
         v-if="typeof item === 'object' && 'id' in item"
         :item="(item as ProjectEntry<ModFile>)"
-        :show-server-classification="isLocalView"
-        :server-classification="getServerClassification((item as ProjectEntry<ModFile>).installed)"
         :key="`item-${item.id}`"
         :indent="isLocalView && !!isInGroup(((item as ProjectEntry<ModFile>).installed?.[0]?.fileName))"
         :indent-color="getGroupColor((item as ProjectEntry<ModFile>).installed?.[0]?.fileName)"
@@ -177,7 +169,6 @@
         :get-context-menu-items="getContextMenuItems"
         @click="on.click"
         @click-dependency="onClickDependency"
-        @classification-changed="serverClassification.refresh()"
       />
       <ModGroupEntryItem
         v-else-if="typeof item === 'object'"
@@ -368,8 +359,6 @@ import { kSearchModel, ModLoaderFilter } from '@/composables/search'
 import { kSettingsState } from '@/composables/setting'
 import { kModrinthAuthenticatedAPI } from '@/composables/modrinthAuthenticatedAPI'
 import ModOptionsPage from './ModOptionsPage.vue'
-import { useServerModClassifications } from '@/composables/serverModClassification'
-import { findServerModClassification, matchesServerModFilters } from '@/util/serverModClassification'
 
 const localizedTexts = computed(() =>
   markRaw({
@@ -438,10 +427,6 @@ const {
   isValidating,
 } = injection(kInstanceModsContext)
 
-const serverClassification = useServerModClassifications(path, () => JSON.stringify([runtime.value, mods.value.map(mod => [mod.path, mod.hash, mod.enabled])]))
-const getServerClassification = (installed: ModFile[]) => findServerModClassification(installed, serverClassification.mods.value)
-const serverTypeItems = computed(() => (['client', 'server', 'both', 'unknown'] as const).map(value => ({ value, title: t(`serverExport.side.${value}`) })))
-const serverNeedItems = computed(() => (['required', 'recommended', 'no', 'unknown'] as const).map(value => ({ value, title: t(`modServer.necessity.${value}`) })))
 
 const getProjectDependents = (installedFiles: ProjectEntry['installed'] | undefined): ProjectDependent[] =>
   getModDependents(installedFiles, mods.value, modLoader.value)
@@ -622,7 +607,6 @@ const groupedItems = computed(() => {
   const unusedSet = new Set(unusedMods.value.map((file) => basename(file.path, '/')))
 
   const matchesLocalFilter = (item: ProjectEntry<ModFile>) => {
-    if (!matchesServerModFilters(getServerClassification(item.installed), serverClassification.typeFilter.value, serverClassification.serverFilter.value)) return false
     if (localFilter.value === 'disabledOnly' && !item.disabled) return false
     if (localFilter.value === 'incompatibleOnly' && !isIncompatible(item)) return false
     if (localFilter.value === 'hasUpdateOnly' && !plans.value[item.id]) return false

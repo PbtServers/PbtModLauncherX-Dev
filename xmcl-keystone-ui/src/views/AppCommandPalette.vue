@@ -902,6 +902,9 @@ defineExpose({
 
 <style scoped>
 .palette-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  background: rgb(var(--v-theme-surface));
   width: 720px;
   max-width: 100%;
   border-radius: 18px;

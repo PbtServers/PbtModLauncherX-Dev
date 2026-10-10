@@ -83,6 +83,7 @@ describe('AgentService provider resolution', () => {
       endpoint: 'http://127.0.0.1:11434/v1/chat/completions',
       model: '',
       configured: false,
+      toolsSupported: false,
       mode: 'unconfigured',
       historyEnabled: true,
       contextWindow: 8192,
@@ -140,6 +141,6 @@ test('uses a local AI server without an XMCL account or a fabricated API key', a
   service.settings.agentEndpoint = 'http://127.0.0.1:11434/v1/chat/completions'
   service.settings.agentModel = 'local-model'
   await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toEqual({
-    mode: 'custom', endpoint: service.settings.agentEndpoint, model: 'local-model', apiKey: '', contextWindow: 4096,
+    mode: 'custom', endpoint: service.settings.agentEndpoint, model: 'local-model', apiKey: '', contextWindow: 4096, toolsSupported: true,
   })
 })

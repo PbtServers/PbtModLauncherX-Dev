@@ -2,6 +2,18 @@ import { Readable } from 'stream'
 import { expect, test, vi } from 'vitest'
 import { handleOllamaChat, toOllamaChat } from './ollamaChat'
 
+test('chat-only models reject tool requests before contacting Ollama', async () => {
+  const fetch = vi.fn()
+  for (const input of [
+    { messages: [], tools: [{ type: 'function', function: { name: 'write_file' } }] },
+    { messages: [{ role: 'tool', content: 'old conversation tool result' }] },
+  ]) {
+    const ctx = { request: { body: JSON.stringify(input) }, response: {} } as any
+    await expect(handleOllamaChat(ctx, { model: 'chat-only', toolsSupported: false }, fetch)).rejects.toThrow('ollama_chat_only')
+  }
+  expect(fetch).not.toHaveBeenCalled()
+})
+
 test('native chat preserves tool results, sets the real selected model and bounds runtime context', () => {
   const body = toOllamaChat({ messages: [
     { role: 'assistant', tool_calls: [{ id: 'id', function: { name: 'vfs_shell', arguments: '{"command":"system info"}' } }] },

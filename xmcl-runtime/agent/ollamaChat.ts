@@ -20,7 +20,7 @@ export function toOllamaChat(input: any, model: string, contextWindow: number) {
 }
 
 /** Native API sets a bounded runtime context without changing models or executing commands. */
-export async function handleOllamaChat(ctx: Context, provider: { model: string; contextWindow?: number }, fetch: typeof globalThis.fetch) {
+export async function handleOllamaChat(ctx: Context, provider: { model: string; contextWindow?: number; toolsSupported?: boolean }, fetch: typeof globalThis.fetch) {
   let raw = ''
   if (ctx.request.body instanceof Readable) {
     const chunks: Buffer[] = []
@@ -35,6 +35,7 @@ export async function handleOllamaChat(ctx: Context, provider: { model: string; 
   } else raw = ctx.request.body?.toString() || '{}'
   if (Buffer.byteLength(raw) > 4_000_000) throw new Error('agent_request_too_large')
   const body = toOllamaChat(JSON.parse(raw), provider.model, provider.contextWindow ?? 8192)
+  if (provider.toolsSupported === false && (body.tools?.length || body.messages.some((message: any) => message.role === 'tool' || message.tool_calls?.length))) throw new Error('ollama_chat_only')
   const controller = new AbortController()
   const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10 * 60_000), ...(ctx.request.signal ? [ctx.request.signal] : [])])
   const result = await fetch('http://127.0.0.1:11434/api/chat', {

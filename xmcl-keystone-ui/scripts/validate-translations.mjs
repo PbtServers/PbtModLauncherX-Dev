@@ -30,6 +30,12 @@ export function parseCatalog(source, format = 'yaml') {
   return JSON.parse(source)
 }
 
+export function unicodeDamage(value, locale) {
+  if (typeof value !== 'string') return false
+  const prose = value.replace(/https?:\/\/\S+/g, '')
+  return /\uFFFD|[\p{L}]\?[\p{L}]/u.test(prose) || (locale === 'es-ES' && /^\?[^?]+\?/u.test(prose))
+}
+
 export function validatePair(reference, translation, locale) {
   const base = flatten(reference)
   const actual = flatten(translation)
@@ -41,7 +47,7 @@ export function validatePair(reference, translation, locale) {
     missing: [...base.keys()].filter(key => !actual.has(key)),
     // Retained fork/legacy keys are reported, never deleted automatically.
     extra: [...actual.keys()].filter(key => !base.has(key)),
-    invalid: computeInvalid(state),
+    invalid: [...computeInvalid(state), ...[...actual].filter(([, value]) => unicodeDamage(value, locale)).map(([key]) => ({ locale, key, code: 'unicodeDamage' }))],
     placeholders: computeWarnings(state),
     identicalReference: [...base.keys()].filter(key => actual.get(key) === base.get(key)),
   }
@@ -53,7 +59,12 @@ export function validateProject() {
   for (const [scope, directory] of [['ui', LOCALES_DIR], ['electron', MAIN_LOCALES_DIR]]) {
     const catalogs = new Map()
     for (const file of readdirSync(directory).filter(name => /\.(yaml|json)$/.test(name))) {
-      try { catalogs.set(file.replace(/\.(yaml|json)$/, ''), parseCatalog(readFileSync(join(directory, file), 'utf8'), file.endsWith('.json') ? 'json' : 'yaml')) }
+      try {
+        const locale = file.replace(/\.(yaml|json)$/, '')
+        const catalog = parseCatalog(readFileSync(join(directory, file), 'utf8'), file.endsWith('.json') ? 'json' : 'yaml')
+        catalogs.set(locale, catalog)
+        for (const [key, value] of flatten(catalog)) if (unicodeDamage(value, locale)) syntax.push({ scope, file, key, message: 'Possible Unicode loss' })
+      }
       catch (error) { syntax.push({ scope, file, message: error.message }) }
     }
     if (!catalogs.has(BASE_LOCALE)) syntax.push({ scope, message: 'Missing reference catalog' })
@@ -64,6 +75,7 @@ export function validateProject() {
   }
   const state = buildState()
   for (const [file, scan] of state.fileScans) {
+    for (const [locale, messages] of scan.localMessages) for (const [key, value] of messages) if (unicodeDamage(value, locale)) syntax.push({ scope: 'component', file, locale, key, message: 'Possible Unicode loss' })
     for (const [locale, message] of scan.localErrors) syntax.push({ scope: 'component', file, locale, message })
     if (!scan.localMessages.has(BASE_LOCALE)) continue
     for (const locale of ['es-ES', 'ca']) {

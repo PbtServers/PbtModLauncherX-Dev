@@ -314,7 +314,7 @@ export function useLocalAgent(options: LocalAgentOptions): LocalAgentSession {
       locale: options.getLocale(),
       userId: options.getUserId?.(),
     }
-    const createdTools = wrapAgentToolsWithErrorNormalization(await options.createTools(runContext))
+    const createdTools = settings.toolsSupported.value ? wrapAgentToolsWithErrorNormalization(await options.createTools(runContext)) : []
     const supportsArtifacts = settings.historyEnabled.value && createdTools.some(tool => tool.name === 'vfs_read') && createdTools.some(tool => tool.name === 'vfs_shell')
     const artifactKey: AgentConversationKey = { agentId: options.agentId, scope }
     const tools = supportsArtifacts

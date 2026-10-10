@@ -32,7 +32,7 @@ export { SECRET_SERVICE as AGENT_SECRET_SERVICE } from './apiKey'
 
 export type ResolvedAgentProvider =
   | { mode: 'builtin' }
-  | { mode: 'custom'; endpoint: string; model: string; apiKey: string; contextWindow?: number }
+  | { mode: 'custom'; endpoint: string; model: string; apiKey: string; contextWindow?: number; toolsSupported?: boolean }
   | { mode: 'unconfigured' }
 
 export const kResolvedAgentProvider = Symbol('resolved-agent-provider')
@@ -70,6 +70,7 @@ export class AgentService extends AbstractService implements IAgentService {
       endpoint,
       model: settings.agentModel || DEFAULT_AGENT_MODEL,
       configured,
+      toolsSupported: provider.mode === 'custom' ? provider.toolsSupported !== false : false,
       mode: provider.mode,
       historyEnabled: settings.agentHistoryEnabled !== false,
       contextWindow: provider.mode === 'custom' ? provider.contextWindow ?? 128_000 : 8192,
@@ -111,7 +112,7 @@ export class AgentService extends AbstractService implements IAgentService {
       if (!endpoint || !model || isXmclExclusiveUrl(endpoint)) return { mode: 'unconfigured' }
       if (isOllamaEndpoint(endpoint)) {
         const local = await this.ollama.resolveModel(model)
-        return local ? { mode: 'custom', endpoint, model, apiKey: '', contextWindow: local.contextWindow } : { mode: 'unconfigured' }
+        return local ? { mode: 'custom', endpoint, model, apiKey: '', contextWindow: local.contextWindow, toolsSupported: local.compatible } : { mode: 'unconfigured' }
       }
       const apiKey = (await this.apiKeys.get(endpoint)) ?? ''
       if (!apiKey && !isLoopbackServiceUrl(endpoint)) return { mode: 'unconfigured' }

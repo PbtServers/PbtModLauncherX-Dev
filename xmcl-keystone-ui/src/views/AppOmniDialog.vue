@@ -216,6 +216,7 @@ watch([shown, mode], async ([visible]) => {
   display: flex;
   min-height: 44px;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 6px 10px;
 }

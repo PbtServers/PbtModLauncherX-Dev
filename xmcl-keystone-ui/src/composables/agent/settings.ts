@@ -2,8 +2,11 @@ import { createSharedComposable } from '@vueuse/core'
 import {
   AgentServiceKey,
   OLLAMA_ENDPOINT,
+  isOllamaEndpoint,
+  type OllamaStatus,
 } from '@xmcl/runtime-api'
 import { useService } from '../service'
+import { providerStatusKey } from './providerStatus'
 
 export const useAgentSettings = createSharedComposable(() => {
   const service = useService(AgentServiceKey)
@@ -13,7 +16,13 @@ export const useAgentSettings = createSharedComposable(() => {
   const historyEnabled = ref(true)
   const contextWindow = ref(8192)
   const providerConfigured = ref(false)
-  const subscriptionActive = ref(false)
+  const toolsSupported = ref(true)
+  const ollamaStatus = ref<OllamaStatus>()
+  async function inspectLocal() {
+    if (isOllamaEndpoint(endpoint.value || OLLAMA_ENDPOINT)) {
+      ollamaStatus.value = await service.getOllamaStatus().catch(() => undefined)
+    }
+  }
   const resolvedMode = ref<'builtin' | 'custom' | 'unconfigured'>('unconfigured')
   const mode = computed(() => resolvedMode.value)
   const loaded = ref(false)
@@ -31,10 +40,11 @@ export const useAgentSettings = createSharedComposable(() => {
     accessCheckCount += 1
     checkingAccess.value = true
     providerConfigured.value = false
-    subscriptionActive.value = false
     try {
       const settings = await service.getProviderSettings()
       providerConfigured.value = settings.configured
+      toolsSupported.value = settings.toolsSupported !== false
+      await inspectLocal()
       resolvedMode.value = settings.mode
       contextWindow.value = settings.contextWindow ?? 8192
     } finally {
@@ -53,6 +63,8 @@ export const useAgentSettings = createSharedComposable(() => {
       providerConfigured.value = settings.configured
       resolvedMode.value = settings.mode
       loaded.value = true
+      toolsSupported.value = settings.toolsSupported !== false
+      await inspectLocal()
     } finally {
       accessCheckCount -= 1
       checkingAccess.value = accessCheckCount > 0
@@ -156,10 +168,10 @@ export const useAgentSettings = createSharedComposable(() => {
 
   const resolvedEndpoint = computed(() => endpoint.value.trim() || OLLAMA_ENDPOINT)
   const resolvedModel = computed(() => model.value.trim() || '')
+  const statusKey = computed(() => providerStatusKey(resolvedEndpoint.value, resolvedModel.value, providerConfigured.value, ollamaStatus.value, toolsSupported.value))
   const configured = computed(() => {
     if (checkingAccess.value) return false
-    if (mode.value !== 'builtin') return providerConfigured.value
-    return providerConfigured.value && subscriptionActive.value
+    return providerConfigured.value
   })
 
   /**
@@ -181,7 +193,12 @@ export const useAgentSettings = createSharedComposable(() => {
     void keySave.then(() => flush()).then(async () => {
       const settings = await service.getProviderSettings()
       // Ignore a stale response if the user switched again while this was in flight.
-      if (token === refreshToken) providerConfigured.value = settings.configured
+      if (token === refreshToken) {
+        providerConfigured.value = settings.configured
+        toolsSupported.value = settings.toolsSupported !== false
+        resolvedMode.value = settings.mode
+        contextWindow.value = settings.contextWindow ?? 8192
+      }
     }).catch(e => {
       if (token === refreshToken) error.value = e instanceof Error ? e.message : String(e)
     })
@@ -189,6 +206,8 @@ export const useAgentSettings = createSharedComposable(() => {
 
   return {
     apiKey,
+    toolsSupported,
+    statusKey,
     endpoint,
     model,
     historyEnabled,

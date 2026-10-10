@@ -110,7 +110,7 @@
 
     <LocalAiSetup id="agent-settings" />
 
-    <SettingItem :title="t('setting.aiAgentApiKey')" :description="t('setting.aiAgentApiKeyDescription')">
+    <SettingItem v-if="agentResolvedEndpoint !== OLLAMA_ENDPOINT" :title="t('setting.aiAgentApiKey')" :description="t('setting.aiAgentApiKeyDescription')">
         <template #title>
           <v-icon start size="small" color="primary">key</v-icon>
           {{ t('setting.aiAgentApiKey') }}
@@ -216,6 +216,7 @@ import { injection } from '@/util/inject'
 import { formatShortcutDisplay } from '@/util/shortcut'
 import { useDialog } from '../composables/dialog'
 import { useAgentSettings } from '../composables/agent/settings'
+import { OLLAMA_ENDPOINT } from '@xmcl/runtime-api'
 import { useGameDirectory, useSettings } from '../composables/setting'
 
 const { isNoEmptySpace, invalidGameDataPath } = injection(kCriticalStatus)

@@ -2,7 +2,7 @@
   <div data-testid="agent-dialog" class="agent-surface">
       <div class="flex items-center gap-3 px-4 py-2">
         <v-avatar size="36" color="primary"><span aria-hidden="true">PA</span></v-avatar>
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1 agent-header-text">
           <div class="text-sm font-medium">{{ t('pbtadminLore.name') }}</div>
           <div class="text-xs text-medium-emphasis">{{ providerLabel }} · {{ agentSettings.resolvedModel.value || t('pbtadminLore.noModel') }}</div>
         </div>
@@ -13,13 +13,13 @@
         class="agent-disabled-card"
       >
         <v-avatar size="72" color="warning" variant="tonal">
-          <v-icon size="40">vpn_key_off</v-icon>
+          <v-icon size="40">settings</v-icon>
         </v-avatar>
         <div class="text-lg font-medium">
           {{ t('agent.notConfiguredTitle') }}
         </div>
         <div class="text-sm text-medium-emphasis max-w-xs">
-          {{ t('pbtadmin.noModels') }}
+          {{ t(agentSettings.statusKey.value) }}
         </div>
         <div class="flex flex-wrap items-center justify-center gap-2 mt-1">
           <v-btn color="primary" variant="flat" prepend-icon="settings" @click="openSettings">
@@ -36,6 +36,7 @@
         class="agent-transcript"
         @scroll.passive="onTranscriptScroll"
       >
+        <v-alert v-if="!agentSettings.toolsSupported.value" type="info">{{ t('pbtadmin.chatOnly') }}</v-alert>
         <div
           v-if="transcriptItems.length === 0 && !displayError"
           class="agent-empty-wrap"
@@ -192,7 +193,7 @@
       <Teleport v-if="isShown" defer to="#omni-mode-specific-controls">
         <div class="agent-mode-controls">
           <div class="agent-mode-meta text-xs text-medium-emphasis flex min-w-0 items-center gap-2">
-            <span v-if="!available" class="agent-composer-status">{{ t('agent.statusDisabled') }}</span>
+            <span v-if="!available" class="agent-composer-status" :title="t(agentSettings.statusKey.value)">{{ t(agentSettings.statusKey.value) }}</span>
             <span v-else-if="developerMode" data-testid="agent-context-usage" class="tabular-nums" :title="contextUsageTitle">
               Context {{ contextUsageLabel }}
             </span>
@@ -213,6 +214,7 @@
               <v-btn
                 v-bind="menuProps"
                 class="agent-selector"
+                :title="selectedAgent === 'css' ? t('setting.customCss.assistantTitle') : t('agent.title')"
                 size="small"
                 variant="text"
                 :prepend-icon="selectedAgent === 'css' ? 'code' : 'smart_toy'"
@@ -621,6 +623,7 @@ watch([transcriptItems, events, confirmationShown, displayError], async () => {
   height: auto;
   max-height: none;
   max-width: 100%;
+  min-width: 0;
   min-height: 0;
   flex: 1 1 auto;
   align-self: center;
@@ -633,7 +636,7 @@ watch([transcriptItems, events, confirmationShown, displayError], async () => {
   --surface-shadow: none;
   --surface-bg: transparent;
   --surface-dialog-radius: 0px;
-  background: transparent !important;
+  background: rgb(var(--v-theme-surface)) !important;
   box-shadow: none !important;
 }
 .agent-empty-card,
@@ -852,4 +855,14 @@ watch([transcriptItems, events, confirmationShown, displayError], async () => {
     max-width: 100%;
   }
 }
+</style>
+
+<style scoped>
+.agent-header-text { overflow-wrap: anywhere; }
+.agent-surface { border-radius: 8px; }
+.agent-mode-controls :deep(.v-btn) { flex-shrink: 0; }
+.agent-selector { min-width: 0; max-width: 100%; }
+.agent-selector :deep(.v-btn__content) { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; }
+.agent-selector :deep(.v-btn__prepend), .agent-selector :deep(.v-btn__append) { flex-shrink: 0; }
+.agent-disabled-card { overflow-wrap: anywhere; }
 </style>

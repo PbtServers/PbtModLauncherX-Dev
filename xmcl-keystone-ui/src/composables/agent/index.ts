@@ -141,6 +141,6 @@ export function installAgentDevLauncher(session: AgentSession, enabled: Ref<bool
     else delete (window as any).__xmcl_agent
   }, { immediate: true })
   watch(session.available, available => {
-    console.info(available ? '[agent] ready' : '[agent] disabled (API key missing)')
+    console.info(available ? '[agent] ready' : '[agent] unavailable (check provider settings)')
   }, { immediate: true })
 }

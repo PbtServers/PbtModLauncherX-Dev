@@ -14,6 +14,16 @@ const controller = (fetch: typeof globalThis.fetch) => {
 }
 
 describe('local Ollama', () => {
+  test('distinguishes denied local connections from a stopped service', async () => {
+    const fetch = vi.fn(async () => { throw Object.assign(new Error('fetch failed'), { cause: { code: 'EACCES' } }) })
+    expect(await controller(fetch).inspect()).toMatchObject({ running: false, error: 'connectionFailed' })
+  })
+  test('resolves verified local chat-only models without advertising tools', async () => {
+    const fetch = vi.fn(async (url: any) => new Response(JSON.stringify(String(url).endsWith('/api/tags') ? tags : { capabilities: ['completion'] })))
+    expect(await controller(fetch).resolveModel('qwen3:4b')).toMatchObject({ chatCompatible: true, compatible: false })
+    expect(parseOllamaModel('model:cloud', 10, { capabilities: ['completion'] }).chatCompatible).toBe(false)
+    expect(parseOllamaModel('model', 10, {}).chatCompatible).toBe(false)
+  })
   test('rejects text-only and cloud models and limits the context budget', () => {
     expect(parseOllamaModel('qwen3:4b', 10, show)).toMatchObject({ compatible: true, contextWindow: 8192 })
     expect(parseOllamaModel('qwen3:4b', 10, { ...show, parameters: '' }).contextWindow).toBe(8192)

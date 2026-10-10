@@ -29,6 +29,7 @@ export function parseOllamaModel(name: string, size: number, show: any): LocalAi
   const configuredContext = typeof show?.parameters === 'string' ? Number(show.parameters.match(/(?:^|\n)\s*num_ctx\s+(\d+)/)?.[1]) : 0
   return {
     name, size,
+    chatCompatible: capabilities.includes('completion') && !show?.remote_host && !show?.remote_model && !name.endsWith(':cloud') && size > 0,
     // Ollama can route cloud models through localhost: do not treat those as offline models.
     compatible: capabilities.includes('tools') && capabilities.includes('completion') && !show?.remote_host && !show?.remote_model && !name.endsWith(':cloud') && size > 0,
     // Respect an explicit Modelfile setting. The native chat bridge sets a
@@ -61,7 +62,7 @@ export class OllamaController {
       const installed = tags?.models?.find((entry: any) => entry.name === name)
       if (!installed || !Number.isFinite(installed.size)) return undefined
       const model = parseOllamaModel(name, installed.size, await this.json('/api/show', { model: name }))
-      return model.compatible ? model : undefined
+      return model.chatCompatible ? model : undefined
     } catch { return undefined }
   }
 
@@ -84,7 +85,10 @@ export class OllamaController {
         } catch { status.models.push({ name: model.name, size: model.size, compatible: false, contextWindow: 4096 }) }
       }
       return status
-    } catch { return { ...status, error: 'unavailable' } }
+    } catch (e) {
+      const code = (e as { cause?: { code?: string }; name?: string }).cause?.code
+      return { ...status, error: code && code !== 'ECONNREFUSED' || (e as Error).name === 'TimeoutError' ? 'connectionFailed' : 'unavailable' }
+    }
   }
 
   prepare(model: string): OllamaDownloadPreview {

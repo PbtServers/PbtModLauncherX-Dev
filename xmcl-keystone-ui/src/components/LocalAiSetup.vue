@@ -7,11 +7,12 @@
     <template v-if="provider === 'ollama'">
       <v-btn :loading="checking" :disabled="checking" @click="refresh">{{ t('pbtadmin.detect') }}</v-btn>
       <template v-if="status">
-        <p>{{ t(status.running ? 'pbtadmin.running' : status.installed === true ? 'pbtadmin.stopped' : status.installed === false ? 'pbtadmin.missing' : 'pbtadmin.unknown') }}</p>
+        <p>{{ t(status.error === 'connectionFailed' || status.error === 'invalidResponse' ? 'pbtadmin.detectFailed' : status.running ? 'pbtadmin.running' : status.installed === true ? 'pbtadmin.stopped' : status.installed === false ? 'pbtadmin.missing' : 'pbtadmin.unknown') }}</p>
         <p>{{ t('pbtadmin.hardware', { total: gib(status.totalMemory), free: gib(status.freeMemory), cpus: status.cpuCount }) }}</p>
         <v-select v-model="model" :items="compatibleModels" item-title="name" item-value="name" :label="t('pbtadmin.model')" :disabled="!status.running" />
         <p v-if="!compatibleModels.length">{{ t('pbtadmin.noModels') }}</p>
-        <p v-if="status.models.some(entry => !entry.compatible)">{{ t('pbtadmin.unsupported') }}</p>
+        <p v-if="status.models.some(entry => !entry.compatible && entry.chatCompatible)">{{ t('pbtadmin.chatOnly') }}</p>
+        <p v-if="status.models.some(entry => !entry.compatible && !entry.chatCompatible)">{{ t('pbtadmin.unsupported') }}</p>
         <p>{{ t('pbtadmin.recommendation') }} {{ status.recommendedModels.join(', ') || t('pbtadmin.lowMemory') }}</p>
       </template>
       <v-btn class="my-2" @click="wizard = true">{{ t('pbtadmin.setup') }}</v-btn>
@@ -58,7 +59,7 @@ const customSelected = ref(false)
 const provider = computed(() => customSelected.value ? 'compatible' : providers.find(entry => entry.endpoint === (endpoint.value || OLLAMA_ENDPOINT))?.id || 'compatible')
 const status = ref<OllamaStatus>()
 const download = ref<OllamaDownloadStatus>({ state: 'idle' })
-const compatibleModels = computed(() => status.value?.models.filter(entry => entry.compatible) || [])
+const compatibleModels = computed(() => status.value?.models.filter(entry => entry.compatible || entry.chatCompatible) || [])
 const checking = ref(false)
 const starting = ref(false)
 const error = ref('')
@@ -79,7 +80,7 @@ function selectProvider(id: string) {
 async function refresh() {
   if (checking.value) return
   checking.value = true
-  try { status.value = await service.getOllamaStatus(); error.value = '' } catch { error.value = 'pbtadmin.detectFailed' }
+  try { status.value = await service.getOllamaStatus(); await settings.refreshStatus(); error.value = '' } catch { error.value = 'pbtadmin.detectFailed' }
   finally { checking.value = false }
 }
 async function startDownload() {

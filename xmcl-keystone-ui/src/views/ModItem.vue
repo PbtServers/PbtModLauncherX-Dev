@@ -15,9 +15,6 @@
     @click="emit('click', $event)"
     @checked="emit('checked', $event)"
   >
-    <template v-if="showServerClassification && item.installed.length" #title-chip>
-      <ModServerClassification :mod="serverClassification" :instance-path="path" @saved="emit('classification-changed')" />
-    </template>
     <template
       v-if="!dense && item.installed && (item.installed?.[0]?.tags.length + compatibility.length) > 0"
       #labels
@@ -33,6 +30,7 @@
 </template>
 
 <script lang="ts" setup>
+const emit = defineEmits(['click', 'checked', 'install', 'click-dependency'])
 import MarketItem from '@/components/MarketItem.vue'
 import { useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
@@ -44,13 +42,9 @@ import { ProjectEntry } from '@/util/search'
 import { InstanceModsServiceKey } from '@xmcl/runtime-api'
 import ModLabels from './ModLabels.vue'
 import { ContextMenuItem } from '@/composables/contextMenu'
-import ModServerClassification from '@/components/ModServerClassification.vue'
-import type { ServerExportMod } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   item: ProjectEntry<ModFile>
-  serverClassification?: ServerExportMod
-  showServerClassification?: boolean
   selectionMode: boolean
   checked: boolean
   selected: boolean
@@ -63,7 +57,6 @@ const props = defineProps<{
   install: (p: ProjectEntry) => Promise<void>
 }>()
 
-const emit = defineEmits(['click', 'checked', 'install', 'click-dependency', 'classification-changed'])
 
 const { compatibility: compatibilities } = injection(kInstanceModsContext)
 const compatibility = computed(() => props.item.installed[0] ? compatibilities.value[props.item.installed[0].modId] ?? [] : [])
