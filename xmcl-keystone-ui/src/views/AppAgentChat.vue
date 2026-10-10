@@ -7,6 +7,10 @@
           <div class="text-xs text-medium-emphasis">{{ providerLabel }} · {{ agentSettings.resolvedModel.value || t('pbtadminLore.noModel') }}</div>
         </div>
       </div>
+      <div v-if="agentSettings.lowResourceMode.value && agentSettings.localProvider.value" class="px-4 py-2 text-sm">
+        {{ t('lowResources.agentMemory') }}
+        <v-btn v-if="!agentSettings.manuallyStarted.value" @click="startLocalAgent">{{ t('lowResources.startAgent') }}</v-btn>
+      </div>
       <!-- Disabled state -->
       <div
         v-if="!available"
@@ -273,6 +277,9 @@ const { t } = useI18n()
 
 const commonAgent = injection(kAgent)
 const agentSettings = useAgentSettings()
+async function startLocalAgent() {
+  try { await agentSettings.activateLocal() } catch (error) { lastError.value = error instanceof Error ? error.message : String(error) }
+}
 const providerLabel = computed(() => {
   const provider = AGENT_PROVIDER_PRESETS.find(item => item.endpoint === agentSettings.resolvedEndpoint.value)?.id ?? 'compatible'
   return ({ ollama: 'Ollama · local', openai: 'OpenAI', anthropic: 'Anthropic / Claude', gemini: 'Gemini', compatible: 'OpenAI compatible' })[provider]
@@ -310,6 +317,10 @@ const contextUsageTitle = computed(() => {
 
 const { render: renderMd } = useMarkdown()
 const chatStatus = useAgentChatStatus()
+watch([() => chatStatus.shown.value, anyRunning, agentSettings.lowResourceMode], ([shown, busy]) => {
+  if (!shown && !busy) void agentSettings.releaseLocal().catch(() => {})
+})
+
 const isShown = chatStatus.shown
 const input = useOmniDialog().agentInput
 const lastError = ref('')

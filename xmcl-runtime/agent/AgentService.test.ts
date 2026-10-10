@@ -1,6 +1,8 @@
 import { BUILTIN_AGENT_FLIGHT } from '@xmcl/runtime-api'
 import { describe, expect, test, vi } from 'vitest'
 import { FACTORY_MODEL, HF_FACTORY_MODEL } from './modelBundle'
+import { handleOllamaChat, activeLocalChats } from './ollamaChat'
+import { Readable } from 'node:stream'
 
 vi.mock('~/app', () => ({
   Inject: () => () => {},
@@ -29,6 +31,63 @@ vi.mock('~/service', () => ({
 const { AgentService, kResolvedAgentProvider } = await import('./AgentService')
 const { kFlights } = await import('~/infra')
 const { kSettings } = await import('~/settings')
+
+describe('low resource local engine policy', () => {
+  test('does not stop a live native chat stream; releases the activity lease on close', async () => {
+    const ctx = { request: { body: Buffer.from(JSON.stringify({ messages: [] })) }, response: {} } as any
+    await handleOllamaChat(ctx, { model: 'local', localOrigin: 'http://127.0.0.1:32123' }, vi.fn(async () => new Response('{"done":true}\n')) as any)
+    const service = createServiceContext({})
+    Object.assign(service.settings, { lowResourceMode: true })
+    Object.assign(service.ollama, { getDownloadStatus: () => ({ state: 'idle' }) })
+    Object.assign(service.engine, { stop: vi.fn() })
+    expect(activeLocalChats()).toBe(1)
+    expect(await AgentService.prototype.releaseLocalAgent.call(service as any)).toBe(false)
+    expect((service.engine as any).stop).not.toHaveBeenCalled()
+    const closed = new Promise<void>(resolve => ctx.response.body.once('close', resolve))
+    ;(ctx.response.body as Readable).destroy()
+    await closed
+    expect(activeLocalChats()).toBe(0)
+  })
+  test('does not discover or start Ollama during passive provider queries', async () => {
+    const service = createServiceContext({})
+    Object.assign(service.settings, { lowResourceMode: true, agentModel: HF_FACTORY_MODEL })
+    await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toEqual({ mode: 'unconfigured' })
+    expect(service.engine.ensure).not.toHaveBeenCalled()
+    expect(service.ollama.resolveModel).not.toHaveBeenCalled()
+    expect(service.settings.agentModel).toBe(HF_FACTORY_MODEL)
+  })
+  test('explicit activation permits the preserved local model', async () => {
+    const service = createServiceContext({})
+    Object.assign(service.settings, { lowResourceMode: true, agentModel: 'user-choice' })
+    await AgentService.prototype.activateLocalAgent.call(service as any)
+    await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ mode: 'custom', model: 'user-choice' })
+    expect(service.engine.ensure).toHaveBeenCalled()
+  })
+  test('does not stop an active download', async () => {
+    const service = createServiceContext({})
+    Object.assign(service.settings, { lowResourceMode: true })
+    Object.assign(service.ollama, { getDownloadStatus: () => ({ state: 'running' }) })
+    Object.assign(service.engine, { stop: vi.fn() })
+    expect(await AgentService.prototype.releaseLocalAgent.call(service as any)).toBe(false)
+    expect((service.engine as any).stop).not.toHaveBeenCalled()
+  })
+  test('releases only the managed engine when idle and keeps user configuration', async () => {
+    const service = createServiceContext({})
+    Object.assign(service.settings, { lowResourceMode: true, agentModel: 'user-choice' })
+    Object.assign(service.ollama, { getDownloadStatus: () => ({ state: 'idle' }) })
+    Object.assign(service.engine, { stop: vi.fn() })
+    expect(await AgentService.prototype.releaseLocalAgent.call(service as any)).toBe(true)
+    expect((service.engine as any).stop).toHaveBeenCalledOnce()
+    expect(service.settings.agentModel).toBe('user-choice')
+  })
+  test('keeps external providers independent of the local pause', async () => {
+    const service = createServiceContext({})
+    Object.assign(service.settings, { lowResourceMode: true, agentEndpoint: 'https://api.openai.com/v1/chat/completions', agentModel: 'external-model' })
+    service.apiKeys.get.mockResolvedValue('test-secret')
+    await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ mode: 'custom', model: 'external-model' })
+    expect(service.engine.ensure).not.toHaveBeenCalled()
+  })
+})
 
 function createServiceContext(flights: Record<string, unknown>) {
   const settings = {

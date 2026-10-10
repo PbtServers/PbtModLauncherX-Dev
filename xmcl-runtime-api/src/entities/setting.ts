@@ -33,6 +33,7 @@ export class Settings implements SettingSchema {
   agentEndpoint = DEFAULT_AGENT_ENDPOINT
   agentModel = DEFAULT_AGENT_MODEL
   agentHistoryEnabled = true
+  lowResourceMode = false
   linuxTitlebar = false
   windowTranslucent = false
   quickActionShortcut = ''
@@ -124,6 +125,7 @@ export class Settings implements SettingSchema {
     this.agentEndpoint = config.agentEndpoint
     this.agentModel = config.agentModel
     this.agentHistoryEnabled = config.agentHistoryEnabled
+    this.lowResourceMode = config.lowResourceMode ?? false
     this.linuxTitlebar = config.linuxTitlebar
     this.windowTranslucent = config.windowTranslucent
     this.enableDedicatedGPUOptimization = config.enableDedicatedGPUOptimization
@@ -230,6 +232,8 @@ export class Settings implements SettingSchema {
     this.agentModel = provider.model
     if (provider.historyEnabled !== undefined) this.agentHistoryEnabled = provider.historyEnabled
   }
+
+  lowResourceModeSet(enabled: boolean) { this.lowResourceMode = enabled }
 
   linuxTitlebarSet(enabled: boolean) {
     this.linuxTitlebar = enabled

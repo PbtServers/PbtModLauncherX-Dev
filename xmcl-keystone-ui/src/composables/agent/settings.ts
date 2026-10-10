@@ -6,10 +6,15 @@ import {
   type OllamaStatus,
 } from '@xmcl/runtime-api'
 import { useService } from '../service'
+import { useLowResourceMode } from '../lowResource'
 import { providerStatusKey } from './providerStatus'
 
 export const useAgentSettings = createSharedComposable(() => {
   const service = useService(AgentServiceKey)
+  const { enabled: lowResourceMode } = useLowResourceMode()
+  const manuallyStarted = ref(false)
+  async function activateLocal() { await service.activateLocalAgent(); manuallyStarted.value = true; await refreshStatus() }
+  async function releaseLocal() { if (await service.releaseLocalAgent()) { manuallyStarted.value = false; await refreshStatus() } }
   const apiKey = ref('')
   const endpoint = ref('')
   const model = ref('')
@@ -172,7 +177,7 @@ export const useAgentSettings = createSharedComposable(() => {
 
   const resolvedEndpoint = computed(() => endpoint.value.trim() || OLLAMA_ENDPOINT)
   const resolvedModel = computed(() => model.value.trim() || '')
-  const statusKey = computed(() => providerStatusKey(resolvedEndpoint.value, resolvedModel.value, providerConfigured.value, ollamaStatus.value, toolsSupported.value))
+  const statusKey = computed(() => lowResourceMode.value && !manuallyStarted.value && isOllamaEndpoint(resolvedEndpoint.value) ? 'lowResources.agentPaused' : providerStatusKey(resolvedEndpoint.value, resolvedModel.value, providerConfigured.value, ollamaStatus.value, toolsSupported.value))
   const configured = computed(() => {
     if (checkingAccess.value) return false
     return providerConfigured.value
@@ -209,6 +214,8 @@ export const useAgentSettings = createSharedComposable(() => {
   })
 
   return {
+    lowResourceMode, manuallyStarted, activateLocal, releaseLocal,
+    localProvider: computed(() => isOllamaEndpoint(resolvedEndpoint.value)),
     apiKey,
     toolsSupported,
     statusKey,

@@ -63,6 +63,10 @@
           <SettingGeneral class="mb-4" />
           <SettingAdvanced />
         </section>
+        <section id="performance" class="mb-8 scroll-target" role="region" :aria-label="t('lowResources.section')">
+          <SettingHeader :title="t('lowResources.section')" icon="speed" />
+          <SettingPerformance />
+        </section>
         <section id="appearance" class="mb-8 scroll-target" role="region" :aria-label="t('setting.appearance')">
           <SettingHeader
             icon="brush"
@@ -108,6 +112,7 @@ import SettingUpdateInfoDialog from './SettingUpdateInfoDialog.vue'
 import SettingUpdate from './SettingUpdate.vue'
 import XmclAccountPanel from '@/components/XmclAccountPanel.vue'
 import SettingGeneral from './SettingGeneral.vue'
+import SettingPerformance from './SettingPerformance.vue'
 import SettingMigrationDialog from './SettingMigrationDialog.vue'
 import SettingGlobal from './SettingGlobal.vue'
 import SettingNetwork from './SettingNetwork.vue'
@@ -149,6 +154,7 @@ const isUserScrolling = ref(false)
 let scrollTimeout: ReturnType<typeof setTimeout> | null = null
 
 const sections = [
+  { id: 'performance', title: 'lowResources.section', icon: 'speed' },
   { id: 'general', title: 'setting.general', icon: 'tune' },
   { id: 'appearance', title: 'setting.appearance', icon: 'palette' },
   { id: 'global', title: 'setting.globalSetting', icon: 'videogame_asset' },

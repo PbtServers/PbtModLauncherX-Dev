@@ -1,4 +1,5 @@
 import { LOCAL_AI_MODELS, OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtime-api'
+import { activeLocalChats } from './ollamaChat'
 import { OllamaController } from './ollama'
 import { ManagedOllama, kOllamaResourceRoot, type LocalRuntimeConfig } from './managedOllama'
 import { validateOllamaBundle } from './runtimeBundle'
@@ -18,6 +19,7 @@ import {
   type UpdateAgentProviderSettings,
 } from '@xmcl/runtime-api'
 import { randomUUID } from 'crypto'
+import { totalmem, freemem, cpus } from 'os'
 import { join } from 'path'
 import { Inject, LauncherAppKey, type LauncherApp } from '~/app'
 import { IS_DEV } from '~/constant'
@@ -42,6 +44,7 @@ export const kResolvedAgentProvider = Symbol('resolved-agent-provider')
 
 @ExposeServiceKey(AgentServiceKey)
 export class AgentService extends AbstractService implements IAgentService {
+  private localAgentRequested = false
   private engine: ManagedOllama
   private ollama: OllamaController
   private history = new AgentHistoryStore(join(this.app.appDataPath, 'agent', 'history'), message => this.warn(message))
@@ -119,6 +122,7 @@ export class AgentService extends AbstractService implements IAgentService {
     const settings = await this.app.registry.get(kSettings)
     const endpoint = settings.agentEndpoint.trim() || OLLAMA_ENDPOINT
     let model = settings.agentModel.trim()
+    if (settings.lowResourceMode && !this.localAgentRequested && isOllamaEndpoint(endpoint)) return { mode: 'unconfigured' }
     if (!model && isOllamaEndpoint(endpoint)) {
       const local = await this.ollama.resolveModel(HF_FACTORY_MODEL) || await this.ollama.resolveModel(FACTORY_MODEL)
       if (local) {
@@ -143,7 +147,18 @@ export class AgentService extends AbstractService implements IAgentService {
     return XMCL_CLOUD_ENABLED && flights[BUILTIN_AGENT_FLIGHT] === true ? { mode: 'builtin' } : { mode: 'unconfigured' }
   }
 
+  async activateLocalAgent() { this.localAgentRequested = true; await this.engine.ensure() }
+
+  async releaseLocalAgent() {
+    const settings = await this.app.registry.get(kSettings)
+    if (!settings.lowResourceMode || activeLocalChats() || this.ollama.getDownloadStatus().state === 'running') return false
+    this.localAgentRequested = false
+    await this.engine.stop()
+    return true
+  }
+
   async getOllamaStatus() {
+    if ((await this.app.registry.get(kSettings)).lowResourceMode && !this.localAgentRequested) return { installed: undefined, running: false, models: [], recommendedModels: [], totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length }
     let runtimeError: string | undefined
     try { await this.engine.ensure() } catch (e) {
       const message = (e as Error).message

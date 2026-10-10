@@ -6,7 +6,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, watch } from 'vue'
+import { defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   Camera, Color, LinearFilter, Mesh,
   PlaneGeometry, RGBAFormat, Scene,
@@ -45,8 +45,9 @@ export default defineComponent({
   setup() {
     const halo = ref(null as any)
     const { isDark } = injection(kTheme)
+    let effect: any
     onMounted(() => {
-      const effect = initHalo({
+      effect = initHalo({
         el: halo.value,
         THREE: window.THREE,
         lightTheme: isDark.value ? 0 : 1,
@@ -55,6 +56,7 @@ export default defineComponent({
         effect?.setOptions?.({ lightTheme: dark ? 0 : 1 })
       })
     })
+    onUnmounted(() => effect?.destroy())
     return { halo }
   },
 })

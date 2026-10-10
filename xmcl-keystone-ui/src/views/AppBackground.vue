@@ -1,5 +1,5 @@
 <template>
-  <div class="absolute z-0 h-full w-full">
+  <div v-if="!reducedMotion" class="absolute z-0 h-full w-full">
     <transition
       name="fade-transition"
     >
@@ -60,8 +60,10 @@
   </div>
 </template>
 <script lang="ts" setup>
-import Halo from '@/components/Halo.vue'
-import Particles from '@/components/Particles.vue'
+import { useLowResourceMode } from '@/composables/lowResource'
+const { reducedMotion } = useLowResourceMode()
+const Halo = defineAsyncComponent(() => import('@/components/Halo.vue'))
+const Particles = defineAsyncComponent(() => import('@/components/Particles.vue'))
 import { injection } from '@/util/inject'
 import { kTheme, BackgroundType } from '@/composables/theme'
 import { kInstanceLaunch } from '@/composables/instanceLaunch'

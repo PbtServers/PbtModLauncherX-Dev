@@ -84,6 +84,8 @@ class Halo extends ShaderBase {
   }
 
   onDestroy() {
+    this.bufferTarget?.dispose()
+    this.bufferFeedback?.dispose()
     this.bufferTarget = null
     this.bufferFeedback = null
   }

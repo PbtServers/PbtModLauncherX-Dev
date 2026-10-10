@@ -97,6 +97,7 @@ export const SettingSchema = z.object({
   /** Agent model identifier. */
   agentModel: z.string().catch(DEFAULT_AGENT_MODEL),
   agentHistoryEnabled: z.boolean().catch(true),
+  lowResourceMode: z.boolean().catch(false),
   /** Linux titlebar setting */
   linuxTitlebar: z.boolean().catch(false),
   /** Enable dedicated GPU optimization */

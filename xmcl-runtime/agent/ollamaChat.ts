@@ -19,8 +19,23 @@ export function toOllamaChat(input: any, model: string, contextWindow: number) {
   }
 }
 
+let localChats = 0
+export const activeLocalChats = () => localChats
+
+export async function handleOllamaChat(...args: Parameters<typeof handleNativeChat>) {
+  localChats++
+  let released = false
+  const release = () => { if (!released) { released = true; localChats-- } }
+  try {
+    await handleNativeChat(...args)
+    const body = args[0].response.body
+    if (body instanceof Readable) { body.once('end', release); body.once('close', release); body.once('error', release) }
+    else release()
+  } catch (error) { release(); throw error }
+}
+
 /** Native API sets a bounded runtime context without changing models or executing commands. */
-export async function handleOllamaChat(ctx: Context, provider: { model: string; contextWindow?: number; toolsSupported?: boolean; localOrigin?: string }, fetch: typeof globalThis.fetch) {
+async function handleNativeChat(ctx: Context, provider: { model: string; contextWindow?: number; toolsSupported?: boolean; localOrigin?: string }, fetch: typeof globalThis.fetch) {
   let raw = ''
   if (ctx.request.body instanceof Readable) {
     const chunks: Buffer[] = []

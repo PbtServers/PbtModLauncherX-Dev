@@ -275,6 +275,8 @@ export type AgentRunFailureCode =
 export type AgentProviderStatusClass = 'none' | '1xx' | '2xx' | '3xx' | '4xx' | '5xx' | 'other'
 
 export interface AgentService {
+  activateLocalAgent(): Promise<void>
+  releaseLocalAgent(): Promise<boolean>
   getLocalRuntimeStorage(): Promise<{ modelsDirectory: string; freeBytes: number; externalOrigin?: string }>
   configureLocalRuntime(input: { modelsDirectory?: string; externalOrigin?: string }): Promise<void>
   getOllamaStatus(): Promise<OllamaStatus>

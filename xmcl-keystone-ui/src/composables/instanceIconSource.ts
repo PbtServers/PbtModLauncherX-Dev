@@ -1,5 +1,5 @@
 import { ref, watch } from 'vue'
-import { usePreferredReducedMotion } from '@vueuse/core'
+import { useLowResourceMode } from './lowResource'
 
 export function isGifIcon(url: string): boolean {
   if (url.startsWith('data:image/gif;')) return true
@@ -45,13 +45,13 @@ export function snapshotGifIcon(url: string, signal?: AbortSignal): Promise<stri
 }
 
 export function useInstanceIconSource(source: () => string | undefined, snapshot = snapshotGifIcon) {
-  const motion = usePreferredReducedMotion()
+  const { reducedMotion: motion } = useLowResourceMode()
   const displayed = ref('')
   watch([source, motion], async ([url, preference], _old, cleanup) => {
     let current = true
     const controller = new AbortController()
     cleanup(() => { current = false; controller.abort() })
-    if (!url || preference !== 'reduce' || !isGifIcon(url)) {
+    if (!url || !preference || !isGifIcon(url)) {
       displayed.value = url || ''
       return
     }

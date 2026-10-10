@@ -49,6 +49,8 @@
 
 <script lang=ts setup>
 import '@/assets/common.css'
+import '@/assets/lowResources.css'
+import { useLowResourceMode } from '@/composables/lowResource'
 import AppImageDialog from '@/components/AppImageDialog.vue'
 import AppSharedTooltip from '@/components/AppSharedTooltip.vue'
 import { useAuthProfileImportNotification } from '@/composables/authProfileImport'
@@ -114,6 +116,12 @@ const lazyDialogComponents = {
 }
 
 const showSetup = ref(location.search.indexOf('bootstrap') !== -1)
+const { enabled: lowResourceMode, reducedMotion } = useLowResourceMode()
+watchEffect(() => {
+  document.documentElement.classList.toggle('pbt-low-resources', lowResourceMode.value)
+  document.documentElement.classList.toggle('pbt-reduced-motion', reducedMotion.value)
+})
+onUnmounted(() => document.documentElement.classList.remove('pbt-low-resources', 'pbt-reduced-motion'))
 const { state } = injection(kSettingsState)
 const dialogModel = injection(kDialogModel)
 const lazyDialogComponent = computed(() => lazyDialogComponents[dialogModel.current.value.dialog as keyof typeof lazyDialogComponents])
@@ -140,7 +148,7 @@ const route = useRoute()
 const hasAttachedWorkspacePanel = computed(
   () => route.meta.workspaceSidePanel === true && sidebarPosition.value === 'left',
 )
-provide(UserSkinRenderPaused, computed(() => !userProfileDialogShown.value && route.path !== '/me'))
+provide(UserSkinRenderPaused, computed(() => reducedMotion.value || (!userProfileDialogShown.value && route.path !== '/me')))
 
 // Bind Ctrl/Cmd+Shift+C to open the command palette.
 useCommandPaletteHotkey()
