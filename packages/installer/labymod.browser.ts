@@ -31,6 +31,11 @@ interface MinecraftVersion {
   customManifestUrl: string
 }
 
+/** The provider tag is a release family, not necessarily a Minecraft version. */
+export function getLabyModMinecraftVersion(manifest: LabyModManifest, minecraft: string) {
+  return manifest.minecraftVersions.find(entry => entry.version === minecraft)
+}
+
 /**
  * Information about a LabyMod addon from the Flint store
  */

@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron'
+import { parseOfficialOptifineName } from '../main/controllers/optifineSource'
 
-const OPTIFINE_HOST = 'https://optifined.net'
+const OPTIFINE_HOST = 'https://optifine.net'
 
 function iterateTable(table: HTMLTableElement) {
   return Array.from(table.querySelectorAll('tr')).map(row => {
@@ -107,14 +108,7 @@ function handleDownloadsPage() {
   }
 
   function parseOptifineVersion(v: string) {
-    v = v.replace('OptiFine ', '')
-    const [hd, u, ...others] = v.split(' ')
-    const type = `${hd}_${u}`
-    const patch = others.join('_')
-    return {
-      type,
-      patch,
-    }
+    return parseOfficialOptifineName(v)
   }
 
   const mapped = allResults.flatMap(v => v.downloads.map(d => ({

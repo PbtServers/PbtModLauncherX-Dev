@@ -47,6 +47,19 @@ describe('fetchVersionMetadata (cold cache, blocking)', () => {
 
   afterEach(() => { app.dispose() })
 
+  test('validates and caches metadata supplied by an injected host provider', async () => {
+    const remote: Payload = [{ version: 'official' }]
+    const fetch = vi.fn(async () => jsonResponse(remote))
+    const result = await fetchVersionMetadata({
+      app: app as any, cachePath, schema: payloadSchema,
+      sources: [{ ...source('https://official/catalog'), fetch }],
+    })
+    expect(result).toEqual(remote)
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(app.fetch).not.toHaveBeenCalled()
+    expect(JSON.parse(readFileSync(cachePath, 'utf-8')).data).toEqual(remote)
+  })
+
   test('fetches from the first source and writes the result to disk', async () => {
     const remote: Payload = [{ version: '1.0' }]
     cachePath = join(app.appDataPath, 'sub', 'cache.json')

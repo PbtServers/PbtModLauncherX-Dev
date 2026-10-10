@@ -15,7 +15,7 @@ function createResolver() {
       installer: { path: 'forge-installer.jar', sha1: 'forge-sha1' },
     }),
     getNeoForgedVersion: vi.fn().mockResolvedValue('20.1.1'),
-    getLabyModManifest: vi.fn().mockResolvedValue({ version: '4' }),
+    getLabyModManifest: vi.fn().mockResolvedValue({ labyModVersion: '4', minecraftVersions: [{ tag: '1.20.1', version: '1.20.1' }] }),
   }
 }
 

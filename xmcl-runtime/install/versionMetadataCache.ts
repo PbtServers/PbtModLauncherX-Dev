@@ -8,6 +8,8 @@ import { Logger } from '~/infra'
 export interface VersionMetadataSource<T> {
   url: string
   parse: (response: Response) => Promise<T>
+  /** Host-backed providers can resolve metadata in their existing browser context. */
+  fetch?: (headers: Record<string, string>) => Promise<Response>
 }
 
 interface CacheEntry<T> {
@@ -56,9 +58,9 @@ async function tryFetch<T>(
   conditionalHeaders?: Record<string, string>,
 ): Promise<FetchResult<T>> {
   try {
-    const response = await app.fetch(source.url, {
-      headers: conditionalHeaders ?? {},
-    })
+    const response = source.fetch
+      ? await source.fetch(conditionalHeaders ?? {})
+      : await app.fetch(source.url, { headers: conditionalHeaders ?? {} })
     if (response.status === 304) {
       return { status: 'notModified' }
     }

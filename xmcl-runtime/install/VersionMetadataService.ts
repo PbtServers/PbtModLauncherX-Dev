@@ -17,6 +17,8 @@ import { AbstractService, ExposeServiceKey, Singleton } from '~/service'
 import { kSettings, shouldOverrideApiSet } from '~/settings'
 import { LauncherApp } from '../app/LauncherApp'
 import { fetchVersionMetadata, VersionMetadataSource } from './versionMetadataCache'
+import { filterNeoForgeVersions, getNeoForgeProject } from './neoForgeMetadata'
+import { createOptifineMetadataSources, kOptifineVersionsProvider } from './optifine'
 
 const minecraftVersionSchema = z.object({
   id: z.string(),
@@ -240,13 +242,13 @@ export class VersionMetadataService extends AbstractService implements IVersionM
   @Singleton((mc, force) => `neoforged-${mc}-${!!force}`)
   async getNeoForgedVersions(minecraft: string, force?: boolean): Promise<string[]> {
     if (!minecraft) return []
-    const prefix = minecraft.startsWith('1.') ? `${minecraft.substring(2)}.` : `${minecraft}.`
+    const project = getNeoForgeProject(minecraft)
     const sources: VersionMetadataSource<string[]>[] = [
       {
-        url: 'https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge',
+        url: `https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/${project}`,
         parse: async (r) => {
           const data = await r.json() as { versions: string[] }
-          return data.versions.filter(v => v.startsWith(prefix))
+          return filterNeoForgeVersions(minecraft, data.versions)
         },
       },
     ]
@@ -262,7 +264,7 @@ export class VersionMetadataService extends AbstractService implements IVersionM
     return fetchVersionMetadata({
       app: this.app,
       cachePath: this.cachePath(`neoforged-${minecraft}.json`),
-      schema: neoForgedVersionsSchema,
+      schema: neoForgedVersionsSchema.transform(versions => filterNeoForgeVersions(minecraft, versions)),
       sources,
       logger: this.logger,
       force,
@@ -361,20 +363,9 @@ export class VersionMetadataService extends AbstractService implements IVersionM
 
   @Singleton((force) => `optifine-${!!force}`)
   async getOptifineVersions(force?: boolean): Promise<OptifineVersion[]> {
-    // OptiFine is distributed *only* via BMCLAPI — there is no official
-    // source to fall back to. For official / outside-GFW users we honour the
-    // "never touch a mirror" contract by not querying bmcl, but we still
-    // serve any previously-cached version list from disk so the UI isn't
-    // left permanently empty.
     const useMirror = await this.#useMirror()
-    const sources: VersionMetadataSource<OptifineVersion[]>[] = useMirror
-      ? [
-        {
-          url: 'https://bmclapi2.bangbang93.com/optifine/versionList',
-          parse: (r) => r.json() as Promise<OptifineVersion[]>,
-        },
-      ]
-      : []
+    const official = await this.app.registry.getIfPresent(kOptifineVersionsProvider)
+    const sources = createOptifineMetadataSources(useMirror, official)
     try {
       return await fetchVersionMetadata({
         app: this.app,
@@ -382,9 +373,7 @@ export class VersionMetadataService extends AbstractService implements IVersionM
         schema: optifineVersionsSchema,
         sources,
         logger: this.logger,
-        // Without a permitted source there is nothing to refresh against;
-        // fall back to the stale-while-revalidate cache read.
-        force: force && useMirror,
+        force: force && sources.length > 0,
         onFresh: (versions) => this.emit('optifineVersions', versions),
       })
     } catch {

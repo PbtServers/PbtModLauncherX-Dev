@@ -6,6 +6,7 @@ import {
   LabyModAddon,
   LabyModAddonIndex,
   LabyModManifest,
+  getLabyModMinecraftVersion,
 } from './labymod.browser'
 import { Tracker, WithDownload } from './tracker'
 import { InstallOptions } from './utils'
@@ -62,7 +63,7 @@ export function createLabyModInstallWorkflow(
   folder: MinecraftFolder,
   environment = 'production',
 ): InstallWorkflow<string> {
-  const versionInfo = manifest.minecraftVersions.find((version) => version.tag === tag)
+  const versionInfo = getLabyModMinecraftVersion(manifest, tag)
   if (!versionInfo) throw new Error(`Cannot find version info for ${tag}`)
   const metadataPath = folder.getPath('versions', '.install', `labymod-libraries-${environment}.json`)
   const versionPath = folder.getPath('versions', '.install', `labymod-version-${tag}.json`)
@@ -134,7 +135,7 @@ export async function resolveLabyModInstallManifest(
   options: InstallLabyModOptions,
 ): Promise<{ version: string; plan: InstallManifest }> {
   const librariesUrl = `https://laby-releases.s3.de.io.cloud.ovh.net/api/v1/libraries/${environment}.json`
-  const versionInfo = manifest.minecraftVersions.find((v) => v.tag === tag)!
+  const versionInfo = getLabyModMinecraftVersion(manifest, tag)
 
   if (!versionInfo) {
     throw Object.assign(new Error(`Cannot find version info for ${tag}`), {
@@ -158,9 +159,6 @@ export async function resolveLabyModInstallManifest(
   const libraries: LabyModLibraryInfo[] = await metadataResponse
     .json()
     .then((res) => res.libraries as LabyModLibraryInfo[])
-    .then((libs) =>
-      libs.filter((lib) => lib.minecraftVersion === 'all' || lib.minecraftVersion === tag),
-    )
 
   const versionJsonResponse = await doFetch(options, versionInfo.customManifestUrl)
 
@@ -194,10 +192,16 @@ export function resolveLabyModMetadataInstallManifest(
   libraries: LabyModLibraryInfo[],
   sourceVersionJson: any,
 ): { version: string; plan: InstallManifest } {
+  const versionInfo = getLabyModMinecraftVersion(manifest, tag)
+  if (!versionInfo) throw new Error(`LabyMod does not support Minecraft ${tag}`)
   const versionJson = structuredClone(sourceVersionJson)
+  const parent = versionJson.inheritsFrom || versionJson._minecraftVersion || versionInfo.version
+  if (parent !== tag) throw new Error(`LabyMod profile requires Minecraft ${parent}, not ${tag}`)
+  const compatibleLibraries = libraries.filter(library => library.minecraftVersion === 'all'
+    || library.minecraftVersion === versionInfo.tag || library.minecraftVersion === versionInfo.version)
 
   versionJson.libraries.push(
-    ...libraries.map((l) => ({
+    ...compatibleLibraries.map((l) => ({
       name: l.name,
       downloads: {
         artifact: {
@@ -222,9 +226,7 @@ export function resolveLabyModMetadataInstallManifest(
   )
   versionJson.id = `${tag}-LabyMod-4-${manifest.commitReference}`
 
-  if (!versionJson.inheritFrom) {
-    versionJson.inheritFrom = versionJson._minecraftVersion || tag
-  }
+  versionJson.inheritsFrom = parent
 
   const versionPath = folder.getPath('versions', versionJson.id, `${versionJson.id}.json`)
   const assetEntries = Object.entries(manifest.assets)

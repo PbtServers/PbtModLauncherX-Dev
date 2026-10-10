@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import VersionInput, { VersionItem } from './VersionInput.vue'
 import { useLabyModManifest } from '@/composables/version'
+import { getLabyModMinecraftVersion } from '@xmcl/installer/labymod.browser'
 import { BuiltinImages } from '../constant'
 
 const props = defineProps<{
@@ -14,7 +15,7 @@ const { data, isValidating, mutate, error } = useLabyModManifest()
 const items = computed(() => {
   const manifest = data.value
   if (!manifest) { return [] }
-  const mcVersion = manifest.minecraftVersions.find(v => v.tag === props.minecraft)
+  const mcVersion = getLabyModMinecraftVersion(manifest, props.minecraft)
   if (!mcVersion) { return [] }
   const result: VersionItem[] = [markRaw({
     name: manifest.labyModVersion,

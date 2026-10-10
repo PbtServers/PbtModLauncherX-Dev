@@ -2,6 +2,7 @@ import type { JavaVersion } from '@xmcl/core'
 import type { InstallIssue } from './error'
 import type { InstallResult } from './installManifest'
 import type { LabyModManifest } from './labymod.browser'
+import { getLabyModMinecraftVersion } from './labymod.browser'
 import type { MinecraftVersion } from './minecraft.browser'
 
 export interface InstanceVersionRuntime {
@@ -108,7 +109,11 @@ async function resolveFreshInstall(
       layers.push({ type: 'use', role: 'labymod', version: local.id })
     } else {
       if (!resolver.getLabyModManifest) throw new Error('LabyMod manifest resolver is unavailable')
-      layers.push({ type: 'labymod', manifest: await resolver.getLabyModManifest() })
+      const manifest = await resolver.getLabyModManifest()
+      if (!getLabyModMinecraftVersion(manifest, runtime.minecraft)) {
+        throw new Error(`LabyMod does not support Minecraft ${runtime.minecraft}`)
+      }
+      layers.push({ type: 'labymod', manifest })
     }
   }
 

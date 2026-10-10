@@ -1,18 +1,17 @@
 import { ElectronController } from '@/ElectronController'
 import optifinePreload from '@preload/optifine'
 import { OptifineVersion } from '@xmcl/runtime-api'
-import { AnyError } from '@xmcl/utils'
 import { BrowserWindow } from 'electron'
 import { Readable } from 'stream'
 import { setTimeout as delay } from 'timers/promises'
 import type { Context } from '~/app'
 import { kGFW } from '~/infra'
-import { kOptifineInstaller } from '~/install'
+import { kOptifineInstaller, kOptifineVersionsProvider } from '~/install'
 import { kSettings, shouldOverrideApiSet } from '~/settings'
 import { ControllerPlugin } from './plugin'
-import { resolveOptifineDownloadSource } from './optifineSource'
+import { resolveOptifineInstallerUrl } from './optifineSource'
 
-const OPTIFINE_HOST = 'https://optifined.net'
+const OPTIFINE_HOST = 'https://optifine.net'
 
 // See xmcl-runtime/app/pluginCommonProtocol.ts — same rationale for
 // silencing ERR_INVALID_STATE on aborted upstream fetches (issue #1446).
@@ -135,14 +134,22 @@ export const optifine: ControllerPlugin = async function (this: ElectronControll
     }
   }
 
-  this.app.registry.register(kOptifineInstaller, async (version) => {
-    const source = resolveOptifineDownloadSource(version, await testShouldOverride())
-    if (source.type === 'mirror') return source.url
-    throw new AnyError(
-      'OptifineNoMirrorError',
-      'OptiFine can only be downloaded from the BMCLAPI mirror, which is disabled by your API source preference.',
-    )
-  })
+  this.app.registry.register(kOptifineVersionsProvider, getDownloads)
+  this.app.registry.register(kOptifineInstaller, async (version) => resolveOptifineInstallerUrl(
+    version,
+    await testShouldOverride(),
+    async (fileName) => {
+      const win = createBrowserWindow()
+      try {
+        const url = await loadOptifinePage<string>(win, `${OPTIFINE_HOST}/adloadx?f=${encodeURIComponent(fileName)}`, 'optifine-download')
+        poolWindow(win)
+        return url
+      } catch (error) {
+        win.close()
+        throw error
+      }
+    },
+  ))
 
   const fetchBmclList = async (ctx: Context) => {
     const body = ctx.request.body
