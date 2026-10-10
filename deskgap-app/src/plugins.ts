@@ -1,4 +1,6 @@
 import { pluginAgentProtocol } from '@xmcl/runtime/agent'
+import { kAgentDocumentDirectory } from '@xmcl/runtime/agent/documents'
+import { join } from 'path'
 import type { LauncherAppPlugin } from '@xmcl/runtime/app'
 import { pluginApiFallback } from '@xmcl/runtime/app/pluginApiFallback'
 import { pluginCommonProtocol } from '@xmcl/runtime/app/pluginCommonProtocol'
@@ -48,6 +50,9 @@ const pluginLocalization: LauncherAppPlugin = async (app) => {
 }
 
 export const plugins: LauncherAppPlugin[] = [
+  (app) => {
+    app.registry.register(kAgentDocumentDirectory, [join(__dirname, 'agent-documents'), join(__dirname, 'pbtadmin-knowledge')])
+  },
   pluginAgentProtocol,
   pluginCommandHost({ services: definedServices }),
   pluginCli,

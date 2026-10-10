@@ -10,5 +10,11 @@ export function resolveAgentDocumentDirectory(isDev: boolean, resourcesPath = pr
 }
 
 export const pluginAgentDocuments: LauncherAppPlugin = (app) => {
-  app.registry.register(kAgentDocumentDirectory, resolveAgentDocumentDirectory(IS_DEV))
+  app.registry.register(kAgentDocumentDirectory, [resolveAgentDocumentDirectory(IS_DEV), resolvePbtAdminKnowledgeDirectory(IS_DEV)])
+}
+
+export function resolvePbtAdminKnowledgeDirectory(isDev: boolean, resourcesPath = process.resourcesPath) {
+  return isDev
+    ? join(__dirname, '..', '..', 'PbtModLauncherX-Data', 'PbtAdmin', 'knowledge')
+    : join(resourcesPath, 'pbtadmin-knowledge')
 }

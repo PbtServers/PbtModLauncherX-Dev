@@ -90,7 +90,8 @@ for (const api of ['openai-completions', 'anthropic-messages'] as const) {
       const model = createAgentModel(endpoint, 'fixture-model')
       model.baseUrl = api === 'anthropic-messages' ? 'https://agent.runtime' : LOCAL_AGENT_TRANSPORT_ENDPOINT.replace('/chat/completions', '')
       const provider = api === 'anthropic-messages' ? anthropicMessagesApi() : openAICompletionsApi()
-      const stream = provider.streamSimple(model, { messages: [{ role: 'user', content: 'Consulta de prueba', timestamp: 1 }] }, { apiKey: 'runtime-managed' })
+      const systemPrompt = buildAgentSystemPrompt({ role: 'launcher-main', locale: 'es-ES', tools: [], readonly: false })
+      const stream = provider.streamSimple(model, { systemPrompt, messages: [{ role: 'user', content: 'Consulta de prueba', timestamp: 1 }] }, { apiKey: 'runtime-managed' })
       const events: string[] = []
       for await (const event of stream) events.push(event.type)
       const result = await stream.result()
@@ -102,6 +103,9 @@ for (const api of ['openai-completions', 'anthropic-messages'] as const) {
       expect(received?.headers.authorization).toBeUndefined()
       expect(received?.headers['x-api-key']).toBe(api === 'anthropic-messages' ? 'test-key-only' : undefined)
       expect(received?.body.model).toBe('fixture-model')
+      const sentIdentity = JSON.stringify(api === 'anthropic-messages' ? received?.body.system : received?.body.messages)
+      expect(sentIdentity).toContain('PbtAdmin')
+      expect(sentIdentity).toContain('Pbt/PbtinaDev is a woman')
       if (api === 'openai-completions') expect(received?.body.options.num_ctx).toBe(8192)
     } finally { vi.unstubAllGlobals(); await new Promise<void>(resolve => server.close(() => resolve())) }
   })

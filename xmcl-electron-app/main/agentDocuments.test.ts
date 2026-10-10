@@ -1,7 +1,8 @@
 import { AgentDocumentStore } from '@xmcl/runtime/agent/documents'
 import { join } from 'path'
+import { readFile } from 'fs/promises'
 import { describe, expect, test } from 'vitest'
-import { resolveAgentDocumentDirectory } from './pluginAgentDocuments'
+import { resolveAgentDocumentDirectory, resolvePbtAdminKnowledgeDirectory } from './pluginAgentDocuments'
 
 describe('main-process Agent documents', () => {
   const store = new AgentDocumentStore(join(__dirname, 'agent-documents'))
@@ -70,5 +71,39 @@ describe('main-process Agent documents', () => {
   test('resolves source files in development and resources in packaged builds', () => {
     expect(resolveAgentDocumentDirectory(true)).toBe(join(__dirname, 'agent-documents'))
     expect(resolveAgentDocumentDirectory(false, 'C:/package/resources')).toBe(join('C:/package/resources', 'agent-documents'))
+    expect(resolvePbtAdminKnowledgeDirectory(true)).toBe(join(__dirname, '..', '..', 'PbtModLauncherX-Data', 'PbtAdmin', 'knowledge'))
+    expect(resolvePbtAdminKnowledgeDirectory(false, 'C:/package/resources')).toBe(join('C:/package/resources', 'pbtadmin-knowledge'))
+  })
+
+  test('retrieves local fictional lore alongside existing technical workflows', async () => {
+    const combined = new AgentDocumentStore([join(__dirname, 'agent-documents'), resolvePbtAdminKnowledgeDirectory(true)])
+    expect((await combined.list()).filter(document => document.id.startsWith('pbt-'))).toHaveLength(9)
+    const juand = await combined.read('pbt-juand')
+    expect(juand.body).toContain('raid ficticio')
+    expect(juand.body).toContain('maintainer-10b')
+    expect((await combined.search('JuanD'))[0].excerpt).toContain('Ficción')
+    const lore = await combined.read('pbt-fnf-lore')
+    for (let part = 1; part <= 9; part++) expect(lore.body).toContain(`parte ${part}/9`)
+    expect((await combined.search('Lozeer_55 ascensores'))[0].excerpt).toContain('Ficción')
+    expect((await combined.search('Hector'))[0].id).toBe('pbt-characters')
+    expect((await combined.read('pbt-network-history')).body).toContain('Ella es la propietaria')
+    expect((await combined.read('shaderpack-enable')).body).toContain('system info')
+  })
+
+  test('keeps provenance explicit and never mistakes editorial lore for verified public history', async () => {
+    const directory = resolvePbtAdminKnowledgeDirectory(true)
+    const sources = JSON.parse(await readFile(join(directory, 'sources.json'), 'utf8'))
+    const canonical = sources.sources.find((source: { id: string }) => source.id === 'maintainer-10b')
+    expect(canonical.publiclyVerified).toBe(false)
+    const docs = new AgentDocumentStore(directory)
+    for (const entry of await docs.list()) {
+      const { body } = await docs.read(entry.id)
+      expect(body).toContain('sources.json')
+      expect(body).not.toMatch(/PbtinaDev (?:es el|is he|és el)/)
+      for (const source of body.matchAll(/\[([^\]]+)\]/g)) {
+        for (const id of source[1].split(' y ')) expect(sources.sources.some((entry: { id: string }) => entry.id === id)).toBe(true)
+      }
+    }
+    expect((await docs.read('pbt-fnf-lore')).body).toContain('No se han verificado públicamente fechas')
   })
 })

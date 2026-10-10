@@ -48,6 +48,20 @@ describe('AgentDocumentStore', () => {
     await expect(store.read('shaderpack-enable')).resolves.toMatchObject({ body: '# Updated version\n' })
   })
 
+  test('searches evidence in body text without stale cache or accent sensitivity', async () => {
+    const store = new AgentDocumentStore(directory)
+    await writeFile(join(directory, 'shaderpack-enable.md'), shaderpackDocument + '\nFicción [maintainer]: Héctor aparece en una parodia.\n')
+    expect((await store.search('Hector'))[0].excerpt).toContain('Ficción [maintainer]')
+    await writeFile(join(directory, 'shaderpack-enable.md'), shaderpackDocument)
+    expect(await store.search('Hector')).toEqual([])
+    await expect(store.search('gpu', 26)).rejects.toThrow('between 1 and 25')
+    await expect(store.read('../secrets')).rejects.toThrow('Unknown document')
+  })
+
+  test('rejects duplicate document IDs across knowledge directories', async () => {
+    await expect(new AgentDocumentStore([directory, directory]).list()).rejects.toThrow('Duplicate Agent document id')
+  })
+
   test('rejects invalid frontmatter', async () => {
     await writeFile(join(directory, 'invalid.md'), '---\nid: invalid\n---\nBody\n')
     const store = new AgentDocumentStore(directory)

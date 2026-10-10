@@ -82,6 +82,8 @@ async function main() {
     target: 'node20',
   })
   await assertAsciiBundle(join(dist, 'main.cjs'))
+  await copy(resolve(root, '../xmcl-electron-app/main/agent-documents'), join(dist, 'agent-documents'))
+  await copy(resolve(root, '../PbtModLauncherX-Data/PbtAdmin/knowledge'), join(dist, 'pbtadmin-knowledge'))
   await copy(rendererSource, rendererDestination)
   await rewriteRendererResources(rendererDestination)
   await build({

@@ -1,5 +1,12 @@
 <template>
   <div data-testid="agent-dialog" class="agent-surface">
+      <div class="flex items-center gap-3 px-4 py-2">
+        <v-avatar size="36" color="primary"><span aria-hidden="true">PA</span></v-avatar>
+        <div class="min-w-0">
+          <div class="text-sm font-medium">{{ t('pbtadminLore.name') }}</div>
+          <div class="text-xs text-medium-emphasis">{{ providerLabel }} · {{ agentSettings.resolvedModel.value || t('pbtadminLore.noModel') }}</div>
+        </div>
+      </div>
       <!-- Disabled state -->
       <div
         v-if="!available"
@@ -36,8 +43,9 @@
           <div class="agent-empty-card">
             <v-icon size="48" class="mb-3 opacity-50">forum</v-icon>
             <div class="text-sm">
-              {{ emptyHint }}
+              {{ selectedAgent === 'common' ? t('pbtadminLore.welcome') : emptyHint }}
             </div>
+            <div v-if="selectedAgent === 'common'" class="text-xs text-medium-emphasis mt-2">{{ t('pbtadminLore.contextHelp') }}</div>
             <div class="mt-4 flex flex-col gap-2">
               <button
                 v-for="s in suggestions"
@@ -257,11 +265,16 @@ import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
 import { computed, nextTick, ref, watch } from 'vue'
 import type { AgentContentPart as ContentPart } from '@xmcl/runtime-api'
+import { AGENT_PROVIDER_PRESETS } from '@xmcl/runtime-api'
 
 const { t } = useI18n()
 
 const commonAgent = injection(kAgent)
 const agentSettings = useAgentSettings()
+const providerLabel = computed(() => {
+  const provider = AGENT_PROVIDER_PRESETS.find(item => item.endpoint === agentSettings.resolvedEndpoint.value)?.id ?? 'compatible'
+  return ({ ollama: 'Ollama · local', openai: 'OpenAI', anthropic: 'Anthropic / Claude', gemini: 'Gemini', compatible: 'OpenAI compatible' })[provider]
+})
 const { state: settingsState } = injection(kSettingsState)
 useAgentRouteReturn()
 

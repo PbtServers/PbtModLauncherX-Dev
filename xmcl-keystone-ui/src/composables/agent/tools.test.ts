@@ -277,7 +277,7 @@ describe('agent VFS writes', () => {
     expect(prompt).toContain('Never run `grep` preemptively')
     expect(prompt).not.toContain('a passive mod compatibility event may arrive')
     expect(prompt).not.toContain('returned `modDiagnosis`')
-    expect(prompt).toContain('`vfs_rm` only stages removals in the pending instance manifest and does not require confirmation')
+    expect(prompt).toContain('`vfs_rm` only stages removals in the pending instance manifest and requires explicit user confirmation')
     expect(prompt).toContain('Never claim staged resources are deleted')
     expect(prompt).not.toContain('installRef')
     expect(prompt).not.toContain('modrinth')

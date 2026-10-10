@@ -51,7 +51,7 @@ export class AgentService extends AbstractService implements IAgentService {
 
   constructor(
     @Inject(LauncherAppKey) app: LauncherApp,
-    @Inject(kAgentDocumentDirectory) private readonly documentDirectory: string,
+    @Inject(kAgentDocumentDirectory) private readonly documentDirectory: string | string[],
   ) {
     super(app)
     this.documents = new AgentDocumentStore(documentDirectory, message => this.warn(message))

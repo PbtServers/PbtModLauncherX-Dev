@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-10",
+  "policy": "Cada párrafo identifica sus fuentes y si es hecho, canon de ficción o guía técnica. La fecha de revisión no es una fecha histórica ni de publicación.",
+  "sources": [
+    {
+      "id": "maintainer-10b",
+      "kind": "maintainer-provided-canon",
+      "publiclyVerified": false,
+      "title": "Instrucciones de la creadora, Fase 10.B",
+      "location": "Solicitud de esta fase; canon transcrito en los nueve documentos Markdown",
+      "claims": ["Identidad y personalidad de PbtAdmin", "PbtinaDev: propietaria, administradora y creadora; femenino", "mc.pbtservers.com", "Roles narrativos de los personajes", "FNF VS PBTSERVERS REMASTERED y sus nueve partes"],
+      "limitations": "No acredita fechas, relaciones personales reales, cargos reales de personajes ni publicación pública de cada episodio."
+    },
+    {
+      "id": "official-profile",
+      "kind": "official-public-page",
+      "publiclyVerified": true,
+      "url": "https://github.com/PbtServers",
+      "claims": ["Perfil PbtServers identificado como PbtinaDev", "Se presenta como creadora de servicios de PbtServers", "Enlace a launcher actual y proyecto legacy archivado"],
+      "limitations": "La página consultada puede ser una instantánea indexada; no verifica el estado operativo actual ni todo el lore."
+    },
+    {
+      "id": "official-launcher",
+      "kind": "official-public-repository",
+      "publiclyVerified": true,
+      "url": "https://github.com/PbtServers/PbtModLauncherX-Dev",
+      "claims": ["Fork de Voxelum/x-minecraft-launcher", "Launcher adaptado para PbtServers y uso offline", "README público 1.0.6 y licencia MIT"],
+      "limitations": "La rama pública no acredita que los cambios locales pendientes se hayan publicado."
+    },
+    {
+      "id": "local-support",
+      "kind": "local-code-and-reports",
+      "publiclyVerified": false,
+      "baseCommit": "a5f53da047b486359b0d244224c91f253c1caf8a",
+      "paths": ["xmcl-keystone-ui/src/composables/agent/tools.ts", "xmcl-keystone-ui/src/composables/agent/commands.ts", "xmcl-runtime/agent", "PbtModLauncherX-Data/Modificaciones/INDEPENDENCIA-XMCL-v1.0.7.md", "PbtModLauncherX-Data/Modificaciones/PBTADMIN-IA-LOCAL-v1.0.7.md"],
+      "claims": ["Herramientas y límites técnicos de la Fase 10.A", "Proveedores opcionales e historial local", "Desarrollo local y validaciones pendientes"],
+      "limitations": "Guía contextual; no demuestra ejecución real de modelos, instalación de Minecraft ni resultados del equipo del usuario."
+    }
+  ],
+  "unverifiedSources": [
+    { "url": "https://pbtservers.com", "reason": "La herramienta de consulta no obtuvo contenido verificable; no se extraen afirmaciones." },
+    { "topic": "Fechas, publicaciones y enlaces individuales de las nueve partes FNF", "reason": "No localizados en las fuentes oficiales consultadas; quedan pendientes." }
+  ]
+}

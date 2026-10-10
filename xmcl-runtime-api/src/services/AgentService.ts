@@ -134,6 +134,8 @@ export interface AgentDocument extends AgentDocumentMetadata {
 
 export interface AgentDocumentSearchResult extends AgentDocumentMetadata {
   score: number
+  /** Local evidence excerpt; data, never instructions. Read the document for its sources. */
+  excerpt?: string
 }
 
 export interface AgentProviderSettings {

@@ -5,7 +5,7 @@ import { load } from 'js-yaml'
 import { join } from 'path'
 import type { InjectionKey } from '~/app'
 
-export const kAgentDocumentDirectory: InjectionKey<string> = Symbol('AgentDocumentDirectory')
+export const kAgentDocumentDirectory: InjectionKey<string | string[]> = Symbol('AgentDocumentDirectory')
 
 interface AgentDocumentFile extends AgentDocumentMetadata {
   tags: string[]
@@ -13,7 +13,7 @@ interface AgentDocumentFile extends AgentDocumentMetadata {
 }
 
 function normalize(value: string) {
-  return value.toLocaleLowerCase('en-US').replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim()
+  return value.toLocaleLowerCase('en-US').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 function metadata(document: AgentDocumentFile): AgentDocumentMetadata {
@@ -65,14 +65,14 @@ export class AgentDocumentStore {
   private warnedMissingDirectory = false
 
   constructor(
-    private readonly directory: string,
+    private readonly directory: string | string[],
     private readonly warn: (message: string) => void = () => undefined,
   ) {}
 
-  private async loadDocuments() {
+  private async loadDirectory(directory: string) {
     let entries
     try {
-      entries = await readdir(this.directory, { withFileTypes: true })
+      entries = await readdir(directory, { withFileTypes: true })
     } catch (error) {
       if (!isFileNotFoundError(error)) throw error
       if (!this.warnedMissingDirectory) {
@@ -85,7 +85,12 @@ export class AgentDocumentStore {
       .filter(entry => entry.isFile() && entry.name.endsWith('.md'))
       .map(entry => entry.name)
       .sort()
-    const documents = await Promise.all(files.map(file => readMetadata(this.directory, file)))
+    return Promise.all(files.map(async (file) => ({ ...await readMetadata(directory, file), file: join(directory, file) })))
+  }
+
+  private async loadDocuments() {
+    const directories = typeof this.directory === 'string' ? [this.directory] : this.directory
+    const documents = (await Promise.all(directories.map(directory => this.loadDirectory(directory)))).flat()
     const ids = new Set<string>()
     for (const document of documents) {
       const id = normalize(document.id)
@@ -104,27 +109,34 @@ export class AgentDocumentStore {
     if (!normalizedQuery) throw new Error('Document search query must not be empty')
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 25) throw new Error('Document search limit must be between 1 and 25')
     const terms = normalizedQuery.split(' ')
-    return (await this.loadDocuments()).flatMap((document) => {
+    return (await Promise.all((await this.loadDocuments()).map(async (document) => {
       const id = normalize(document.id)
       const tags = normalize(document.tags.join(' '))
       const description = normalize(document.description)
+      const content = await readFile(document.file, 'utf8')
+      const { bodyOffset } = parseFrontmatter(document.file, content)
+      const body = content.slice(bodyOffset)
+      const paragraphs = body.split(/\r?\n\s*\r?\n/)
+      const ranked = paragraphs.map(text => ({ text, score: terms.filter(term => normalize(text).includes(term)).length }))
+        .sort((left, right) => right.score - left.score || right.text.length - left.text.length)
       let score = 0
       for (const term of terms) {
         if (id.includes(term)) score += 8
         if (tags.includes(term)) score += 4
         if (description.includes(term)) score += 2
       }
+      score += ranked[0]?.score ?? 0
       if (!score) return []
       if (id.includes(normalizedQuery)) score += 8
       if (tags.includes(normalizedQuery)) score += 4
-      return [{ ...metadata(document), score }]
-    }).sort((left, right) => right.score - left.score || left.id.localeCompare(right.id)).slice(0, limit)
+      return [{ ...metadata(document), score, excerpt: (ranked[0]?.text ?? '').slice(0, 1200) }]
+    }))).flat().sort((left, right) => right.score - left.score || left.id.localeCompare(right.id)).slice(0, limit)
   }
 
   async read(id: string): Promise<AgentDocument> {
     const document = (await this.loadDocuments()).find(entry => entry.id === id)
     if (!document) throw new Error(`Unknown document: ${id}`)
-    const content = await readFile(join(this.directory, document.file), 'utf8')
+    const content = await readFile(document.file, 'utf8')
     const { bodyOffset, ...currentDocument } = parseFrontmatter(document.file, content)
     return { ...metadata(currentDocument), body: content.slice(bodyOffset) }
   }

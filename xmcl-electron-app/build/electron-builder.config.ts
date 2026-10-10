@@ -44,6 +44,10 @@ export const config = {
     from: 'main/agent-documents',
     to: 'agent-documents',
     filter: ['**/*.md'],
+  }, {
+    from: '../PbtModLauncherX-Data/PbtAdmin/knowledge',
+    to: 'pbtadmin-knowledge',
+    filter: ['*.md', 'sources.json'],
   }],
   artifactName: 'pbtmodlauncherx-${version}-${platform}-${arch}.${ext}',
   appx: {
