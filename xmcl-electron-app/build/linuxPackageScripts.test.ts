@@ -11,7 +11,9 @@ const shellPath = (path: string) => path.replaceAll('\\', '/')
 const template = (path: string) => readFileSync(resolve(appDir, path), 'utf8')
   .replaceAll('${executable}', config.linux.executableName)
 
-describe('Linux package scripts', () => {
+// These templates exercise Linux ownership, SUID and AppArmor semantics.
+// A Windows shell shim cannot validate those platform-specific contracts.
+describe.skipIf(process.platform !== 'linux')('Linux package scripts', () => {
   let directory: string
   let bin: string
   let log: string

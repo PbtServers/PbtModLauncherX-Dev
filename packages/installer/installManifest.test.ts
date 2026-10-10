@@ -414,7 +414,9 @@ describe('install manifest executor', () => {
       await expect(readFile(sibling, 'utf8')).resolves.toBe('plain')
       await expect(stat(executable)).resolves.toBeDefined()
     } finally {
-      await rm(root, { recursive: true, force: true })
+      // Awaited operations are complete; Windows may still retain transient
+      // directory handles. Permanent failures remain errors after this budget.
+      await rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
     }
   })
 

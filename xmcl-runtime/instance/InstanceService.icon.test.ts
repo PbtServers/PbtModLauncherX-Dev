@@ -80,7 +80,9 @@ describe('InstanceService icon storage', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks()
-    await rm(appDataPath, { recursive: true, force: true })
+    // Windows can transiently retain directory handles after the awaited copy.
+    // Retry only fs.rm's documented transient errors, with a bounded budget.
+    await rm(appDataPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   })
 
   function createService(state: InstanceState, fetch = vi.fn()) {

@@ -60,7 +60,9 @@ describe('InstanceInstallService progressive installation', () => {
   afterEach(async () => {
     for (const dispose of disposers.splice(0)) dispose()
     vi.restoreAllMocks()
-    await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
+    // Watchers are disposed above; bounded fs.rm retries handle transient
+    // Windows directory handles without hiding permanent cleanup failures.
+    await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })))
   })
 
   async function fixture() {

@@ -15,7 +15,9 @@ describe('parseSnbt', () => {
         assert.throws(() => parseSnbt(input), { name: 'SyntaxError', message: /position/ }, input)
       }
     `
-    await promisify(execFile)(process.execPath, ['--import', 'tsx', '-e', script], { timeout: 5000 })
+    // This standalone source only uses erasable types. Node >=22.16 (the
+    // project's minimum) can load it without tsx's unrelated profile lookup.
+    await promisify(execFile)(process.execPath, ['--experimental-strip-types', '-e', script], { timeout: 5000 })
   }, 10000)
 
   test('preserves quoted IDs and unsafe long precision', () => {
