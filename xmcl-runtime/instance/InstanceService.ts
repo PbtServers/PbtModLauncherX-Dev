@@ -20,18 +20,19 @@ import {
 } from '@xmcl/runtime-api'
 import { AnyError, isSystemError } from '@xmcl/utils'
 import filenamify from 'filenamify'
-import { fileTypeFromBuffer, fileTypeFromFile } from 'file-type'
-import { existsSync } from 'fs'
-import { ensureDir, readdir, readlink, readJson, rename, rm, writeFile, writeJson } from 'fs-extra'
-import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'path'
+import { createHash, randomUUID } from 'crypto'
+import { createReadStream, existsSync } from 'fs'
+import { ensureDir, readdir, readlink, readJson, stat, rename, rm, writeFile, writeJson } from 'fs-extra'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'path'
 import { Inject, LauncherAppKey, kGameDataPath, type PathResolver } from '~/app'
 import { ImageStorage, kTasks, Tasks } from '~/infra'
 import { VersionMetadataService } from '~/install/VersionMetadataService'
 import { ExposeServiceKey, ServiceStateManager, Singleton, StatefulService } from '~/service'
 import { validateDirectory } from '~/util/validate'
 import { LauncherApp } from '../app/LauncherApp'
-import { ENOENT_ERROR, exists, isDirectory, isPathDiskRootPath, linkOrCopyFile, readdirEnsured } from '../util/fs'
+import { ENOENT_ERROR, exists, isDirectory, isPathDiskRootPath, readdirEnsured } from '../util/fs'
 import { getMediaIconPath, resolveInstanceIcon, serializeInstanceIcon, toMediaIconUrl } from './instanceIcon'
+import { validateInstanceIconData } from './instanceIconValidation'
 import { requireObject, requireString } from '../util/object'
 import { getTracker } from '~/util/taskHelper'
 import { setTimeout } from 'timers/promises'
@@ -50,6 +51,8 @@ export class InstanceService extends StatefulService<InstanceState> implements I
   // the install/delete cancellation handshake.
   #removeHandlers: Record<string, Array<() => Promise<void> | void>> = {}
   #onRenamedInstancePath?: (oldPath: string, newPath: string) => void
+  #metadataWrites = new Map<string, Promise<void>>()
+  #iconEdits = new Map<string, number>()
 
   constructor(
     @Inject(LauncherAppKey) app: LauncherApp,
@@ -181,11 +184,29 @@ export class InstanceService extends StatefulService<InstanceState> implements I
         this.state.subscribe('instanceEdit', async ({ path }) => {
           const inst = this.state.all[path]
           const persisted = { ...inst, icon: serializeInstanceIcon(inst.icon, path) }
-          await writeFile(join(path, 'instance.json'), JSON.stringify(persisted, null, 2))
+          await this.#persistMetadata(path, persisted)
           this.log(`Saved instance ${path}`)
         })
       },
     )
+  }
+
+  async #persistMetadata(path: string, metadata: unknown) {
+    const data = JSON.stringify(metadata, null, 2)
+    const previous = this.#metadataWrites.get(path) || Promise.resolve()
+    const pending = previous.catch(() => {}).then(async () => {
+      const temporary = join(path, `.instance-${randomUUID()}.tmp`)
+      try {
+        await writeFile(temporary, data, { flag: 'wx' })
+        await rename(temporary, join(path, 'instance.json'))
+      } finally {
+        await rm(temporary, { force: true })
+      }
+    })
+    this.#metadataWrites.set(path, pending)
+    try { await pending } finally {
+      if (this.#metadataWrites.get(path) === pending) this.#metadataWrites.delete(path)
+    }
   }
 
   getInstanceModpackMetadata(path: string): Promise<InstanceModpackMetadataSchema | undefined> {
@@ -369,16 +390,7 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     if (!icon) return ''
     const mediaPath = getMediaIconPath(icon)
     if (mediaPath) {
-      // Already inside the instance folder: keep the absolute media URL.
-      const rel = relative(instancePath, mediaPath)
-      if (rel && !rel.startsWith('..') && !isAbsolute(rel)) {
-        return icon
-      }
-      // A local file outside the folder: copy it in.
-      if (existsSync(mediaPath)) {
-        return this.#storeInstanceIcon(instancePath, mediaPath)
-      }
-      return icon
+      return this.#storeInstanceIcon(instancePath, mediaPath)
     }
     if (icon.startsWith('http://launcher/image/')) {
       const imageName = basename(new URL(icon).pathname)
@@ -400,52 +412,66 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       if (contentLength > 8 * 1024 * 1024) {
         throw new Error('Instance icon exceeds maximum size of 8 MB')
       }
-      const data = Buffer.from(await response.arrayBuffer())
-      if (data.byteLength > 8 * 1024 * 1024) {
-        throw new Error('Instance icon exceeds maximum size of 8 MB')
+      if (!response.body) throw new Error('Empty instance icon response')
+      const reader = response.body.getReader()
+      const chunks: Buffer[] = []
+      let size = 0
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          size += value.byteLength
+          if (size > 8 * 1024 * 1024) {
+            await reader.cancel()
+            throw new Error('Instance icon exceeds maximum size of 8 MB')
+          }
+          chunks.push(Buffer.from(value))
+        }
+      } finally {
+        reader.releaseLock()
       }
-      return this.#storeInstanceIconData(instancePath, data, response.headers.get('content-type') || '')
+      return this.#storeInstanceIconData(instancePath, Buffer.concat(chunks))
     }
     // No scheme: a relative reference resolved against the instance folder.
-    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(icon)) {
-      return resolveInstanceIcon(icon, instancePath)
+    if (isAbsolute(icon) || !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(icon)) {
+      if (!isAbsolute(icon)) {
+        const rel = relative(instancePath, resolve(instancePath, icon))
+        if (rel === '..' || rel.startsWith('../') || rel.startsWith('..\\') || isAbsolute(rel)) throw new Error('Invalid instance icon path')
+      }
+      return this.#storeInstanceIcon(instancePath, resolve(instancePath, icon))
     }
     throw new Error('Unsupported instance icon URL')
   }
 
-  async #storeInstanceIconData(instancePath: string, data: Buffer, contentType: string): Promise<string> {
-    const fileType = await fileTypeFromBuffer(data).catch(() => undefined)
-    const isSvg = contentType.startsWith('image/svg+xml') || data.subarray(0, 512).toString().includes('<svg')
-    if (!fileType?.mime.startsWith('image/') && !isSvg) {
-      throw new Error('Instance icon is not an image')
-    }
-    const ext = isSvg ? 'svg' : (fileType?.ext || 'png')
-    const iconPath = join(instancePath, `icon.${ext}`)
+  async #storeInstanceIconData(instancePath: string, data: Buffer): Promise<string> {
+    const ext = await validateInstanceIconData(data)
+    const iconPath = join(instancePath, `icon-${createHash('sha256').update(data).digest('hex')}.${ext}`)
     await ensureDir(instancePath)
-    await writeFile(iconPath, data)
+    const temporary = join(instancePath, `.icon-${randomUUID()}.tmp`)
+    try {
+      await writeFile(temporary, data, { flag: 'wx' })
+      await rename(temporary, iconPath)
+    } finally {
+      await rm(temporary, { force: true })
+    }
     return toMediaIconUrl(iconPath)
   }
 
   /**
-   * Copy the image at `source` into the instance folder as `icon.<ext>` and
+   * Copy validated bytes into an immutable, content-addressed instance file and
    * return the in-memory media URL used to display it.
    */
   async #storeInstanceIcon(instancePath: string, source: string): Promise<string> {
-    let ext = extname(source).replace(/^\./, '').toLowerCase()
-    if (ext !== 'svg') {
-      const fileType = await fileTypeFromFile(source).catch(() => undefined)
-      if (fileType?.ext) {
-        ext = fileType.ext
-      }
+    const metadata = await stat(source)
+    if (!metadata.isFile() || metadata.size > 8 * 1024 * 1024) throw new Error('Invalid instance icon file or size')
+    const chunks: Buffer[] = []
+    let size = 0
+    for await (const chunk of createReadStream(source)) {
+      size += chunk.length
+      if (size > 8 * 1024 * 1024) throw new Error('Instance icon exceeds maximum size of 8 MB')
+      chunks.push(Buffer.from(chunk))
     }
-    if (!ext) ext = 'png'
-    const iconPath = join(instancePath, `icon.${ext}`)
-    if (resolve(source) !== resolve(iconPath)) {
-      await ensureDir(instancePath)
-      await rm(iconPath, { force: true }).catch(() => undefined)
-      await linkOrCopyFile(source, iconPath)
-    }
-    return toMediaIconUrl(iconPath)
+    return this.#storeInstanceIconData(instancePath, Buffer.concat(chunks))
   }
 
   async duplicateInstance(path: string) {
@@ -623,6 +649,9 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     requireObject(options)
 
     const instancePath = options.instancePath
+    const changesIcon = Object.prototype.hasOwnProperty.call(options, 'icon')
+    const iconEdit = changesIcon ? (this.#iconEdits.get(instancePath) || 0) + 1 : 0
+    if (changesIcon) this.#iconEdits.set(instancePath, iconEdit)
 
     if (!instancePath) {
       return
@@ -659,14 +688,15 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       }
     }
 
-    const result = await computeInstanceEditChanges(state, options, async (path: string) =>
-      this.#storeInstanceIcon(instancePath, path).catch((e) => {
-        this.error(e)
-        return ''
-      }),
-    )
+    const result = await computeInstanceEditChanges(state, options, async (path: string) => toMediaIconUrl(path))
     if (result.icon) {
       result.icon = await this.#resolveIncomingInstanceIcon(instancePath, result.icon)
+    }
+    if (changesIcon && this.#iconEdits.get(instancePath) !== iconEdit) delete result.icon
+    if (Object.prototype.hasOwnProperty.call(result, 'icon')) {
+      const persisted = { ...state, ...result }
+      await this.#persistMetadata(instancePath, { ...persisted, icon: serializeInstanceIcon(persisted.icon, instancePath) })
+      if (this.#iconEdits.get(instancePath) !== iconEdit) delete result.icon
     }
 
     if (Object.keys(result).length > 0) {

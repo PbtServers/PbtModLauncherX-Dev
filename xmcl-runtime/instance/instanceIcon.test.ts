@@ -11,6 +11,26 @@ import {
 describe('instanceIcon', () => {
   const instancePath = join('/games', 'my-instance')
 
+  it('encodes Windows paths with reserved characters without changing their value', () => {
+    const path = 'G:\\Documentos\\área #1 & imágenes %\\icon.png'
+    const url = toMediaIconUrl(path)
+    expect(new URL(url).searchParams.get('path')).toBe(path)
+    expect(getMediaIconPath(url)).toBe(path)
+    expect(getMediaIconPath(url + '&revision=123')).toBe(path)
+    if (process.platform === 'win32') expect(resolveInstanceIcon(path, instancePath)).toBe(url)
+  })
+
+  it('resolves a portable icon against the renamed or copied folder', () => {
+    const stored = serializeInstanceIcon(toMediaIconUrl(join(instancePath, 'icon.png')), instancePath)
+    expect(resolveInstanceIcon(stored, join('/games', 'copy á & #'))).toBe(toMediaIconUrl(join('/games', 'copy á & #', 'icon.png')))
+  })
+
+  it('does not resolve imported relative references outside their instance', () => {
+    expect(resolveInstanceIcon('../private.png', instancePath)).toBe('')
+    expect(resolveInstanceIcon('../../private.png', instancePath)).toBe('')
+    expect(resolveInstanceIcon('..allowed.png', instancePath)).toBe(toMediaIconUrl(join(instancePath, '..allowed.png')))
+  })
+
   describe('getMediaIconPath', () => {
     it('extracts the path from a media url', () => {
       const p = join(instancePath, 'icon.png')

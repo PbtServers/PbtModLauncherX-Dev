@@ -6,6 +6,7 @@ import { useDebounceFn } from '@vueuse/core'
 import { injection } from '@/util/inject'
 import { kLaunchButton } from './launchButton'
 import { AnyError } from '@/util/error'
+import { useNotifier } from './notifier'
 
 export const InstanceEditInjectionKey: InjectionKey<ReturnType<typeof useInstanceEdit>> =
   Symbol('InstanceEdit')
@@ -40,6 +41,8 @@ export function useInstanceEdit(
   instance: Ref<Instance>,
   edit: (instance: EditInstanceOptions & { instancePath: string }) => Promise<void>,
 ) {
+  const { notify } = useNotifier()
+  const { t } = useI18n()
   const {
     globalAssignMemory,
     globalFastLaunch,
@@ -388,6 +391,9 @@ export function useInstanceEdit(
   }
 
   async function save() {
+    const savedPath = instance.value.path
+    const previousIcon = instance.value.icon
+    const editingIcon = previousIcon !== data.icon
     const payload = {
       name: data.name,
       version: data.version,
@@ -395,23 +401,32 @@ export function useInstanceEdit(
       icon: data.icon,
       resolution: data.resolution ? { ...data.resolution } : undefined,
     }
-    if (!instance.value?.server) {
-      await edit(nullifyUndefined({
-        ...payload,
-        instancePath: instance.value?.path,
-        author: data.author,
-        description: data.description,
-      }))
-    } else {
-      await edit(nullifyUndefined({
-        ...payload,
-        instancePath: instance.value?.path,
-        server: {
-          host: data.host,
-          port: Number.parseInt(data.port, 10),
-        },
-      }))
+    try {
+      if (!instance.value?.server) {
+        await edit(nullifyUndefined({
+          ...payload,
+          instancePath: instance.value?.path,
+          author: data.author,
+          description: data.description,
+        }))
+      } else {
+        await edit(nullifyUndefined({
+          ...payload,
+          instancePath: instance.value?.path,
+          server: {
+            host: data.host,
+            port: Number.parseInt(data.port, 10),
+          },
+        }))
+      }
+    } catch (error) {
+      if (editingIcon) {
+        if (instance.value.path === savedPath) data.icon = instance.value.icon
+        notify({ level: 'error', title: t('instance.iconError') })
+      }
+      throw error
     }
+    if (instance.value.path !== savedPath) return
     data.icon = instance.value?.icon
     load()
   }

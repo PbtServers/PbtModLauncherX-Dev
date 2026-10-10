@@ -34,6 +34,7 @@
             </v-avatar>
           </template>
           <AppChangeInstanceIconCard
+            :key="data.path"
             :color="highlighted ? 'info' : ''"
             v-model:icon="data.icon"
           />

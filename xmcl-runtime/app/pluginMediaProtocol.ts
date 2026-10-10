@@ -19,7 +19,14 @@ export const pluginMediaProtocol: LauncherAppPlugin = (app) => {
   app.protocol.registerHandler('http', async ({ request, response }) => {
     if (request.url.host === 'launcher' && request.url.pathname.startsWith('/media')) {
       // Absolute image path
-      const pathname = normalizePath(request.url.searchParams.get('path')!)
+      // URLSearchParams has already decoded this value. Decoding it twice
+      // corrupts literal '%' and '%20' filenames selected by the user.
+      const decoded = request.url.searchParams.get('path')
+      if (!decoded) {
+        response.status = 400
+        return
+      }
+      const pathname = app.platform.os === 'windows' && /^\/[a-z]:/i.test(decoded) ? decoded.substring(1) : decoded
       const { fileTypeFromFile: fromFile } = await import('file-type')
       await fromFile(pathname).then((type) => {
         if (type && (type.mime.startsWith('image/') || type.mime.startsWith('video/') || type.mime.startsWith('audio/'))) {

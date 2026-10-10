@@ -555,6 +555,7 @@ instance:
   height: Alçada
   icon: Icona del Perfil
   iconHint: La icona pot ser un fitxer o un enllaç URL d'Internet.
+  iconError: No es pot llegir aquesta imatge. Comprova el format i els permisos. S'ha conservat la icona anterior.
   iconUrl: URL de la Icona
   includeVersion: Inclou la Versió | Inclou les Versions
   installModpack: Actualitza la instància des del modpack

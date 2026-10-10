@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { useVModel } from '@vueuse/core'
+import { validateInstanceIconImage } from '@/util/instanceIconImage'
 
 const { t } = useI18n()
 const props = defineProps<{
@@ -15,24 +16,47 @@ const emit = defineEmits<{
 const iconModel = useVModel(props, 'icon', emit)
 
 const dragOver = ref(false)
+const error = ref(false)
+const draft = ref(props.icon)
+let revision = 0
+let disposed = false
+watch(() => props.icon, (value) => { draft.value = value })
+onBeforeUnmount(() => { disposed = true; revision++ })
+
+async function applyIcon(value: string | null) {
+  if (disposed) return
+  const current = ++revision
+  error.value = false
+  try {
+    if (value) await validateInstanceIconImage(value)
+    if (current !== revision) return
+    iconModel.value = value || ''
+    draft.value = value || ''
+  } catch {
+    if (current !== revision) return
+    error.value = true
+    draft.value = props.icon
+  }
+}
 
 function pickIconFile() {
+  const current = ++revision
   windowController
     .showOpenDialog({
       title: t('instanceSetting.icon'),
       filters: [
         {
           name: t('instanceSetting.icon'),
-          extensions: ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'svg'],
+          extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'svg'],
         },
       ],
       properties: ['openFile'],
     })
     .then((result) => {
-      if (result.canceled) return
+      if (result.canceled || disposed || current !== revision) return
       const filePath = result.filePaths[0]
       if (filePath) {
-        iconModel.value = `http://launcher/media?path=${filePath}`
+        void applyIcon(`http://launcher/media?path=${encodeURIComponent(filePath)}&revision=${Date.now()}-${revision}`)
       }
     })
 }
@@ -41,9 +65,9 @@ function onDrop(event: DragEvent) {
   dragOver.value = false
   const file = event.dataTransfer?.files?.[0]
   if (!file) return
-  const path = (file as any).path as string | undefined
+  const path = windowController.getPathForFile(file)
   if (path) {
-    iconModel.value = `http://launcher/media?path=${path}`
+    void applyIcon(`http://launcher/media?path=${encodeURIComponent(path)}&revision=${Date.now()}-${revision}`)
   }
 }
 </script>
@@ -76,7 +100,7 @@ function onDrop(event: DragEvent) {
           icon
           variant="text"
           density="comfortable"
-          @click="iconModel = ''"
+          @click="applyIcon('')"
         >
           <v-icon>restart_alt</v-icon>
         </v-btn>
@@ -99,13 +123,15 @@ function onDrop(event: DragEvent) {
       </div>
 
       <v-text-field
-        v-model="iconModel"
+        v-model="draft"
         :label="t('instance.iconUrl')"
-        hide-details
+        :error-messages="error ? t('instance.iconError') : []"
         variant="outlined"
         density="compact"
         clearable
         prepend-inner-icon="link"
+        @blur="applyIcon(draft)"
+        @click:clear="applyIcon('')"
       />
     </v-card-text>
   </v-card>

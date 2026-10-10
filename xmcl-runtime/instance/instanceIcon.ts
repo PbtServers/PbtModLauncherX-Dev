@@ -24,7 +24,10 @@ export function getMediaIconPath(icon: string): string | undefined {
   if (!icon.startsWith(MEDIA_URL_PREFIX)) return undefined
   const raw = icon.substring(MEDIA_URL_PREFIX.length)
   try {
-    return decodeURIComponent(raw)
+    // Legacy values stored a raw absolute path. New values encode the path and
+    // may carry a preview revision; it is not part of the filename.
+    if (raw.startsWith('/') || /^[a-z]:[\\/]/i.test(raw)) return decodeURIComponent(raw)
+    return new URL(icon).searchParams.get('path') || undefined
   } catch {
     return raw
   }
@@ -35,7 +38,7 @@ export function getMediaIconPath(icon: string): string | undefined {
  * located at `iconPath`.
  */
 export function toMediaIconUrl(iconPath: string): string {
-  return MEDIA_URL_PREFIX + iconPath
+  return MEDIA_URL_PREFIX + encodeURIComponent(iconPath)
 }
 
 /**
@@ -50,8 +53,12 @@ export function toMediaIconUrl(iconPath: string): string {
  */
 export function resolveInstanceIcon(icon: string | undefined, instancePath: string): string {
   if (!icon) return ''
-  if (hasScheme(icon)) return icon
+  if (hasScheme(icon) && !isAbsolute(icon)) return icon
   const abs = isAbsolute(icon) ? icon : join(instancePath, icon)
+  if (!isAbsolute(icon)) {
+    const rel = relative(instancePath, abs)
+    if (rel === '..' || rel.startsWith('../') || rel.startsWith('..\\') || isAbsolute(rel)) return ''
+  }
   return toMediaIconUrl(abs)
 }
 
@@ -69,7 +76,7 @@ export function serializeInstanceIcon(icon: string | undefined, instancePath: st
   const mediaPath = getMediaIconPath(icon)
   if (!mediaPath) return icon
   const rel = relative(instancePath, mediaPath)
-  if (!rel || rel.startsWith('..') || isAbsolute(rel)) {
+  if (!rel || rel === '..' || rel.startsWith('../') || rel.startsWith('..\\') || isAbsolute(rel)) {
     // The file lives outside the instance folder, keep the absolute URL.
     return icon
   }

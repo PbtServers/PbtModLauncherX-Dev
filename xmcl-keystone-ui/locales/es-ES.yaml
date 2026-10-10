@@ -620,6 +620,7 @@ instance:
   moveToTop: Mover arriba
   icon: Icono de Perfil
   iconHint: El icono podría ser un archivo o un enlace URL de Internet.
+  iconError: No se puede leer esta imagen. Comprueba el formato y los permisos. Se ha conservado el icono anterior.
   iconUrl: URL del Icono
   installModpack: Actualizar instancia desde modpack
   lastPlayed: Última vez jugado

@@ -570,6 +570,7 @@ instance:
   moveToTop: Move to top
   icon: Profile Icon
   iconHint: The icon could be a file or internet url link.
+  iconError: Cannot read this image. Check its format and permissions. The previous icon has been preserved.
   iconUrl: Icon Url
   installModpack: Update instance from modpack
   lastPlayed: Last Played
