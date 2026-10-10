@@ -479,7 +479,7 @@ const onDisable = () => {
   shaderPack.value = ''
 }
 const onEnable = async (f: ProjectFile | string) => {
-  if (!shaderMod.value && !runtime.value.optifine) {
+  if (!shaderMod.value) {
     await new Promise<void>((resolve, reject) => {
       showInstallShaderWizard((v) => {
         if (v) resolve()
@@ -505,7 +505,7 @@ const { dragover } = useGlobalDrop({
     const paths = getDropFilePaths(t.files)
     if (paths.length === 0) return
     const resources = await install({ path: path.value, files: paths })
-    shaderPack.value = basename(resources[0])
+    await onEnable(basename(resources[0]))
   },
   onLeave: () => { },
 })

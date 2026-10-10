@@ -2229,14 +2229,14 @@ shaderPack:
   dropHint: Importa el pack de shaders
   empty: No s'ha assignat cap pack de shaders
   enable: Usant el pack de shaders {name}
-  enabled: Enabled Shader Pack
+  enabled: Pack de shaders activat
   manage: Gestiona els Packs de Shaders
   name: Pack de Shaders
   searchHint: Cerca el pack de shaders
   selectSearchHint: Cerca i tria un pack de shaders
-  noShaderMod: No hi ha cap mod de shaders instal·lat
-  noShaderModHint: No pots usar shaders sense un mod de shaders
-  noShaderModInstallHint: Has d'instal·lar un dels mods següents per carregar el paquet de shaders.
+  noShaderMod: No hi ha cap sistema de shaders compatible actiu
+  noShaderModHint: No s'ha detectat Iris, Oculus o OptiFine compatible en aquesta instància.
+  noShaderModInstallHint: Instal·la o activa un dels sistemes següents compatible amb la teva versió de Minecraft i carregador de mods.
   showDirectory: Mostra el directori de packs de shaders
   showFile: Mostra aquest pack de shaders a la carpeta
   market: Catàleg de shaders

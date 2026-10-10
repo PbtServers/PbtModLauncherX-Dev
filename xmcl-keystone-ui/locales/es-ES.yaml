@@ -2307,10 +2307,10 @@ shaderPack:
   manage: Gestionar Packs de Shaders
   name: Pack de Shaders
   disabled: Pack de shaders deshabilitado
-  enabled: Enabled Shader Pack
-  noShaderMod: No hay ningún mod de sombreado instalado
-  noShaderModHint: No puedes usar sombreador sin un mod de sombreado
-  noShaderModInstallHint: Debe instalar uno de los siguientes mods para cargar el paquete de sombreadores.
+  enabled: Pack de shaders activado
+  noShaderMod: No hay un sistema de shaders compatible activo
+  noShaderModHint: No se ha detectado Iris, Oculus u OptiFine compatible en esta instancia.
+  noShaderModInstallHint: Instala o activa uno de los siguientes sistemas compatible con tu versión de Minecraft y cargador de mods.
   searchHint: Buscar pack de shaders
   selectSearchHint: Busca y elige un pack de shaders
   showDirectory: Mostrar directorio de packs de shaders

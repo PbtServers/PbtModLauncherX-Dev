@@ -1,11 +1,10 @@
 import { BuiltinImages } from '@/constant'
 import { ModFile } from '@/util/mod'
 import { ProjectFile } from '@/util/search'
-import { FabricModMetadata } from '@xmcl/mod-parser'
 import { GameOptionsState, InstanceOptionsServiceKey, InstanceShaderPacksServiceKey } from '@xmcl/runtime-api'
-import { useDebounceFn } from '@vueuse/core'
 import { InjectionKey, Ref } from 'vue'
-import { useRefreshable } from './refreshable'
+import { detectShaderProvider } from './shaderSupport'
+import { useShaderPackStatus } from './shaderPackStatus'
 import { useResourceParseErrorNotifier } from './resourceParseError'
 import { useService } from './service'
 import { useState } from './syncableState'
@@ -24,7 +23,7 @@ export interface InstanceShaderFile extends ProjectFile {
 
 export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<RuntimeVersions>, mods: Ref<ModFile[]>, gameOptions: Ref<GameOptionsState | undefined>) {
   const { watch: watchShaderPacks } = useService(InstanceShaderPacksServiceKey)
-  const { editOculusShaderOptions, getOculusShaderOptions, getIrisShaderOptions, editIrisShaderOptions, getShaderOptions, editShaderOptions } = useService(InstanceOptionsServiceKey)
+  const { editOculusShaderOptions, getOculusShaderOptions, getIrisShaderOptions, editIrisShaderOptions, editShaderOptions } = useService(InstanceOptionsServiceKey)
 
   const { state, error, isValidating, revalidate } = useState(() => instancePath.value ? watchShaderPacks(instancePath.value) : undefined, ReactiveResourceState)
 
@@ -42,111 +41,12 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     curseforge: f.metadata.curseforge,
   } as InstanceShaderFile)) || [])
   const shaderMod = computed(() => {
-    if (runtime.value.optifine) {
-      return {
-        id: 'optifine',
-        name: 'Optifine',
-        version: runtime.value.optifine,
-        icon: BuiltinImages.optifine,
-      }
-    }
-    const shader = mods.value.find(m => {
-      if (!m.enabled) return false
-      const forge = m.forge
-      const neoforge = m.neoforge
-      const fabric = m.fabric
-      if (forge) {
-        // optifine in forge
-        if (forge.modid?.toLowerCase() === 'optifine') {
-          return true
-        }
-        return forge.modid?.toLowerCase() === 'oculus'
-      } else if (neoforge) {
-        if (neoforge.modid?.toLowerCase() === 'oculus' || neoforge.modid?.toLowerCase() === 'iris') return true
-      } else if (fabric) {
-        if (fabric instanceof Array) {
-          // optifine fabric or iris
-          if (fabric.some(f => f.id === 'optifabric' || f.id === 'iris')) return true
-        } else {
-          if (fabric.id === 'optifabric' || fabric.id === 'iris') return true
-        }
-      }
-      return false
-    })
-
-    const normalzieFabricResource = (fabric: FabricModMetadata | FabricModMetadata[], icon?: string) => {
-      if (fabric instanceof Array) {
-        return fabric.map(f => ({
-          id: f.id,
-          name: f.name,
-          version: f.version,
-          icon,
-        }))[0]
-      } else {
-        return {
-          id: fabric.id,
-          name: fabric.name,
-          version: fabric.version,
-          icon,
-        }
-      }
-    }
-    if (shader?.modId.toLowerCase() === 'optifine' && shader.forge) {
-      return {
-        id: 'optifine',
-        name: 'Optifine',
-        version: shader.forge.version,
-        icon: BuiltinImages.optifine,
-      }
-    }
-    return shader?.forge
-      ? {
-        id: shader.forge.modid,
-        name: shader.forge.name,
-        version: shader.forge.version,
-        icon: shader.icon,
-      }
-      : shader?.neoforge
-      ? {
-        id: shader.neoforge.modid,
-        name: shader.neoforge.displayName,
-        version: shader.neoforge.version,
-        icon: shader.icon,
-      }
-      : shader?.fabric ? normalzieFabricResource(shader.fabric, shader.icon) : undefined
+    const provider = instancePath.value ? detectShaderProvider(runtime.value, mods.value, instancePath.value) : undefined
+    return provider ? { ...provider, icon: provider.icon || (provider.id === 'optifine' ? BuiltinImages.optifine : undefined) } : undefined
   })
-  const shaderPackPath = computed(() => {
-    console.log('get shader pack path')
-    return gameOptions.value?.shaderPack
-  })
-
-  const shaderPackStatus = shallowRef(undefined as [string, string | undefined] | undefined)
-  const { refresh: mutateShaderPackOptions } = useRefreshable(async () => {
-    const mod = shaderMod.value
-    const inst = instancePath.value
-    if (mod?.id === 'optifine' || mod?.id === 'optifabric') {
-      shaderPackStatus.value = ['optifine', gameOptions.value?.shaderPack] as const
-    } else if (mod?.id === 'iris') {
-      const options = await getIrisShaderOptions(inst)
-      if (inst === instancePath.value) {
-        shaderPackStatus.value = ['iris', options.shaderPack] as const
-      } else {
-        shaderPackStatus.value = undefined
-      }
-    } else if (mod?.id === 'oculus') {
-      const options = await getOculusShaderOptions(inst)
-      if (inst === instancePath.value) {
-        shaderPackStatus.value = ['oculus', options.shaderPack] as const
-      } else {
-        shaderPackStatus.value = undefined
-      }
-    } else {
-      shaderPackStatus.value = undefined
-    }
-  })
-
-  const debouncedMutateShaderPackOptions = useDebounceFn(mutateShaderPackOptions, 300)
-  watch([shaderMod, shaderPackPath], () => debouncedMutateShaderPackOptions())
+  const { status: shaderPackStatus, refresh: mutateShaderPackOptions, error: optionsError } = useShaderPackStatus(
+    instancePath, shaderMod, computed(() => gameOptions.value?.shaderPack), getIrisShaderOptions, getOculusShaderOptions,
+  )
 
   const shaderPack = computed({
     get() {
@@ -154,30 +54,17 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
       return shaderPackStatus.value?.[1]
     },
     set(v: string | undefined) {
-      if (shaderPackStatus.value?.[0] === 'optifine') {
+      if (shaderMod.value?.id === 'optifine') {
         editShaderOptions({
           instancePath: instancePath.value,
           shaderPack: v ?? '',
         })
-      } else if (shaderPackStatus.value?.[0] === 'iris') {
+      } else if (shaderMod.value?.id === 'iris') {
         editIrisShaderOptions({
           instancePath: instancePath.value,
           shaderPack: v ?? '',
         }).then(() => mutateShaderPackOptions())
-      } else if (shaderPackStatus.value?.[0] === 'oculus') {
-        editOculusShaderOptions({
-          instancePath: instancePath.value,
-          shaderPack: v ?? '',
-        }).then(() => mutateShaderPackOptions())
-      } else {
-        editShaderOptions({
-          instancePath: instancePath.value,
-          shaderPack: v ?? '',
-        })
-        editIrisShaderOptions({
-          instancePath: instancePath.value,
-          shaderPack: v ?? '',
-        }).then(() => mutateShaderPackOptions())
+      } else if (shaderMod.value?.id === 'oculus') {
         editOculusShaderOptions({
           instancePath: instancePath.value,
           shaderPack: v ?? '',
@@ -196,6 +83,7 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     refreshing: isValidating,
     revalidate,
     error,
+    optionsError,
     effect,
   }
 }
