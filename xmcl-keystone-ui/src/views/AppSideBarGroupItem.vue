@@ -41,7 +41,7 @@
             v-else-if="!expanded"
             class="instance-grid"
           >
-            <v-img
+            <InstanceIcon
               v-for="i in instances.slice(0, 4)"
               :key="i.path"
               class="instance-grid-item"
@@ -74,6 +74,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import { isDraggingInstance, useGroupDragDropState } from '@/composables/instanceGroup'
 import { kInstances } from '@/composables/instances'
 import { getInstanceIcon } from '@/util/favicon'

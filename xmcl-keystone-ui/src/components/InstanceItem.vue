@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import { PartialRuntimeVersions, RuntimeVersions } from '@xmcl/instance';
 import { BuiltinImages } from '../constant'
 
@@ -22,7 +23,7 @@ defineEmits(['input', 'select'])
   >
     <template #prepend>
       <v-avatar>
-        <v-img
+        <InstanceIcon
           :src="icon ? icon : ''"
         />
       </v-avatar>

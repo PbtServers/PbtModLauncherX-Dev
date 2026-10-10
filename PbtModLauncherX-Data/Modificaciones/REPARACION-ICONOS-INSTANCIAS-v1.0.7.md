@@ -105,3 +105,7 @@ if ((git branch --show-current) -ne 'dev/upstream-v1.0.7') { throw 'Rama incorre
 ```
 
 La Fase 8 termina aquí, con las limitaciones anteriores documentadas. No se inicia la siguiente fase.
+
+## Comprobación adicional de GIF — 2026-10-10
+
+La Fase 8 fue confirmada posteriormente por el usuario en `10733ca6390daa6e2c6cab756c7a35eec7467f4f`. La revisión adicional, cambios de movimiento reducido, validación de bloques y 289 regresiones aprobadas se documentan en [VERIFICACION-GIF-ICONOS-v1.0.7.md](VERIFICACION-GIF-ICONOS-v1.0.7.md). La reproducción visual continúa pendiente por el bloqueo ambiental de DevTools; no se declara verificada.

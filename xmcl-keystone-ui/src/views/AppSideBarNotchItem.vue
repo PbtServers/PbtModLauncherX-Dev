@@ -14,7 +14,7 @@
       <img
         v-if="image"
         class="sidebar-notch-item__image"
-        :src="image"
+        :src="displayedImage || BuiltinImages.minecraft"
         :width="28"
         :height="28"
       >
@@ -27,6 +27,8 @@
 import { VSharedTooltipParam, vSharedTooltip } from '@/directives/sharedTooltip'
 import { vContextMenu } from '@/directives/contextMenu'
 import { ContextMenuItem } from '@/composables/contextMenu'
+import { useInstanceIconSource } from '@/composables/instanceIconSource'
+import { BuiltinImages } from '@/constant'
 
 const props = defineProps<{
   icon?: string
@@ -44,6 +46,7 @@ const emit = defineEmits<{
   (e: 'click', event: MouseEvent): void
   (e: 'dblclick', event: MouseEvent): void
 }>()
+const displayedImage = useInstanceIconSource(() => props.image)
 
 function onClick(event: MouseEvent) {
   emit('click', event)

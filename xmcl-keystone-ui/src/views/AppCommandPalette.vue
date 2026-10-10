@@ -33,7 +33,7 @@
             >
               <template #prepend>
                 <v-avatar size="36" rounded="lg" class="palette-avatar">
-                  <v-img
+                  <InstanceIcon
                     v-fallback-img="BuiltinImages.craftingTable"
                     :src="getInstanceIcon(inst, undefined)"
                   />
@@ -232,7 +232,7 @@
             >
               <template #prepend>
                 <v-avatar size="36" rounded="lg" class="palette-avatar">
-                  <v-img
+                  <InstanceIcon
                     v-fallback-img="BuiltinImages.craftingTable"
                     :src="getInstanceIcon(inst, undefined)"
                   />
@@ -379,6 +379,7 @@
 </template>
 
 <script lang="ts" setup>
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import { useNotifier } from '@/composables/notifier'
 import { useLocaleError } from '@/composables/error'
 import { useAgentChatOpen } from '@/composables/agentChat'

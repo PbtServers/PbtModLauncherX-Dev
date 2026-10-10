@@ -1,5 +1,6 @@
 import { fileTypeFromBuffer } from 'file-type'
 import { inflateSync } from 'zlib'
+import { validateInstanceGif } from './instanceGif'
 
 const MAX_BYTES = 8 * 1024 * 1024
 const MAX_PIXELS = 16777216
@@ -87,6 +88,7 @@ export async function validateInstanceIconData(data: Buffer): Promise<string> {
   } else if (ext === 'gif') {
     if (data.length < 14 || data[data.length - 1] !== 0x3b) throw new Error('Incomplete GIF icon')
     dimensions(data.readUInt16LE(6), data.readUInt16LE(8))
+    validateInstanceGif(data)
   } else {
     if (data.length < 26 || data.readUInt32LE(2) !== data.length) throw new Error('Invalid BMP icon')
     if (data.readUInt32LE(14) === 12) dimensions(data.readUInt16LE(18), data.readUInt16LE(20))

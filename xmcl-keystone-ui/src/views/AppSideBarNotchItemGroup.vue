@@ -12,12 +12,12 @@
         clickable
       >
         <div class="instance-grid">
-          <img
+          <InstanceIcon
             v-for="i in instances.slice(0, 4)"
             :key="i.path"
             class="instance-grid-item"
             :src="getInstanceIcon(i, i.server ? undefined : undefined)"
-          >
+          />
         </div>
       </AppSideBarNotchItem>
     </template>
@@ -39,6 +39,7 @@
 </template>
 
 <script lang="ts" setup>
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import { kInstances } from '@/composables/instances'
 import { getInstanceIcon } from '@/util/favicon'
 import { injection } from '@/util/inject'

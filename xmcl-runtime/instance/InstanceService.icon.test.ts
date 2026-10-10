@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import { getMediaIconPath, resolveInstanceIcon, serializeInstanceIcon, toMediaIconUrl } from './instanceIcon'
+import { validateInstanceGif } from './instanceGif'
 import * as fs from 'fs-extra'
 import { Instance } from '@xmcl/instance'
 import { InstanceState } from '@xmcl/runtime-api'
@@ -360,6 +361,25 @@ describe('InstanceService icon storage', () => {
     expect(state.all[instancePath].icon).toBe(toMediaIconUrl(join(instancePath, iconName(animatedGif, 'gif'))))
     expect(await pathExists(join(instancePath, iconName(animatedGif, 'gif')))).toBe(true)
     expect(await readFile(join(instancePath, iconName(animatedGif, 'gif')))).toEqual(animatedGif)
+    expect(validateInstanceGif(await readFile(join(instancePath, iconName(animatedGif, 'gif'))))).toBe(2)
+  })
+
+  test('preserves both GIF frames during duplication and updates URLs when switching to a static GIF', async () => {
+    const { service, state } = setup()
+    const original = await service.createInstance({ name: 'Animated', runtime: { minecraft: '1.20.1' } })
+    await writeFile(join(original, 'selected.gif'), animatedGif)
+    await service.editInstance({ instancePath: original, icon: 'selected.gif' })
+    const originalUrl = state.all[original].icon
+    const copied = await service.duplicateInstance(original)
+    const copyBytes = await readFile(getMediaIconPath(state.all[copied].icon)!)
+    expect(copyBytes).toEqual(animatedGif)
+    expect(validateInstanceGif(copyBytes)).toBe(2)
+    const still = Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64')
+    await writeFile(join(original, 'selected.gif'), still)
+    await service.editInstance({ instancePath: original, icon: 'selected.gif' })
+    expect(state.all[original].icon).not.toBe(originalUrl)
+    expect(validateInstanceGif(await readFile(getMediaIconPath(state.all[original].icon)!))).toBe(1)
+    expect(await readFile(getMediaIconPath(state.all[copied].icon)!)).toEqual(animatedGif)
   })
 
   test('stores a remote GIF with its original format', async () => {

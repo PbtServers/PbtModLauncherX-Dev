@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import Hint from '@/components/Hint.vue'
 import { useTutorial } from '@/composables/tutorial'
 import { useDateString } from '@/composables/date'
@@ -478,7 +479,7 @@ useTutorial(
             >
               <div class="instance-avatar-wrapper">
                 <v-avatar size="44" class="instance-avatar">
-                  <v-img :src="getInstanceIcon(instance, undefined)" />
+                  <InstanceIcon :src="getInstanceIcon(instance, undefined)" />
                 </v-avatar>
                 <div v-if="pinnedInstances.includes(instance.path)" class="pin-badge">
                   <v-icon size="x-small" color="white" class="text-[8px]" aria-hidden="true">push_pin</v-icon>

@@ -31,7 +31,7 @@
     >
       <span class="sidebar-instance__indicator" />
       <span class="sidebar-instance__content">
-        <v-img
+        <InstanceIcon
           v-if="!dragging"
           class="sidebar-instance__image"
           :width="48"
@@ -63,6 +63,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import { kInstance } from '@/composables/instance'
 import { useInstanceContextMenuItems } from '@/composables/instanceContextMenu'
 import { kInstanceLaunchCoordinator } from '@/composables/instanceLaunchCoordinator'

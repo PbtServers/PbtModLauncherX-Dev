@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { useVModel } from '@vueuse/core'
 import { validateInstanceIconImage } from '@/util/instanceIconImage'
@@ -83,7 +84,7 @@ function onDrop(event: DragEvent) {
           class="change-icon-card__preview"
           :class="{ 'change-icon-card__preview--empty': !iconModel }"
         >
-          <v-img v-if="iconModel" :src="iconModel" :alt="t('instance.icon')" />
+          <InstanceIcon v-if="iconModel" :src="iconModel" :alt="t('instance.icon')" />
           <v-icon v-else size="24">image</v-icon>
         </v-avatar>
       </template>

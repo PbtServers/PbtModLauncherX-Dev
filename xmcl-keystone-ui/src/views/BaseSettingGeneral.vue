@@ -22,7 +22,7 @@
               class="cursor-pointer base-setting-general__icon"
               :class="{ 'base-setting-general__icon--empty': !data.icon }"
             >
-              <v-img
+              <InstanceIcon
                 v-if="data.icon"
                 :src="data.icon"
                 :width="56"
@@ -110,6 +110,7 @@
 </template>
 
 <script lang=ts setup>
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import AppChangeInstanceIconCard from '@/components/AppChangeInstanceIconCard.vue'
 import SettingCard from '@/components/SettingCard.vue'
 import SettingItem from '@/components/SettingItem.vue'
