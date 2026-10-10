@@ -51,8 +51,8 @@ const xmcl: IconSet = {
 
 export const vuetify = createVuetify({
   locale: {
-    locale: 'en',
-    fallback: 'en',
+    locale: 'es',
+    fallback: 'es',
     messages: { zhHans, ru, ar, ca, es },
     rtl: {
       ar: true,

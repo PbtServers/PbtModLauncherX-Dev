@@ -1,15 +1,23 @@
+import { DEFAULT_LAUNCHER_LOCALE, resolveLauncherLocale } from '@xmcl/runtime-api'
+
 export type TimeStyle = 'full' | 'long' | 'medium' | 'short' | undefined
 export interface TimeFormatOptions {
   dateStyle?: TimeStyle
   timeStyle?: TimeStyle
 }
-export function getLocalDateString(s: string | number, options?: TimeFormatOptions) {
-  const format = Intl.DateTimeFormat(navigator.language, { dateStyle: options?.dateStyle, timeStyle: options?.timeStyle })
+export function getLocalDateString(s: string | number, options?: TimeFormatOptions, preferred?: string) {
+  let locale = resolveLauncherLocale(preferred)
+  try {
+    if (!Intl.DateTimeFormat.supportedLocalesOf(locale).length) locale = DEFAULT_LAUNCHER_LOCALE
+  } catch {
+    locale = DEFAULT_LAUNCHER_LOCALE
+  }
+  const format = Intl.DateTimeFormat(locale, { dateStyle: options?.dateStyle, timeStyle: options?.timeStyle })
   const d = new Date(s)
   try {
     return format.format(d)
   } catch (e) {
-    return d.toLocaleString()
+    return d.toLocaleString(locale)
   }
 }
 
@@ -37,13 +45,13 @@ export function getHumanizeDuration(millisecond: number): [string, number, TimeU
   return [day.toFixed(2), day, TimeUnit.Day]
 }
 
-export function getAgoOrDate(d: number | string, format?: TimeFormatOptions) {
+export function getAgoOrDate(d: number | string, format?: TimeFormatOptions, locale?: string) {
   const date = new Date(d).getTime()
   const now = Date.now()
   if (now - date < (TimeUnit.Day * 7)) {
     const [, duration, unit] = getHumanizeDuration(now - date)
     return [Math.floor(duration), unit]
   } else {
-    return getLocalDateString(date, format)
+    return getLocalDateString(date, format, locale)
   }
 }

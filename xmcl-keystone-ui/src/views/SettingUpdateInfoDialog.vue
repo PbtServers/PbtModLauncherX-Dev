@@ -21,7 +21,7 @@
           {{ updateInfo.name }}
         </v-card-title>
         <v-card-subtitle>
-          {{ getLocalDateString(updateInfo.date) }}
+          {{ getLocalDateString(updateInfo.date, undefined, locale) }}
         </v-card-subtitle>
       </v-card-item>
       <v-card-text class="markdown-body flex flex-col overflow-auto">
@@ -118,7 +118,7 @@ import { injection } from '@/util/inject'
 import { useDialog } from '../composables/dialog'
 
 const { isShown } = useDialog('update-info')
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { render } = useMarkdown()
 const { state } = injection(kSettingsState)
 const {

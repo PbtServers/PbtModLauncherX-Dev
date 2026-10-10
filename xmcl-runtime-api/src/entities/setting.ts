@@ -1,3 +1,4 @@
+import { DEFAULT_LAUNCHER_LOCALE } from './locale'
 import { type InvalidDirectoryErrorCode } from '../services/BaseService'
 import { DEFAULT_AGENT_ENDPOINT, DEFAULT_AGENT_MODEL } from '../services/AgentService'
 import { type SettingSchema } from './setting.schema'
@@ -35,7 +36,7 @@ export class Settings implements SettingSchema {
   windowTranslucent = false
   quickActionShortcut = ''
 
-  locale = ''
+  locale = DEFAULT_LAUNCHER_LOCALE
 
   theme = 'dark' as 'dark' | 'light' | 'system'
   /**

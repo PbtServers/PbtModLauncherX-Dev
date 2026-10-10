@@ -1,4 +1,4 @@
-import { SettingSchema, Settings } from '@xmcl/runtime-api'
+import { resolveLauncherLocale, SettingSchema, Settings } from '@xmcl/runtime-api'
 import { AggregateExecutor } from '@xmcl/utils'
 import { readJson, writeJson } from 'fs-extra'
 import { join } from 'path'
@@ -33,24 +33,16 @@ export const pluginSettings: LauncherAppPlugin = async (app) => {
     return saver.flush()
   })
 
-  const normalizeLocale = (locale: string) => {
-    locale = locale || app.host.getLocale()
-    if (locale.startsWith('en')) {
-      locale = 'en'
-    }
-    return locale
-  }
-
   readJson(settingJsonPath).catch(() => ({})).then((rawData) => {
     // SettingSchema uses .catch() for each field, so invalid fields fallback to defaults automatically
     const data = SettingSchema.parse(rawData)
-    data.locale = normalizeLocale(data.locale)
+    data.locale = resolveLauncherLocale(data.locale)
     state.config(data)
   }).catch((e) => {
     logger.error(e)
     // Still normalize locale with defaults when everything fails
     const data = SettingSchema.parse({})
-    data.locale = normalizeLocale(data.locale)
+    data.locale = resolveLauncherLocale(data.locale)
     state.config(data)
   }).finally(() => {
     app.registry.register(kSettings, state)

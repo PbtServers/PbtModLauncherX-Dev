@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DEFAULT_LAUNCHER_LOCALE } from './locale'
 import { DEFAULT_AGENT_ENDPOINT, DEFAULT_AGENT_MODEL } from '../services/AgentService'
 
 /**
@@ -26,7 +27,7 @@ export const GlobalResolutionSchema = z.object({
  */
 export const SettingSchema = z.object({
   /** The display language of the launcher */
-  locale: z.string().catch(''),
+  locale: z.string().catch(DEFAULT_LAUNCHER_LOCALE),
   /** Should launcher auto download new update */
   autoDownload: z.boolean().catch(false),
   /** Should launcher auto install new update after app quit */

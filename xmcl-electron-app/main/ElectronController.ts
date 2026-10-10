@@ -34,7 +34,7 @@ export class ElectronController implements LauncherAppController {
 
   protected migrationRef: BrowserWindow | undefined = undefined
 
-  protected i18n = createI18n(definedLocales, 'en')
+  protected i18n = createI18n(definedLocales, 'es-ES')
 
   readonly logger: Logger
 

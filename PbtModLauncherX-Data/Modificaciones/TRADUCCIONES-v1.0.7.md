@@ -29,11 +29,11 @@ Los recuentos son por catálogo: una clave en Electron y otra en Keystone cuenta
 
 ## Arquitectura y alcance
 
-Keystone utiliza Vue I18n en modo composition, con en/es-ES/ca precargados en src/i18n.ts, fallback en y carga dinámica de los 30 YAML mediante import.meta.glob en composables/i18n.ts. La selección usa assets/locales.json y el estado Settings; el idioma se guarda también en localStorage para ventanas que arrancan antes de tener los servicios. No se han cambiado el idioma predeterminado, la detección del sistema ni sus identificadores.
+Keystone utiliza Vue I18n en modo composition, con en/es-ES/ca precargados en src/i18n.ts, fallback es-ES → en y carga dinámica de los 30 YAML mediante import.meta.glob en composables/i18n.ts. La selección usa assets/locales.json y el estado Settings; el idioma se guarda también en localStorage para ventanas que arrancan antes de tener los servicios. La entrega original mantuvo la detección del sistema; el ajuste adicional documentado abajo establece es-ES por defecto y conserva las preferencias guardadas y los identificadores.
 
 Vuetify tenía fallback inglés para los controles españoles y catalanes: ahora se registran sus catálogos oficiales es y ca y se sincronizan es-ES → es y ca → ca. Se conservan los otros catálogos y reglas existentes.
 
-Electron registra en, zh-CN, ru, es-ES y ca en definedLocales.ts. Su utilitario i18n recorre rutas y sustituye todas las apariciones de las variables; mantiene fallback en. Se han completado las notificaciones, acciones de bandeja, accesos directos y aviso de cierre automático de los dos idiomas. Se conservan los 18 archivos de locales main.
+Electron registra en, zh-CN, ru, es-ES y ca en definedLocales.ts. Su utilitario i18n recorre rutas y sustituye todas las apariciones de las variables; usa es-ES como fallback principal y en como último recurso. Se han completado las notificaciones, acciones de bandeja, accesos directos y aviso de cierre automático de los dos idiomas. Se conservan los 18 archivos de locales main.
 
 Se han localizado los bloques i18n embebidos de InstanceManifestFileTree.vue: 29 descripciones por idioma, sin eliminar en/zh-CN/ru. El runtime no tiene un catálogo paralelo; emite claves de tareas/diagnósticos que traduce el renderer. Se amplían sus tests de selección del idioma del sistema y prioridad del idioma guardado. DeskGap reutiliza el renderer compilado.
 
@@ -102,6 +102,52 @@ Validación real mediante la skill local [.github/skills/chrome-devtools-cli/SKI
 - Pendiente revisión visual exhaustiva de todos los diálogos, estados de error, ventanas auxiliares, pantallas de 800×400, otros sistemas operativos y un instalador distribuido. Esta fase valida compilación de DeskGap, no ejecución de su runtime externo ni empaquetado/firma nativa.
 - Los artículos de noticias y descripciones remotas pueden venir en inglés: no se alteran contenidos de terceros.
 - Sin cambios de versión, servicios/actualizador, Discord, login/offline, protocolos, paquetes internos, recursos, master o backup. No se inician otras reparaciones.
+
+## Ajuste adicional de Fase 4: idioma predeterminado (10/10/2026)
+
+Este ajuste parte del commit local de Fase 4 `2e6a8b1c0d988e275a329ddeb72e18f04647cabb` y se confirma en un commit independiente sobre `dev/upstream-v1.0.7`. Sustituye el comportamiento anterior de detección automática del idioma del sistema. La versión oficial permanece en **1.0.6**.
+
+### Comportamiento y compatibilidad
+
+- Instalación nueva, configuración ausente, idioma vacío o no registrado: **es-ES**, independientemente del sistema operativo. No se consulta el idioma del host para decidir el idioma inicial del launcher.
+- Preferencias válidas existentes: se conservan exactamente los 30 códigos registrados, incluidos ca, en, en-IN y los demás idiomas. No se fuerza español sobre una elección válida ni se convierte en-IN en en dentro de Settings.
+- Cambios manuales: continúa el guardado habitual en setting.json mediante el estado Settings; localStorage conserva la copia necesaria para ventanas que arrancan antes que los servicios. No se cambian rutas, formatos de preferencias ni contratos IPC.
+- Resolución de mensajes: idioma elegido → es-ES → en. Vue I18n conserva su resolución regional y de claves. Electron y DeskGap empiezan con el catálogo español y conservan el inglés como último recurso para claves futuras.
+- El preset del asistente devuelve la preferencia guardada o es-ES; deja de devolver el idioma del sistema. Se elimina la normalización indiscriminada de variantes inglesas en Setup.vue.
+- La ventana de migración usa la preferencia persistida o es-ES, sin navigator.language. Se corrige su ruta de carga dinámica de YAML para que los otros idiomas puedan cargarse y se sincronizan los controles de Vuetify.
+- Vuetify arranca y hace fallback en es; se conserva el mapeo de etiquetas (es-ES → es, en-IN → en, chino, japonés y árabe). Los códigos de idiomas sin catálogo de controles registrado usan el fallback español, conservando el idioma seleccionado para el resto de la interfaz.
+- Las fechas visibles siguen la selección del launcher, no navigator.language. Sin preferencia válida, o si Intl no admite el código (por ejemplo lolcat), se formatean en es-ES sin cambiar la preferencia guardada.
+- Permanecen los 30 idiomas, los catálogos, el branding y las funcionalidades existentes. Las consultas del idioma real del sistema para información regional o configuración de Minecraft son independientes de la interfaz y se conservan.
+
+### Archivos del ajuste
+
+- Runtime API: index.ts; entities/locale.ts y locale.test.ts; entities/setting.ts y setting.schema.ts. Constante y resolución compartidas para el idioma inicial y preferencias válidas.
+- Runtime: settings/pluginSettings.ts y pluginSettings.test.ts; setup/pluginSetup.ts. Inicialización, persistencia y preset del asistente.
+- Electron/DeskGap: main/ElectronController.ts; main/utils/i18n.ts e i18n.test.ts; deskgap-app/src/launcherApp.ts. Idioma inicial y fallbacks de menús, diálogos y notificaciones.
+- Keystone UI: src/i18n.ts; vuetify.ts; composables/i18n.ts; views/Setup.vue; windows/migration/index.ts; util/locale.ts y locale.test.ts. Inicialización, selección y ventanas auxiliares.
+- Fechas de UI: util/date.ts y date.test.ts; composables/date.ts; components/MarketProjectDetailVersion.vue; views/SettingUpdateInfoDialog.vue.
+- Este informe. No se modifica ningún catálogo de traducción ni se alteran las cifras de claves traducidas de la entrega original.
+
+### Validación del ajuste
+
+| Comprobación | Resultado |
+| --- | --- |
+| Pruebas de i18n y selección/persistencia (12 archivos) | **221 aprobadas**, 0 fallos, 0 omitidas |
+| Instalación nueva frente a hosts en-US, de, ca, es-ES y zh-CN | Siempre es-ES; no se consulta getLocale para decidirlo |
+| Conservación de preferencias | Los 30 códigos registrados se conservan exactamente |
+| Cambio manual y lectura del archivo guardado | ca, en, en-IN y fr se guardan y se recuperan |
+| Preferencias ausentes, vacías, inválidas y configuración corrupta | es-ES |
+| Typecheck general (Runtime API, runtime, Electron/preload, Keystone UI) | Correcto |
+| Typecheck DeskGap | Correcto |
+| Lint | 0 errores; 2 avisos preexistentes en InstanceBlueprintsService.ts |
+| Validación de traducciones | es-ES y ca: 2426/2426 UI, 21/21 Electron, 29/29 embebidas; 0 fallos |
+| Compilación Keystone UI | Correcta; 2900 módulos; verify-bundle: 103 chunks, 0 huérfanos |
+| Compilación Electron | Correcta: main, preload y workers |
+| Compilación DeskGap | Correcta |
+
+Validación real con la CLI standalone de la [skill Chrome DevTools](../../.github/skills/chrome-devtools-cli/SKILL.md), dev:renderer y dev:main, página PbtModLauncherX en localhost:3000, ventana 1200×720 y perfil aislado `temp/default-es-20261010-appdata`, con directorio de juego temporal. Se comprueban las cuatro pantallas del asistente en español y se termina sin cuenta; la pantalla principal y los ajustes muestran textos españoles. Se selecciona ca, se comprueba setting.json, se cierra y se abre: la interfaz mantiene catalán. Se cambia manualmente a en y se repite el reinicio: permanece inglés. La consola durante el cambio ca → en no presenta errores de i18n. Se cierran exclusivamente las instancias de Electron, Vite y la CLI creadas para la validación, sin tocar datos reales.
+
+Los menús y mensajes de notificación se validan contra los catálogos reales con las pruebas de i18n existentes; queda pendiente comprobar visualmente todos los avisos nativos del sistema operativo, las ventanas auxiliares y el runtime externo de DeskGap en cada plataforma. No se publica ni se firma un instalador. Permanecen los avisos de build y los 54 diagnósticos de otros idiomas ya documentados en la Fase 4; no hay errores nuevos de compilación ni claves pendientes en es-ES/ca.
 
 ## Archivos modificados
 

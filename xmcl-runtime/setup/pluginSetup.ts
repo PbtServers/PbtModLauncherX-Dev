@@ -7,7 +7,8 @@ import { createLazyWorker } from '@xmcl/worker'
 import { SetupWorker } from './setupWorker'
 // eslint-disable-next-line import/default
 import createSetupWorker from './setupWorkerEntry?worker'
-import { Exception } from '@xmcl/runtime-api'
+import { Exception, resolveLauncherLocale } from '@xmcl/runtime-api'
+import { kSettings } from '../settings/settings'
 
 /**
  * Returns true if the drive is a real user-accessible filesystem suitable as
@@ -120,7 +121,7 @@ export const pluginSetup: LauncherAppPlugin = async (app) => {
     }
     const drives = await getAllDrived()
     return {
-      locale: app.host.getLocale(),
+      locale: resolveLauncherLocale((await app.registry.get(kSettings)).locale),
       minecraftPath: app.minecraftDataPath,
       defaultPath,
       drives,

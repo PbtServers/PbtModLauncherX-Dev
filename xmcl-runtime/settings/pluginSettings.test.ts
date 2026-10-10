@@ -92,7 +92,7 @@ describe('pluginSettings', () => {
     expect(fsExtra.readJson).toHaveBeenCalledWith(join('/mock/app/data', 'setting.json'))
   })
 
-  test('should use host locale when no locale is set', async () => {
+  test('uses Spanish without a saved locale', async () => {
     vi.mocked(fsExtra.readJson).mockResolvedValue({})
 
     const { pluginSettings } = await import('./pluginSettings')
@@ -102,10 +102,11 @@ describe('pluginSettings', () => {
       expect(mockApp.registry.register).toHaveBeenCalled()
     })
 
-    expect(mockApp.host.getLocale).toHaveBeenCalled()
+    expect(mockApp.host.getLocale).not.toHaveBeenCalled()
+    expect(mockState.locale).toBe('es-ES')
   })
 
-  test('should normalize English locale to "en"', async () => {
+  test('uses Spanish for an unsupported saved locale', async () => {
     vi.mocked(fsExtra.readJson).mockResolvedValue({ locale: 'en-GB' })
 
     const { pluginSettings } = await import('./pluginSettings')
@@ -115,26 +116,53 @@ describe('pluginSettings', () => {
       expect(mockApp.registry.register).toHaveBeenCalled()
     })
 
-    // The state.config should be called with locale normalized to 'en'
-    expect(mockState.locale).toBe('en')
+    // Unsupported saved preferences fall back to Spanish.
+    expect(mockState.locale).toBe('es-ES')
   })
 
-  test.each(['es-ES', 'ca'])('uses system locale %s without a saved language', async (locale) => {
+  test.each(['en-US', 'de', 'ca', 'es-ES', 'zh-CN'])('uses Spanish independently of system locale %s', async (locale) => {
     vi.mocked(fsExtra.readJson).mockResolvedValue({})
     mockApp.host.getLocale.mockReturnValue(locale)
     const { pluginSettings } = await import('./pluginSettings')
     await pluginSettings(mockApp, mockManifest)
     await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
-    expect(mockState.locale).toBe(locale)
+    expect(mockState.locale).toBe('es-ES')
+    expect(mockApp.host.getLocale).not.toHaveBeenCalled()
   })
 
-  test.each(['es-ES', 'ca'])('keeps saved locale %s over the system language', async (locale) => {
+  test.each(['es-ES', 'ca', 'en', 'en-IN', 'fr', 'zh-CN'])('keeps saved locale %s over the system language', async (locale) => {
     vi.mocked(fsExtra.readJson).mockResolvedValue({ locale })
     const { pluginSettings } = await import('./pluginSettings')
     await pluginSettings(mockApp, mockManifest)
     await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
     expect(mockState.locale).toBe(locale)
     expect(mockApp.host.getLocale).not.toHaveBeenCalled()
+  })
+
+  test.each(['ca', 'en', 'en-IN', 'fr'])('persists a manual switch to %s and reloads it', async (locale) => {
+    vi.mocked(fsExtra.readJson).mockResolvedValue({})
+    const { pluginSettings } = await import('./pluginSettings')
+    await pluginSettings(mockApp, mockManifest)
+    await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
+    expect(mockState.locale).toBe('es-ES')
+    mockState.localeSet(locale)
+    subscribeCallback!()
+    await registeredDisposer!()
+    const saved = vi.mocked(fsExtra.writeJson).mock.calls.at(-1)![1]
+    expect(saved.locale).toBe(locale)
+    vi.mocked(fsExtra.readJson).mockResolvedValue(saved)
+    mockState.localeSet('es-ES')
+    await pluginSettings(mockApp, mockManifest)
+    await vi.waitFor(() => expect(mockState.locale).toBe(locale))
+    expect(mockApp.host.getLocale).not.toHaveBeenCalled()
+  })
+
+  test.each(['', 'unsupported', null, 123])('uses Spanish for invalid saved preference %s', async (locale) => {
+    vi.mocked(fsExtra.readJson).mockResolvedValue({ locale })
+    const { pluginSettings } = await import('./pluginSettings')
+    await pluginSettings(mockApp, mockManifest)
+    await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
+    expect(mockState.locale).toBe('es-ES')
   })
 
   test('should handle missing setting.json gracefully', async () => {
@@ -147,8 +175,8 @@ describe('pluginSettings', () => {
       expect(mockApp.registry.register).toHaveBeenCalled()
     })
     
-    // Verify settings are initialized with defaults (locale normalized to 'en' from 'en-US')
-    expect(mockState.locale).toBe('en')
+    // Verify settings are initialized with Spanish defaults.
+    expect(mockState.locale).toBe('es-ES')
     expect(mockState.theme).toBe('dark')
     expect(mockState.developerMode).toBe(false)
     expect(mockState.autoDownload).toBe(false)
@@ -270,8 +298,8 @@ describe('pluginSettings', () => {
       expect(mockApp.registry.register).toHaveBeenCalled()
     })
 
-    // Verify settings are normalized - locale normalized from host locale
-    expect(mockState.locale).toBe('en') // normalized from host locale 'en-US'
+    // Verify invalid language settings use the Spanish default.
+    expect(mockState.locale).toBe('es-ES') // Spanish default
     expect(mockState.theme).toBe('dark')
     expect(mockState.autoDownload).toBe(false)
     expect(mockState.maxSockets).toBe(32) // value from file
@@ -302,8 +330,8 @@ describe('pluginSettings', () => {
     expect(mockState.maxSockets).toBe(128) // valid value from file
     expect(mockState.httpProxy).toBe('http://proxy.example.com') // valid value from file
 
-    // Invalid fields should use defaults (locale normalized from host)
-    expect(mockState.locale).toBe('en') // default normalized from host locale
+    // Invalid fields should use defaults.
+    expect(mockState.locale).toBe('es-ES') // Spanish default
     expect(mockState.developerMode).toBe(false) // default value
   })
 
@@ -323,7 +351,7 @@ describe('pluginSettings', () => {
 
     // Invalid fields use defaults, but settings are still normalized
     // Settings are initialized with normalized defaults
-    expect(mockState.locale).toBe('en') // normalized from host locale
+    expect(mockState.locale).toBe('es-ES') // Spanish default
     expect(mockState.theme).toBe('dark') // default value (invalid value was rejected)
     expect(mockState.developerMode).toBe(false)
   })
@@ -352,7 +380,7 @@ describe('pluginSettings', () => {
     expect(fsExtra.writeJson).toHaveBeenCalledWith(
       join('/mock/app/data', 'setting.json'),
       {
-        locale: 'en',
+        locale: 'es-ES',
         autoDownload: false,
         autoInstallOnAppQuit: false,
         allowPrerelease: false,
@@ -424,7 +452,7 @@ describe('pluginSettings', () => {
     expect(fsExtra.writeJson).toHaveBeenCalledWith(
       join('/mock/app/data', 'setting.json'),
       {
-        locale: 'en',
+        locale: 'es-ES',
         autoDownload: false,
         autoInstallOnAppQuit: false,
         allowPrerelease: false,

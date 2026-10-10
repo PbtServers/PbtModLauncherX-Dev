@@ -80,7 +80,7 @@
         </div>
         <div v-if="version.createdDate" class="version-card__meta-item">
           <v-icon size="x-small">event</v-icon>
-          {{ getLocalDateString(version.createdDate) }}
+          {{ getLocalDateString(version.createdDate, undefined, locale) }}
         </div>
       </div>
 
@@ -155,7 +155,7 @@ const loaders = computed(() => props.version.loaders.map(l => {
 }))
 const { getColorCode } = useVuetifyColor()
 const color = computed(() => getColorCode(getColorForReleaseType(props.version.type)))
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 </script>
 

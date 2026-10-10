@@ -99,7 +99,7 @@ export class DeskGapLauncherApp extends LauncherApp {
   private readonly networkSession = session.fromName('xmcl-network')
   private tray?: Tray
   private activeManifest: InstalledAppManifest = manifest
-  private readonly i18n = createI18n(definedLocales, 'en')
+  private readonly i18n = createI18n(definedLocales, 'es-ES')
 
   constructor() {
     if (process.env.XMCL_E2E_APP_DATA) {

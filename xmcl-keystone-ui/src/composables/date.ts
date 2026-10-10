@@ -21,9 +21,9 @@ export function useDuration() {
 }
 
 export function useDateString() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const getDateString = (date: string | number, format?: TimeFormatOptions | undefined) => {
-    const result = getAgoOrDate(date, format)
+    const result = getAgoOrDate(date, format, locale.value)
     if (typeof result === 'string') {
       return result
     }

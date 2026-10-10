@@ -1,4 +1,5 @@
-import { resolveXmclApiEndpoints, Settings } from '@xmcl/runtime-api'
+import { resolveVuetifyLocale } from '@/util/locale'
+import { resolveLauncherLocale, resolveXmclApiEndpoints, Settings } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
 import { useLocale } from 'vuetify'
 import { kFlights, useI18nSearchFlights } from './flights'
@@ -11,33 +12,16 @@ export function useI18nSync(state: Ref<Settings | undefined>) {
   const { locale, setLocaleMessage } = useI18n()
   const vuetifyLocale = useLocale()
   watch(computed(() => state.value?.locale || ''), (newValue: string, oldValue: string) => {
+    newValue = resolveLauncherLocale(newValue)
     console.log(`Locale changed ${oldValue} -> ${newValue}`)
-    if (newValue === 'es-ES') {
-      vuetifyLocale.current.value = 'es'
-    } else if (newValue === 'ca') {
-      vuetifyLocale.current.value = 'ca'
-    } else if (newValue === 'zh-CN') {
-      vuetifyLocale.current.value = 'zhHans'
-    } else if (newValue === 'zh-TW' || newValue === 'zh-HK') {
-      vuetifyLocale.current.value = 'zhHant'
-    } else if (newValue === 'ja-JP') {
-      vuetifyLocale.current.value = 'ja'
-    } else if (newValue === 'ko') {
-      vuetifyLocale.current.value = 'ko'
-    } else if (newValue === 'ru') {
-      vuetifyLocale.current.value = 'ru'
-    } else if (newValue === 'ar' || newValue === 'ar-EG') {
-      vuetifyLocale.current.value = 'ar'
-    } else {
-      vuetifyLocale.current.value = 'en'
-    }
+    vuetifyLocale.current.value = resolveVuetifyLocale(newValue)
 
     if (typeof document !== 'undefined') {
       document.documentElement.dir = (newValue === 'ar' || newValue === 'ar-EG') ? 'rtl' : 'ltr'
     }
 
     if (!locales[`../../locales/${newValue}.yaml`]) {
-      newValue = 'en'
+      newValue = 'es-ES'
     }
 
     locales[`../../locales/${newValue}.yaml`]().then((message: any) => {
