@@ -361,3 +361,9 @@ La detección existente evalúa RAM total, RAM libre, CPU y espacio disponible. 
 Pruebas añadidas: tag/manifiesto/origen exactos de 4B, recomendación ligera con recursos limitados sin descarga y rechazo sin consentimiento. Se mantiene la regresión que conserva una selección previa de 1.7B. La licencia, hashes, GGUF y cuantización siguen siendo comprobaciones obligatorias del recurso preparado; las capacidades de chat/herramientas se consultan al motor, sin deducirlas del nombre.
 
 Intento de preparación desde Codex: código 1, `EACCES fetch failed`, log `temp/phase155-4b-preparation.log`. No se ha descargado Qwen3 4B ni generado un portable que lo contenga. Quedan bloqueadas la inferencia auténtica, la conversación de PbtAdmin y la validación offline y de traslado. Las recetas multiplataforma se conservan; Linux/macOS no tienen validación nativa nueva. La integración de distribución no se declara terminada.
+
+### Phase 15.6: native streaming validation correction
+
+External execution discovered the packaged Qwen3 4B Q4_K_M model at dynamic loopback port 60303 and confirmed managed process cleanup. Inference validation FAILED with ERR_INVALID_ARG_TYPE: the validation reader passed string chunks from the production chat bridge to TextDecoder, which requires bytes. This is a validation-script defect, not evidence of a model or launcher failure.
+
+The reader now accepts strings and streamed UTF-8 bytes, preserves split Unicode sequences, parses fragmented SSE, and rejects empty or malformed responses. Ten regression tests passed, including the existing production bridge tests. Production inference and visual launcher validation remain pending; rerun only scripts/validate-bundled-ollama.mjs against the existing package. No model download or package rebuild is required for this reader correction. Error code and message are now retained in the UTF-8 result JSON.

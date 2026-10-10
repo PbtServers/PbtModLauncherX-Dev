@@ -4,6 +4,7 @@ import { createRequire } from 'node:module'
 import { resolve, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { writeFile } from 'node:fs/promises'
+import { readValidationStream } from './ollama-validation-stream.mjs'
 const require = createRequire(new URL('../xmcl-electron-app/package.json', import.meta.url))
 const { build } = require('esbuild')
 async function moduleFrom(entry) {
@@ -32,21 +33,12 @@ try {
   const context = { request: { body: Buffer.from(JSON.stringify({ messages: [{ role: 'system', content: system }, { role: 'user', content: question }] })) }, response: {} }
   await handleOllamaChat(context, { model: FACTORY_MODEL, localOrigin: origin, contextWindow: 4096, toolsSupported: show.capabilities.includes('tools') }, fetch)
   if (context.response.status !== 200) throw new Error('Native chat request failed')
-  let buffer = ''; let answer = ''; let chunks = 0
-  const decoder = new TextDecoder()
-  for await (const chunk of context.response.body) {
-    buffer += decoder.decode(chunk, { stream: true })
-    const lines = buffer.split('\n'); buffer = lines.pop() || ''
-    for (const line of lines) if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-      const text = JSON.parse(line.slice(6)).choices?.[0]?.delta?.content
-      if (text) { answer += text; chunks++ }
-    }
-  }
-  if (!answer.trim()) throw new Error('No authentic model answer received')
+  const { answer, chunks } = await readValidationStream(context.response.body)
   console.log(JSON.stringify({ streamingChunks: chunks, authenticAnswer: answer }))
   Object.assign(evidence, { streamingChunks: chunks, authenticAnswer: answer })
   console.log('Semantic identity and feminine creator wording require review of the authentic answer above.')
 } catch (error) {
+  Object.assign(evidence, { errorCode: error.code, errorMessage: error.message })
   console.error('Native validation error:', error.code || error.message)
   process.exitCode = 1
 } finally {
