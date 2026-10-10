@@ -17,4 +17,16 @@ describe('NeoForge Minecraft association', () => {
   it('uses the modern project for 1.21.1', () => {
     expect(getNeoForgeProject('1.21.1')).toBe('neoforge')
   })
+  it('uses the full Minecraft hotfix prefix for 26.x without mixing releases', () => {
+    // Official versioning examples: https://neoforged.net/news/26.1release/;
+    // 26.1.2.76 is also covered by the integrated modern installer fixtures.
+    const builds = ['26.1.0.1-beta', '26.1.2.76', '21.11.1']
+    expect(filterNeoForgeVersions('26.1', builds)).toEqual(['26.1.0.1-beta'])
+    expect(filterNeoForgeVersions('26.1.1', builds)).toEqual([])
+    expect(filterNeoForgeVersions('26.1.2', builds)).toEqual(['26.1.2.76'])
+  })
+  it('does not infer release builds for snapshot or prerelease Minecraft ids', () => {
+    expect(filterNeoForgeVersions('26.1-rc-3', ['26.1.0.1-beta'])).toEqual([])
+    expect(filterNeoForgeVersions('26.1-snapshot-1', ['26.1.0.1-beta'])).toEqual([])
+  })
 })
