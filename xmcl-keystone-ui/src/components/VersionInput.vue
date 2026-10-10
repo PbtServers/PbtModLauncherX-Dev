@@ -1,14 +1,16 @@
 <template>
-  <v-list-item>
-    <v-list-item-action class="self-center">
-      <img
-        :src="icon"
-        width="40"
-      >
-    </v-list-item-action>
-    <v-list-item-content>
-      <v-list-item-title>{{ title }}</v-list-item-title>
-      <v-list-item-subtitle>
+  <div class="version-input flex items-center gap-4 px-4 py-2">
+    <img
+      :src="icon"
+      class="flex-shrink-0"
+      width="40"
+      height="40"
+    >
+    <div class="flex flex-col flex-1 min-w-0">
+      <div class="text-sm font-weight-medium">
+        {{ title }}
+      </div>
+      <div class="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">
         <a
           v-if="url.startsWith('http')"
           target="browser"
@@ -17,11 +19,13 @@
         <template v-else>
           {{ url }}
         </template>
-      </v-list-item-subtitle>
-    </v-list-item-content>
-    <v-list-item-action>
+      </div>
+    </div>
+    <div class="w-60 flex-shrink-0">
       <VersionMenu
+        :value="value"
         :items="items"
+        :placeholder="placeholder"
         :refreshing="refreshing"
         :disabled="disabled"
         :is-clearable="isClearable"
@@ -34,28 +38,13 @@
         @update:snapshot="emit('update:snapshot', $event)"
         @select="emit('input', $event)"
         @refresh="emit('refresh')"
-      >
-        <template #default="{ on }">
-          <v-text-field
-            :value="value"
-            outlined
-            filled
-            dense
-            :placeholder="placeholder"
-            hide-details
-            append-icon="arrow_drop_down"
-            persistent-hint
-            :readonly="true"
-            @click:append="on.click($event);"
-            v-on="on"
-          />
-        </template>
-      </VersionMenu>
-    </v-list-item-action>
-  </v-list-item>
+      />
+    </div>
+  </div>
 </template>
 <script lang="ts" setup>
 import VersionMenu from './VersionMenu.vue'
+import { useVersionAutoSelect } from '@/composables/versionAutoSelect'
 
 export interface VersionItem {
   tag?: string
@@ -64,13 +53,14 @@ export interface VersionItem {
   description?: string
 }
 
-defineProps<{
+const props = defineProps<{
   icon: string
   title: string
   url: string
   placeholder: string
 
   value?: string
+  autoSelect?: string
 
   items: VersionItem[]
   refreshing?: boolean
@@ -89,4 +79,6 @@ const emit = defineEmits<{
   (event: 'refresh'): void
   (event: 'update:snapshot', value: boolean): void
 }>()
+
+useVersionAutoSelect(props, version => emit('input', version))
 </script>

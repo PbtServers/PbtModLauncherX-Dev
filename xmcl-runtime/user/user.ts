@@ -4,15 +4,6 @@ import { AuthlibInjectorApiProfile, GameProfileAndTexture, OICDLikeConfig, Yggdr
 import { GameProfile } from '@xmcl/user'
 import { readFile } from 'fs-extra'
 
-export interface OAuthTokenResponse {
-  token_type: string
-  expires_in: number
-  scope: string
-  access_token: string
-  refresh_token: string
-  user_id: string
-  foci: string
-}
 export interface XBoxResponse {
   IssueInstant: string
   NotAfter: string
@@ -34,68 +25,7 @@ export interface XBoxResponse {
   }
 }
 
-export interface XBoxGameProfileResponse {
-  profileUsers: [{
-    id: string
-    hostId: string | null
-    settings: [{
-      'id': 'Gamertag'
-      'value': string
-    }, {
-      'id': 'PublicGamerpic'
-      'value': string
-    }]
-    isSponsoredUser: boolean
-  }]
-}
 
-export interface MinecraftAuthResponse {
-  username: string // this is not the uuid of the account
-  roles: []
-  access_token: string // jwt, your good old minecraft access token
-  token_type: 'Bearer'
-  expires_in: number
-}
-export interface MinecraftProfileResponse {
-  id: string // the real uuid of the account, woo
-  name: string // the mc user name of the account
-  skins: [{
-    id: string
-    state: 'ACTIVE' | 'string'
-    url: string
-    variant: 'CLASSIC' | string
-    alias: 'STEVE' | string
-  }]
-  capes: [{
-    id: string
-    state: 'ACTIVE' | string
-    url: string
-  }]
-}
-export interface MinecraftProfileErrorResponse {
-  path: '/minecraft/profile'
-  errorType: 'NOT_FOUND' | string
-  error: string | 'NOT_FOUND'
-  errorMessage: string
-  developerMessage: string
-}
-export interface MinecraftOwnershipResponse {
-  /**
-     * If the account doesn't own the game, the items array will be empty.
-     */
-  items: Array<{
-    name: 'product_minecraft' | 'game_minecraft'
-    /**
-         * jwt signature
-         */
-    signature: string
-  }>
-  /**
-     * jwt signature
-     */
-  signature: string
-  keyId: string
-}
 
 export function normalizeGameProfile(profile: GameProfile): GameProfileAndTexture {
   const exitedTextures = (profile as any).textures
@@ -111,9 +41,21 @@ export function normalizeGameProfile(profile: GameProfile): GameProfileAndTextur
   }
 }
 
-export async function normalizeSkinData(url: string) {
+export async function normalizeSkinData(url?: string) {
+  if (!url) {
+    throw new Error('Skin URL cannot be empty!')
+  }
+  if (url.startsWith('data:')) {
+    const base64 = url.substring(url.indexOf(',') + 1)
+    return Buffer.from(base64, 'base64')
+  }
   url = url.replace('image:', 'file:')
-  const resolved = new URL(url)
+  let resolved: URL
+  try {
+    resolved = new URL(url, 'http://launcher')
+  } catch {
+    throw new Error('Unknown url protocol! Require a file or http/https protocol!')
+  }
   if (resolved.protocol === 'file:' || resolved.protocol === 'image:') {
     return await readFile(url.replace('file://', '').replace('image://', ''))
   } else if (resolved.protocol === 'https:' || resolved.protocol === 'http:') {
@@ -121,7 +63,10 @@ export async function normalizeSkinData(url: string) {
       const path = resolved.searchParams.get('path')
       if (path) return await readFile(path)
     }
-    return url
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`Failed to fetch skin from ${url}: ${res.statusText}`)
+    const arrayBuffer = await res.arrayBuffer()
+    return Buffer.from(arrayBuffer)
   } else {
     throw new Error('Unknown url protocol! Require a file or http/https protocol!')
   }
@@ -182,23 +127,53 @@ export async function loadYggdrasilApiProfile(url: string, fetch = globalThis.fe
   return api
 }
 
-export function transformGameProfileTexture(profile: GameProfile) {
-  if (!profile.properties) return
+export function transformGameProfileTexture(profile: GameProfile): GameProfileAndTexture {
+  if (!profile.properties) {
+    return {
+      ...profile,
+      textures: {
+        SKIN: {
+          url: '',
+        },
+      },
+    }
+  }
   const texturesBase64 = profile.properties.textures
-  if (!texturesBase64) return
-  const textures = JSON.parse(Buffer.from(texturesBase64, 'base64').toString())
-  const skin = textures?.textures.SKIN
-  const uploadable = profile.properties.uploadableTextures
+  if (!texturesBase64) {
+    return {
+      ...profile,
+      textures: {
+        SKIN: {
+          url: '',
+        },
+      },
+    }
+  }
+  try {
+    const textures = JSON.parse(Buffer.from(texturesBase64, 'base64').toString())
+    const skin = textures?.textures.SKIN
+    const uploadable = profile.properties.uploadableTextures
 
-  // mark skin already refreshed
-  if (skin) {
+    // Always return the profile with textures, using default if no skin
     return {
       ...profile,
       textures: {
         ...textures.textures,
-        SKIN: skin,
+        SKIN: skin || {
+          url: '',
+        },
       },
       uploadable: uploadable ? uploadable.split(',') as any : undefined,
+    }
+  } catch (e) {
+    // If parsing fails, return with default textures
+    return {
+      ...profile,
+      textures: {
+        SKIN: {
+          url: '',
+        },
+      },
     }
   }
 }

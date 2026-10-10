@@ -1,5 +1,6 @@
 <template>
   <HomeCard
+    class="home-resource-packs-card"
     icon="palette"
     :title="t('resourcepack.name', 2)"
     :text="dragover ? t('resourcepack.dropHint') : t('resourcepack.enable', { count: resourcePackCount })"
@@ -9,13 +10,13 @@
     }"
     :highlighted="highlight > 0"
     :button="files.length > 0 ? {
-      text: t('mod.manage'),
+      text: t('shared.manage'),
       icon: 'settings'
      } : undefined"
     :refreshing="false"
     :addition-button="{ 
       icon: 'file_download',
-      text: t('install'),
+      text: t('shared.install'),
      }"
     @navigate-addition="push('/resourcepacks?source=remote')"
     @navigate="push('/resourcepacks')"
@@ -28,7 +29,7 @@
 import { injection } from '@/util/inject'
 import HomeCard from '@/components/HomeCard.vue'
 import { kInstanceResourcePacks } from '@/composables/instanceResourcePack'
-import { kDropHandler } from '@/composables/dropHandler'
+import { getDropFilePaths, kDropHandler } from '@/composables/dropHandler'
 import { InstanceResourcePacksServiceKey } from '@xmcl/runtime-api'
 import { kInstance } from '@/composables/instance'
 import { useService } from '@/composables/service'
@@ -60,8 +61,11 @@ const highlight = ref(0)
 
 function onDrop(e: DragEvent) {
   if (e.dataTransfer) {
-    const filePaths = Array.from(e.dataTransfer.files).map(f => f.path)
-    install(path.value, filePaths)
+    const filePaths = getDropFilePaths(e.dataTransfer.files)
+    if (filePaths.length > 0) {
+      install({ path: path.value, files: filePaths })
+      e.preventDefault()
+    }
   }
   highlight.value = 0
 }

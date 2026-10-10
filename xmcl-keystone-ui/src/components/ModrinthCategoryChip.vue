@@ -2,16 +2,14 @@
   <v-chip
     filter
     :disabled="disabled"
-    outlined
+    variant="outlined"
     label
-    :small="small"
+    :size="small ? 'small' : undefined"
     @click="disabled || $emit('click', tag)"
   >
-    <v-avatar
-      v-if="tag.icon"
-      left
-      v-html="tag.icon"
-    />
+    <template v-if="tag.icon" #prepend>
+      <v-avatar size="20" class="mr-2 modrinth-category-icon" v-html="tag.icon" />
+    </template>
     {{ t('modrinth.categories.' + tag.name) }}
   </v-chip>
 </template>
@@ -21,3 +19,10 @@ defineProps<{ tag: Category; disabled?: boolean; small?: boolean }>()
 defineEmits(['click'])
 const { t } = useI18n()
 </script>
+
+<style scoped>
+.modrinth-category-icon :deep(svg) {
+  width: 16px;
+  height: 16px;
+}
+</style>

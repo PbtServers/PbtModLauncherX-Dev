@@ -1,8 +1,9 @@
-import { RuntimeVersions } from '@xmcl/runtime-api'
 import { InjectionKey } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { useMarketSort } from './marketSort'
 import { searlizers, useQuery, useQueryOverride } from './query'
-import { MaybeRef } from '@vueuse/core'
+import type { MaybeRef } from 'vue'
+import { RuntimeVersions } from '@xmcl/instance'
 
 /**
  * The common modloader for modrinth and curseforge
@@ -26,11 +27,15 @@ export function useSearchModel(runtime: Ref<RuntimeVersions>) {
   const modrinthCategories = ref([] as string[])
   const curseforgeCategory = ref(undefined as number | undefined)
   const sort = ref(0)
-  const isCurseforgeActive = ref(true)
-  const isModrinthActive = ref(true)
+  // Provider visibility is a launcher-wide preference, not an instance
+  // filter. Keep it in local storage so changing it for one instance is
+  // reflected by every market page and survives instance switches/restarts.
+  const isCurseforgeActive = useLocalStorage('marketCurseforgeActive', true, { writeDefaults: false })
+  const isModrinthActive = useLocalStorage('marketModrinthActive', true, { writeDefaults: false })
   const source = ref('remote' as 'local' | 'remote' | 'favorite')
   const notRemote = computed(() => source.value !== 'remote')
   const selectedCollection = ref(undefined as string | undefined)
+  const modrinthEnvironment = ref('' as '' | 'client' | 'server')
 
   const currentView = computed(() => {
     const sourceValue = source.value
@@ -50,6 +55,21 @@ export function useSearchModel(runtime: Ref<RuntimeVersions>) {
   const isModrinthDisabled = computed(() => notRemote.value || !isModrinthActive.value)
   const isCurseforgeDisabled = computed(() => notRemote.value || !isCurseforgeActive.value)
 
+  // Keep the game version filter aligned with the selected instance's Minecraft
+  // version. This watcher lives for the whole app lifetime (the model is created
+  // once in the root context), so it fires even when no search view is mounted —
+  // covering instance switches and async instance loads where runtime.minecraft
+  // transitions from '' to the real version. Without this, the mod detail page
+  // could keep filtering files by a stale game version that no longer matches
+  // the instance. Only re-sync when the filter was still tracking the instance
+  // default (empty, or equal to the previous version), so an explicit user
+  // override that intentionally differs from the instance version is preserved.
+  watch(() => runtime.value.minecraft, (minecraft, oldMinecraft) => {
+    if (!gameVersion.value || gameVersion.value === oldMinecraft) {
+      gameVersion.value = minecraft
+    }
+  })
+
   function effect(getModloaders: () => string | undefined) {
     useQueryOverride('keyword', keyword, '', searlizers.string)
     useQueryOverride('gameVersion', gameVersion, computed(() => runtime.value.minecraft), searlizers.string)
@@ -60,10 +80,18 @@ export function useSearchModel(runtime: Ref<RuntimeVersions>) {
     useQueryOverride('modLoaders', modrinthCategories, [], searlizers.stringArray)
     useQueryOverride('curseforgeCategory', curseforgeCategory, undefined, searlizers.number)
     useQueryOverride('sort', sort, 0, searlizers.number)
-    useQueryOverride('curseforgeActive', isCurseforgeActive, true, searlizers.boolean)
-    useQueryOverride('modrinthActive', isModrinthActive, true, searlizers.boolean)
+    // These preferences intentionally use the current persisted value as the
+    // query fallback instead of resetting to `true` whenever another instance
+    // or market page calls `effect()`.
+    useQueryOverride('curseforgeActive', isCurseforgeActive, isCurseforgeActive, searlizers.boolean)
+    useQueryOverride('modrinthActive', isModrinthActive, isModrinthActive, searlizers.boolean)
     useQueryOverride('source', source, 'local', searlizers.string)
+    useQueryOverride('modrinthEnvironment', modrinthEnvironment, '', searlizers.string)
     selectedCollection.value = undefined
+
+    watch(runtime, () => {
+      modLoader.value = getModloaders()
+    }, { deep: true })
   }
 
   return {
@@ -84,6 +112,7 @@ export function useSearchModel(runtime: Ref<RuntimeVersions>) {
     curseforgeSort,
     isModrinthDisabled,
     isCurseforgeDisabled,
+    modrinthEnvironment,
     effect,
   }
 }

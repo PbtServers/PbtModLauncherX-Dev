@@ -1,7 +1,7 @@
 import { MediaData, ThemeData } from '@xmcl/runtime-api'
 import { BackgroundType, ParticleMode, UIThemeData, UIThemeDataV1 } from '../composables/theme'
 
-export function loadV1Theme(): UIThemeDataV1 {
+export function loadV1Theme(): UIThemeDataV1 | undefined {
   const name = localStorage.getItem('selectedThemeName')
   const themeDark = localStorage.getItem('darkTheme')
   const isDark = themeDark === 'dark'
@@ -13,13 +13,26 @@ export function loadV1Theme(): UIThemeDataV1 {
   const parsed = themes ? JSON.parse(themes) as Record<string, UIThemeData> : {}
   const legacy = parsed[name ?? 'default'] as UIThemeData
 
+  if (!legacy) {
+    return
+  }
   const transformed = getV1Theme(legacy, isDark)
   return transformed
 }
 
+/**
+ * Remove the legacy v0 localStorage entries that {@link loadV1Theme} reads
+ * from. After a successful one-shot migration the app should call this so
+ * future loads come from the backend instead of reviving the stale snapshot.
+ */
+export function clearLegacyThemeStorage() {
+  localStorage.removeItem('selectedThemeName')
+  localStorage.removeItem('darkTheme')
+  localStorage.removeItem('themes')
+}
+
 export function deserialize(data: ThemeData): UIThemeDataV1 {
   const theme: UIThemeDataV1 = {
-    name: data.name,
     backgroundMusic: [],
     colors: {} as any,
     backgroundImageFit: 'cover',
@@ -80,7 +93,6 @@ export function deserialize(data: ThemeData): UIThemeDataV1 {
 
 function getV1Theme(ui: UIThemeData, dark: boolean) {
   const newData: UIThemeDataV1 = {} as any
-  newData.name = ui.name
   newData.colors = ui.colors
   newData.blur = {
     appBar: ui.blurAppBar,

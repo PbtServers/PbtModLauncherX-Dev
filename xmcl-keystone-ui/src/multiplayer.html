@@ -12,7 +12,8 @@
 
 <body class="flex-1 overflow-y-auto">
     <div id="app"></div>
-    <script type="module" src="./windows/app/index.ts"></script>
+    <script>if (!window.location.hash) window.location.hash = '/multiplayer'</script>
+    <script type="module" src="./windows/main/index.ts"></script>
 </body>
 
 </html>

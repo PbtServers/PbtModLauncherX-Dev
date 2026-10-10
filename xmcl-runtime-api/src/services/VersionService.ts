@@ -1,7 +1,13 @@
-import type { ResolvedVersion } from '@xmcl/core'
+import type { ResolvedVersion, ResolvedServerVersion } from '@xmcl/core'
 import { ServiceKey } from './Service'
 import { SharedState } from '../util/SharedState'
-import { LocalVersions, ResolvedServerVersion } from '../entities/version'
+import { LocalVersions } from '../entities/version'
+import { Task } from '../task'
+
+export interface MigrateMinecraftTask extends Task {
+  type: 'migrateMinecraft'
+  from: string
+}
 
 /**
  * The local version service maintains the installed versions on disk

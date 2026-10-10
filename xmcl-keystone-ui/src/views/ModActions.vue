@@ -1,18 +1,28 @@
 <template>
-  <div class="flex items-center justify-end gap-3">
+  <div
+    v-roving-tabindex
+    role="toolbar"
+    aria-orientation="horizontal"
+    :aria-label="t('mod.name', 2)"
+    class="flex items-center justify-end gap-3"
+  >
     <v-btn
-      v-shared-tooltip="_ => 'Alt'"
+      v-if="i18nEnabled"
+      v-shared-tooltip="() => 'Alt'"
       icon
-      large
+      variant="text"
+      size="large"
+      :aria-pressed="isEnabledState"
       :class="{ 'v-btn--active': isEnabledState }"
       @click="isEnabledState = !isEnabledState"
     >
       <v-icon>translate</v-icon>
     </v-btn>
     <v-btn
-      v-shared-tooltip="_ => t('mod.showDirectory')"
+      v-shared-tooltip="() => t('mod.showDirectory')"
       icon
-      large
+      size="large"
+      variant="text"
       @click="showDirectory(path)"
     >
       <v-icon>folder</v-icon>
@@ -20,13 +30,15 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { useService } from '@/composables'
+import { useAutoI18nEnabled, useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
 import { kLocalizedContent } from '@/composables/localizedContent'
+import { vRovingTabindex } from '@/directives/rovingTabindex'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
 import { InstanceModsServiceKey } from '@xmcl/runtime-api'
 
+const i18nEnabled = useAutoI18nEnabled()
 const { showDirectory } = useService(InstanceModsServiceKey)
 const { path } = injection(kInstance)
 const { isEnabledState } = injection(kLocalizedContent)

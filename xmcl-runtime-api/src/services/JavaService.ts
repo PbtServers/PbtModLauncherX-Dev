@@ -1,9 +1,7 @@
-import { JavaVersion } from '@xmcl/core'
-import { JavaRecord } from '../entities/java'
-import { Java } from '../entities/java.schema'
-import { SharedState } from '../util/SharedState'
-import { ServiceKey } from './Service'
-import { JavaRuntimeTarget, JavaRuntimeTargetType, JavaRuntimes } from '@xmcl/installer'
+import type { JavaRecord } from '../entities/java'
+import type { Java } from '../entities/java.schema'
+import type { SharedState } from '../util/SharedState'
+import type { ServiceKey } from './Service'
 
 export class JavaState {
   all = [] as JavaRecord[]
@@ -39,17 +37,8 @@ export class JavaState {
   }
 }
 
-export interface InstallJavaOptions {
-  javaVersion: JavaVersion
-  forceZulu?: boolean
-}
-
 export interface JavaService {
   getJavaState(): Promise<SharedState<JavaState>>
-  /**
-   * Install a default java a preserved location. It'll be installed under your launcher root location `jre` or `jre-next` folder
-   */
-  installJava(version?: JavaVersion, forceZulu?: boolean): Promise<Java>
   /**
    * Resolve java info. If the java is not known by launcher. It will cache it into the launcher java list.
    */

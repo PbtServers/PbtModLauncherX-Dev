@@ -9,7 +9,8 @@ import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
 import { ProjectEntry } from '@/util/search'
 import { getExpectedSize } from '@/util/size'
-import { InstanceResourcePacksServiceKey, RuntimeVersions } from '@xmcl/runtime-api'
+import { RuntimeVersions } from '@xmcl/instance'
+import { InstanceResourcePacksServiceKey } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   resourcePack: ProjectEntry<InstanceResourcePack>
@@ -44,7 +45,7 @@ const versions = computed(() => {
 })
 
 const installedVersions = versions
-const selectedVersion = ref(installedVersions.value[0] ?? versions.value[0])
+const selectedVersion = shallowRef(installedVersions.value[0] ?? versions.value[0])
 provide('selectedVersion', selectedVersion)
 watch(installedVersions, (v) => {
   if (v) {
@@ -101,7 +102,7 @@ const { path } = injection(kInstance)
 const onDelete = async () => {
   updating.value = true
   disable(props.installed)
-  await uninstall(path.value, props.installed.map(i => i.path))
+  await uninstall({ path: path.value, files: props.installed.map(i => i.path) })
 }
 
 const { enable, disable } = injection(kInstanceResourcePacks)

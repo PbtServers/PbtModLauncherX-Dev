@@ -1,0 +1,63 @@
+name: Core Build
+
+on:
+  push:
+    branches: 
+      - master
+    paths:
+      - 'packages/*/*.ts'
+      - 'packages/*/package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/**'
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release)') }}
+
+    strategy:
+      matrix:
+        node-version: [22]
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+        # Treeless clone: commit graph only, blobs on demand.
+        filter: blob:none
+    - uses: pnpm/action-setup@v6
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v5
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'pnpm'
+    - uses: actions/setup-java@v5
+      with:
+        java-version: '12.X'
+        architecture: x64
+        distribution: zulu
+    - name: Install
+      run: |
+        pnpm install --frozen-lockfile
+      env:
+        CI: true
+    - name: Lint
+      run: |
+        pnpm lint
+    - name: Test
+      run: |
+        pnpm coverage
+    - name: Build
+      run: |
+        pnpm --parallel build:type
+        pnpm --parallel build:cjs
+        pnpm --parallel build:esm
+        pnpm --parallel build:browser
+    - name: Upload Coverage
+      uses: actions/upload-artifact@v6
+      with:
+        name: coverage
+        path: coverage
+
+

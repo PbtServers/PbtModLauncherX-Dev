@@ -1,8 +1,8 @@
-import { computed, del, InjectionKey, reactive, Ref, set, toRefs } from 'vue'
+import { computed, InjectionKey, reactive, Ref, toRefs } from 'vue'
 import { GameProfileAndTexture, OfficialUserServiceKey, UserProfile, UserServiceKey, UserState } from '@xmcl/runtime-api'
 
 import { useService } from '@/composables'
-import { useLocalStorageCacheStringValue } from './cache'
+import { useLocalStorage } from '@vueuse/core'
 import { useState } from './syncableState'
 import { GameProfile } from '@xmcl/user'
 
@@ -14,51 +14,60 @@ const NO_USER_PROFILE: UserProfile = Object.freeze({
   profiles: {},
   id: '',
   username: '',
-  expiredAt: -1,
-})
+  expiredAt: -1 })
 const NO_GAME_PROFILE: GameProfileAndTexture = Object.freeze({
   id: '',
   name: '',
-  textures: { SKIN: { url: '' } },
-})
+  textures: { SKIN: { url: '' } } })
 
 export const kUserContext: InjectionKey<ReturnType<typeof useUserContext>> = Symbol('UserContext')
 
 export function useUserContext() {
-  const { getUserState, refreshUser } = useService(UserServiceKey)
+  const { getUserState } = useService(UserServiceKey)
   const { state, isValidating, error } = useState(getUserState, class extends UserState {
     override gameProfileUpdate({ profile, userId }: { userId: string; profile: (GameProfileAndTexture | GameProfile) }) {
       const userProfile = this.users[userId]
-      if (profile.id in userProfile.profiles) {
-        const instance = { textures: { SKIN: { url: '' } }, ...profile }
-        set(userProfile.profiles, profile.id, instance)
-      } else {
-        userProfile.profiles[profile.id] = {
-          textures: { SKIN: { url: '' } },
-          ...profile,
-        }
+      if (!userProfile) return
+      const instance = { textures: { SKIN: { url: '' } }, ...profile }
+      // Replace the entire user object so the computed chain propagates
+      // through the shallowRef (same object reference === no reactivity)
+      this.users[userId] = {
+        ...userProfile,
+        profiles: {
+          ...userProfile.profiles,
+          [profile.id]: instance,
+        },
       }
     }
 
     override userProfileRemove(userId: string) {
-      del(this.users, userId)
+      delete this.users[userId]
     }
 
     override userProfile(user: UserProfile) {
+      // MUST replace the user object entirely (not mutate in-place).
+      // The state is a shallowRef; triggerRef(state) forces `userProfile`
+      // computed to re-run, but if it returns the same object reference,
+      // Vue won't propagate to dependents like `gameProfile`.
+      // By creating a new object, the computed returns a fresh reference
+      // and the entire reactive chain updates correctly.
       if (this.users[user.id]) {
         const current = this.users[user.id]
-        current.avatar = user.avatar
-        current.expiredAt = user.expiredAt
-        current.profiles = user.profiles
-        current.username = user.username
-        current.selectedProfile = user.selectedProfile
-        current.invalidated = user.invalidated
+        this.users[user.id] = {
+          ...current,
+          avatar: user.avatar,
+          expiredAt: user.expiredAt,
+          profiles: user.profiles,
+          username: user.username,
+          selectedProfile: user.selectedProfile,
+          invalidated: user.invalidated,
+        }
       } else {
-        set(this.users, user.id, user)
+        this.users[user.id] = user
       }
     }
   })
-  const selectedUserId = useLocalStorageCacheStringValue('selectedUserId', '' as string)
+  const selectedUserId = useLocalStorage('selectedUserId', '', { writeDefaults: false })
   const userProfile: Ref<UserProfile> = computed(() => state.value?.users[selectedUserId.value] ?? NO_USER_PROFILE)
   const gameProfile: Ref<GameProfileAndTexture> = computed(() => userProfile.value.profiles[userProfile.value.selectedProfile] ?? NO_GAME_PROFILE)
   const users = computed(() => Object.values(state.value?.users || {}))
@@ -73,8 +82,6 @@ export function useUserContext() {
       if (first) {
         select(first.id)
       }
-    } else {
-      refreshUser(profile.id)
     }
   }, { immediate: true })
 
@@ -95,30 +102,37 @@ export function useUserContext() {
     error,
     select,
     userProfile,
-    gameProfile,
-  }
+    gameProfile }
 }
 
 export function useUserExpired(user: Ref<UserProfile | undefined>) {
   return computed(() => !user.value || user.value?.invalidated || user.value.expiredAt < Date.now())
 }
 
-export function useLoginValidation(isOffline: Ref<boolean>) {
+export const isValidEmail = (value: string) => /^[\w-]+(?:\.[\w-]+)*@[\w-]+(?:\.[\w-]+)*\.\w{2,6}$/.test(value)
+
+export function useLoginValidation(emailOnly: Ref<boolean>, isOffline?: Ref<boolean>, allowLegacyOfflineNames = false) {
   const { t } = useI18n()
-  const nameRules = [(v: unknown) => !!v || t('loginError.requireUsername')]
+  const nameRules = computed(() => {
+    const rules: ((v: any) => string | boolean)[] = [
+      (v: unknown) => !!v || t('loginError.requireUsername')
+    ]
+    if (isOffline?.value && !allowLegacyOfflineNames) {
+      rules.push((v: string) => !/[а-яА-ЯёЁ]/.test(v) || t('loginError.cyrillicNotAllowed'))
+      rules.push((v: string) => /^[a-zA-Z0-9_]{3,16}$/.test(v) || t('loginError.illegalOfflineUsername'))
+    }
+    return rules
+  })
   const emailRules = [
     (v: unknown) => !!v || t('loginError.requireEmail'),
-    (v: string) => /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,6})+$/.test(v) ||
+    (v: string) => isValidEmail(v) ||
       t('loginError.illegalEmail'),
   ]
   const passwordRules = [(v: unknown) => !!v || t('loginError.requirePassword')]
-  const usernameRules = computed(() => (isOffline.value
-    ? nameRules
-    : emailRules))
+  const usernameRules = computed(() => emailOnly.value ? emailRules : nameRules.value)
   return {
     usernameRules,
-    passwordRules,
-  }
+    passwordRules }
 }
 
 export function useMojangSecurityStatus() {
@@ -126,8 +140,7 @@ export function useMojangSecurityStatus() {
 
   return {
     security,
-    refreshing: ref(false),
-  }
+    refreshing: ref(false) }
 }
 
 export function useMojangSecurity(profile: Ref<UserProfile>) {
@@ -147,8 +160,7 @@ export function useMojangSecurity(profile: Ref<UserProfile>) {
   const data = reactive({
     loading: false,
     challenges: [] as MojangChallenge[],
-    error: undefined as any,
-  })
+    error: undefined as any })
   async function check() {
     try {
       if (data.loading) return
@@ -181,6 +193,5 @@ export function useMojangSecurity(profile: Ref<UserProfile>) {
     refreshing,
     security,
     check,
-    submit,
-  }
+    submit }
 }

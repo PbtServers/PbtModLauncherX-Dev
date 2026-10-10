@@ -6,24 +6,33 @@
       position: 'relative',
       width: '100%',
       marginTop: `${-offsetTop}px`,
+      zIndex: 0,
     }"
   >
+    <v-skeleton-loader
+      v-if="loading"
+      class="mt-1.5"
+      type="list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line"
+    />
     <div
       v-for="virtualRow in virtualRows"
       :key="flattened[virtualRow.index].data.path"
       :ref="measureElement"
       :data-index="virtualRow.index"
       :style="{
+        display: loading ? 'none' : 'block',
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
-        transform: `translateY(${virtualRow.start}px)`
+        transform: `translateY(${virtualRow.start}px)`,
+        zIndex: 0,
       }"
     >
       <InstanceManifestFileItem
         :value="isSelected(flattened[virtualRow.index])"
         :open="isOpen(flattened[virtualRow.index])"
+        :indeterminate="isPartial(flattened[virtualRow.index])"
         :item="flattened[virtualRow.index]"
         :description="getDescription(flattened[virtualRow.index].data)"
         :selectable="selectable"
@@ -49,17 +58,32 @@ import { injection } from '@/util/inject'
 import { useVirtualizer, VirtualItem, VirtualizerOptions } from '@tanstack/vue-virtual'
 import InstanceManifestFileItem from './InstanceManifestFileItem.vue'
 import { flatTree, treeItemKey, TreeItem } from '@/util/tree'
+import { useVModel } from '@vueuse/core'
 
-const props = defineProps<{
-  value: string[]
+enum CheckedState {
+  Unchecked = 0,
+  Checked = 1,
+  Partial = 2
+}
+
+const props = withDefaults(defineProps<{
+  modelValue?: string[]
   selectable?: boolean
   openAll?: boolean
   scrollElement?: HTMLElement | null
+  loading?: boolean
+}>(), {
+  modelValue: () => [],
+})
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string[]): void
 }>()
+const model = useVModel(props, 'modelValue', emit)
 
 const { t } = useI18n()
 
-const containerRef = ref<HTMLElement | null>(null)
+const containerRef = shallowRef<HTMLElement | null>(null)
 const offsetTop = ref(0)
 
 watch(containerRef, container => {
@@ -68,7 +92,7 @@ watch(containerRef, container => {
   }
 })
 
-const opened = ref<string[]>([])
+const opened = shallowRef<string[]>([])
 const isOpen = (item: TreeItem<InstanceFileNode<any>>) => {
   let result = opened.value.includes(treeItemKey(item))
   if (props.openAll) result = !result
@@ -76,10 +100,15 @@ const isOpen = (item: TreeItem<InstanceFileNode<any>>) => {
   return result
 }
 
-const isSelected = (item: TreeItem<InstanceFileNode<any>>|undefined): boolean =>
+const isSelected = (item: TreeItem<InstanceFileNode<any>> | InstanceFileNode<any> | undefined): boolean => {
+  if (!item) return false
+  const data = ('data' in item) ? item.data : item
+  return !!data && checkedStates.value[data.path] === CheckedState.Checked
+}
+
+const isPartial = (item: TreeItem<InstanceFileNode<any>> | undefined): boolean =>
   !!item?.data &&
-  (checkedFolders.value.includes(item.data.path) ||
-    props.value.includes(item.data.path))
+  (checkedStates.value[(item.data.path)] === CheckedState.Partial)
 
 const toggleOpen = (item: TreeItem<InstanceFileNode<any>>) => {
   if (!item.data.children) {
@@ -87,21 +116,20 @@ const toggleOpen = (item: TreeItem<InstanceFileNode<any>>) => {
     return
   }
 
-  const index = opened.value.indexOf(treeItemKey(item))
+  const key = treeItemKey(item)
+  const index = opened.value.indexOf(key)
   if (index >= 0) {
-    opened.value.splice(index, 1)
+    opened.value = opened.value.filter((_, i) => i !== index)
   } else {
-    opened.value.push(treeItemKey(item))
+    opened.value = [...opened.value, key]
   }
 }
 
 const toggleValue = (item: TreeItem<InstanceFileNode<any>>) => {
+  const current = props.modelValue ?? []
   if (item.data.children) {
-    if (checkedFolders.value.includes(item.data.path)) {
-      for (let i = props.value.length - 1; i > 0; i--) {
-        const v = props.value[i]
-        if (v.startsWith(item.data.path + '/')) props.value.splice(i, 1)
-      }
+    if (checkedStates.value[item.data.path] === CheckedState.Checked) {
+      model.value = current.filter(v => !v.startsWith(item.data.path + '/'))
     } else {
       const targets: string[] = []
 
@@ -115,7 +143,7 @@ const toggleValue = (item: TreeItem<InstanceFileNode<any>>) => {
           }
 
           if (!file.path.startsWith(prefix)) continue
-          if (props.value.includes(file.path)) continue
+          if (current.includes(file.path)) continue
 
           targets.push(file.path)
         }
@@ -123,42 +151,40 @@ const toggleValue = (item: TreeItem<InstanceFileNode<any>>) => {
 
       recurse(files.value)
 
-      props.value.push(...targets)
+      model.value = [...current, ...targets]
     }
   } else {
-    const idx = props.value.indexOf(item.data.path)
-    if (idx >= 0) props.value.splice(idx, 1)
-    else props.value.push(item.data.path)
+    const idx = current.indexOf(item.data.path)
+    if (idx >= 0) model.value = current.filter((_, i) => i !== idx)
+    else model.value = [...current, item.data.path]
   }
 }
 
 const files = injection(FileNodesSymbol)
 const flattened = ref<TreeItem<InstanceFileNode<any>>[]>([])
-const checkedFilesSets = computed(() => new Set(props.value))
 
-const checkedFolders = computed(() => {
-  const result: string[] = []
-  const recurse = (items: InstanceFileNode<any>): boolean => {
-    let match = true
-
-    for (const item of items.children!) {
-      if (item.children) {
-        if (recurse(item)) result.push(item.path)
-        else match = false
-        continue
-      }
-
-      if (!checkedFilesSets.value.has(item.path)) {
-        match = false
-        continue
-      }
+const checkedStates = computed(() => {
+  const checkedSet = props.modelValue ?? []
+  const result: Record<string, CheckedState> = {}
+  const getState = (node: InstanceFileNode<any>): CheckedState => {
+    if (!node.children) {
+      return checkedSet.includes(node.path) ? CheckedState.Checked : CheckedState.Unchecked
     }
-    return match
+    let some = 0
+    let all = 1
+    for (const child of node.children) {
+      const state = getState(child)
+      result[child.path] = state
+      some |= state
+      all &= state
+    }
+    if (some === 0) return CheckedState.Unchecked
+    if (all === 1) return CheckedState.Checked
+    return CheckedState.Partial
   }
 
   for (const file of files.value) {
-    if (!file.children) continue
-    if (recurse(file)) result.push(file.path)
+    result[file.path] = getState(file)
   }
 
   return result

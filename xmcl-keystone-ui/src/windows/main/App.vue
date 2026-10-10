@@ -1,45 +1,49 @@
 <template>
-  <v-app v-if="!showSetup" class="h-full max-h-screen overflow-auto overflow-x-hidden" :class="{ 'dark': isDark }">
+  <v-app v-if="!showSetup" class="h-full max-h-screen overflow-hidden select-none" :class="{ 'dark': isDark }">
     <AppBackground />
     <div class="w-full h-full absolute left-0 header-overlay" :style="{
-      height: headerHeight + (compact ? 30 : 70) + 'px',
-      'background-image': `linear-gradient(${appBarColor}, transparent)`
+      height: headerHeight + 70 + 'px',
+      'background-image': `linear-gradient(${appBarColor} 0%, color-mix(in srgb, ${appBarColor}, transparent) 65%, transparent 100%)`
     }">
     </div>
-    <AppSystemBar />
-    <div class="relative flex h-full overflow-auto">
-      <AppSideBar />
-      <main class="relative inset-y-0 right-0 flex max-h-full flex-col overflow-auto">
-        <transition name="fade-transition" mode="out-in">
-          <router-view class="z-2" />
-        </transition>
+    <AppSystemBar :back="sidebarStyle === 'notch'" />
+    <div
+      class="app-layout flex-grow relative flex overflow-auto"
+      :class="[layoutClasses, { 'workspace-side-panel-attached': hasAttachedWorkspacePanel }]"
+    >
+      <AppSideBarClassic v-if="sidebarStyle === 'classic'" />
+      <AppSideBarNotch v-else />
+      <main class="relative flex max-h-full flex-1 flex-col overflow-auto" :class="mainClasses">
+        <router-view v-slot="{ Component }">
+          <transition name="fade-transition" mode="out-in">
+            <component :is="Component" class="z-2" />
+          </transition>
+        </router-view>
       </main>
     </div>
-    <!-- <AppDropDialog /> -->
     <AppContextMenu />
     <AppNotifier />
-    <AppFeedbackDialog />
-    <AppTaskDialog />
+    <AppOmniDialog :agent-enabled="true" />
     <AppAddInstanceDialog />
-    <AppExportDialog />
-    <AppShareInstanceDialog />
-    <AppInstanceDeleteDialog />
+    <AppImportUrlDialog />
     <AppGameExitDialog />
-    <AppLaunchBlockedDialog />
+    <AppUnauthenticatedWarningDialog />
+    <AppMultiplayerLoginDialog />
     <AppImageDialog />
-    <AppLaunchServerDialog />
     <AppSharedTooltip />
-    <AppInstallSkipDialog />
-    <AppMigrateWizardDialog />
-    <AppExportServerDialog />
-    <AppModrinthLoginDialog />
+    <UserProfileDialog :value="userProfileDialogShown" @input="userProfileDialogShown = $event" />
+    <component :is="lazyDialogComponent" v-if="lazyDialogComponent" />
+    <AppSideBarGroupSettingDialog :default-color="defaultColor" />
+    <AppGamepadPrompt />
   </v-app>
-  <v-app v-else class="h-full max-h-screen overflow-auto overflow-x-hidden" :class="{ 'dark': isDark }">
+  <v-app v-else class="h-full max-h-screen overflow-hidden" :class="{ 'dark': isDark }">
     <AppSystemBar no-user no-task />
-    <div class="relative flex h-full overflow-auto">
+    <div class="app-layout relative flex min-h-0 flex-1 overflow-hidden">
       <Setup @ready="onReady" />
     </div>
-    <AppFeedbackDialog />
+    <UserProfileDialog :value="userProfileDialogShown" @input="userProfileDialogShown = $event" />
+    <component :is="lazyDialogComponent" v-if="lazyDialogComponent" />
+    <AppGamepadPrompt />
   </v-app>
 </template>
 
@@ -48,55 +52,113 @@ import '@/assets/common.css'
 import AppImageDialog from '@/components/AppImageDialog.vue'
 import AppSharedTooltip from '@/components/AppSharedTooltip.vue'
 import { useAuthProfileImportNotification } from '@/composables/authProfileImport'
-import { useLocalStorageCacheBool } from '@/composables/cache'
+import { useAgentChatHotkey } from '@/composables/agentChat'
+import { useModpackUrlPaste } from '@/composables/modpackPaste'
+import { kAgent, installAgentDevLauncher, useAgent } from '@/composables/agent'
+import { useCommandPaletteHotkey } from '@/composables/commandPalette'
+import { kDialogModel } from '@/composables/dialog'
 import { useDefaultErrorHandler } from '@/composables/errorHandler'
 import { kInstance } from '@/composables/instance'
+import { kInstanceLaunchCoordinator, useInstanceLaunchCoordinator } from '@/composables/instanceLaunchCoordinator'
 import { kLaunchButton, useLaunchButton } from '@/composables/launchButton'
 import { kLocalizedContent, useLocalizedContentControl } from '@/composables/localizedContent'
 import { useNotifier } from '@/composables/notifier'
 import { kCompact } from '@/composables/scrollTop'
 import { kSettingsState } from '@/composables/setting'
 import { kTheme } from '@/composables/theme'
-import { kInFocusMode, kUILayout } from '@/composables/uiLayout'
+import { kInFocusMode } from '@/composables/uiLayout'
+import { kSidebarSettings, useInjectSidebarSettings, useSidebarSettings } from '@/composables/sidebarSettings'
 import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
 import AppAddInstanceDialog from '@/views/AppAddInstanceDialog.vue'
+import AppImportUrlDialog from '@/views/AppImportUrlDialog.vue'
 import AppBackground from '@/views/AppBackground.vue'
+import AppOmniDialog from '@/views/AppOmniDialog.vue'
 import AppContextMenu from '@/views/AppContextMenu.vue'
-import AppExportDialog from '@/views/AppExportDialog.vue'
-import AppExportServerDialog from '@/views/AppExportServerDialog.vue'
-import AppFeedbackDialog from '@/views/AppFeedbackDialog.vue'
 import AppGameExitDialog from '@/views/AppGameExitDialog.vue'
-import AppInstallSkipDialog from '@/views/AppInstallSkipDialog.vue'
-import AppInstanceDeleteDialog from '@/views/AppInstanceDeleteDialog.vue'
-import AppLaunchBlockedDialog from '@/views/AppLaunchBlockedDialog.vue'
-import AppLaunchServerDialog from '@/views/AppLaunchServerDialog.vue'
-import AppMigrateWizardDialog from '@/views/AppMigrateWizardDialog.vue'
-import AppModrinthLoginDialog from '@/views/AppModrinthLoginDialog.vue'
+import AppMultiplayerLoginDialog from '@/views/AppMultiplayerLoginDialog.vue'
+import AppUnauthenticatedWarningDialog from '@/views/AppUnauthenticatedWarningDialog.vue'
+import UserProfileDialog from '@/components/UserProfileDialog.vue'
 import AppNotifier from '@/views/AppNotifier.vue'
-import AppShareInstanceDialog from '@/views/AppShareInstanceDialog.vue'
-import AppSideBar from '@/views/AppSideBar.vue'
+import AppSideBarClassic from '@/views/AppSideBarClassic.vue'
+import AppSideBarNotch from '@/views/AppSideBarNotch.vue'
 import AppSystemBar from '@/views/AppSystemBar.vue'
-import AppTaskDialog from '@/views/AppTaskDialog.vue'
 import Setup from '@/views/Setup.vue'
-import { useLocalStorage, useMediaQuery } from '@vueuse/core'
+import { useLocalStorage, useMediaQuery, usePreferredColorScheme, usePreferredDark } from '@vueuse/core'
+import { kInstanceLauncher, useInstanceLauncher } from '@/composables/instanceLauncher'
+import { kMinecraftFriends, useMinecraftFriendsImpl } from '@/composables/minecraftFriends'
+import { useUserMenuControl } from '@/composables/userMenu'
+import { UserSkinRenderPaused } from '@/composables/userSkin'
+import AppSideBarGroupSettingDialog from '@/views/AppSideBarGroupSettingDialog.vue'
+import AppGamepadPrompt from '@/views/AppGamepadPrompt.vue'
+import { useInstanceGroupDefaultColor } from '@/composables/instanceGroup'
+import { kMultiplayerEntry, useMultiplayerEntry } from '@/composables/multiplayerEntry'
+
+const lazyDialogComponents = {
+  'task': defineAsyncComponent(() => import('@/views/AppTaskDialog.vue')),
+  'feedback': defineAsyncComponent(() => import('@/views/AppFeedbackDialog.vue')),
+  'share-instance': defineAsyncComponent(() => import('@/views/AppShareInstanceDialog.vue')),
+  'delete-instance': defineAsyncComponent(() => import('@/views/AppInstanceDeleteDialog.vue')),
+  'launch-blocked': defineAsyncComponent(() => import('@/views/AppLaunchBlockedDialog.vue')),
+  'InstanceInstallSkipDialog': defineAsyncComponent(() => import('@/views/AppInstallSkipDialog.vue')),
+  'modpack-update-or-create': defineAsyncComponent(() => import('@/views/AppModpackUpdateDialog.vue')),
+  'instance-server-edit': defineAsyncComponent(() => import('@/views/AppJoinServerDialog.vue')),
+  'migrate-wizard': defineAsyncComponent(() => import('@/views/AppMigrateWizardDialog.vue')),
+  'minecraft-friends': defineAsyncComponent(() => import('@/views/AppMinecraftFriendsDialog.vue')),
+  'mod-group-select': defineAsyncComponent(() => import('@/views/ModGroupSelectDialog.vue')),
+  'modrinth-login': defineAsyncComponent(() => import('@/views/AppModrinthLoginDialog.vue')),
+  'modrinth-project-create': defineAsyncComponent(() => import('@/views/AppModrinthProjectCreateDialog.vue')),
+  'modrinth-project-bind': defineAsyncComponent(() => import('@/views/AppModrinthProjectBindDialog.vue')),
+  'modrinth-version-publish': defineAsyncComponent(() => import('@/views/AppModrinthVersionPublishDialog.vue')),
+}
 
 const showSetup = ref(location.search.indexOf('bootstrap') !== -1)
 const { state } = injection(kSettingsState)
+const dialogModel = injection(kDialogModel)
+const lazyDialogComponent = computed(() => lazyDialogComponents[dialogModel.current.value.dialog as keyof typeof lazyDialogComponents])
+const developerMode = computed(() => state.value?.developerMode ?? false)
 
-provide('streamerMode', useLocalStorageCacheBool('streamerMode', false))
+
+provide('streamerMode', useLocalStorage('streamerMode', false, { writeDefaults: false }))
 provide(kLocalizedContent, useLocalizedContentControl())
+provide(kInstanceLauncher, useInstanceLauncher())
+provide(kMinecraftFriends, useMinecraftFriendsImpl())
 
-const layout = injection(kUILayout)
+// Agent must run in App.vue (not Context.ts) because its tool factory
+// injects kInstance/kInstanceMods/... which are provided by Context itself,
+// and `inject` only resolves on descendants.
+const agent = useAgent()
+provide(kAgent, agent)
+// Keep the window.__xmcl_agent debug surface restricted to developer mode.
+installAgentDevLauncher(agent, developerMode)
+
+// User profile dialog — moved from AppSystemBarUserMenu to App root
+const userMenu = useUserMenuControl()
+const userProfileDialogShown = userMenu.shown
+const route = useRoute()
+const hasAttachedWorkspacePanel = computed(
+  () => route.meta.workspaceSidePanel === true && sidebarPosition.value === 'left',
+)
+provide(UserSkinRenderPaused, computed(() => !userProfileDialogShown.value && route.path !== '/me'))
+
+// Bind Ctrl/Cmd+Shift+C to open the command palette.
+useCommandPaletteHotkey()
+// Bind Ctrl/Cmd+Shift+A to open the agent chat panel.
+useAgentChatHotkey()
+// Bind Ctrl/Cmd+V to import modpack from clipboard URL.
+useModpackUrlPaste()
+
+const defaultColor = useInstanceGroupDefaultColor()
+
 const modes = useLocalStorage('instanceEnabledDashboard', {} as Record<string, boolean>)
 const { path } = injection(kInstance)
-const isLessThan490px = useMediaQuery('(max-height: 490px)')
+const isLessThan490px = useMediaQuery('(max-height: 570px)')
 provide(kInFocusMode, computed({
   get() {
     const less = isLessThan490px.value
     const isDashboard = modes.value[basename(path.value)]
     if (isDashboard === undefined) {
-      return layout.value === 'focus' ? true : false
+      return true // 'focus' is default
     }
     if (less) {
       return false
@@ -110,18 +172,54 @@ provide(kInFocusMode, computed({
 }))
 
 provide(kLaunchButton, useLaunchButton())
+provide(kInstanceLaunchCoordinator, useInstanceLaunchCoordinator())
+provide(kMultiplayerEntry, useMultiplayerEntry())
+
+const sidebarSettings = useSidebarSettings()
+provide(kSidebarSettings, sidebarSettings)
+const sidebarPosition = computed(() => sidebarSettings.position.value)
+const sidebarStyle = computed(() => sidebarSettings.style.value)
+
+const layoutClasses = computed(() => ({
+  'flex-row': sidebarPosition.value === 'left' || sidebarPosition.value === 'right',
+  'flex-col': sidebarPosition.value === 'top' || sidebarPosition.value === 'bottom',
+  'flex-row-reverse': sidebarPosition.value === 'right',
+  'flex-col-reverse': sidebarPosition.value === 'bottom',
+}))
+
+const mainClasses = computed(() => ({
+  'inset-y-0': sidebarPosition.value === 'left' || sidebarPosition.value === 'right',
+  'inset-x-0': sidebarPosition.value === 'top' || sidebarPosition.value === 'bottom',
+}))
 
 const compact = ref(false)
 provide(kCompact, compact)
 
-const onReady = () => {
-  showSetup.value = false
-}
-
 const headerHeight = ref(0)
 provide('headerHeight', headerHeight)
 
-const { appBarColor } = injection(kTheme)
+const { appBarColor, dark } = injection(kTheme)
+
+watch(dark, (newVal) => {
+  state.value?.themeSet(newVal === 'system' ? newVal : newVal ? 'dark' : 'light')
+}, { immediate: true })
+
+// Set the selected theme
+const onReady = async (data: any) => {
+  await nextTick()
+  showSetup.value = false
+  await nextTick()
+  if (state.value) {
+    state.value.themeSet(data.theme)
+  } else {
+    const unwatch = watch(state, (state) => {
+      if (state) {
+        state.themeSet(data.theme)
+      }
+      unwatch()
+    })
+  }
+}
 
 // color theme sync
 const { isDark } = injection(kTheme)
@@ -133,6 +231,7 @@ useAuthProfileImportNotification(notify)
 </script>
 
 <style scoped>
+
 .clip-head {
   clip-path: inset(0px 30px 30px 0px) !important;
   width: 64px;
@@ -148,5 +247,15 @@ img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+.workspace-side-panel-attached :deep(.sidebar) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.workspace-side-panel-attached :deep(.sidebar-notch--left .sidebar-notch__container) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 </style>

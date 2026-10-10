@@ -1,150 +1,156 @@
 <template>
   <v-dialog
     v-model="isShown"
-    fullscreen
+    :fullscreen="!embedded"
+    :max-width="embedded ? 760 : undefined"
+    :width="embedded ? 'calc(100% - 48px)' : undefined"
     hide-overlay
     transition="dialog-bottom-transition"
     scrollable
   >
-    <v-stepper
-      v-model="step"
-      vertical
-    >
-      <v-stepper-step
-        :complete="step > 1"
-        step="1"
-      >
-        {{ t('multiplayer.initiateConnection') }}
-      </v-stepper-step>
-      <v-stepper-content step="1">
-        <div class="flex items-center justify-center">
-          <div>
-            {{ t('multiplayer.startNewP2PConnection') }}
-            <p class="text-sm text-gray-400">
-              {{ t('multiplayer.joinConnection') }}
-            </p>
-          </div>
-          <div class="flex-grow" />
-          <v-btn
-            text
-            outlined
-            color="primary"
-            @click="initiate"
-          >
-            {{ t('multiplayer.start') }}
-          </v-btn>
-        </div>
-      </v-stepper-content>
+    <v-stepper v-model="step" :class="{ 'multiplayer-desktop-dialog': embedded }">
+      <v-stepper-header>
+        <v-stepper-item
+          :complete="step > 1"
+          :value="1"
+        >
+          {{ t('multiplayer.initiateConnection') }}
+        </v-stepper-item>
 
-      <v-stepper-step
-        :complete="step > 2"
-        :editable="step > 2"
-        step="2"
-      >
-        {{ t('multiplayer.createLocalToken') }}
-      </v-stepper-step>
-      <v-stepper-content
-        step="2"
-      >
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center justify-center gap-2">
-            <div
-              class="max-w-160"
-              v-html="t('multiplayer.gatheringIce')"
-            />
+        <v-divider />
+
+        <v-stepper-item
+          :complete="step > 2"
+          :editable="step > 2"
+          :value="2"
+        >
+          {{ t('multiplayer.createLocalToken') }}
+        </v-stepper-item>
+
+        <v-divider />
+
+        <v-stepper-item
+          :value="3"
+        >
+          {{ t('multiplayer.enterRemoteToken') }}
+        </v-stepper-item>
+      </v-stepper-header>
+
+      <v-stepper-window>
+        <v-stepper-window-item :value="1">
+          <div class="pa-4 flex items-center justify-center">
+            <div>
+              {{ t('multiplayer.startNewP2PConnection') }}
+              <p class="text-sm text-gray-400">
+                {{ t('multiplayer.joinConnection') }}
+              </p>
+            </div>
             <div class="flex-grow" />
-            <div
-              v-if="gatheringState !== 'complete'"
-              class="text-gray-400"
+            <v-btn
+              color="primary"
+              variant="text"
+              @click="initiate"
             >
-              {{ t('peerIceGatheringState.gathering') }}
-              <v-progress-circular
-                class="ml-2"
-                :width="1"
-                :size="20"
-                indeterminate
+              {{ t('multiplayer.start') }}
+            </v-btn>
+          </div>
+        </v-stepper-window-item>
+
+        <v-stepper-window-item :value="2">
+          <div class="pa-4 flex flex-col gap-2">
+            <div class="flex items-center justify-center gap-2">
+              <div
+                class="max-w-160"
+                v-html="t('multiplayer.gatheringIce')"
               />
+              <div class="flex-grow" />
+              <div
+                v-if="gatheringState !== 'complete'"
+                class="text-gray-400"
+              >
+                {{ t('peerIceGatheringState.gathering') }}
+                <v-progress-circular
+                  class="ml-2"
+                  :width="1"
+                  :size="20"
+                  indeterminate
+                />
+              </div>
+            </div>
+            <v-textarea
+              :value="localDescription"
+              class="mt-4"
+              outlined
+              readonly
+              :label="t('multiplayer.localToken')"
+              @mousedown="copyLocalDescription"
+            />
+            <div v-html="t('multiplayer.copyLocalHint')" />
+            <div class="mt-3 flex items-center justify-center gap-2 text-amber-500">
+              <v-btn
+                :disabled="!canCopy"
+                variant="text"
+                @click="copyLocalDescription"
+              >
+                <v-icon
+                  v-if="!copied"
+                  start
+                >
+                  content_copy
+                </v-icon>
+                <v-icon
+                  v-else
+                  start
+                  color="success"
+                >
+                  check
+                </v-icon>
+                {{ copied ? t('multiplayer.copied') : t('multiplayer.copy') }}
+              </v-btn>
+              <div class="flex-grow" />
+              <v-btn
+                :color="initiating ? '' : 'primary'"
+                :disabled="freeze || !canCopy"
+                variant="text"
+                @click="step++"
+              >
+                {{ t('multiplayer.next') }}
+              </v-btn>
             </div>
           </div>
-          <v-textarea
-            :value="localDescription"
-            class="mt-4"
-            outlined
-            readonly
-            :label="t('multiplayer.localToken')"
-            @mousedown="copyLocalDescription"
-          />
-          <div v-html="t('multiplayer.copyLocalHint')" />
-          <div class="mt-3 flex items-center justify-center gap-2 text-amber-500">
-            <v-btn
-              text
-              outlined
-              @click="copyLocalDescription"
-            >
-              <v-icon
-                v-if="!copied"
-                left
-              >
-                content_copy
-              </v-icon>
-              <v-icon
-                v-else
-                left
-                color="success"
-              >
-                check
-              </v-icon>
-              {{ copied ? t('multiplayer.copied') : t('multiplayer.copy') }}
-            </v-btn>
-            <div class="flex-grow" />
-            <v-btn
-              text
-              outlined
-              :color="initiating ? '' : 'primary'"
-              :disabled="freeze"
-              @click="step++"
-            >
-              {{ t('multiplayer.next') }}
-            </v-btn>
-          </div>
-        </div>
-      </v-stepper-content>
+        </v-stepper-window-item>
 
-      <v-stepper-step
-        step="3"
-      >
-        {{ t('multiplayer.enterRemoteToken') }}
-      </v-stepper-step>
-      <v-stepper-content step="3">
-        {{ t('multiplayer.enterRemoteTokenHint') }}
-        <v-textarea
-          v-model="remoteDescription"
-          outlined
-          class="mt-4 flex-grow-0"
-          :label="t('multiplayer.enterRemoteToken')"
-          :error="error"
-          :error-messages="errorText"
-        />
-        <div class="flex">
-          <v-btn
-            text
-            outlined
-            @click="step--"
-          >
-            {{ t('multiplayer.previous') }}
-          </v-btn>
-          <div class="flex-grow" />
-          <v-btn
-            text
-            outlined
-            color="primary"
-            :loading="connecting"
-            @click="connect"
-          >
-            {{ t('multiplayer.confirm') }}
-          </v-btn>
-        </div>
-      </v-stepper-content>
+        <v-stepper-window-item :value="3">
+          <div class="pa-4">
+            {{ t('multiplayer.enterRemoteTokenHint') }}
+            <v-textarea
+              v-model="remoteDescription"
+              outlined
+              class="mt-4 flex-grow-0"
+              :label="t('multiplayer.enterRemoteToken')"
+              :error="error"
+              :error-messages="errorText"
+            />
+            <div class="flex mt-3">
+              <v-btn
+                variant="text"
+                @click="step--"
+              >
+                {{ t('multiplayer.previous') }}
+              </v-btn>
+              <div class="flex-grow" />
+              <v-btn
+                color="primary"
+                :loading="connecting"
+                variant="text"
+                @click="connect"
+              >
+                {{ t('multiplayer.confirm') }}
+              </v-btn>
+            </div>
+          </div>
+        </v-stepper-window-item>
+      </v-stepper-window>
     </v-stepper>
   </v-dialog>
 </template>
@@ -156,6 +162,8 @@ import { createOfferAppUrl } from '@xmcl/runtime-api'
 import { useDialog } from '../composables/dialog'
 import { kUserContext } from '../composables/user'
 
+const { embedded = false } = defineProps<{ embedded?: boolean }>()
+
 const { gameProfile } = injection(kUserContext)
 const { connections, setRemoteDescription, initiate: _initiate } = injection(kPeerState)
 const { isShown, parameter } = useDialog('peer-initiate')
@@ -164,6 +172,7 @@ const id = ref('')
 const gatheringState = computed(() => connection.value?.iceGatheringState)
 const connection = computed(() => connections.value.find(c => c.id === id.value))
 const localDescription = computed(() => connection.value ? (connection.value.localDescriptionSDP) : '')
+const canCopy = computed(() => !!localDescription.value)
 const localUrl = computed(() => createOfferAppUrl(localDescription.value, gameProfile.value.name))
 const { t } = useI18n()
 
@@ -193,6 +202,7 @@ watch(isShown, (v) => {
 const copied = ref(false)
 
 function copyLocalDescription() {
+  if (!canCopy.value) return
   windowController.writeClipboard(localDescription.value)
   copied.value = true
 }
@@ -226,14 +236,18 @@ const { refresh: initiate, refreshing: initiating } = useRefreshable(async () =>
 </script>
 
 <style>
-
-.dark .hint-text {
-  color:
-    rgba(255,255,255,0.7);
+.hint-text {
+  color: rgba(var(--v-theme-on-surface), 0.7);
 }
 
-.hint-text {
-  color:
-    rgba(0,0,0,0.7);
+.multiplayer-desktop-dialog {
+  max-height: min(720px, calc(100vh - 64px));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.multiplayer-desktop-dialog .v-stepper-window {
+  overflow-y: auto;
 }
 </style>

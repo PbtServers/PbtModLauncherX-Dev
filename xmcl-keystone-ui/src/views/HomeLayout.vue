@@ -8,20 +8,23 @@
     <HomeHeader ref="headerEl" class="sticky top-0 z-20" />
 
     <!-- This is to fix strange hover color issue... -->
-    <transition
-      name="fade-transition"
-      mode="out-in"
-      @after-enter="end"
-      @leave="start"
-    >
-      <router-view />
-    </transition>
+    <router-view v-slot="{ Component }">
+      <transition
+        name="fade-transition"
+        mode="out-in"
+        @after-enter="end"
+        @leave="start"
+      >
+        <component :is="Component" />
+      </transition>
+    </router-view>
 
     <HomeLogDialog />
     <HomeDropModpackDialog />
     <HomeLaunchMultiInstanceDialog />
     <HomeLaunchStatusDialog />
     <HomeInstanceInstallDialog />
+    <HomeUnresolvedFilesDialog />
     <AppCollectionDialog />
   </div>
 </template>
@@ -37,18 +40,39 @@ import { useInstanceServerStatus } from '../composables/serverStatus'
 import HomeHeader from './HomeHeader.vue'
 import HomeInstanceInstallDialog from './HomeInstanceInstallDialog.vue'
 import HomeLaunchMultiInstanceDialog from './HomeLaunchMultiInstanceDialog.vue'
+import HomeUnresolvedFilesDialog from './HomeUnresolvedFilesDialog.vue'
 import HomeLaunchStatusDialog from './HomeLaunchStatusDialog.vue'
 import HomeLogDialog from './HomeLogDialog.vue'
 import AppCollectionDialog from './AppCollectionDialog.vue'
 import HomeDropModpackDialog from './HomeDropModpackDialog.vue'
+import { useGamepadInnerNav } from '@/composables/gamepad'
 
 const router = useRouter()
 
-router.afterEach((r) => {
-  document.title = `XMCL KeyStone - ${r.fullPath}`
+// Gamepad triggers (L2/R2) cycle through the instance pages.
+const HOME_GROUP = ['/', '/mods', '/resourcepacks', '/shaderpacks', '/save']
+useGamepadInnerNav({
+  handler: (dir) => {
+    const cur = router.currentRoute.value.path
+    const idx = HOME_GROUP.indexOf(cur)
+    if (idx === -1) return
+    const next = dir === 'next'
+      ? (idx + 1) % HOME_GROUP.length
+      : (idx - 1 + HOME_GROUP.length) % HOME_GROUP.length
+    router.push(HOME_GROUP[next])
+  },
+  disabled: () => !HOME_GROUP.includes(router.currentRoute.value.path),
+})
+
+const removeAfterEach = router.afterEach((r) => {
+  document.title = `XMCL - ${r.fullPath}`
   if (containerRef.value) {
     containerRef.value.scrollTop = 0
   }
+})
+
+onUnmounted(() => {
+  removeAfterEach()
 })
 
 const headerEl = ref(null as null | HTMLDivElement)
@@ -60,12 +84,12 @@ watch(height, (h) => {
 
 const { isServer, instance } = injection(kInstance)
 
-const { refresh } = useInstanceServerStatus(instance)
+const { refreshIfStale } = useInstanceServerStatus(instance)
 const containerRef = ref(null as null | HTMLDivElement)
 
 onMounted(() => {
   if (isServer.value) {
-    refresh()
+    refreshIfStale()
   }
 })
 

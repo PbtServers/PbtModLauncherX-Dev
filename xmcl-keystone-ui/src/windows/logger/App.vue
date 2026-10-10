@@ -29,11 +29,9 @@
         <template #extension>
           <v-tabs
             v-model="tab"
-            align-with-title
+            slider-color="yellow"
             class="non-moveable"
           >
-            <v-tabs-slider color="yellow" />
-
             <v-tab
               v-for="item in Object.keys(logsRecord)"
               :key="item"
@@ -43,11 +41,11 @@
           </v-tabs>
         </template>
       </v-toolbar>
-      <v-tabs-items
+      <v-tabs-window
         v-model="tab"
         class="h-full flex-grow overflow-auto"
       >
-        <v-tab-item
+        <v-tabs-window-item
           v-for="item in Object.entries(logsRecord)"
           :key="item[0]"
           class="h-full flex-grow overflow-auto"
@@ -56,14 +54,14 @@
             class="h-full flex-grow overflow-auto"
             :logs="item[1]"
           />
-        </v-tab-item>
-      </v-tabs-items>
+        </v-tabs-window-item>
+      </v-tabs-window>
     </v-card>
   </v-app>
 </template>
 
 <script lang=ts setup>
-import { set } from 'vue'
+
 import LogView from '@/components/LogView.vue'
 import { LogRecord, parseLog } from '@/util/log'
 import { kTheme } from '@/composables/theme'
@@ -79,27 +77,25 @@ const logsRecord: Record<number, Log[]> = reactive({})
 const tab = ref(0)
 
 // window.location.search.
-const { isDark } = injection(kTheme)
+const { isDark, currentTheme } = injection(kTheme)
 
 const iconSets = {
   dark: 'dark_mode',
   light: 'light_mode',
-  system: 'settings_brightness',
-}
+  system: 'settings_brightness' }
 const themeIcon = computed(() => iconSets[isDark.value ? 'dark' : 'light'])
 function accept(pid: number, log: string) {
   let logs: Log[]
   if (logsRecord[pid]) {
     logs = logsRecord[pid]
   } else {
-    logs = set(logsRecord, pid, [])
+    logs = logsRecord[pid] = []
   }
   // console.log(log)
   if (log.startsWith('[')) {
     logs.push({
       ...parseLog(log),
-      id: logs.length,
-    })
+      id: logs.length })
   } else {
     const trimmed = log.trim()
     if (trimmed.startsWith('<')) {
@@ -115,14 +111,19 @@ function accept(pid: number, log: string) {
         content: text || '',
         source: thread || '',
         raw: trimmed,
-        id: logs.length,
-      })
+        id: logs.length })
     } else {
-      const last = logs[logs.length - 1]
-      const buffer = last?.raw + '\n' + log
-      logs[logs.length - 1] = {
-        ...parseLog(buffer),
-        id: logs.length,
+      const index = logs.length - 1
+      if (index >= 0) {
+        const last = logs[logs.length - 1]
+        const buffer = last?.raw ? last?.raw + '\n' + log : log
+        logs[logs.length - 1] = {
+          ...parseLog(buffer),
+          id: logs.length }
+      } else {
+        logs.push({
+          ...parseLog(log),
+          id: logs.length })
       }
     }
   }
@@ -138,7 +139,7 @@ onMounted(() => {
   })
 })
 function changeTheme() {
-  isDark.value = !isDark.value
+  currentTheme.value.dark = !isDark.value
 }
 function close() {
   hide()

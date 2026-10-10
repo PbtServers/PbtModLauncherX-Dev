@@ -1,14 +1,14 @@
 import { LibraryInfo, Version } from '@xmcl/core'
-import { ElyByServiceKey, ElyByService as IElyByService } from '@xmcl/runtime-api'
+import { ElyByServiceKey, type ElyByService as IElyByService } from '@xmcl/runtime-api'
 import { open, openEntryReadStream, walkEntriesGenerator } from '@xmcl/unzip'
 import { createHash } from 'crypto'
 import { ensureDir, readFile, readJSON, stat, writeFile, writeJSON } from 'fs-extra'
 import { dirname, isAbsolute, join, relative } from 'path'
 import { Writable } from 'stream'
 import { pipeline } from 'stream/promises'
-import { ResourceWorker, kResourceWorker } from '~/resource'
-import { AnyError } from '~/util/error'
-import { Inject, LauncherApp, LauncherAppKey, PathResolver, kGameDataPath } from '../app'
+import { type ResourceWorker, kResourceWorker } from '~/resource'
+import { AnyError } from '@xmcl/utils'
+import { Inject, LauncherApp, LauncherAppKey, type PathResolver, kGameDataPath } from '../app'
 import { AbstractService, ExposeServiceKey } from '../service'
 
 @ExposeServiceKey(ElyByServiceKey)
@@ -51,8 +51,17 @@ export class ElyByService extends AbstractService implements IElyByService {
     }>
   }
 
+  async uncacheElyLibrary(minecraftVersion: string, exact: boolean) {
+    const jsonPath = this.getAppDataPath('ely-authlib.json')
+    const content: Record<string, any> = await readFile(jsonPath, 'utf-8').then(JSON.parse).catch(() => ({}))
+    if (content[minecraftVersion] && !exact) {
+      delete content[minecraftVersion]
+    }
+    await writeFile(jsonPath, JSON.stringify(content, null, 2))
+  }
+
   async installAuthlib(minecraftVersion: string) {
-    interface RecordVersion { path: string; sha1: string; version: string }
+    interface RecordVersion { path: string; sha1: string; version: string; deny?: boolean; exact?: boolean }
 
     const jsonPath = this.getAppDataPath('ely-authlib.json')
 
@@ -74,7 +83,7 @@ export class ElyByService extends AbstractService implements IElyByService {
       const actualSha1 = await this.resourceWorker.checksum(path, 'sha1').catch(() => '')
       if (actualSha1 === sha1) {
         const info = LibraryInfo.resolve('com.mojang:authlib:' + version + ':elyby')
-        return Version.resolveLibrary({
+        return [Version.resolveLibrary({
           name: info.name,
           downloads: {
             artifact: {
@@ -84,17 +93,19 @@ export class ElyByService extends AbstractService implements IElyByService {
               size: (await stat(path)).size,
             },
           },
-        })
+        }), !!record.exact] as const
       }
     }
 
     const entries = await this.#getCache()
-    const valid = entries.filter(e => minecraftVersion.startsWith(e.minecraft))
-    const resolvedVersion = valid.find(e => e.minecraft === minecraftVersion) ||
-      (valid.length > 0 ? valid[0] : undefined)
+    const primaryMinecraftVersion = minecraftVersion.split('.').slice(0, 2).join('.')
+    const primaryMatched = entries.filter(e => e.minecraft.startsWith(primaryMinecraftVersion))
+    const exact = primaryMatched.find(e => e.minecraft === minecraftVersion)
+    const resolvedVersion = exact ||
+      (primaryMatched.length > 0 ? primaryMatched[0] : undefined)
 
     if (!resolvedVersion) {
-      return undefined
+      return [undefined, false] as const
     }
 
     const url = `https://ely.by/minecraft/system/${resolvedVersion.id}.zip`
@@ -135,6 +146,7 @@ export class ElyByService extends AbstractService implements IElyByService {
             content[minecraftVersion] = {
               path: relative(this.getPath(), path),
               sha1,
+              exact: exact === resolvedVersion,
               version: actualVersion,
             }
             await writeFile(jsonPath, JSON.stringify(content, null, 4))
@@ -151,7 +163,7 @@ export class ElyByService extends AbstractService implements IElyByService {
                 },
               },
             })
-            return lib
+            return [lib, !!record.exact] as const
           }
         }
 

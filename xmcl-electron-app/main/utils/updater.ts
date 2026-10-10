@@ -1,30 +1,37 @@
 import { HAS_DEV_SERVER } from '@/constant'
-import { ElectronUpdateOperation, ReleaseInfo } from '@xmcl/runtime-api'
-import { LauncherAppUpdater } from '@xmcl/runtime/app'
-import { Logger } from '@xmcl/runtime/logger'
-import { AbortableTask, BaseTask, Task, task } from '@xmcl/task'
+import {
+  DownloadBaseOptions,
+  ProgressTracker,
+  download,
+  getDownloadBaseOptions,
+} from '@xmcl/file-transfer'
+import { Tracker, onDownloadSingle } from '@xmcl/installer'
+import {
+  DownloadUpdateTrackerEvents,
+  ElectronUpdateOperation,
+  ReleaseInfo,
+} from '@xmcl/runtime-api'
+import { DownloadUpdateOptions, LauncherAppUpdater } from '@xmcl/runtime/app'
+import { AnyError, isSystemError } from '@xmcl/utils'
 import { spawn } from 'child_process'
-import { shell } from 'electron'
+import { app, shell } from 'electron'
 import * as updater from 'electron-updater'
 import { AppUpdater, CancellationToken, UpdaterSignal } from 'electron-updater'
-import { createWriteStream } from 'fs'
-import { readFile, writeFile } from 'fs-extra'
+import { createReadStream, createWriteStream } from 'fs'
+import { readFile, rename as renameAsync, unlink as unlinkAsync, writeFile } from 'fs-extra'
 import { closeSync, existsSync, open, rename, unlink } from 'original-fs'
 import { platform } from 'os'
 import { basename, dirname, join } from 'path'
-import { PassThrough, Readable } from 'stream'
 import { pipeline } from 'stream/promises'
+import { setTimeout } from 'timers/promises'
+import { extract as extractTar } from 'tar-stream'
 import { promisify } from 'util'
 import { createGunzip } from 'zlib'
-import { kGFW } from '~/gfw'
+import { Logger } from '~/infra'
 import { kSettings } from '~/settings'
-import { AnyError, isSystemError } from '~/util/error'
 import { checksum } from '~/util/fs'
 import ElectronLauncherApp from '../ElectronLauncherApp'
-import { DownloadAppInstallerTask } from './appinstaller'
 import { ensureElevateExe } from './elevate'
-
-const kPatched = Symbol('Patched')
 
 /**
  * Only download asar file update.
@@ -32,174 +39,243 @@ const kPatched = Symbol('Patched')
  * If the this update is not a full update but an incremental update,
  * you can call this to download asar update
  */
-export class DownloadAsarUpdateTask extends AbortableTask<void> {
-  private file: string
-  private abortController = new AbortController()
-  private version: string
+async function downloadAsarUpdate(
+  app: ElectronLauncherApp,
+  destination: string,
+  version: string,
+  options?: {
+    abortSignal?: AbortSignal
+    tracker?: Tracker<DownloadUpdateTrackerEvents>
+  } & DownloadBaseOptions,
+): Promise<void> {
+  version = version.startsWith('v') ? version.substring(1) : version
+  const pl = platform()
+  let platformFlag = pl === 'win32' ? 'win' : pl === 'darwin' ? 'mac' : 'linux'
+  if (process.arch === 'arm64') {
+    platformFlag += '-arm64'
+  } else if (process.arch === 'ia32') {
+    platformFlag += '-ia32'
+  }
+  const file = `app-${version}-${platformFlag}.asar`
+  const github = `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/${file}`
 
-  constructor(private app: ElectronLauncherApp, private destination: string, version: string) {
-    super()
-    version = version.startsWith('v') ? version.substring(1) : version
-    const pl = platform()
-    let platformFlag = pl === 'win32' ? 'win' : pl === 'darwin' ? 'mac' : 'linux'
-    if (process.arch === 'arm64') {
-      platformFlag += '-arm64'
-    } else if (process.arch === 'ia32') {
-      platformFlag += '-ia32'
+  // Skip the download entirely if the pending file already matches the
+  // published checksum.
+  try {
+    const sha256Response = await app.fetch(github + '.sha256', { signal: options?.abortSignal })
+    const sha256 = sha256Response.ok ? (await sha256Response.text()).trim() : ''
+    const actual = await checksum(destination, 'sha256').catch(() => '')
+    if (sha256 && sha256 === actual) {
+      return
     }
-    this.file = `app-${version}-${platformFlag}.asar`
-    this.version = version
+  } catch {
+    // Ignore — fall through to download.
   }
 
-  protected async process(): Promise<void> {
-    const errors: Error[] = []
-    const gfw = await this.app.registry.get(kGFW)
-    const urls = gfw.inside
-      ? [
-        `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${this.version}/${this.file}`,
-        `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${this.version}/${this.file}`,
-      ]
-      : [
-        `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${this.version}/${this.file}`,
-      ]
-    for (const url of urls) {
-      try {
-        this.abortController = new AbortController()
-        const sha256Response = await this.app.fetch(url + '.sha256', { signal: this.abortController.signal })
-        const sha256 = sha256Response.ok ? await sha256Response.text() : ''
-        const actual = await checksum(this.destination, 'sha256').catch(() => '')
-        if (sha256 === actual) {
-          return
-        }
-        const gzUrl = url + '.gz'
-        const gzResponse = await this.app.fetch(gzUrl, { signal: this.abortController.signal })
-        const tracker = new PassThrough({
-          transform: (chunk, encoding, callback) => {
-            this._progress += chunk.length
-            this.update(chunk.length)
-            callback(undefined, chunk)
-          },
-        })
-        if (gzResponse.ok && gzResponse.body) {
-          this._total = parseInt(gzResponse.headers.get('Content-Length') || '0', 10)
-          this._progress = 0
-          await pipeline(Readable.fromWeb(gzResponse.body as any), createGunzip(), tracker, createWriteStream(this.destination))
+  const errors: Error[] = []
+
+  const isAbort = (e: unknown) => e instanceof Error && e.name === 'AbortError'
+
+  // A fork-owned tarball mirror can be supplied without fetching XMCL packages.
+  // The URL template may contain {version} and {platform}.
+  const mirror = process.env.PBT_ASAR_MIRROR
+  if (mirror) {
+    const tarball = mirror.replace('{version}', version).replace('{platform}', platformFlag)
+    try {
+      await downloadAsarFromTarball(app, tarball, destination, options)
+      return
+    } catch (e) {
+      if (isAbort(e)) return
+      errors.push(Object.assign(e as Error, { name: 'UpdateAsarError', url: tarball }))
+    }
+  }
+
+  // Fall back to the GitHub release asset (gzipped when available).
+  try {
+    await downloadGzAsar(app, github, destination, options)
+    return
+  } catch (e) {
+    if (isAbort(e)) return
+    errors.push(Object.assign(e as Error, { name: 'UpdateAsarError', url: github }))
+  }
+
+  throw new AggregateError(
+    errors.flatMap((e) => (e instanceof AggregateError ? e.errors : e)),
+    'Fail to download asar update',
+  )
+}
+
+/**
+ * Download an npm package tarball and extract its `package/app.asar` entry to
+ * `destination`. Used for the npmmirror mirror path (see `downloadAsarUpdate`).
+ */
+async function downloadAsarFromTarball(
+  app: ElectronLauncherApp,
+  url: string,
+  destination: string,
+  options?: {
+    abortSignal?: AbortSignal
+    tracker?: Tracker<DownloadUpdateTrackerEvents>
+  } & DownloadBaseOptions,
+): Promise<void> {
+  const tempTgz = destination + '.tgz'
+  await download({
+    url,
+    destination: tempTgz,
+    tracker: onDownloadSingle(options?.tracker, 'download-update.asar', { url }),
+    signal: options?.abortSignal,
+    ...getDownloadBaseOptions(options),
+  })
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tar = extractTar()
+      let found = false
+      tar.on('entry', (header, stream, next) => {
+        if (!found && (header.name === 'package/app.asar' || header.name.endsWith('/app.asar'))) {
+          found = true
+          const out = createWriteStream(destination)
+          out.on('error', reject)
+          out.on('finish', next)
+          stream.pipe(out)
         } else {
-          const response = await this.app.fetch(url, { signal: this.abortController.signal })
-          if (!response.ok) {
-            throw new AnyError('DownloadError', `Fail to download asar update from ${url}`, {}, { status: response.status })
-          }
-          this._total = parseInt(response.headers.get('Content-Length') || '0', 10)
-          this._progress = 0
-          await pipeline(Readable.fromWeb(response.body as any), tracker, createWriteStream(this.destination))
+          stream.on('end', next)
+          stream.on('error', reject)
+          stream.resume()
         }
-        return
-      } catch (e) {
-        if (this.isAbortedError(e)) {
-          return
-        }
-        errors.push(Object.assign(e as Error, { name: 'UpdateAsarError', url }))
-      }
-    }
-    throw new AggregateError(errors.flatMap(e => e instanceof AggregateError ? e.errors : e), 'Fail to download asar update')
-  }
-
-  protected abort(isCancelled: boolean): void {
-    this.abortController.abort(Object.assign(new Error(), { name: 'AbortError' }))
-  }
-
-  protected isAbortedError(e: any): boolean {
-    return e instanceof Error && e.name === 'AbortError'
+      })
+      tar.on('error', reject)
+      tar.on('finish', () => {
+        if (found) resolve()
+        else reject(new AnyError('UpdateAsarError', `No app.asar found in tarball ${url}`))
+      })
+      createReadStream(tempTgz).pipe(createGunzip()).pipe(tar)
+    })
+  } finally {
+    await unlinkAsync(tempTgz).catch(() => {})
   }
 }
 
-export class HintUserDownloadTask extends BaseTask<void> {
-  protected async runTask(): Promise<void> {
-    shell.openExternal('https://mods.pbtservers.com')
-  }
+/**
+ * Download a raw asar (or its `.gz` sibling when present) and write it to
+ * `destination`. Used for the GitHub release-asset path.
+ */
+async function downloadGzAsar(
+  app: ElectronLauncherApp,
+  url: string,
+  destination: string,
+  options?: {
+    abortSignal?: AbortSignal
+    tracker?: Tracker<DownloadUpdateTrackerEvents>
+  } & DownloadBaseOptions,
+): Promise<void> {
+  const gzUrl = url + '.gz'
+  const gzResponse = await app
+    .fetch(gzUrl, { method: 'HEAD', signal: options?.abortSignal })
+    .catch(() => null)
+  const downloadUrl = gzResponse?.ok ? gzUrl : url
 
-  protected async cancelTask(): Promise<void> {
-  }
+  const tempFile = destination + '.tmp'
+  await download({
+    url: downloadUrl,
+    destination: tempFile,
+    tracker: onDownloadSingle(options?.tracker, 'download-update.asar', { url: downloadUrl }),
+    signal: options?.abortSignal,
+    ...getDownloadBaseOptions(options),
+  })
 
-  protected async pauseTask(): Promise<void> {
-  }
-
-  protected async resumeTask(): Promise<void> {
+  if (downloadUrl === gzUrl) {
+    await pipeline(createReadStream(tempFile), createGunzip(), createWriteStream(destination))
+    await unlinkAsync(tempFile)
+  } else {
+    await renameAsync(tempFile, destination)
   }
 }
 
-async function getUpdateAsarViaBatArgs(appAsarPath: string, updateAsarPath: string, appDataPath: string, elevatePath?: string): Promise<string[]> {
+async function hintUserDownload(): Promise<void> {
+  shell.openExternal('https://mods.pbtservers.com')
+}
+
+async function downloadAppInstaller(
+  launcherApp: ElectronLauncherApp,
+  options?: {
+    abortSignal?: AbortSignal
+    tracker?: Tracker<DownloadUpdateTrackerEvents>
+  } & DownloadBaseOptions,
+): Promise<void> {
+  const destination = join(app.getPath('downloads'), 'pbtmodlauncherx.appinstaller')
+  const url = 'https://github.com/PbtServers/PbtModLauncherX-Dev/releases/latest/download/pbtmodlauncherx.appinstaller'
+
+  await download({
+    url,
+    destination,
+    tracker: onDownloadSingle(options?.tracker, 'download-update.appx', { url }),
+    signal: options?.abortSignal,
+    ...getDownloadBaseOptions(options),
+  })
+
+  shell.showItemInFolder(destination)
+  await setTimeout(1000)
+  await shell.openPath(destination)
+  launcherApp.exit()
+}
+
+async function getUpdateAsarViaBatArgs(
+  appAsarPath: string,
+  updateAsarPath: string,
+  appDataPath: string,
+  elevatePath?: string,
+): Promise<string[]> {
   const psPath = join(appDataPath, 'AutoUpdate.bat')
-  await writeFile(psPath, [
-    '@echo off',
-    'chcp 65001',
-    '%WinDir%\\System32\\timeout.exe 2',
-    `taskkill /f /im "${basename(process.argv[0])}"`,
-    `copy /Y "${updateAsarPath}" "${appAsarPath}"`,
-    `start /b "" /d "${process.cwd()}" ${process.argv.map((s) => `"${s}"`).join(' ')}`,
-  ].join('\r\n'))
+  await writeFile(
+    psPath,
+    [
+      '@echo off',
+      'chcp 65001',
+      '%WinDir%\\System32\\timeout.exe 2',
+      `taskkill /f /im "${basename(process.argv[0])}"`,
+      `copy /Y "${updateAsarPath}" "${appAsarPath}"`,
+      `start /b "" /d "${process.cwd()}" ${process.argv.map((s) => `"${s}"`).join(' ')}`,
+    ].join('\r\n'),
+  )
 
-  return elevatePath
-    ? [
-      elevatePath,
-      psPath,
-    ]
-    : [
-      'cmd.exe',
-      '/c',
-      psPath,
-    ]
+  return elevatePath ? [elevatePath, psPath] : ['cmd.exe', '/c', psPath]
 }
 /**
  * Download the full update. This size can be larger as it carry the whole electron thing...
  */
-export class DownloadFullUpdateTask extends AbortableTask<void> {
-  constructor(private app: ElectronLauncherApp, private appUpdater: AppUpdater) {
-    super()
+async function downloadFullUpdate(
+  app: ElectronLauncherApp,
+  appUpdater: AppUpdater,
+  options?: {
+    tracker?: Tracker<DownloadUpdateTrackerEvents>
+    abortSignal?: AbortSignal
+  },
+): Promise<void> {
+
+  // electron-updater uses the fork's GitHub provider. Do not rewrite
+  // requests to Voxelum's mirror or the obsolete /LatestRelease path.
+  const tracker: ProgressTracker = {
+    progress: 0,
+    total: 0,
+    url: '',
   }
+  options?.tracker?.({
+    phase: 'download-update.full',
+    payload: { progress: tracker },
+  })
 
-  private cancellationToken = new CancellationToken()
+  const signal = new UpdaterSignal(appUpdater)
+  signal.progress((info) => {
+    tracker.progress = info.transferred
+    tracker.total = info.total
+    // tracker.speed = info.bytesPerSecond
+  })
 
-  protected async process(): Promise<void> {
-    this.cancellationToken = new CancellationToken()
-
-    const gfw = await this.app.registry.get(kGFW)
-
-    if (gfw.inside) {
-      // @ts-ignore
-      const executor = this.appUpdater.httpExecutor as any
-      if (!(kPatched in executor)) {
-        const createRequest = executor.createRequest.bind(executor)
-        Object.assign(executor, {
-          [kPatched]: true,
-          createRequest: (options: any, callback: any) => {
-            if (gfw.inside) {
-              options.hostname = 'github.com'
-              options.pathname = `/PbtServers/PbtModLauncherX-Dev/LatestRelease/${basename(options.pathname)}`
-              this.app.emit('download-cdn', 'electron', basename(options.pathname))
-            }
-            return createRequest(options, callback)
-          },
-        })
-      }
-    }
-
-    const signal = new UpdaterSignal(this.appUpdater)
-    signal.progress((info) => {
-      this._progress = info.transferred
-      this._total = info.total
-      this.update(info.delta)
-    })
-    await this.appUpdater.downloadUpdate(this.cancellationToken)
-  }
-
-  protected abort(): void {
-    this.cancellationToken.cancel()
-  }
-
-  protected isAbortedError(e: any): boolean {
-    return e.name === 'CancellationError'
-  }
+  const cancellationToken = new CancellationToken()
+  options?.abortSignal?.addEventListener('abort', () => {
+    cancellationToken.cancel()
+  })
+  await appUpdater.downloadUpdate(cancellationToken)
 }
 
 function isSameVersion(a: string, b: string) {
@@ -217,22 +293,42 @@ export class ElectronUpdater implements LauncherAppUpdater {
 
   constructor(private app: ElectronLauncherApp) {
     this.logger = app.getLogger('ElectronUpdater')
+    updater.autoUpdater.setFeedURL({
+      provider: 'github',
+      owner: 'PbtServers',
+      repo: 'PbtModLauncherX-Dev',
+    })
   }
 
   async #getUpdateFromSelfHost(): Promise<ReleaseInfo> {
     const app = this.app
     this.logger.log('Try get update from selfhost')
-    const { allowPrerelease, locale } = await app.registry.get(kSettings)
-    const url = `https://raw.githubusercontent.com/PbtServers/PbtModLauncherX-Dev/master/latest_version.json`
-    const response = await this.app.fetch(url, {
-      headers: {
-        'Accept-Language': locale,
-      },
-    })
-    const result = await response.json() as any
-    const files = result.assets.map((a: any) => ({ url: a.browser_download_url, name: a.name })) as Array<{ url: string; name: string }>
-    const platformString = app.platform.os === 'windows' ? 'win' : app.platform.os === 'osx' ? 'mac' : 'linux'
-    const version = result.tag_name.substring(1)
+    const { locale } = await app.registry.get(kSettings)
+    const primary = await this.app.fetch(
+      'https://raw.githubusercontent.com/PbtServers/PbtModLauncherX-Dev/master/latest_version.json',
+      { headers: { 'Accept-Language': locale } },
+    ).catch(() => undefined)
+    const response = primary?.ok ? primary : await this.app.fetch(
+      'https://api.github.com/repos/PbtServers/PbtModLauncherX-Dev/releases/latest',
+      { headers: { 'Accept-Language': locale } },
+    )
+    if (!response.ok) {
+      throw new AnyError(
+        'UpdateError',
+        `Fail to get update from selfhost: ${await response.text()}`,
+        {},
+        { status: response.status },
+      )
+    }
+    const result = (await response.json()) as any
+    const files = result.assets.map((a: any) => ({
+      url: a.browser_download_url,
+      name: a.name,
+    })) as Array<{ url: string; name: string }>
+    const platformString =
+      app.platform.os === 'windows' ? 'win' : app.platform.os === 'osx' ? 'mac' : 'linux'
+    const archSuffix = app.platform.arch === 'arm64' ? '-arm64' : app.platform.arch === 'ia32' ? '-ia32' : ''
+    const version = result.tag_name.startsWith('v') ? result.tag_name.substring(1) : result.tag_name
     const updateInfo: ReleaseInfo = {
       name: result.tag_name,
       body: result.body,
@@ -242,17 +338,22 @@ export class ElectronUpdater implements LauncherAppUpdater {
       operation: ElectronUpdateOperation.Manual,
     }
 
-    const hasAsar = files.some(f => f.name === `app-${version}-${platformString}.asar`)
+    const hasAsar = files.some((f) => f.name === `app-${version}-${platformString}${archSuffix}.asar`)
     if (this.app.platform.os === 'windows') {
       if (this.app.env === 'appx') {
         updateInfo.operation = ElectronUpdateOperation.Appx
       } else {
-        updateInfo.operation = hasAsar ? ElectronUpdateOperation.Asar : ElectronUpdateOperation.Manual
+        updateInfo.operation = hasAsar
+          ? ElectronUpdateOperation.Asar
+          : ElectronUpdateOperation.Manual
       }
     } else if (this.app.platform.os === 'osx') {
       updateInfo.operation = hasAsar ? ElectronUpdateOperation.Asar : ElectronUpdateOperation.Manual
     } else {
-      updateInfo.operation = (hasAsar && this.app.env !== 'appimage') ? ElectronUpdateOperation.Asar : ElectronUpdateOperation.Manual
+      updateInfo.operation =
+        hasAsar && this.app.env !== 'appimage'
+          ? ElectronUpdateOperation.Asar
+          : ElectronUpdateOperation.Manual
     }
 
     this.logger.log(`Got operation=${updateInfo.operation} update from selfhost`)
@@ -267,7 +368,7 @@ export class ElectronUpdater implements LauncherAppUpdater {
     const info = await autoUpdater.checkForUpdates()
     if (!info) throw new Error('No update info found')
 
-    const files = info.updateInfo.files.map(f => ({ name: basename(f.url), url: f.url }))
+    const files = info.updateInfo.files.map((f) => ({ name: basename(f.url), url: f.url }))
     const release: ReleaseInfo = {
       name: info.updateInfo.version,
       body: info.updateInfo.releaseNotes as string,
@@ -308,9 +409,18 @@ export class ElectronUpdater implements LauncherAppUpdater {
 
       // force elevation for now
       hasWriteAccess = false
-      this.logger.log(hasWriteAccess ? `Process has write access to ${appAsarPath}` : `Process does not have write access to ${appAsarPath}`)
+      this.logger.log(
+        hasWriteAccess
+          ? `Process has write access to ${appAsarPath}`
+          : `Process does not have write access to ${appAsarPath}`,
+      )
 
-      const args = await getUpdateAsarViaBatArgs(appAsarPath, updateAsarPath, this.app.appDataPath, !hasWriteAccess ? elevatePath : undefined)
+      const args = await getUpdateAsarViaBatArgs(
+        appAsarPath,
+        updateAsarPath,
+        this.app.appDataPath,
+        !hasWriteAccess ? elevatePath : undefined,
+      )
       this.logger.log(`Install from windows: ${args.join(' ')}`)
       const x = spawn(args[0], args.slice(1), {
         cwd: this.app.appDataPath,
@@ -320,7 +430,7 @@ export class ElectronUpdater implements LauncherAppUpdater {
       x.unref()
       this.app.quit()
     } else {
-      await promisify(rename)(appAsarPath, appAsarPath + '.bk').catch(() => { })
+      await promisify(rename)(appAsarPath, appAsarPath + '.bk').catch(() => {})
       try {
         try {
           await promisify(rename)(updateAsarPath, appAsarPath)
@@ -331,42 +441,58 @@ export class ElectronUpdater implements LauncherAppUpdater {
             throw e
           }
         }
-        await promisify(unlink)(appAsarPath + '.bk').catch(() => { })
+        await promisify(unlink)(appAsarPath + '.bk').catch(() => {})
         this.app.relaunch()
       } catch (e) {
-        this.logger.error(new AnyError('UpdateError', `Fail to rename update the file: ${appAsarPath}`, { cause: e }))
+        this.logger.error(
+          new AnyError('UpdateError', `Fail to rename update the file: ${appAsarPath}`, {
+            cause: e,
+          }),
+        )
         await promisify(rename)(appAsarPath + '.bk', appAsarPath)
       }
     }
   }
 
-  checkUpdateTask(): Task<ReleaseInfo> {
-    return task('checkUpdate', async () => {
-      if (this.app.platform.os === 'windows' || this.app.platform.os === 'osx') {
+  async checkUpdateTask(): Promise<ReleaseInfo> {
+    if (this.app.platform.os === 'windows' || this.app.platform.os === 'osx') {
+      return this.#getUpdateFromSelfHost()
+    }
+    try {
+      return await this.#getUpdateFromAutoUpdater()
+    } catch (e) {
+      if (isSystemError(e) && e.code === 'ENOENT') {
         return this.#getUpdateFromSelfHost()
       }
-      try {
-        return await this.#getUpdateFromAutoUpdater()
-      } catch (e) {
-        if (isSystemError(e) && e.code === 'ENOENT') {
-          return this.#getUpdateFromSelfHost()
-        }
-        this.logger.warn(e as Error)
-        throw e
-      }
-    })
+      this.logger.warn(e as Error)
+      throw e
+    }
   }
 
-  downloadUpdateTask(updateInfo: ReleaseInfo): Task<void> {
+  async downloadUpdate(updateInfo: ReleaseInfo, options?: DownloadUpdateOptions): Promise<void> {
+    const tracker = options?.tracker
+    const abortSignal = options?.abortSignal
+
     if (updateInfo.operation === ElectronUpdateOperation.AutoUpdater) {
-      return new DownloadFullUpdateTask(this.app, updater.autoUpdater)
+      await downloadFullUpdate(this.app, updater.autoUpdater, {
+        tracker,
+        abortSignal,
+      })
     } else if (updateInfo.operation === ElectronUpdateOperation.Asar) {
       const updatePath = join(this.app.appDataPath, 'pending_update')
-      return new DownloadAsarUpdateTask(this.app, updatePath, updateInfo.name)
+      await downloadAsarUpdate(this.app, updatePath, updateInfo.name, {
+        tracker,
+        abortSignal,
+      })
     } else if (updateInfo.operation === ElectronUpdateOperation.Appx) {
-      return new DownloadAppInstallerTask(this.app)
+      await downloadAppInstaller(this.app, { tracker, abortSignal })
+    } else {
+      tracker?.({
+        phase: 'download-update.manual',
+        payload: {},
+      })
+      await hintUserDownload()
     }
-    return new HintUserDownloadTask()
   }
 
   async installUpdateAndQuit(updateInfo: ReleaseInfo): Promise<void> {

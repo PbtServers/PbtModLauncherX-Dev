@@ -15,7 +15,7 @@
         :disabled="data.error"
         @click="submit"
       >
-        <v-icon left>
+        <v-icon start>
           inbox
         </v-icon>
         {{ t('userSkin.import') }}

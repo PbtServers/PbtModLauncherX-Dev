@@ -1,103 +1,80 @@
 <template>
-  <v-menu
-    v-model="data.opened"
-    bottom
-    :close-on-content-click="false"
+  <v-autocomplete
+    :model-value="value"
+    :items="items"
+    :loading="refreshing"
     :disabled="disabled"
+    :error="!!error"
+    :clearable="isClearable"
+    clear-icon="close"
+    item-title="name"
+    item-value="name"
+    :return-object="false"
+    :placeholder="placeholder ?? emptyText"
+    :no-data-text="emptyText ?? ''"
+    variant="outlined"
+    density="compact"
+    hide-details
+    :hide-no-data="false"
+    :menu-props="{ maxHeight: 360 }"
+    @update:model-value="onSelect"
   >
-    <template #activator="{ on }">
-      <slot :on="on" />
+    <template
+      v-if="hasSnapshot"
+      #prepend-inner
+    >
+      <v-btn
+        v-shared-tooltip="() => snapshotTooltip"
+        icon="bug_report"
+        variant="text"
+        density="compact"
+        size="small"
+        :color="snapshot ? 'primary' : undefined"
+        @click.stop="emit('update:snapshot', !snapshot)"
+      />
     </template>
-    <v-text-field
-      v-model="data.filterText"
-      color="green"
-      append-icon="filter_list"
-      :label="t('filter')"
-      solo
-      class="rounded-none"
-      hide-details
-    >
-      <template #prepend>
-        <v-tooltip
-          v-if="hasSnapshot"
-          top
+    <template #append-inner>
+      <v-btn
+        icon="refresh"
+        variant="text"
+        density="compact"
+        size="small"
+        :loading="refreshing"
+        @click.stop="emit('refresh')"
+      />
+    </template>
+    <template #item="{ item, props: itemProps }">
+      <v-list-item v-bind="itemProps">
+        <template
+          v-if="item.tag"
+          #append
         >
-          <template #activator="{ on }">
-            <v-chip
-              v-if="hasSnapshot"
-              :color="snapshot ? 'primary' : ''"
-              icon
-              style="margin: 0px; height: 48px; border-radius: 0;"
-              @click="emit('update:snapshot', !snapshot)"
-            >
-              <v-icon v-on="on">
-                bug_report
-              </v-icon>
-            </v-chip>
-          </template>
-          {{ snapshotTooltip }}
-        </v-tooltip>
-      </template>
-    </v-text-field>
-    <v-skeleton-loader
-      v-if="refreshing"
-      type="list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line"
-      class="w-100"
-    />
-    <ErrorView
-      v-else-if="error"
-      type="error"
-      :error="error"
-      class="w-100 dark:bg-dark-300 bg-light-500"
-      @refresh="emit('refresh')"
-    />
-    <v-list
-      v-else
-      class="w-100 flex h-full flex-col overflow-auto p-0"
-    >
-      <v-list-item
-        v-if="isClearable"
-        ripple
-        @click="onSelect('')"
-      >
-        <v-list-item-avatar>
-          <v-icon>close</v-icon>
-        </v-list-item-avatar>
-        {{ clearText }}
-        <div class="flex-grow" />
-      </v-list-item>
-      <v-virtual-scroll
-        class="box-content h-full max-h-[300px] w-full overflow-y-auto"
-        :items="filteredItems"
-        :item-height="48"
-        :bench="10"
-      >
-        <template #default="{ item }">
-          <v-list-item
-            :key="item.name"
-            ripple
-            @click="onSelect(item.name)"
+          <v-chip
+            label
+            size="small"
+            :color="item.tagColor"
           >
-            {{ item.name }}
-            <div class="flex-grow" />
-            <v-chip
-              v-if="item.tag"
-              label
-              :color="item.tagColor"
-            >
-              {{ item.tag }}
-            </v-chip>
-          </v-list-item>
+            {{ item.tag }}
+          </v-chip>
         </template>
-      </v-virtual-scroll>
-      <v-list-item v-if="filteredItems.length === 0">
-        {{ emptyText }}
       </v-list-item>
-    </v-list>
-  </v-menu>
+    </template>
+    <template #no-data>
+      <ErrorView
+        v-if="error"
+        type="error"
+        :error="error"
+        @refresh="emit('refresh')"
+      />
+      <v-list-item v-else>
+        <v-list-item-title>{{ emptyText }}</v-list-item-title>
+      </v-list-item>
+    </template>
+  </v-autocomplete>
 </template>
 
-<script lang=ts setup>
+<script lang="ts" setup>
+import { vSharedTooltip } from '@/directives/sharedTooltip'
 import ErrorView from './ErrorView.vue'
 
 export interface VersionItem {
@@ -108,6 +85,8 @@ export interface VersionItem {
 }
 
 const props = defineProps<{
+  value?: string
+  placeholder?: string
   items: VersionItem[]
   refreshing?: boolean
   disabled?: boolean
@@ -120,32 +99,26 @@ const props = defineProps<{
   error?: any
 }>()
 
-const emit = defineEmits(['update:snapshot', 'select', 'refresh'])
-const { t } = useI18n()
+const emit = defineEmits<{
+  (event: 'update:snapshot', value: boolean): void
+  (event: 'select', value: string): void
+  (event: 'refresh'): void
+}>()
 
-const data = reactive({
-  opened: false,
-  filterText: '',
-})
+watch(() => props.items, (newItems) => {
+  // Only auto-clear when we actually have a loaded list to compare against.
+  // An empty `items` array typically means the data is still loading (e.g.
+  // when the component is freshly mounted after switching tabs), and
+  // clearing the value in that case would spuriously mark the instance as
+  // modified.
+  if (newItems.length === 0) return
+  if (props.value && !newItems.some((item) => item.name === props.value)) {
+    emit('select', '')
+  }
+}, { immediate: true })
 
-const filteredItems = computed(() => props.items.filter(v => !data.filterText || v.name.toLowerCase().indexOf(data.filterText.toLowerCase()) !== -1 || (v.tag?.toLowerCase().indexOf(data.filterText.toLowerCase()) || -1) !== -1))
 
-const onSelect = (version: string) => {
-  emit('select', version)
-  data.opened = false
+const onSelect = (val: string | null) => {
+  emit('select', val ?? '')
 }
-watch(computed(() => data.opened), (v) => {
-  data.filterText = ''
-})
 </script>
-
-<style>
-.v-input__prepend-outer {
-  margin-top: 0px !important;
-  margin-right: 0px !important;
-  box-shadow: 0 3px 1px -2px rgb(0 0 0 / 20%), 0 2px 2px 0 rgb(0 0 0 / 14%), 0 1px 5px 0 rgb(0 0 0 / 12%);
-}
-.v-input__prepend-outer {
-  margin-bottom: 0px !important;
-}
-</style>

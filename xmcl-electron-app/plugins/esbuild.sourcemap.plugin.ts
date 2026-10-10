@@ -10,7 +10,7 @@ export default function createSourcemapPlugin(): Plugin {
     name: 'sourcemap',
     setup(build) {
       if (!build.initialOptions.plugins!.find(v => v.name === 'dev')) {
-        const entry = (build.initialOptions.entryPoints as string[])[0]!
+        const entry = (build.initialOptions.entryPoints as string[])[0]!.replaceAll('\\', '/')
         function escapeRegExp(s: string) {
           return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         }

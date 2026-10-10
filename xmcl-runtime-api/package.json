@@ -1,14 +1,12 @@
 {
     "name": "@xmcl/runtime-api",
-    "version": "0.34.0",
+    "version": "0.51.0",
     "author": "ci010 <cijhn@hotmail.com>",
     "description": "Shared API for between launcher renderer & main process",
     "license": "MIT",
     "main": "index.ts",
-    "publishConfig": {
-        "main": "dist/index.js",
-        "module": "dist/index.mjs"
-    },
+    "type": "module",
+    "sideEffects": false,
     "engines": {
         "node": ">=20"
     },
@@ -23,10 +21,15 @@
         "build:type": "tsc --project ./tsconfig.json",
         "check": "tsc --noEmit --project ./tsconfig.json",
         "lint": "oxlint -c ./node_modules/@xmcl/oxlint-config/oxlintrc.json .",
+        "fmt": "oxfmt -c .oxfmtrc.json .",
         "lint:fix": "pnpm lint fix"
     },
     "dependencies": {
+        "zod": "^4.1.13",
         "@xmcl/client": "workspace:*",
+        "@xmcl/instance": "workspace:*",
+        "@xmcl/resource": "workspace:*",
+        "@xmcl/file-transfer": "workspace:*",
         "@xmcl/core": "workspace:*",
         "@xmcl/curseforge": "workspace:*",
         "@xmcl/forge-site-parser": "workspace:*",
@@ -39,17 +42,17 @@
         "@xmcl/nbt": "workspace:*",
         "@xmcl/resourcepack": "workspace:*",
         "@xmcl/system": "workspace:*",
-        "@xmcl/task": "workspace:*",
         "@xmcl/text-component": "workspace:*",
         "@xmcl/unzip": "workspace:*",
         "@xmcl/user": "workspace:*"
     },
     "devDependencies": {
+        "@types/node": "^24.13.3",
         "@xmcl/oxlint-config": "workspace:*",
-        "oxlint": "^0.15.5",
-        "esbuild": "^0.17.16",
+        "oxfmt": "^0.48.0",
+        "oxlint": "^1.63.0",
+        "esbuild": "^0.25.12",
         "tslib": "^2.5.0",
-        "typescript": "5.4.5",
-        "typescript-json-schema": "^0.53.1"
+        "typescript": "^5.9.3"
     }
 }

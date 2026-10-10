@@ -6,7 +6,7 @@ export const elyByPlugin: LauncherAppPlugin = (app) => {
   app.registry.get(LaunchService).then(serv => {
     serv.registerMiddleware({
       name: 'elyby',
-      onBeforeLaunch: async (input, payload, output) => {
+      onBeforeLaunch: async (input, payload, context) => {
         if (payload.side === 'server') return
         const user = input.user
         if (user.authority.indexOf('authserver.ely.by') !== -1 && !input.disableElyByAuthlib) {
@@ -16,13 +16,27 @@ export const elyByPlugin: LauncherAppPlugin = (app) => {
           if (libIndex !== -1) {
             const mcVersion = ver.minecraftVersion
             const serv = await app.registry.getOrCreate(ElyByService)
-            const lib = await serv.installAuthlib(mcVersion)
+            const [lib, exact] = await serv.installAuthlib(mcVersion)
             if (lib) {
               ver.libraries[libIndex] = lib
+              context.elyByAuthlibExact = exact
+              context.elyByAuthlibReplaced = true
+              context.elyByMinecraftVersion = mcVersion
             }
           }
         }
       },
+      onAfterLaunch: async (result, input, payload, context) => {
+        if (payload.side === 'server') return
+        if (result.code === 0) return
+        if (result.crashReport.includes('com.mojang.authlib') || result.errorLog.includes('com.mojang.authlib')) {
+          const user = input.user
+          if (user.authority.indexOf('authserver.ely.by') !== -1 && !input.disableElyByAuthlib) {
+            const serv = await app.registry.getOrCreate(ElyByService)
+            serv.uncacheElyLibrary(payload.version.minecraftVersion, context.elyByAuthlibExact === true)
+          }
+        }
+      }
     })
   })
 }

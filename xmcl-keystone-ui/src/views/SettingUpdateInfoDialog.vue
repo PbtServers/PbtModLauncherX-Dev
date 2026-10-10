@@ -11,45 +11,45 @@
     >
       <v-alert
         v-if="isAppX"
-        text
+        variant="tonal"
         type="warning"
       >
         {{ t('setting.appxUpdateHint') }}
       </v-alert>
-      <v-card-title>
-        {{ updateInfo.name }}
-      </v-card-title>
-      <v-card-subtitle>
-        {{ getLocalDateString(updateInfo.date) }}
-      </v-card-subtitle>
+      <v-card-item>
+        <v-card-title>
+          {{ updateInfo.name }}
+        </v-card-title>
+        <v-card-subtitle>
+          {{ getLocalDateString(updateInfo.date) }}
+        </v-card-subtitle>
+      </v-card-item>
       <v-card-text class="markdown-body flex flex-col overflow-auto">
         <div v-html="body" />
       </v-card-text>
       <v-alert
         v-if="hintRedownload"
-        text
+        variant="tonal"
         type="warning"
       >
         {{ t('setting.maunalUpdateHint') }}
       </v-alert>
       <v-card-actions>
         <v-btn
-          text
           @click="openOfficialWebsite()"
-        >
+         variant="text">
           <v-icon
-            left
+            start
           >
             web
           </v-icon>
           {{ t('setting.officialWebsite') }}
         </v-btn>
         <v-btn
-          text
           @click="openGithub()"
-        >
+         variant="text">
           <v-icon
-            left
+            start
           >
             signpost
           </v-icon>
@@ -60,13 +60,12 @@
           <v-btn
             v-if="updateStatus === 'pending'"
             color="primary"
-            text
             :loading="downloadingUpdate"
             :disabled="downloadingUpdate"
             @click="downloadUpdate()"
-          >
+           variant="text">
             <v-icon
-              left
+              start
             >
               cloud_download
             </v-icon>
@@ -79,7 +78,7 @@
             @click="quitAndInstall()"
           >
             <v-icon
-              left
+              start
             >
               refresh
             </v-icon>

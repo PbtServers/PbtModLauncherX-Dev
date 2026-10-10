@@ -30,8 +30,8 @@ const { isShown } = useDialog<{
 const onSave = () => {
   if (data) {
     data.name = name.value
-    if (color.value !== props.defaultColor) {
-      data.color = color.value
+    if (hasColor.value) {
+      data.color = color.value === props.defaultColor ? '' : color.value
     }
   }
   isShown.value = false
@@ -46,21 +46,19 @@ const { t } = useI18n()
   >
     <v-card
       class="flex flex-col overflow-auto max-h-[90vh] visible-scroll"
+      :title="t('instances.folderSetting')"
     >
-      <v-card-title>
-        {{ t('instances.folderSetting') }}
-      </v-card-title>
       <v-divider />
       <v-card-text class="overflow-auto pt-4">
         <v-text-field
           v-model="name"
-          :label="t('name')"
+          :label="t('shared.name')"
           autofocus
         />
         <template v-if="hasColor">
-          <v-subheader class="px-0">
+          <v-list-subheader class="px-0">
             {{ t('color') }}
-          </v-subheader>
+          </v-list-subheader>
           <v-color-picker
             v-model="color"
             dot-size="25"
@@ -73,17 +71,16 @@ const { t } = useI18n()
       <v-divider />
       <v-card-actions>
         <v-btn
-          text
           @click="isShown = false"
-        >
-          {{ t('cancel') }}
+         variant="text">
+          {{ t('shared.cancel') }}
         </v-btn>
         <v-spacer />
         <v-btn
           color="primary"
           @click="onSave"
         >
-          <v-icon left>
+          <v-icon start>
             save
           </v-icon>
           {{ t('modified.save') }}

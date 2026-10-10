@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { RuntimeVersions } from '@xmcl/runtime-api'
+import { PartialRuntimeVersions, RuntimeVersions } from '@xmcl/instance';
 import { BuiltinImages } from '../constant'
 
 defineProps<{
   icon?: string
   name: string
-  runtime: RuntimeVersions
+  runtime: RuntimeVersions | PartialRuntimeVersions
   value?: boolean
   description?: string
 }>()
@@ -17,24 +17,25 @@ defineEmits(['input', 'select'])
 <template>
   <v-list-item
     ripple
+    :title="name"
     @click="$emit('select')"
   >
-    <v-list-item-avatar>
-      <v-img
-        :src="icon ? icon : ''"
-      />
-    </v-list-item-avatar>
-
-    <v-list-item-content>
-      <v-list-item-title>{{ name }}</v-list-item-title>
+    <template #prepend>
+      <v-avatar>
+        <v-img
+          :src="icon ? icon : ''"
+        />
+      </v-avatar>
+    </template>
+    <template #subtitle>
       <v-list-item-subtitle class="flex gap-1">
         <v-chip
           v-if="runtime.minecraft"
-          outlined
-          small
+          variant="outlined"
+          size="small"
           label
         >
-          <v-avatar left>
+          <v-avatar start>
             <img
               :src="BuiltinImages.minecraft"
               alt="minecraft"
@@ -44,11 +45,11 @@ defineEmits(['input', 'select'])
         </v-chip>
         <v-chip
           v-if="runtime.forge"
-          outlined
-          small
+          variant="outlined"
+          size="small"
           label
         >
-          <v-avatar left>
+          <v-avatar start>
             <img
               :src="BuiltinImages.forge"
               alt="forge"
@@ -58,11 +59,11 @@ defineEmits(['input', 'select'])
         </v-chip>
         <v-chip
           v-if="runtime.fabricLoader"
-          outlined
-          small
+          variant="outlined"
+          size="small"
           label
         >
-          <v-avatar left>
+          <v-avatar start>
             <img
               :src="BuiltinImages.fabric"
               alt="fabric"
@@ -73,11 +74,11 @@ defineEmits(['input', 'select'])
 
         <v-chip
           v-if="runtime.neoForged"
-          outlined
-          small
+          variant="outlined"
+          size="small"
           label
         >
-          <v-avatar left>
+          <v-avatar start>
             <img
               :src="BuiltinImages.neoForged"
             >
@@ -87,11 +88,11 @@ defineEmits(['input', 'select'])
 
         <v-chip
           v-if="runtime.quiltLoader"
-          outlined
-          small
+          variant="outlined"
+          size="small"
           label
         >
-          <v-avatar left>
+          <v-avatar start>
             <img
               :src="BuiltinImages.quilt"
             >
@@ -99,18 +100,19 @@ defineEmits(['input', 'select'])
           {{ runtime.quiltLoader }}
         </v-chip>
       </v-list-item-subtitle>
-    </v-list-item-content>
+    </template>
 
-    <v-list-item-action>
-      <v-list-item-action-text>{{ description }}</v-list-item-action-text>
-    </v-list-item-action>
-    <v-list-item-action>
-      <v-checkbox
-        :value="value"
-        :input-value="value"
-        readonly
-        @input="$emit('input', !value)"
-      />
-    </v-list-item-action>
+    <template #append>
+      <v-list-item-action>
+        <v-list-item-action-text>{{ description }}</v-list-item-action-text>
+      </v-list-item-action>
+      <v-list-item-action>
+        <v-checkbox
+          :model-value="value"
+          readonly
+          @update:model-value="$emit('input', !value)"
+        />
+      </v-list-item-action>
+    </template>
   </v-list-item>
 </template>

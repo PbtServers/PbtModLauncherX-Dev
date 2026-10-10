@@ -1,34 +1,41 @@
 <template>
   <v-list-item
     :key="version.id"
+    class="rounded-2xl"
     :disabled="disabled"
+    :title="version.name"
     v-on="!noClick ? { click: () => emit('click', version) } : {}"
   >
-    <v-list-item-avatar>
-      <v-icon
-        class="material-icons-outlined"
-      >
-        {{ 'file_download' }}
-      </v-icon>
-    </v-list-item-avatar>
-    <v-list-item-content>
-      <v-list-item-title v-text="version.name" />
-      <v-list-item-subtitle>
-        <div>
+    <template #prepend>
+      <v-avatar>
+        <v-icon class="material-icons-outlined"> file_download </v-icon>
+      </v-avatar>
+    </template>
+
+    <template #subtitle>
+      <div class="flex">
+        <div class="mr-1">
           {{ version.loaders.join(' ') }}
           <template v-if="version.game_versions.length > 0">
-            {{ version.game_versions.length === 1 ? version.game_versions[0] : version.game_versions[0] + '-' + version.game_versions[version.game_versions.length - 1] }}
+            {{
+              version.game_versions.length === 1
+                ? version.game_versions[0]
+                : version.game_versions[0] +
+                  '-' +
+                  version.game_versions[version.game_versions.length - 1]
+            }}
           </template>
         </div>
-        <span
-          :style="{ color: getColorCode(getColorForReleaseType(version.version_type)) }"
-        >
+        <span :style="{ color: getColorCode(getColorForReleaseType(version.version_type)) }">
           •
           {{ t(`versionType.${version.version_type}`) }}
         </span>
-      </v-list-item-subtitle>
-    </v-list-item-content>
-    <slot />
+      </div>
+    </template>
+
+    <template #append>
+      <slot />
+    </template>
   </v-list-item>
 </template>
 
@@ -46,5 +53,4 @@ defineProps<{
 const { t } = useI18n()
 const emit = defineEmits(['click'])
 const { getColorCode } = useVuetifyColor()
-
 </script>

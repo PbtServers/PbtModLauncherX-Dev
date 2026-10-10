@@ -1,74 +1,54 @@
 <template>
   <div
+    v-if="!isBedrock || bedrockStorage"
+    v-roving-tabindex
+    role="toolbar"
+    aria-orientation="horizontal"
+    :aria-label="t('baseSetting.title', 2)"
     class="grid xl:gap-4 gap-1 home-actions"
     :style="{
       'grid-template-columns': `repeat(${
-        instance && !instance.upstream ? 5 : 4
+        isBedrock ? 2 : 3
       }, minmax(0, 1fr))`,
     }"
   >
-    <v-speed-dial open-on-hover>
-      <template #activator>
-        <v-btn
-          v-shared-tooltip.left="() => t('modpack.export')"
-          text
-          icon
-          :loading="isValidating"
-          @click="showExport()"
-        >
-          <v-icon> share </v-icon>
-        </v-btn>
-      </template>
-
-      <v-btn
-        v-shared-tooltip.left="() => t('server.export')"
-        icon
-        :loading="isValidating"
-        @click="showExportServer()"
-      >
-        <v-icon> ios_share </v-icon>
-      </v-btn>
-    </v-speed-dial>
-
     <v-btn
-      v-if="instance && !instance.upstream"
-      v-shared-tooltip="() => t('instance.installModpack')"
-      text
+      data-testid="home-log-action"
+      v-shared-tooltip="() => isBedrock ? t('instance.openLogFolder') : t('logsCrashes.title')"
       icon
-      :loading="isValidating || loading"
-      @click="onClickInstallFromModpack()"
-    >
-      <v-icon> drive_folder_upload </v-icon>
-    </v-btn>
-
-    <v-btn
-      v-shared-tooltip="() => t('logsCrashes.title')"
-      text
-      icon
-      :loading="isValidating"
-      @click="showLogDialog()"
+      variant="text"
+      density="comfortable"
+      :loading="isValidating || loadingBedrockStorage"
+      :aria-label="isBedrock ? t('instance.openLogFolder') : t('logsCrashes.title')"
+      @click="showLogs"
     >
       <v-icon> subtitles </v-icon>
     </v-btn>
 
     <v-btn
+      data-testid="home-folder-action"
       v-shared-tooltip="() => t('instance.showInstance')"
-      text
       icon
-      :loading="isValidating"
+      variant="text"
+      density="comfortable"
+      :loading="isValidating || loadingBedrockStorage"
+      :aria-label="t('instance.showInstance')"
       @click="showInstanceFolder"
     >
       <v-icon> folder </v-icon>
     </v-btn>
 
     <v-btn
-      v-shared-tooltip="() => t('baseSetting.title', 2)"
-      text
+      v-if="!isBedrock"
+      v-shared-tooltip="() => t('modpack.export')"
       icon
+      variant="text"
+      density="comfortable"
       :loading="isValidating"
-      to="/base-setting"
+      :aria-label="t('modpack.export')"
+      to="/base-setting?target=modpack"
     >
-      <v-icon> tune </v-icon>
+      <v-icon> share </v-icon>
     </v-btn>
   </div>
 </template>
@@ -76,74 +56,50 @@
 <script lang="ts" setup>
 import { useService } from "@/composables";
 import { kInstance } from "@/composables/instance";
-import { InstanceInstallDialog } from "@/composables/instanceUpdate";
 import { kInstances } from "@/composables/instances";
+import { vRovingTabindex } from "@/directives/rovingTabindex";
 import { vSharedTooltip } from "@/directives/sharedTooltip";
 import { injection } from "@/util/inject";
-import {
-  BaseServiceKey,
-  ModpackServiceKey,
-  waitModpackFiles,
-} from "@xmcl/runtime-api";
+import { BaseServiceKey, BedrockServiceKey, BedrockStoragePaths } from "@xmcl/runtime-api";
+import { isBedrockInstance } from "@xmcl/instance";
 import { useDialog } from "../composables/dialog";
-import {
-  AppExportDialogKey,
-  AppExportServerDialogKey,
-} from "../composables/instanceExport";
 
 const { path, instance } = injection(kInstance);
 const { isValidating } = injection(kInstances);
+const isBedrock = computed(() => isBedrockInstance(instance.value));
 const { openDirectory } = useService(BaseServiceKey);
+const { getStoragePaths } = useService(BedrockServiceKey);
 const { show: showLogDialog } = useDialog("log");
-const { show: showExport } = useDialog(AppExportDialogKey);
-const { show: showExportServer } = useDialog(AppExportServerDialogKey);
-const { show: showInstanceInstallDialog } = useDialog(InstanceInstallDialog);
-const { openModpack } = useService(ModpackServiceKey);
 const { t } = useI18n();
 
+const bedrockStorage = ref<BedrockStoragePaths>();
+const loadingBedrockStorage = ref(false);
+
+watch(isBedrock, async (bedrock) => {
+  bedrockStorage.value = undefined;
+  if (!bedrock) return;
+  loadingBedrockStorage.value = true;
+  try {
+    bedrockStorage.value = await getStoragePaths();
+  } finally {
+    loadingBedrockStorage.value = false;
+  }
+}, { immediate: true });
+
 function showInstanceFolder() {
-  openDirectory(path.value);
+  openDirectory(isBedrock.value ? bedrockStorage.value!.dataPath : path.value);
 }
 
-const loading = ref(false)
-function onClickInstallFromModpack() {
-  loading.value = true
-  windowController
-    .showOpenDialog({
-      properties: ["openFile"],
-      filters: [
-        {
-          name: "Modpack",
-          extensions: ["zip", "mrpack"],
-        },
-      ],
-    })
-    .then(async (result) => {
-      const file = result.canceled ? undefined : result.filePaths[0];
-      if (!file) {
-        return;
-      }
-      const modpack = await openModpack(file);
-      const files = await waitModpackFiles(modpack);
-
-      showInstanceInstallDialog({
-        type: "updates",
-        oldFiles: [],
-        files: files,
-        id: "",
-      });
-    }).finally(() => {
-      loading.value = false
-    });
+function showLogs() {
+  if (isBedrock.value) {
+    openDirectory(bedrockStorage.value!.logsPath);
+    return;
+  }
+  showLogDialog();
 }
 </script>
 <style scoped>
 .compact {
   background: rgba(0, 0, 0, 0.5);
-}
-</style>
-<style>
-.home-actions .v-speed-dial__list {
-  padding: 0;
 }
 </style>

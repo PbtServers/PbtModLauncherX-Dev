@@ -1,25 +1,50 @@
-import { BaseServiceKey, Environment, BaseService as IBaseService, InvalidDirectoryErrorCode, MigrateOptions, MigrationException, PoolStats, Settings, SharedState } from '@xmcl/runtime-api'
-import { readdir, stat } from 'fs-extra'
+import {
+  BaseServiceKey,
+  type Environment,
+  type BaseService as IBaseService,
+  type InvalidDirectoryErrorCode,
+  type MigrateOptions,
+  MigrationException,
+  type PoolStats,
+  type SystemInfo,
+  Settings,
+  type SharedState,
+  DownloadUpdateTask,
+  NetworkStatus,
+} from '@xmcl/runtime-api'
+import { readFile, readdir, stat, pathExists } from 'fs-extra'
 import os, { freemem, totalmem } from 'os'
-import { join } from 'path'
+import { statfs } from 'fs/promises'
+import { join, resolve } from 'path'
 import { Inject, LauncherAppKey, kGameDataPath } from '~/app'
-import { kClientToken } from '~/clientToken'
-import { kLogRoot } from '~/logger'
+import {
+  endRendererAction,
+  getActiveRendererActionId,
+  getActiveTraceparent,
+  kClientToken,
+  kGFW,
+  kLogRoot,
+  launcherSessionId,
+  setActiveSpanAttributes,
+} from '~/infra'
 import { kNetworkInterface } from '~/network'
 import { AbstractService, ExposeServiceKey, Singleton } from '~/service'
 import { kSettings } from '~/settings'
-import { TaskFn, kTaskExecutor } from '~/task'
+import { type Tasks, kTasks } from '~/infra'
 import { validateDirectory } from '~/util/validate'
+import { writeZipFile } from '../util/zip'
 import { LauncherApp } from '../app/LauncherApp'
 import { HAS_DEV_SERVER } from '../constant'
-import { ZipTask } from '../util/zip'
-import { kGFW } from '~/gfw'
+import { ZipFile } from 'yazl'
+import { getTracker } from '~/util/taskHelper'
+import { addSteamShortcutToVdf } from './steamShortcut'
+import { writeFile as writeAtomically } from 'atomically'
 
 @ExposeServiceKey(BaseServiceKey)
 export class BaseService extends AbstractService implements IBaseService {
   constructor(
     @Inject(LauncherAppKey) app: LauncherApp,
-    @Inject(kTaskExecutor) private submit: TaskFn,
+    @Inject(kTasks) private tasks: Tasks,
   ) {
     super(app, async () => {
       this.checkUpdate()
@@ -31,19 +56,23 @@ export class BaseService extends AbstractService implements IBaseService {
   }
 
   destroyPool(origin: string) {
-    return this.app.registry.get(kNetworkInterface).then(s => s.destroyPool(origin))
+    return this.app.registry.get(kNetworkInterface).then((s) => s.destroyPool(origin))
   }
 
-  getNetworkStatus(): Promise<Record<string, PoolStats>> {
-    return this.app.registry.get(kNetworkInterface).then(s => s.getDownloadAgentStatus())
+  getNetworkStatus(): Promise<NetworkStatus> {
+    return this.app.registry.get(kNetworkInterface).then((s) => s.getNetworkStatus())
   }
 
-  getSessionId() {
+  async getSessionId() {
+    return launcherSessionId
+  }
+
+  getDeviceId() {
     return this.app.registry.get(kClientToken)
   }
 
   getGameDataDirectory(): Promise<string> {
-    return this.app.registry.get(kGameDataPath).then(f => f())
+    return this.app.registry.get(kGameDataPath).then((f) => f())
   }
 
   async getSettings(): Promise<SharedState<Settings>> {
@@ -51,6 +80,8 @@ export class BaseService extends AbstractService implements IBaseService {
   }
 
   async getEnvironment(): Promise<Environment> {
+    const gfw = await this.app.registry.get(kGFW)
+    await gfw.signal
     return {
       os: this.app.platform.os,
       arch: this.app.platform.arch,
@@ -58,8 +89,101 @@ export class BaseService extends AbstractService implements IBaseService {
       env: this.app.env,
       version: this.app.version,
       build: this.app.build,
-      gfw: (await this.app.registry.get(kGFW)).inside,
+      region: this.app.systemLocale,
+      gfw: gfw.inside,
+      gpu: await this.app.host
+        .getGPUInfo('basic')
+        .then(
+          (info) =>
+            info.gpuDevice?.some(
+              (g) => g.vendorId === 4318 || g.vendorId === 4098 || g.vendorId === 4203,
+            ) ?? false,
+        ),
+      steamDeck:
+        process.env.STEAM_DECK === '1' ||
+        process.env.USER === 'deck' ||
+        (process.platform === 'linux' && os.release().toLowerCase().includes('steamdeck')),
     }
+  }
+
+  async makeDesktopShortcut() {
+    const desktopDir = this.app.host.getPath('desktop')
+    if (process.platform === 'win32') {
+      const shortcutPath = join(desktopDir, 'XMCL.lnk')
+      return this.app.shell.createShortcut(shortcutPath, {
+        target: this.app.host.getPath('exe'),
+        args: process.execArgv.join(' '),
+        cwd: process.cwd(),
+      })
+    }
+    return false
+  }
+
+  async addSteamShortcut(): Promise<boolean> {
+    // Find Steam userdata directory
+    const steamPaths: string[] = []
+    if (process.platform === 'win32') {
+      if (process.env['PROGRAMFILES(X86)']) {
+        steamPaths.push(join(process.env['PROGRAMFILES(X86)'], 'Steam'))
+      }
+      if (process.env.PROGRAMFILES) {
+        steamPaths.push(join(process.env.PROGRAMFILES, 'Steam'))
+      }
+      steamPaths.push('C:\\Program Files (x86)\\Steam')
+      steamPaths.push('C:\\Program Files\\Steam')
+    } else if (process.platform === 'darwin') {
+      steamPaths.push(join(os.homedir(), 'Library/Application Support/Steam'))
+    } else {
+      // Linux
+      steamPaths.push(join(os.homedir(), '.steam/steam'))
+      steamPaths.push(join(os.homedir(), '.local/share/Steam'))
+    }
+
+    const exePath = this.app.host.getPath('exe')
+    const startDir = resolve(exePath, '..')
+
+    let shortcutAdded = false
+    let shortcutError: unknown
+
+    for (const steamPath of steamPaths) {
+      const userdataPath = join(steamPath, 'userdata')
+      if (await pathExists(userdataPath)) {
+        try {
+          const userDirs = await readdir(userdataPath)
+          for (const userDir of userDirs) {
+            if (/^\d+$/.test(userDir)) {
+              const configDir = join(userdataPath, userDir, 'config')
+              if (await pathExists(configDir)) {
+                const shortcutsVdfPath = join(configDir, 'shortcuts.vdf')
+                const existing = (await pathExists(shortcutsVdfPath))
+                  ? await readFile(shortcutsVdfPath)
+                  : Buffer.alloc(0)
+                const updated = addSteamShortcutToVdf(existing, {
+                  executable: `"${exePath}"`,
+                  startDir: `"${startDir}"`,
+                  icon: exePath,
+                })
+
+                if (updated) {
+                  await writeAtomically(shortcutsVdfPath, updated)
+                  shortcutAdded = true
+                }
+              }
+            }
+          }
+        } catch (err) {
+          this.logger.warn(`Failed to add Steam shortcut for ${steamPath}`)
+          this.logger.warn(err)
+          shortcutError ??= err
+        }
+      }
+    }
+
+    if (!shortcutAdded && shortcutError) {
+      throw shortcutError
+    }
+
+    return shortcutAdded
   }
 
   async handleUrl(url: string) {
@@ -94,6 +218,14 @@ export class BaseService extends AbstractService implements IBaseService {
   async quitAndInstall() {
     const settings = await this.getSettings()
     if (settings.updateStatus === 'ready' && settings.updateInfo) {
+      const actionId = getActiveRendererActionId()
+      if (actionId) {
+        endRendererAction({
+          id: actionId,
+          outcome: 'success',
+          attributes: { 'update.phase': 'apply' },
+        })
+      }
       await this.app.updater.installUpdateAndQuit(settings.updateInfo)
     } else {
       this.warn('There is no update available!')
@@ -109,11 +241,14 @@ export class BaseService extends AbstractService implements IBaseService {
     try {
       const settings = await this.getSettings()
       this.log('Check update')
-      const info = await this.submit(this.app.updater.checkUpdateTask())
+      const info = await this.app.updater.checkUpdateTask()
+      setActiveSpanAttributes({
+        'update.available': info.newUpdate,
+        'update.phase': 'check',
+      })
+      const ready = settings.updateStatus === 'ready' && settings.updateInfo === info
       settings.updateInfoSet(info)
-      if (info.newUpdate) {
-        settings.updateStatusSet('pending')
-      }
+      settings.updateStatusSet(!info.newUpdate ? 'none' : ready ? 'ready' : 'pending')
     } catch (e) {
       if (e instanceof Error && e.name === 'Error') {
         if (e.message === 'No update info found') {
@@ -132,10 +267,30 @@ export class BaseService extends AbstractService implements IBaseService {
   async downloadUpdate() {
     const settings = await this.getSettings()
     if (!settings.updateInfo) {
-      throw new Error('Cannot download update if we don\'t check the version update!')
+      throw new Error("Cannot download update if we don't check the version update!")
     }
-    this.log(`Start to download update: ${settings.updateInfo.name} operation=${settings.updateInfo.operation}`)
-    await this.submit(this.app.updater.downloadUpdateTask(settings.updateInfo).setName('downloadUpdate'))
+    const updateInfo = settings.updateInfo
+    setActiveSpanAttributes({
+      'update.operation': updateInfo.operation,
+      'update.phase': 'download',
+    })
+
+    this.log(`Start to download update: ${updateInfo.name} operation=${updateInfo.operation}`)
+    const task = this.tasks.create<DownloadUpdateTask>({
+      type: 'downloaUpdate',
+      key: `download-update-${updateInfo.operation}`,
+      operation: updateInfo.operation as DownloadUpdateTask['operation'],
+      version: updateInfo.name,
+    })
+    await task.wrap(
+      this.app.updater.downloadUpdate(updateInfo, {
+        tracker: getTracker(task),
+        abortSignal: task.controller.signal,
+      }).then(() => {
+        // A host updater may swallow AbortError rather than reject its download.
+        task.controller.signal.throwIfAborted()
+      }),
+    )
     settings.updateStatusSet('ready')
   }
 
@@ -148,25 +303,42 @@ export class BaseService extends AbstractService implements IBaseService {
   }
 
   async reportItNow(options: { destination: string }): Promise<void> {
-    const task = new ZipTask(options.destination)
+    const zipFile = new ZipFile()
     const logsDir = await this.app.registry.get(kLogRoot)
     const files = await readdir(logsDir)
 
     for (const file of files) {
-      task.addFile(join(logsDir, file), join('logs', file))
+      const filePath = join(logsDir, file)
+      const fStat = await stat(filePath).catch(() => undefined)
+      if (fStat?.isFile()) {
+        // Read the log into a buffer first. Log files may still be written to
+        // while we export, and yazl's addFile defers reading until the zip is
+        // finalized. If the file size changes between stat and read, the entry
+        // becomes corrupt. Snapshotting via addBuffer captures size + content
+        // atomically and avoids producing a broken zip.
+        const content = await readFile(filePath).catch(() => undefined)
+        if (content) {
+          zipFile.addBuffer(content, join('logs', file))
+        }
+      }
     }
 
     const sessionId = await this.app.registry.get(kClientToken)
 
-    task.addBuffer(Buffer.from(JSON.stringify({
-      sessionId,
-      platform: os.platform(),
-      arch: os.arch(),
-      version: os.version(),
-      release: os.release(),
-      type: os.type(),
-    })), 'device.json')
-    await task.startAndWait()
+    zipFile.addBuffer(
+      Buffer.from(
+        JSON.stringify({
+          sessionId,
+          platform: os.platform(),
+          arch: os.arch(),
+          version: os.version(),
+          release: os.release(),
+          type: os.type(),
+        }),
+      ),
+      'device.json',
+    )
+    await writeZipFile(zipFile, options.destination)
 
     this.showItemInDirectory(options.destination)
   }
@@ -182,7 +354,42 @@ export class BaseService extends AbstractService implements IBaseService {
       })
     }
 
-    this.app.relaunch([...process.argv.slice(1), '--migrate', destination])
+    // Nothing to do if the destination is already the current root. Without
+    // this guard the launcher would relaunch and re-migrate into itself.
+    const current = await this.app.registry.get(kGameDataPath).then((f) => f())
+    if (resolve(current) === resolve(destination)) {
+      return
+    }
+
+    // Drop any stale migration arguments left in argv by a previous migration.
+    // The relaunched process reads the migration target from argv, so a
+    // leftover flag would otherwise win over the new destination and make the
+    // migration silently do nothing.
+    const argv = process.argv.slice(1)
+    const cleaned: string[] = []
+    for (let i = 0; i < argv.length; i++) {
+      if (argv[i] === '--migrate' || argv[i] === '--migration-traceparent') {
+        i++ // also skip its value
+        continue
+      }
+      cleaned.push(argv[i])
+    }
+
+    const actionId = getActiveRendererActionId()
+    const traceparent = getActiveTraceparent()
+    if (actionId) {
+      endRendererAction({
+        id: actionId,
+        outcome: 'success',
+        attributes: { 'migration.phase': 'requested' },
+      })
+    }
+    this.app.relaunch([
+      ...cleaned,
+      '--migrate',
+      destination,
+      ...(traceparent ? ['--migration-traceparent', traceparent] : []),
+    ])
     this.app.quit()
   }
 
@@ -195,5 +402,44 @@ export class BaseService extends AbstractService implements IBaseService {
       total: totalmem(),
       free: freemem(),
     })
+  }
+
+  async getSystemInfo(diskPath?: string): Promise<SystemInfo> {
+    const cpus = os.cpus()
+    const [gpuInfo, diskInfo] = await Promise.all([
+      this.app.host.getGPUInfo('complete').catch(() => ({ gpuDevice: [] })),
+      diskPath ? statfs(diskPath).catch(() => undefined) : undefined,
+    ])
+    return {
+      operatingSystem: {
+        name: os.type(),
+        platform: this.app.platform.os,
+        release: this.app.platform.osRelease,
+        arch: this.app.platform.arch,
+      },
+      cpu: {
+        model: cpus[0]?.model.trim() ?? 'unknown',
+        logicalCores: cpus.length,
+        speedMHz: cpus[0]?.speed ?? 0,
+      },
+      memory: {
+        totalBytes: totalmem(),
+        freeBytes: freemem(),
+      },
+      disk: diskInfo
+        ? {
+            totalBytes: diskInfo.blocks * diskInfo.bsize,
+            freeBytes: diskInfo.bavail * diskInfo.bsize,
+          }
+        : undefined,
+      gpus: (gpuInfo.gpuDevice ?? []).map((gpu) => ({
+        active: gpu.active,
+        vendorId: gpu.vendorId,
+        deviceId: gpu.deviceId,
+        name: gpu.deviceString,
+        driverVendor: gpu.driverVendor,
+        driverVersion: gpu.driverVersion,
+      })),
+    }
   }
 }

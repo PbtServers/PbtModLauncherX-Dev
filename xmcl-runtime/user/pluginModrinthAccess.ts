@@ -1,11 +1,10 @@
 import { LauncherAppPlugin } from '~/app'
+import { ExternalCredentialService } from '~/credential/ExternalCredentialService'
 import { UserService } from './UserService'
-import { getModrinthAccessToken } from './loginModrinth'
+import { formatModrinthAuthorization } from './utils/loginModrinth'
 
-export const pluginModrinthAccess: LauncherAppPlugin = async (app) => {
+export const pluginModrinthAccess: LauncherAppPlugin = (app) => {
   const logger = app.getLogger('ModrinthAccess')
-
-  const userService = await app.registry.get(UserService)
 
   app.protocol.registerHandler('xmcl', ({ request, response }) => {
     const parsed = request.url
@@ -14,11 +13,17 @@ export const pluginModrinthAccess: LauncherAppPlugin = async (app) => {
       if (parsed.searchParams.get('error')) {
         const err = parsed.searchParams.get('error')!
         const errDescription = parsed.searchParams.get('error')!
-        error = new Error(unescape(errDescription));
-        (error as any).error = err
+        error = new Error(unescape(errDescription))
+        ;(error as any).error = err
       }
       const code = parsed.searchParams.get('code') as string
-      userService.emit('modrinth-authorize-code', error, code)
+      void app.registry.get(UserService)
+        .then((userService) => {
+          userService.emit('modrinth-authorize-code', error, code)
+        })
+        .catch(() => {
+          logger.warn('Unable to emit Modrinth authorization code.')
+        })
       response.status = 200
       try {
         response.body = app.controller.getLoginSuccessHTML()
@@ -38,13 +43,14 @@ export const pluginModrinthAccess: LauncherAppPlugin = async (app) => {
       return
     }
 
-    if ( request.url.pathname === '/v2/version_files') {
+    if (request.url.pathname === '/v2/version_files') {
       return
     }
 
-    const token = await getModrinthAccessToken(app)
-    if (token) {
-      request.headers['Authorization'] = `Bearer ${token}`
+    const credentials = await app.registry.getOrCreate(ExternalCredentialService)
+    const token = await credentials.getValidAccessToken('modrinth')
+    if (token.status === 'valid') {
+      request.headers['Authorization'] = formatModrinthAuthorization(token.accessToken)
     }
   })
 }

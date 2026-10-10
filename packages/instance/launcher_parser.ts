@@ -1,0 +1,246 @@
+import { isSystemError } from '@xmcl/utils'
+import { existsSync, readdir, readdirSync } from 'fs-extra'
+import { join } from 'path'
+import type { InstanceType, ThirdPartyLauncherManifest } from './modpack'
+import { parseCurseforgeInstance, parseCurseforgeInstanceFiles } from './parsers/curseforge_parser'
+import { parseModrinthInstance, parseModrinthInstanceFiles } from './parsers/modrinth_parser'
+import {
+  detectMMCRoot,
+  getMultiMCInstancePath,
+  isMultiMCInstance,
+  parseMultiMCInstance,
+  parseMultiMCInstanceFiles,
+} from './parsers/multimc_parser'
+import { parseVanillaInstance, parseVanillaInstanceFiles } from './parsers/vanilla_parser'
+
+export { getMultiMCGameDirectory, isMultiMCInstance, parseMultiMCInstance, readMultiMCManifest } from './parsers/multimc_parser'
+
+/**
+ * Check if a path is a Modrinth instance
+ */
+function isModrinthInstance(path: string): boolean {
+  return existsSync(join(path, 'profile.json'))
+}
+
+/**
+ * Check if a path is a CurseForge instance
+ */
+function isCurseforgeInstance(path: string): boolean {
+  return existsSync(join(path, 'minecraftinstance.json'))
+}
+
+/**
+ * Check if a path is a Vanilla Minecraft installation
+ */
+function isVanillaMinecraft(path: string): boolean {
+  return existsSync(join(path, 'launcher_profiles.json'))
+}
+
+/**
+ * Auto-detect the launcher type from a path
+ */
+export function detectLauncherType(path: string): InstanceType | null {
+  const mmcRoot = detectMMCRoot(path)
+  if (
+    isMultiMCInstance(path) ||
+    existsSync(join(path, 'prismlauncher.cfg')) ||
+    existsSync(join(path, 'multimc.cfg')) ||
+    (existsSync(join(mmcRoot, 'instances')) &&
+      readdirSync(join(mmcRoot, 'instances')).some((instance) => isMultiMCInstance(join(mmcRoot, 'instances', instance))))
+  ) {
+    return 'mmc'
+  }
+
+  if (isModrinthInstance(path) || existsSync(join(path, 'profiles'))) {
+    return 'modrinth'
+  }
+
+  if (isCurseforgeInstance(path) || existsSync(join(path, 'Instances'))) {
+    return 'curseforge'
+  }
+
+  if (isVanillaMinecraft(path)) {
+    return 'vanilla'
+  }
+
+  return null
+}
+
+/**
+ * Parse launcher data to get instances and shared folders
+ */
+export async function parseLauncherData(
+  path: string,
+  type?: InstanceType,
+): Promise<ThirdPartyLauncherManifest> {
+  const actualType = type || detectLauncherType(path)
+
+  if (!actualType) {
+    throw new Error(`Cannot detect launcher type for path: ${path}`)
+  }
+
+  try {
+    switch (actualType) {
+      case 'mmc': {
+        const instancePath = getMultiMCInstancePath(path)
+        const rootPath = detectMMCRoot(instancePath)
+        const instancesPath = join(rootPath, 'instances')
+        const instances = isMultiMCInstance(instancePath)
+          ? [instancePath]
+          : (await readdir(instancesPath))
+              .map((instance) => join(instancesPath, instance))
+              .filter(isMultiMCInstance)
+
+        const manifests = await Promise.all(
+          instances.map(async (instancePath) => {
+            const options = await parseMultiMCInstance(instancePath)
+            return {
+              options,
+              path: instancePath,
+            }
+          }),
+        )
+
+        return {
+          folder: {
+            assets: existsSync(join(rootPath, 'assets')) ? join(rootPath, 'assets') : '',
+            libraries: existsSync(join(rootPath, 'libraries')) ? join(rootPath, 'libraries') : '',
+            versions: '',
+            jre: undefined,
+          },
+          instances: manifests,
+        }
+      }
+
+      case 'modrinth': {
+        const instancesPath = join(path, 'profiles')
+        const instances = await readdir(instancesPath)
+
+        const manifests = await Promise.allSettled(
+          instances.map(async (instance) => {
+            const instancePath = join(instancesPath, instance)
+            const options = await parseModrinthInstance(instancePath)
+            return {
+              options,
+              path: instancePath,
+            }
+          }),
+        )
+
+        const assets = join(path, 'meta', 'assets')
+        const libraries = join(path, 'meta', 'libraries')
+        const versions = join(path, 'meta', 'versions')
+        const jre = join(path, 'meta', 'java_versions')
+
+        return {
+          folder: {
+            assets: existsSync(assets) ? assets : '',
+            libraries: existsSync(libraries) ? libraries : '',
+            versions: existsSync(versions) ? versions : '',
+            jre: existsSync(jre) ? jre : undefined,
+          },
+          instances: manifests
+            .filter((m): m is PromiseFulfilledResult<any> => m.status === 'fulfilled')
+            .map((m) => m.value),
+        }
+      }
+
+      case 'curseforge': {
+        const instancesPath = join(path, 'Instances')
+        const minecraftDataPath = join(path, 'Install')
+
+        const instances = await readdir(instancesPath)
+        const manifests = await Promise.allSettled(
+          instances.map(async (instance) => {
+            const instancePath = join(instancesPath, instance)
+            const options = await parseCurseforgeInstance(instancePath)
+            return {
+              options,
+              path: instancePath,
+            }
+          }),
+        )
+
+        const versionDir = join(minecraftDataPath, 'versions')
+        const libDir = join(minecraftDataPath, 'libraries')
+        const assetsDir = join(minecraftDataPath, 'assets')
+
+        return {
+          folder: {
+            versions: existsSync(versionDir) ? versionDir : '',
+            libraries: existsSync(libDir) ? libDir : '',
+            assets: existsSync(assetsDir) ? assetsDir : '',
+            jre: undefined,
+          },
+          instances: manifests
+            .filter((m): m is PromiseFulfilledResult<any> => m.status === 'fulfilled')
+            .map((m) => m.value),
+        }
+      }
+
+      case 'vanilla': {
+        const vanillaInstances = await parseVanillaInstance(path)
+
+        const assets = join(path, 'assets')
+        const libraries = join(path, 'libraries')
+        const versions = join(path, 'versions')
+        const jre = join(path, 'jre')
+
+        return {
+          folder: {
+            assets: existsSync(assets) ? assets : '',
+            libraries: existsSync(libraries) ? libraries : '',
+            versions: existsSync(versions) ? versions : '',
+            jre: existsSync(jre) ? jre : undefined,
+          },
+          instances: vanillaInstances,
+        }
+      }
+
+      default:
+        throw new Error(`Unsupported launcher type: ${actualType}`)
+    }
+  } catch (error) {
+    if (isSystemError(error) && error.code === 'ENOENT') {
+      // Re-throw with a marker so the upstream service can convert it
+      // to a UI-friendly `AnyError('BadInstance', ...)` and so
+      // ErrorDiagnose can suppress it from telemetry (issue #1469 —
+      // user picked a folder with no instances; 139 users in 0.56.4,
+      // not a defect).
+      throw Object.assign(new Error(`Bad instance path: ${path}`), {
+        name: 'BadInstance',
+        code: 'ENOENT',
+        cause: error,
+      })
+    }
+    throw error
+  }
+}
+
+/**
+ * Parse instance files from a specific instance path
+ */
+export async function parseInstanceFiles(path: string, type?: InstanceType) {
+  const actualType = type || detectLauncherType(path)
+
+  if (!actualType) {
+    throw new Error(`Cannot detect launcher type for path: ${path}`)
+  }
+
+  switch (actualType) {
+    case 'mmc':
+      return parseMultiMCInstanceFiles(path)
+
+    case 'modrinth':
+      return parseModrinthInstanceFiles(path)
+
+    case 'curseforge':
+      return parseCurseforgeInstanceFiles(path)
+
+    case 'vanilla':
+      return parseVanillaInstanceFiles(path)
+
+    default:
+      throw new Error(`Unsupported launcher type: ${actualType}`)
+  }
+}

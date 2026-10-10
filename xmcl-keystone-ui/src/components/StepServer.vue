@@ -1,6 +1,6 @@
 <template>
   <div
-    style="overflow: auto; max-height: 70vh; padding: 24px 24px 16px"
+    class="overflow-auto max-h-[70vh] px-[24px] pt-[24px] pb-[16px]"
   >
     <v-form
       lazy-validation
@@ -26,8 +26,7 @@
                 <img
                   v-fallback-img="BuiltinImages.unknownServer"
                   :src="status.favicon || BuiltinImages.unknownServer"
-                  class="rounded-lg p-1"
-                  style="max-width: 80px; max-height: 80px; min-height: 80px;"
+                  class="rounded-lg p-1 max-w-[80px] max-h-[80px] min-h-[80px]"
                 >
                 <span class="flex flex-grow justify-center">
                   <text-component
@@ -36,7 +35,7 @@
                   />
                   <div
                     v-else
-                    style="font-size: 18px; font-weight: bold;"
+                    class="text-[18px] font-bold"
                   >{{ t('server.creationHint') }}</div>
                 </span>
                 <text-component
@@ -48,9 +47,9 @@
               <div class="mb-2 grid grid-cols-12 gap-4">
                 <v-combobox
                   class="col-span-6"
-                  outlined
+                  variant="outlined"
                   hide-details
-                  :value="acceptingMinecrafts"
+                  :model-value="acceptingMinecrafts"
                   append-icon="title"
                   :label="t('server.version')"
                   :readonly="true"
@@ -58,9 +57,9 @@
                 />
                 <v-text-field
                   class="col-span-4"
-                  outlined
+                  variant="outlined"
                   hide-details
-                  :value="status.players.online + '/' + status.players.max"
+                  :model-value="status.players.online + '/' + status.players.max"
                   append-icon="people"
                   :label="t('server.players')"
                   :readonly="true"
@@ -68,8 +67,8 @@
                 />
                 <v-text-field
                   class="col-span-2"
-                  :value="status.ping"
-                  outlined
+                  :model-value="status.ping"
+                  variant="outlined"
                   hide-details
                   append-icon="signal_cellular_alt"
                   :label="t('server.ping')"
@@ -84,8 +83,8 @@
             <div class="grid w-full grid-cols-3 gap-4">
               <v-text-field
                 v-model="serverField"
-                :rules="[!serverField ? 'Required' : undefined]"
-                outlined
+                :rules="[!serverField ? 'Required' : true]"
+                variant="outlined"
                 persistent-hint
                 autofocus
                 :hint="t('server.hostHint')"
@@ -95,18 +94,15 @@
               <div />
               <div class="flex justify-end">
                 <v-btn
-                  text
-                  x-large
                   color="primary"
                   :disabled="!server.host"
                   :loading="pinging"
-                  outlined
                   @click="refresh"
-                >
-                  <v-icon left>
+                 size="x-large" variant="text">
+                  <v-icon start>
                     wifi
                   </v-icon>
-                  {{ t('refresh') }}
+                  {{ t('shared.refresh') }}
                 </v-btn>
               </div>
             </div>

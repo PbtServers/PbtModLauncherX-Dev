@@ -6,33 +6,27 @@
   >
     <v-alert
       dense
-      border="left"
+      border="start"
       type="warning"
       prominent
     >
       <v-card
         elevation="0"
-        text
+        variant="text"
         color="transparent"
+        :title="t('HomeLaunchMultiInstanceDialog.title')"
+        :text="t('HomeLaunchMultiInstanceDialog.description')"
       >
-        <v-card-title>
-          {{ t('HomeLaunchMultiInstanceDialog.title') }}
-        </v-card-title>
-        <v-card-text>
-          {{ t('HomeLaunchMultiInstanceDialog.description') }}
-        </v-card-text>
         <v-card-actions>
           <v-btn
-            text
             @click="isShown = false"
-          >
-            {{ t('cancel') }}
+           variant="text">
+            {{ t('shared.cancel') }}
           </v-btn>
           <v-spacer />
           <v-btn
-            text
             @click="launch(); isShown = false"
-          >
+           variant="text">
             {{ t('HomeLaunchMultiInstanceDialog.confirm') }}
           </v-btn>
         </v-card-actions>

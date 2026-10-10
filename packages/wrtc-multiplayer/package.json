@@ -1,0 +1,31 @@
+{
+  "version": "0.3.10",
+  "name": "@xmcl/wrtc-multiplayer",
+  "private": true,
+  "description": "node-datachannel peer connection provider for XMCL multiplayer",
+  "main": "./index.ts",
+  "scripts": {
+    "check": "tsc --project tsconfig.json --noEmit",
+    "fmt": "oxfmt -c ../../.oxfmtrc.json .",
+    "lint": "oxlint -c ../oxlint-config/oxlintrc.json ."
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@xmcl/multiplayer-core": "workspace:*",
+    "@xmcl/utils": "workspace:*",
+    "node-datachannel": "0.32.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@xmcl/oxlint-config": "workspace:*",
+    "oxlint": "^1.63.0",
+    "typescript": "^5.9.3"
+  },
+  "author": {
+    "name": "CI010",
+    "email": "cijhn@hotmail.com"
+  },
+  "license": "MIT"
+}

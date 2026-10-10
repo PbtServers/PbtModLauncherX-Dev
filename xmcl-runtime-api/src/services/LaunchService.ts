@@ -5,19 +5,30 @@ import { AUTHORITY_DEV } from '../util/authority'
 import { ServiceKey } from './Service'
 
 interface LaunchServiceEventMap {
-  'minecraft-window-ready': { pid: number }
+  'minecraft-window-ready': { pid: number; launchId: string }
   'minecraft-start': {
     pid: number
+    launchId: string
     version: string
     minecraft: string
     forge: string
     fabricLoader: string
   } & LaunchOptions
-  'minecraft-exit': LaunchOptions & { pid: number; code?: number; signal?: string; duration: number; crashReport?: string; crashReportLocation?: string; errorLog: string }
+  'minecraft-exit': LaunchOptions & {
+    pid: number
+    launchId: string
+    code?: number
+    signal?: string
+    duration: number
+    crashReport?: string
+    crashReportLocation?: string
+    errorLog: string
+    stdLog?: string
+    elyByAuthlibReplaced?: boolean
+    elyByMinecraftVersion?: string
+  }
   'minecraft-stdout': { pid: number; stdout: string }
-  'minecraft-stderr': { pid: number; stdout: string }
-  'launch-performance-pre': { id: string; name: string }
-  'launch-performance': { id: string; name: string; duration: number }
+  'minecraft-stderr': { pid: number; stderr: string }
   'error': LaunchException | Error
 }
 
@@ -53,6 +64,11 @@ export interface LaunchOptions {
     host: string
     port?: number
   }
+  /**
+   * Override to directly launch into a single player world. The value is the
+   * save folder name (the directory name under the instance's `saves/`).
+   */
+  world?: string
   /**
    * Support yushi's yggdrasil agent https://github.com/to2mbn/authlib-injector/wiki
    */
@@ -125,32 +141,19 @@ export interface LaunchOptions {
   disableElyByAuthlib?: boolean
 
   nogui?: boolean
-  
+
   /**
    * Resolution settings for Minecraft
    */
-  resolution?: { width?: number; height?: number; fullscreen?: boolean }
+  resolution?: { width?: number; height?: number; fullscreen?: boolean; monitor?: string }
 }
 
 export interface GameProcess {
   pid: number
+  launchId: string
   ready: boolean
   side: 'client' | 'server'
   options: LaunchOptions
-}
-
-export interface ReportOperationPayload {
-  operationId: string
-  /**
-   * Name of the operation
-   */
-  name: string
-  /**
-   * The duration of the operation. If empty, it means the operation is just started
-   */
-  duration?: number
-
-  success?: boolean
 }
 
 export interface CreateLaunchShortcutOptions {
@@ -173,8 +176,11 @@ export interface LaunchService extends GenericEventEmitter<LaunchServiceEventMap
   /**
    * Kill the Minecraft process
    * @param pid The process id
+   * @param force If true, force-terminate the process tree (SIGKILL on Unix,
+   *   `taskkill /F /T` on Windows). Useful when the JVM hangs on exit and the
+   *   default graceful shutdown does not work. See gh #1395.
    */
-  kill(pid: number): Promise<void>
+  kill(pid: number, force?: boolean): Promise<void>
   /**
    * Get the game process
    * @param pid The process id
@@ -184,10 +190,6 @@ export interface LaunchService extends GenericEventEmitter<LaunchServiceEventMap
    * Get all game processes
    */
   getGameProcesses(): Promise<GameProcess[]>
-  /**
-   * Only used for telemetry
-   */
-  reportOperation(options: ReportOperationPayload): Promise<void>
   /**
    * Create a launch shortcut
    */
@@ -230,8 +232,13 @@ export type LaunchExceptions = {
   type: 'launchPreExecuteCommandFailed'
   command: string
   error?: string
+} | {
+  type: 'launchLinuxDisplayUnavailable'
+  reason: 'no-graphical-session' | 'xwayland-missing' | 'xwayland-not-running' | 'environment-missing' | 'sandbox-denied'
 }
 
-export class LaunchException extends Exception<LaunchExceptions> { }
+export class LaunchException extends Exception<LaunchExceptions> {
+  static readonly exceptionName = 'LaunchException'
+}
 
 export const LaunchServiceKey: ServiceKey<LaunchService> = 'LaunchService'

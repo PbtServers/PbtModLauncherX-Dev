@@ -1,30 +1,37 @@
 <template>
   <v-tooltip
     v-model="isShown"
-    :color="cached?.color"
-    transition="scroll-y-reverse-transition"
-    :position-x="cached.x"
-    :position-y="cached.y"
-    class="z-1000"
-    :top="cached.top"
-    :left="cached.left"
-    :right="cached.right"
-    :bottom="cached.bottom"
+    :color="cached.color || undefined"
+    :transition="{
+      name: 'scroll-y-reverse-transition',
+      duration: {
+        leave: 0,
+        enter: 200,
+      }
+    }"
+    :target="[cached.x, cached.y]"
+    class="shared-tooltip z-1000"
+    :location="location"
   >
     {{ cached.text }}
-    <div v-if="cached.items">
-      <template v-for="r of cached.items">
+    <div
+      v-if="cached.items"
+      class="flex gap-1 items-center"
+    >
+      <template
+        v-for="r of cached.items"
+        :key="r.icon + 'icon'"
+      >
         <v-avatar
-          :key="r.icon + 'icon'"
           size="28"
         >
-          <img :src="r.icon">
+          <v-img :src="r.icon" />
         </v-avatar>
         {{ r.text }}
       </template>
     </div>
     <template v-if="cached.list">
-      <ul>
+      <ul class="pl-2">
         <li
           v-for="i in cached.list"
           :key="i"
@@ -38,6 +45,7 @@
 
 <script lang="ts" setup>
 import { useSharedTooltipData } from '@/composables/sharedTooltip'
+import { Anchor } from 'vuetify'
 
 const { isShown, stack } = useSharedTooltipData()
 const cur = computed(() => stack.value[stack.value.length - 1])
@@ -60,6 +68,15 @@ watch(cur, (v) => {
   }
 })
 
+const location = computed(() => {
+  const result = [] as string[]
+  if (cached.value.top) result.push('top')
+  else if (cached.value.bottom) result.push('bottom')
+  if (cached.value.left) result.push('left')
+  else if (cached.value.right) result.push('right')
+  return result.join(' ') as Anchor
+})
+
 const cached = shallowRef({
   x: 0,
   y: 0,
@@ -74,3 +91,13 @@ const cached = shallowRef({
 })
 
 </script>
+
+<style>
+/* The tooltip is teleported to <body>, so the style cannot be scoped. */
+.shared-tooltip > .v-overlay__content {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  color: #fff !important;
+  border-radius: var(--surface-tooltip-radius) !important;
+}
+</style>
+

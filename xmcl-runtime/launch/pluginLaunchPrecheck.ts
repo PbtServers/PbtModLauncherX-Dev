@@ -1,56 +1,92 @@
-import { LaunchPrecheck, MinecraftFolder, diagnoseJar, diagnoseLibraries } from '@xmcl/core'
-import { LaunchException, protocolToMinecraft, resolveFabricLoaderVersion, resolveForgeVersion, resolveQuiltVersion } from '@xmcl/runtime-api'
-import { ensureDir, move, readlink, stat, unlink } from 'fs-extra'
+import { LaunchPrecheck, MinecraftFolder } from '@xmcl/core'
+import {
+  LaunchException,
+  protocolToMinecraft,
+  resolveFabricLoaderVersion,
+  resolveForgeVersion,
+  resolveQuiltVersion,
+} from '@xmcl/runtime-api'
+import { isSystemError } from '@xmcl/utils'
+import { ensureDir, move, stat, unlink, readFile, writeFile, ensureFile } from 'fs-extra'
 import { join } from 'path'
+import { setGameSettingLanguage, toMinecraftLanguage } from '@xmcl/gamesetting'
 import { LauncherAppPlugin, kGameDataPath } from '~/app'
-import { InstallService } from '~/install'
 import { InstanceService } from '~/instance'
-import { JavaService, JavaValidation } from '~/java'
+import { VersionInstallService } from '~/install/InstallService'
+import { isLinkTo, readlinkSafe } from '~/instance/utils/readLinkSafe'
+import { getManagedJavaComponent, JavaService, JavaValidation } from '~/java'
 import { LaunchService } from '~/launch'
 import { PeerService } from '~/peer'
-import { linkDirectory, missing } from '~/util/fs'
+import { kSettings } from '~/settings'
+import { linkOrCopyDirectory, missing } from '~/util/fs'
 
 export const pluginLaunchPrecheck: LauncherAppPlugin = async (app) => {
   const launchService = await app.registry.get(LaunchService)
   const getPath = await app.registry.get(kGameDataPath)
 
+  const logger = app.getLogger('LaunchPrecheck')
+
+  // `libraries/` and `versions/` are read-mostly launcher-managed caches
+  // (the game only consumes them, the installer writes the source-of-truth
+  // copy). That matches the safety contract of `linkOrCopyDirectory`, so
+  // we use it here to recover the 2 856 ev / 423 users of `LaunchLinkError`
+  // on 0.56.4 that were caused by users without `SeCreateSymbolicLinkPrivilege`
+  // (no Windows Developer Mode, no admin) where both `symlink('dir')` and
+  // `symlink('junction')` fail with EPERM and the launch never gets the
+  // libraries it needs. See issue #1428 — the v0.56.4 fix was reverted from
+  // this call site (commit d34708ef) out of safety paranoia even though the
+  // doc on `linkOrCopyDirectory` explicitly endorses it for this case.
   const ensureLinkFolder = async (fromPath: string, toPath: string) => {
     if (await missing(fromPath)) {
       await ensureDir(fromPath)
     }
-    const linkTarget = await readlink(toPath).catch(() => undefined)
+
+    // Already a link (symlink or win32 junction) pointing at the shared root:
+    // nothing to do. `isLinkTo` normalizes the `\\?\` prefix / trailing sep a
+    // junction reports through `readlink`, which a raw string compare misses —
+    // that mismatch made every launch needlessly unlink+relink and, when the
+    // unlink of a junction failed (common on Windows/Wine), the following
+    // symlink hit EEXIST and surfaced as `LaunchLinkError` (issue #1428 was
+    // the EPERM cousin; this is the EEXIST long tail).
+    if (await isLinkTo(toPath, fromPath)) {
+      return
+    }
+
+    let stage = 'link'
+    const linkTarget = await readlinkSafe(toPath).catch(() => undefined)
     if (linkTarget) {
-      // relink
-      if (linkTarget !== fromPath) {
-        await unlink(toPath)
-        await linkDirectory(fromPath, toPath, launchService).catch(e => {
-          e.name = 'LaunchLinkError'
-          e.stage = 'relink'
-          launchService.error(e)
-        })
-      }
-      return
-    }
-    const fstat = await stat(toPath).catch((e) => undefined)
-    if (!fstat) {
-      await linkDirectory(fromPath, toPath, launchService).catch(e => {
-        e.name = 'LaunchLinkError'
-        e.stage = 'link'
-        launchService.error(e)
+      // A link that points elsewhere (or is dangling): drop it, then relink.
+      stage = 'relink'
+      await unlink(toPath).catch(() => {})
+    } else {
+      const fstat = await stat(toPath).catch((e) => {
+        if (e.code === 'ENOENT') return undefined
+        throw e
       })
-      return
-    }
-    try {
-      await move(toPath, join(toPath + '.bk'))
-    } catch (e) {
-      if ((e as any).message === 'dest already exists.') {
-        await move(toPath, join(toPath + Date.now() + '.bk'))
+      if (fstat) {
+        // A real directory sits where the link should be: preserve it.
+        stage = 'after move'
+        try {
+          await move(toPath, join(toPath + '.bk'))
+        } catch (e) {
+          if ((e as any).message === 'dest already exists.') {
+            await move(toPath, join(toPath + Date.now() + '.bk'))
+          }
+        }
       }
     }
-    await linkDirectory(fromPath, toPath, launchService).catch(e => {
+
+    await linkOrCopyDirectory(fromPath, toPath, logger).catch(async (e) => {
+      // Idempotent recovery: the destination already links to the shared root
+      // (a concurrent setup won the race, or a stale entry we couldn't remove
+      // is in fact correct). Treat EEXIST as success instead of raising the
+      // `LaunchLinkError` storm that 87/91 of 0.61.0's link failures came from.
+      if (isSystemError(e) && e.code === 'EEXIST' && await isLinkTo(toPath, fromPath)) {
+        return
+      }
       e.name = 'LaunchLinkError'
-      e.stage = 'after move'
-      launchService.error(e)
+      e.stage = stage
+      logger.error(e)
     })
   }
   const ensureLinkFolderFromRoot = async (gameDirectory: string, folder: string) => {
@@ -61,20 +97,54 @@ export const pluginLaunchPrecheck: LauncherAppPlugin = async (app) => {
 
   launchService.registerMiddleware({
     name: 'java-validation',
-    async onBeforeLaunch(input) {
+    async onBeforeLaunch(input, payload) {
       const javaService = await app.registry.getOrCreate(JavaService)
       const javaPath = input.java
+      let resolved
       try {
-        const result = await javaService.validateJavaPath(javaPath)
-        if (result === JavaValidation.NotExisted) {
-          throw new LaunchException({ type: 'launchInvalidJavaPath', javaPath })
-        }
-        if (result === JavaValidation.NoPermission) {
-          throw new LaunchException({ type: 'launchJavaNoPermission', javaPath })
+        resolved = await javaService.resolveJava(javaPath)
+        if (!resolved) {
+          const managed = getManagedJavaComponent(javaPath, getPath('jre'))
+          const cached = javaService.state.all.find((java) => java.path === javaPath)
+          const target = ('javaVersion' in payload.version
+            ? payload.version.javaVersion
+            : undefined) ?? (managed && cached?.majorVersion
+              ? { component: managed.component, majorVersion: cached.majorVersion }
+              : undefined)
+          if (managed && target) {
+            await javaService.removeJava(javaPath)
+            const installer = await app.registry.getOrCreate(VersionInstallService)
+            resolved = await installer.install({
+              type: 'java',
+              target,
+              forceZulu: managed.forceZulu,
+            })
+          }
+          if (resolved) {
+            input.java = resolved.path
+            payload.options.javaPath = resolved.path
+          }
         }
       } catch (e) {
-        throw new LaunchException({ type: 'launchNoProperJava', javaPath }, 'Cannot launch without a valid java', { cause: e })
+        throw new LaunchException(
+          { type: 'launchNoProperJava', javaPath },
+          'Cannot launch without a valid java',
+          { cause: e },
+        )
       }
+      if (resolved) return
+
+      const validation = await javaService.validateJavaPath(javaPath)
+      if (validation === JavaValidation.NotExisted) {
+        throw new LaunchException({ type: 'launchInvalidJavaPath', javaPath })
+      }
+      if (validation === JavaValidation.NoPermission) {
+        throw new LaunchException({ type: 'launchJavaNoPermission', javaPath })
+      }
+      throw new LaunchException(
+        { type: 'launchNoProperJava', javaPath },
+        'Java executable exists but the JVM cannot start',
+      )
     },
   })
   launchService.registerMiddleware({
@@ -83,30 +153,33 @@ export const pluginLaunchPrecheck: LauncherAppPlugin = async (app) => {
       if (payload.side === 'server') return
       const resolvedVersion = payload.version
       if (!input?.skipAssetsCheck) {
-        const resourceFolder = new MinecraftFolder(getPath())
-        await Promise.all([
-          diagnoseJar(resolvedVersion, resourceFolder, { side: input.side }).then(async (issue) => {
-            if (issue?.type === 'missing') {
-              const installService = await app.registry.getOrCreate(InstallService)
-              return installService.installMinecraftJar(resolvedVersion.id, input.side)
-            }
-          }),
-          diagnoseLibraries(resolvedVersion, resourceFolder).then(async (libs) => {
-            const missing = libs.filter((l) => l.type === 'missing')
-            if (missing.length > 0) {
-              const installService = await app.registry.getOrCreate(InstallService)
-              await installService.installLibraries(libs.map(l => l.library))
-            }
-          }),
-        ])
+        // const resourceFolder = new MinecraftFolder(getPath())
+        // await Promise.all([
+        //   diagnoseJar(resolvedVersion, resourceFolder, { side: input.side }).then(async (issue) => {
+        //     if (issue?.type === 'missing') {
+        //       const installService = await app.registry.getOrCreate(InstallService)
+        //       return installService.installMinecraftJar(resolvedVersion.id, input.side)
+        //     }
+        //   }),
+        //   diagnoseLibraries(resolvedVersion, resourceFolder).then(async (libs) => {
+        //     const missing = libs.filter((l) => l.type === 'missing')
+        //     if (missing.length > 0) {
+        //       const installService = await app.registry.getOrCreate(InstallService)
+        //       await installService.installLibraries(libs.map((l) => l.library))
+        //     }
+        //   }),
+        // ])
       }
 
-      const commonLibs = resolvedVersion.libraries.filter(lib => !lib.isNative)
+      const commonLibs = resolvedVersion.libraries.filter((lib) => !lib.isNative)
       for (const lib of commonLibs) {
         if (!lib.download.path) {
-          (lib.download as any).path = lib.path
+          ;(lib.download as any).path = lib.path
           if (!lib.download.path) {
-            throw new LaunchException({ type: 'launchBadVersion', version: resolvedVersion.id }, JSON.stringify(lib))
+            throw new LaunchException(
+              { type: 'launchBadVersion', version: resolvedVersion.id },
+              JSON.stringify(lib),
+            )
           }
         }
       }
@@ -137,7 +210,7 @@ export const pluginLaunchPrecheck: LauncherAppPlugin = async (app) => {
         peer.exposePort(25565, minecraftToProtocol[ver] ?? 765)
       }
     },
-    async onAfterLaunch(result, payload, context) {
+    async onAfterLaunch(result, input, payload, context) {
       if (payload.side === 'server') {
         const peer = await app.registry.getIfPresent(PeerService)
         if (peer) {
@@ -148,9 +221,10 @@ export const pluginLaunchPrecheck: LauncherAppPlugin = async (app) => {
   })
 
   app.registry.get(InstanceService).then((serv) => {
-    serv.state.subscribe('instanceAdd', ({ path }) => {
-      ensureLinkFolderFromRoot(path, 'libraries')
-      ensureLinkFolderFromRoot(path, 'versions')
+    serv.state.subscribe('instanceAdd', (instance) => {
+      if (instance.edition === 'bedrock') return
+      ensureLinkFolderFromRoot(instance.path, 'libraries')
+      ensureLinkFolderFromRoot(instance.path, 'versions')
     })
   })
   launchService.registerMiddleware({
@@ -203,6 +277,41 @@ export const pluginLaunchPrecheck: LauncherAppPlugin = async (app) => {
           ensureLinkFolderFromRoot(dir, 'versions'),
           ensureLinkFolder(join(input.gameDirectory, 'config'), join(dir, 'config')),
         ])
+      }
+    },
+  })
+
+  launchService.registerMiddleware({
+    name: 'sync-language',
+    async onBeforeLaunch(input, payload) {
+      if (payload.side === 'server') return
+      const gameDirectory = payload.options.gamePath
+      const inst = (await app.registry.get(InstanceService)).state.all[gameDirectory]
+      const settings = await app.registry.get(kSettings)
+      const enabled = inst?.syncGameLanguage ?? settings.globalSyncGameLanguage ?? false
+      if (!enabled) return
+
+      const locale = settings.locale || app.host.getLocale() || 'en'
+      const minecraftVersion = 'version' in payload ? payload.version.minecraftVersion : inst?.runtime.minecraft
+      const mcLang = toMinecraftLanguage(locale, minecraftVersion)
+
+      const optionsTxtPath = join(gameDirectory, 'options.txt')
+      try {
+        const content = await readFile(optionsTxtPath, 'utf-8').catch((e) => {
+          if (isSystemError(e) && e.code === 'ENOENT') return undefined
+          throw e
+        })
+        if (content === undefined) {
+          await ensureFile(optionsTxtPath)
+          await writeFile(optionsTxtPath, `lang:${mcLang}\n`)
+        } else {
+          const newContent = setGameSettingLanguage(content, mcLang)
+          if (newContent !== content) {
+            await writeFile(optionsTxtPath, newContent)
+          }
+        }
+      } catch (e) {
+        logger.warn(`Failed to sync game language to options.txt: ${e}`)
       }
     },
   })

@@ -1,5 +1,6 @@
 import { getPlatform } from '@xmcl/core'
-import { InstalledAppManifest, Platform, createPromiseSignal } from '@xmcl/runtime-api'
+import type { InstallEvent } from '@xmcl/installer'
+import { AgentRunTrace, InstalledAppManifest, Platform, createPromiseSignal } from '@xmcl/runtime-api'
 import { EventEmitter } from 'events'
 import { ensureDir, readFile, writeFile } from 'fs-extra'
 import { Server, createServer } from 'http'
@@ -7,9 +8,9 @@ import { join } from 'path'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
 import { setTimeout } from 'timers/promises'
-import { Logger } from '~/logger'
+import { Logger } from '~/infra'
 import { IS_DEV, LAUNCHER_NAME } from '../constant'
-import { isSystemError } from '../util/error'
+import { isSystemError } from '@xmcl/utils'
 import { handleMigrateRoot } from './migrate'
 import { listen } from '../util/server'
 import { createDummyLogger } from './DummyLogger'
@@ -29,31 +30,63 @@ import { kSettings } from '~/settings'
 
 export const LauncherAppKey: InjectionKey<LauncherApp> = Symbol('LauncherAppKey')
 
+export interface MicrosoftAuthTelemetryEvent {
+  name: 'microsoft-auth-start' | 'microsoft-auth-broker-result' | 'microsoft-auth-webview-result' | 'microsoft-auth-complete'
+  properties: Record<string, string | number | boolean>
+  measurements?: Record<string, number>
+}
+
+export interface DownloadPerformanceTelemetryEvent {
+  properties: Record<string, string | number | boolean>
+  measurements: Record<string, number>
+}
+
+export type ServiceFailureCategory =
+  | 'cancelled'
+  | 'download'
+  | 'disk-full'
+  | 'permission'
+  | 'postprocess'
+  | 'version-parse'
+  | 'unknown'
+
 export interface LauncherApp {
   on(channel: 'app-booted', listener: (manifest: InstalledAppManifest) => void): this
   on(channel: 'window-all-closed', listener: () => void): this
   on(channel: 'root-migrated', listener: (newRoot: string) => void): this
-  on(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean) => void): this
+  on(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean, failureCategory?: ServiceFailureCategory) => void): this
   on(channel: 'service-state-init', listener: (stateKey: string) => void): this
   on(channel: 'download-cdn', listener: (reason: string, file: string) => void): this
+  on(channel: 'download-performance', listener: (payload: DownloadPerformanceTelemetryEvent) => void): this
+  on(channel: 'install-manifest', listener: (event: InstallEvent) => void): this
+  on(channel: 'agent-run-trace', listener: (payload: AgentRunTrace) => void): this
+  on(channel: 'microsoft-auth-telemetry', listener: (payload: MicrosoftAuthTelemetryEvent) => void): this
   on(channel: 'second-instance', listener: (argv: string[]) => void): this
   on(channel: 'direct-launch', listener: (data: any) => void): this
 
   once(channel: 'app-booted', listener: (manifest: InstalledAppManifest) => void): this
   once(channel: 'window-all-closed', listener: () => void): this
   once(channel: 'root-migrated', listener: (newRoot: string) => void): this
-  once(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean) => void): this
+  once(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean, failureCategory?: ServiceFailureCategory) => void): this
   once(channel: 'service-state-init', listener: (stateKey: string) => void): this
   once(channel: 'download-cdn', listener: (reason: string, file: string) => void): this
+  once(channel: 'download-performance', listener: (payload: DownloadPerformanceTelemetryEvent) => void): this
+  once(channel: 'install-manifest', listener: (event: InstallEvent) => void): this
+  once(channel: 'agent-run-trace', listener: (payload: AgentRunTrace) => void): this
+  once(channel: 'microsoft-auth-telemetry', listener: (payload: MicrosoftAuthTelemetryEvent) => void): this
   once(channel: 'second-instance', listener: (argv: string[]) => void): this
   once(channel: 'direct-launch', listener: (data: any) => void): this
 
   emit(channel: 'app-booted', manifest: InstalledAppManifest): this
-  emit(channel: 'service-call-end', serviceName: string, serviceMethod: string, duration: number, success: boolean): this
+  emit(channel: 'service-call-end', serviceName: string, serviceMethod: string, duration: number, success: boolean, failureCategory?: ServiceFailureCategory): this
   emit(channel: 'window-all-closed'): boolean
   emit(channel: 'root-migrated', root: string): this
   emit(channel: 'service-state-init', stateKey: string): this
   emit(channel: 'download-cdn', reason: string, file: string): this
+  emit(channel: 'download-performance', payload: DownloadPerformanceTelemetryEvent): this
+  emit(channel: 'install-manifest', event: InstallEvent): this
+  emit(channel: 'agent-run-trace', payload: AgentRunTrace): this
+  emit(channel: 'microsoft-auth-telemetry', payload: MicrosoftAuthTelemetryEvent): this
   emit(channel: 'second-instance', argv: string[]): this
   emit(channel: 'direct-launch', data: any): this
 }
@@ -97,6 +130,8 @@ export class LauncherApp extends EventEmitter {
    * The version of the launcher
    */
   get version() { return this.host.getVersion() }
+
+  get systemLocale() { return this.host.getLocale() }
 
   get userAgent() {
     const version = IS_DEV ? '0.0.0' : this.host.getVersion()

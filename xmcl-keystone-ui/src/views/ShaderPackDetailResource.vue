@@ -9,7 +9,8 @@ import { ShaderPackProject } from '@/composables/shaderPackSearch'
 import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
 import { getExpectedSize } from '@/util/size'
-import { InstanceShaderPacksServiceKey, RuntimeVersions } from '@xmcl/runtime-api'
+import { RuntimeVersions } from '@xmcl/instance'
+import { InstanceShaderPacksServiceKey } from '@xmcl/runtime-api'
 
 const props = defineProps<{
   shaderPack: ShaderPackProject
@@ -93,7 +94,7 @@ const { shaderPack: selectedShaderPack } = injection(kInstanceShaderPacks)
 const { uninstall } = useService(InstanceShaderPacksServiceKey)
 const onDelete = async () => {
   updating.value = true
-  await uninstall(path.value, props.installed.map(i => basename(i.path)))
+  await uninstall({ path: path.value, files: props.installed.map(i => basename(i.path)) })
 }
 
 const onEnable = (v: boolean) => {

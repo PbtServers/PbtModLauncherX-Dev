@@ -1,6 +1,6 @@
 <template>
   <div
-    class="absolute left-0 rounded z-10"
+    class="absolute left-0 rounded z-10 pointer-events-none"
     :style="{
       top: state === 0 ? '0' : '',
       bottom: state === 2 ? '0' : '',

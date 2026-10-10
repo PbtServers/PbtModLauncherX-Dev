@@ -2,7 +2,7 @@ import { useService } from '@/composables'
 import { injection } from '@/util/inject'
 import { BaseServiceKey, Environment, Settings } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
-import { useLocalStorageCacheBool } from './cache'
+import { useLocalStorage } from '@vueuse/core'
 import { kEnvironment } from './environment'
 import { useState } from './syncableState'
 
@@ -68,6 +68,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
   const globalAssignMemory = computed(() => state.value?.globalAssignMemory ?? false)
   const globalMinMemory = computed(() => state.value?.globalMinMemory ?? 0)
   const globalMaxMemory = computed(() => state.value?.globalMaxMemory ?? 0)
+  const globalJava = computed(() => state.value?.globalJava ?? '')
   const globalVmOptions = computed(() => state.value?.globalVmOptions ?? [])
   const globalMcOptions = computed(() => state.value?.globalMcOptions ?? [])
   const globalFastLaunch = computed(() => state.value?.globalFastLaunch ?? false)
@@ -75,6 +76,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
   const globalShowLog = computed(() => state.value?.globalShowLog ?? false)
   const globalDisableAuthlibInjector = computed(() => state.value?.globalDisableAuthlibInjector ?? true)
   const globalDisableElyByAuthlib = computed(() => state.value?.globalDisableElyByAuthlib ?? false)
+  const globalSyncGameLanguage = computed(() => state.value?.globalSyncGameLanguage ?? false)
   const globalPrependCommand = computed(() => state.value?.globalPrependCommand ?? '')
   const globalPreExecuteCommand = computed(() => state.value?.globalPreExecuteCommand ?? '')
   const globalEnv = computed(() => state.value?.globalEnv ?? {})
@@ -83,6 +85,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
     globalMinMemory: number
     globalMaxMemory: number
     globalAssignMemory: boolean | 'auto'
+    globalJava: string
     globalVmOptions: string[]
     globalMcOptions: string[]
     globalFastLaunch: boolean
@@ -90,10 +93,11 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
     globalShowLog: boolean
     globalDisableAuthlibInjector: boolean
     globalDisableElyByAuthlib: boolean
+    globalSyncGameLanguage?: boolean
     globalPrependCommand: string
     globalPreExecuteCommand: string
     globalEnv: Record<string, string>
-    globalResolution: { width?: number; height?: number; fullscreen?: boolean }
+    globalResolution: { width?: number; height?: number; fullscreen?: boolean; monitor?: string }
   }) => {
     state.value?.globalInstanceSetting(setting)
   }
@@ -102,6 +106,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
     globalAssignMemory,
     globalMinMemory,
     globalMaxMemory,
+    globalJava,
     globalVmOptions,
     globalMcOptions,
     globalFastLaunch,
@@ -109,6 +114,7 @@ export function useGlobalSettings({ state } = injection(kSettingsState)) {
     globalShowLog,
     globalDisableAuthlibInjector,
     globalDisableElyByAuthlib,
+    globalSyncGameLanguage,
     globalPrependCommand,
     globalPreExecuteCommand,
     globalEnv,
@@ -141,24 +147,46 @@ export function useGameDirectory() {
   }
 }
 
+export function parseProxy(proxy: string) {
+  try {
+    const url = new URL(proxy)
+    return {
+      host: url.hostname,
+      port: url.port,
+    }
+  } catch (e) {
+    return {
+      host: '',
+      port: '',
+    }
+  }
+}
+
+export function formatProxy(host: string, port: string) {
+  const value = host.trim()
+  const configuredPort = port.trim()
+  if (!value && !configuredPort) return ''
+
+  let protocol = 'http:'
+  let hostname = value
+  let embeddedPort = ''
+  try {
+    const url = new URL(value.includes('://') ? value : `http://${value}`)
+    protocol = url.protocol
+    hostname = url.hostname
+    embeddedPort = url.port
+  } catch (e) {}
+
+  const effectivePort = configuredPort || embeddedPort
+  return `${protocol}//${hostname}${effectivePort ? `:${effectivePort}` : ''}`
+}
+
 export function useSettings() {
-  const streamerMode = inject('streamerMode', useLocalStorageCacheBool('streamerMode', false))
+  const streamerMode = inject('streamerMode', useLocalStorage('streamerMode', false, { writeDefaults: false }))
   const { state, error, isValidating } = injection(kSettingsState)
 
   const getProxy = () => {
-    const proxy = state.value?.httpProxy || ''
-    try {
-      const url = new URL(proxy)
-      return {
-        host: url.hostname,
-        port: url.port,
-      }
-    } catch (e) {
-      return {
-        host: '',
-        port: '',
-      }
-    }
+    return parseProxy(state.value?.httpProxy || '')
   }
 
   const locales = computed(() => state.value?.locales || [])
@@ -193,6 +221,10 @@ export function useSettings() {
     get: () => state.value?.disableTelemetry ?? false,
     set: v => state.value?.disableTelemetrySet(v),
   })
+  const multiplayerTransport = computed({
+    get: () => state.value?.multiplayerTransport ?? 'webrtc',
+    set: v => state.value?.multiplayerTransportSet(v),
+  })
   const enableDiscord = computed({
     get: () => state.value?.discordPresence ?? false,
     set: (v) => state.value?.discordPresenceSet(v),
@@ -213,10 +245,7 @@ export function useSettings() {
 
   onUnmounted(() => {
     const p = proxy.value
-    const newValue =
-      !p.host && !p.port
-        ? ''
-        : `http://${p.host}:${p.port}`
+    const newValue = formatProxy(p.host, p.port)
     if (newValue !== state.value?.httpProxy) {
       state.value?.httpProxySet(newValue)
     }
@@ -228,12 +257,18 @@ export function useSettings() {
     }
   })
 
+  const quickActionShortcut = computed({
+    get: () => state.value?.quickActionShortcut ?? '',
+    set: (v) => state.value?.quickActionShortcutSet(v),
+  })
+
   return {
     enableDedicatedGPUOptimization,
     streamerMode,
     developerMode,
     httpProxyEnabled,
     enableDiscord,
+    quickActionShortcut,
     maxSockets,
     maxAPISockets,
     locales,
@@ -243,6 +278,7 @@ export function useSettings() {
     apiSetsPreference,
     apiSets,
     disableTelemetry,
+    multiplayerTransport,
     error,
     isValidating,
   }

@@ -1,17 +1,43 @@
 import { SharedState } from '@xmcl/runtime-api'
-import { useEventListener } from '@vueuse/core'
+import { onScopeDispose, ref, shallowRef, triggerRef, watchEffect } from 'vue'
 
 export type Handler<T> = { [k in keyof T]?: T[k] /* extends (...args: infer A) => infer R ? (state: T, ...args: A) => R : never */ }
+
+const revalidators = new Set<() => Promise<void>>()
+const revalidateAll = () => {
+  for (const revalidate of revalidators) void revalidate()
+}
+
+function registerRevalidator(revalidate: () => Promise<void>) {
+  if (revalidators.size === 0) {
+    document.addEventListener('visibilitychange', revalidateAll)
+    window.addEventListener('focus', revalidateAll)
+  }
+  revalidators.add(revalidate)
+  onScopeDispose(() => {
+    revalidators.delete(revalidate)
+    if (revalidators.size === 0) {
+      document.removeEventListener('visibilitychange', revalidateAll)
+      window.removeEventListener('focus', revalidateAll)
+    }
+  })
+}
 
 export function useState<T extends object>(fetcher: (abortSignal: AbortSignal) => Promise<SharedState<T>> | undefined,
   Type: { prototype: Handler<T>; new(): T }) {
   const isValidating = ref(false)
 
-  const state = ref<SharedState<T> | undefined>()
+  // Use shallowRef: the SharedState object is mutated in-place by the preload
+  // 'commit' IPC handler (see xmcl-electron-app/preload/service.ts). A deep
+  // reactive() wrapper would never observe those mutations because they hit
+  // the raw target, not the Vue Proxy. Instead we keep a shallow ref and
+  // trigger it manually whenever the state is mutated.
+  const state = shallowRef<SharedState<T> | undefined>()
   const error = ref(undefined as any)
   let controller: AbortController | undefined
-  const onMutation = (state: any) => (mutation: string, payload: any) => {
-    ((Type.prototype as any)?.[mutation] as Function)?.call(state, payload)
+  const onMutation = (data: any) => (mutation: string, payload: any) => {
+    ((Type.prototype as any)?.[mutation] as Function)?.call(data, payload)
+    triggerRef(state)
   }
   const onStateValidating = (data: any) => (v: number) => {
     if (data === state.value) {
@@ -25,8 +51,16 @@ export function useState<T extends object>(fetcher: (abortSignal: AbortSignal) =
     controller = abortController
     const { signal } = abortController
     let data: SharedState<T> | undefined
+    let released = false
+    const unref = () => {
+      if (data && !released) {
+        released = true
+        data.unref()
+      }
+    }
     onCleanup?.(() => {
       abortController.abort()
+      unref()
     })
 
     // Avoid calling dispose multiple times
@@ -35,7 +69,32 @@ export function useState<T extends object>(fetcher: (abortSignal: AbortSignal) =
       error.value = undefined
       state.value = undefined
       data = await fetcher(signal)
-      if (!data || signal.aborted) { return }
+      if (!data || signal.aborted) {
+        unref()
+        return
+      }
+
+      // The preload is a dumb pipe and no longer knows the mutation method
+      // names (it used to import the state classes, which pulled zod into every
+      // preload bundle). Install the mutation-forwarding methods here from the
+      // `Type` we already hold, so renderer calls like `state.value.localeSet(x)`
+      // still reach the main process via the generic `commit` channel.
+      //
+      // Walk the whole prototype chain (not just `Type.prototype`'s own names):
+      // some composables pass a subclass (e.g. `class extends InstanceState`),
+      // so inherited mutation methods like `instanceGroupsSet` live further up
+      // the chain. Stop at `Object.prototype` so we don't forward `toString` etc.
+      let proto = Type.prototype as any
+      while (proto && proto !== Object.prototype) {
+        for (const key of Object.getOwnPropertyNames(proto)) {
+          if (key === 'constructor') continue
+          if ((data as any)[key]) continue
+          if (typeof proto[key] === 'function') {
+            (data as any)[key] = (...args: any[]) => (data as any).commit(key, ...args)
+          }
+        }
+        proto = Object.getPrototypeOf(proto)
+      }
 
       const func = onMutation(data)
       data.subscribeAll(func)
@@ -48,6 +107,7 @@ export function useState<T extends object>(fetcher: (abortSignal: AbortSignal) =
         data?.unsubscribeAll(func)
         // @ts-ignore
         data?.unsubscribe('state-validating', validFunc)
+        unref()
       })
 
       state.value = data
@@ -65,8 +125,7 @@ export function useState<T extends object>(fetcher: (abortSignal: AbortSignal) =
     if (isValidating.value) return
     await state.value?.revalidate()
   }
-  useEventListener(document, 'visibilitychange', revalidateCall, false)
-  useEventListener(window, 'focus', revalidateCall, false)
+  registerRevalidator(revalidateCall)
   return {
     isValidating,
     state,

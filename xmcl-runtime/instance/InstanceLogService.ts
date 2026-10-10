@@ -1,33 +1,103 @@
-import { InstanceLogService as IInstanceLogService, InstanceLogServiceKey } from '@xmcl/runtime-api'
+import { InstanceLogServiceKey, type InstanceLogService as IInstanceLogService } from '@xmcl/runtime-api'
 import { readFile, unlink } from 'fs-extra'
 import { isAbsolute, join } from 'path'
+import { Inject, LauncherAppKey } from '~/app'
+import { kEncodingWorker, type EncodingWorker } from '~/encoding'
+import { AbstractService, ExposeServiceKey, Singleton } from '~/service'
 import { LauncherApp } from '../app/LauncherApp'
-import { LauncherAppKey, Inject } from '~/app'
-import { EncodingWorker, kEncodingWorker } from '~/encoding'
 import { UTF8 } from '../util/encoding'
+import { AnyError, isSystemError } from '@xmcl/utils'
 import { ENOENT_ERROR, readdirIfPresent } from '../util/fs'
 import { gunzip } from '../util/zip'
-import { AbstractService, ExposeServiceKey, Singleton } from '~/service'
-import { AnyError, isSystemError } from '../util/error'
+import { LaunchHistoryStore } from '../launch/LaunchHistoryStore'
 
 /**
  * Provide the ability to list/read/remove log and crash reports of a instance.
  */
 @ExposeServiceKey(InstanceLogServiceKey)
 export class InstanceLogService extends AbstractService implements IInstanceLogService {
+  private launchHistory: LaunchHistoryStore
+
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
     @Inject(kEncodingWorker) private encoder: EncodingWorker,
   ) {
     super(app)
+    this.launchHistory = new LaunchHistoryStore(this.getAppDataPath('launch-history'))
+  }
+
+  listLaunches(instancePath: string) {
+    return this.launchHistory.list(instancePath)
+  }
+
+  getLaunch(instancePath: string, launchId: string) {
+    return this.launchHistory.get(instancePath, launchId)
+  }
+
+  getLaunchEvidence(instancePath: string, launchId: string, name: 'game.log' | 'debug.log' | 'crash-report.txt' | 'launcher-output.log') {
+    return this.launchHistory.readEvidence(instancePath, launchId, name)
+  }
+
+  async findLaunchByCrashReport(instancePath: string, name: string) {
+    const content = await this.getCrashReportContent(instancePath, name)
+    return this.launchHistory.findByCrashReport(instancePath, content)
   }
 
   /**
-   * List the log in current instances
+   * List the log in current instances.
    */
   @Singleton()
   async listLogs(instancePath: string) {
     const files = await readdirIfPresent(join(instancePath, 'logs'))
     return files.filter(f => f.endsWith('.gz') || f.endsWith('.txt') || f.endsWith('.log'))
+  }
+
+  /**
+   * List the dedicated-server logs in `<instance>/server/logs/`.
+   */
+  @Singleton()
+  async listServerLogs(instancePath: string) {
+    const files = await readdirIfPresent(join(instancePath, 'server', 'logs'))
+    return files.filter(f => f.endsWith('.gz') || f.endsWith('.txt') || f.endsWith('.log'))
+  }
+
+  /**
+   * Remove a dedicated-server log from disk
+   * @param name The log file name
+   */
+  @Singleton(name => name)
+  async removeServerLog(instancePath: string, name: string) {
+    const filePath = join(instancePath, 'server', 'logs', name)
+    this.log(`Remove server log ${filePath}`)
+    await unlink(filePath).catch(() => {})
+  }
+
+  /**
+   * Get the dedicated-server log content.
+   * @param name The log file name
+   */
+  @Singleton(name => name)
+  async getServerLogContent(instancePath: string, name: string) {
+    try {
+      const filePath = join(instancePath, 'server', 'logs', name)
+      let buf: any = await readFile(filePath)
+      if (name.endsWith('.gz')) {
+        buf = await gunzip(buf)
+      }
+      const encoding = await this.encoder.guessEncodingByBuffer(buf as any).catch(e => undefined)
+      const result = await this.encoder.decode(buf as any, encoding || UTF8)
+      return result
+    } catch (e) {
+      return ''
+    }
+  }
+
+  /**
+   * Show the dedicated-server log file on disk. This will open a file explorer.
+   * @param name The log file name
+   */
+  showServerLog(instancePath: string, name: string) {
+    const filePath = join(instancePath, 'server', 'logs', name)
+    this.app.shell.showItemInFolder(filePath)
   }
 
   /**
@@ -49,12 +119,12 @@ export class InstanceLogService extends AbstractService implements IInstanceLogS
   async getLogContent(instancePath: string, name: string) {
     try {
       const filePath = join(instancePath, 'logs', name)
-      let buf = await readFile(filePath)
+      let buf: any = await readFile(filePath)
       if (name.endsWith('.gz')) {
         buf = await gunzip(buf)
       }
-      const encoding = await this.encoder.guessEncodingByBuffer(buf.subarray(0, 512 * 128)).catch(e => undefined)
-      const result = await this.encoder.decode(buf, encoding || UTF8)
+      const encoding = await this.encoder.guessEncodingByBuffer(buf as any).catch(e => undefined)
+      const result = await this.encoder.decode(buf as any, encoding || UTF8)
       return result
     } catch (e) {
       return ''
@@ -101,12 +171,12 @@ export class InstanceLogService extends AbstractService implements IInstanceLogS
       filePath = join(instancePath, 'crash-reports', name)
     }
     try {
-      let buf = await readFile(filePath.trim())
+      let buf: any = await readFile(filePath.trim())
       if (name.endsWith('.gz')) {
         buf = await gunzip(buf)
       }
-      const encoding = await this.encoder.guessEncodingByBuffer(buf.subarray(0, 512 * 128)).catch(() => undefined)
-      const result = await this.encoder.decode(buf, encoding || UTF8)
+      const encoding = await this.encoder.guessEncodingByBuffer(buf as any).catch(() => undefined)
+      const result = await this.encoder.decode(buf as any, encoding || UTF8)
       return result
     } catch (e) {
       if (isSystemError(e) && e.code === ENOENT_ERROR) {

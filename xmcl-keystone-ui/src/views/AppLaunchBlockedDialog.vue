@@ -6,7 +6,7 @@
   >
     <v-alert
       class="blocked-dialog mb-0"
-      border="left"
+      border="start"
       type="error"
       prominent
     >
@@ -14,13 +14,8 @@
         color="transparent"
         elevation="0"
         text
+        :title="title"
       >
-        <v-card-title
-          primary-title
-          class="text-2xl font-bold"
-        >
-          {{ title }}
-        </v-card-title>
         <v-card-text class="text-lg">
           <span v-html="description" />
 
@@ -43,10 +38,9 @@
         <v-card-actions>
           <v-spacer />
           <v-btn
-            text
             @click="hide"
-          >
-            {{ t('ok') }}
+           variant="text">
+            {{ t('shared.ok') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -60,10 +54,12 @@ import { useExceptionHandler } from '@/composables/exception'
 import { isException, LaunchException, LaunchExceptions, LaunchServiceKey } from '@xmcl/runtime-api'
 import FeedbackCard from '../components/FeedbackCard.vue'
 import { useDialog } from '../composables/dialog'
+import { LaunchStatusDialogKey } from '../composables/launch'
 import { useLaunchException } from '@/composables/launchException'
 
 const { on } = useService(LaunchServiceKey)
 const { isShown, hide } = useDialog('launch-blocked')
+const { hide: hideLaunchStatus } = useDialog(LaunchStatusDialogKey)
 const title = ref('')
 const description = ref('')
 const unexpected = ref(false)
@@ -79,11 +75,13 @@ const { onException: _onException, onError } = useLaunchException(
 
 function onException(e: LaunchExceptions) {
   _onException(e)
+  hideLaunchStatus()
   isShown.value = true
 }
 
 on('error', (e) => {
   onError(e)
+  hideLaunchStatus()
   isShown.value = true
 })
 

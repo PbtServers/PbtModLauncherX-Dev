@@ -4,6 +4,7 @@ import { Mod as CurseforgeMod } from '@xmcl/curseforge'
 import { useCurseforgeSearchFunc } from './curseforge'
 import { SearchModel } from './search'
 import { useSearchPattern } from './useSearchPattern'
+import { useMarketPageSize } from './marketPageSize'
 
 function getProjectFileFromCurseforge<T extends ProjectEntry>(i: CurseforgeMod) {
   return {
@@ -31,6 +32,11 @@ export function useCurseforgeSearch<T extends ProjectEntry<any>>(
     currentView,
   }: SearchModel
 ) {
+  const { pageSize } = useMarketPageSize()
+  // CurseForge's API caps pageSize at 50; clamp so a "100 per page" selection
+  // doesn't trigger a 400. The same value feeds the offset math in
+  // useSearchPattern to keep pagination aligned.
+  const curseforgePageSize = computed(() => Math.min(pageSize.value, 50))
   const search = useCurseforgeSearchFunc(
     classId,
     keyword,
@@ -38,11 +44,11 @@ export function useCurseforgeSearch<T extends ProjectEntry<any>>(
     curseforgeCategory,
     sort,
     gameVersion,
-    20,
+    curseforgePageSize,
   )
 
-  const { error, loadMore, loading, onSearch, hasMore, result } = useSearchPattern(async (offset) => {
-    const result = await search(offset)
+  const { error, loadMore, loading, onSearch, hasMore, result } = useSearchPattern(async (offset, signal) => {
+    const result = await search(offset, signal)
     return {
       data: result.data,
       total: result.pagination.totalCount,
@@ -57,7 +63,7 @@ export function useCurseforgeSearch<T extends ProjectEntry<any>>(
       return false
     }
     return true
-  })
+  }, curseforgePageSize)
 
   function effect() {
     watch(keyword, onSearch)
@@ -66,6 +72,7 @@ export function useCurseforgeSearch<T extends ProjectEntry<any>>(
     watch(sort, onSearch)
     watch(gameVersion, onSearch)
     watch(disabled, onSearch)
+    watch(curseforgePageSize, onSearch)
     onSearch()
   }
 
@@ -76,9 +83,12 @@ export function useCurseforgeSearch<T extends ProjectEntry<any>>(
     return mods as T[]
   })
 
+  const curseforgeTotal = computed(() => result.value?.total ?? 0)
+
   return {
     curseforge: mods,
     curseforgeError: error,
+    curseforgeTotal,
     loadMoreCurseforge: loadMore,
     loadingCurseforge: loading,
     canCurseforgeLoadMore: hasMore,

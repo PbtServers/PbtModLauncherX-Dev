@@ -11,46 +11,49 @@
           v-if="value"
           v-model="fab"
           v-shared-tooltip.left="() => t('userSkin.importFile')"
-          :disabled="disabled || !hasSkin"
-          fab
+          icon="edit"
           color="primary"
+          :disabled="disabled || !hasSkin"
           @click="load"
-        >
-          <v-icon>edit</v-icon>
-        </v-btn>
+        />
       </v-fab-transition>
     </template>
     <v-btn
+      v-if="openLibrary"
+      v-shared-tooltip.left="() => t('userSkin.libraryTitle')"
+      icon="accessibility"
+      size="small"
+      color="purple"
+      :disabled="disabled"
+      @click="openLibrary"
+    />
+    <v-btn
       v-shared-tooltip.left="() => t('userSkin.importLink')"
-      :disabled="disabled || !hasSkin"
-      fab
-      light
-      small
+      icon="link"
+      size="small"
       color="white"
+      :disabled="disabled || !hasSkin"
       @click="upload"
-    >
-      <v-icon>link</v-icon>
-    </v-btn>
+    />
     <v-btn
       v-shared-tooltip.left="() => t('userSkin.saveTitle')"
-      :disabled="disabled"
-      fab
-      small
+      icon="save"
+      size="small"
       color="blue"
+      :disabled="disabled"
       @click="save"
-    >
-      <v-icon>save</v-icon>
-    </v-btn>
+    />
   </v-speed-dial>
 </template>
 
-<script lang=ts setup>
+<script lang="ts" setup>
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 
 defineProps<{
-  load():void
-  upload():void
-  save():void
+  load(): void
+  upload(): void
+  save(): void
+  openLibrary?(): void
   disabled: boolean
   hasSkin: boolean
   hasCape: boolean
@@ -62,5 +65,4 @@ const { t } = useI18n()
 const fab = ref(false)
 </script>
 
-<style>
-</style>
+<style></style>

@@ -1,13 +1,13 @@
+import { getModLoaderTypesForFile } from '@/util/curseforge'
 import { injection } from '@/util/inject'
 import { getSWRV } from '@/util/swrvGet'
 import { File, FileModLoaderType, FileRelationType, Mod } from '@xmcl/curseforge'
-import { TaskState } from '@xmcl/runtime-api'
+import { Tasks } from '@xmcl/runtime-api'
 import useSWRV from 'swrv'
 import { Ref } from 'vue'
 import { getCurseforgeProjectFilesModel, getCurseforgeProjectModel } from './curseforge'
 import { kSWRVConfig } from './swrvConfig'
-import { kTaskManager } from './taskManager'
-import { getModLoaderTypesForFile } from '@/util/curseforge'
+import { useTaskFromList } from './task'
 
 type ProjectDependency = {
   /**
@@ -38,6 +38,9 @@ const visit = async (current: ProjectDependency, modLoaderType: Ref<FileModLoade
   visited.add(file.modId)
 
   const dependencies = await Promise.all(file.dependencies.map(async (child) => {
+    if (child.relationType === FileRelationType.OptionalDependency) {
+      return []
+    }
     try {
       const modLoaderTypes = getModLoaderTypesForFile(file)
       const loaderType = modLoaderTypes.has(modLoaderType.value) ? modLoaderType.value : FileModLoaderType.Any
@@ -91,9 +94,6 @@ export function useCurseforgeDependencies(fileRef: Ref<File | undefined>, gameVe
   })
 }
 
-export function useCurseforgeTask(id: Ref<number>) {
-  const { tasks } = injection(kTaskManager)
-  return computed(() => {
-    return tasks.value.find(t => t.state === TaskState.Running && t.path === 'installCurseforgeFile' && t.param.fileId === id.value)
-  })
+export function useCurseforgeTask(tasks: Ref<Tasks[]>, id: Ref<number>) {
+  return useTaskFromList(tasks, (t) => t.type === 'installCurseforgeFile' && t.fileId === id.value)
 }

@@ -1,7 +1,7 @@
 import { rebuild } from '@electron/rebuild'
 import chalk from 'chalk'
 import { createHash } from 'crypto'
-import { Configuration, build as electronBuilder } from 'electron-builder'
+import { Configuration, Platform, build as electronBuilder } from 'electron-builder'
 import { BuildOptions, build as esbuild } from 'esbuild'
 import { createReadStream, createWriteStream, existsSync } from 'fs'
 import { copy, emptyDir, ensureFile } from 'fs-extra'
@@ -13,6 +13,7 @@ import { pipeline } from 'stream'
 import { promisify } from 'util'
 import { buildAppInstaller } from './build/appinstaller-builder'
 import { config as electronBuilderConfig } from './build/electron-builder.config'
+import { resolveKoffiBinary } from './build/koffi'
 import esbuildConfig from './esbuild.config'
 import { version } from './package.json'
 
@@ -26,8 +27,15 @@ async function writeHash(algorithm: string, path: string) {
 
 /**
  * Use esbuild to build main process
+ *
+ * @param target Platform and architecture whose native binaries are copied.
+ * Defaults to the host for local (`BUILD_TARGET=none`) builds.
  */
-async function buildMain(options: BuildOptions, slient = false) {
+async function buildMain(
+  options: BuildOptions,
+  slient = false,
+  target: { platform: NodeJS.Platform; arch: string | number } = { platform: process.platform, arch: process.arch },
+) {
   await emptyDir(path.join(__dirname, './dist'))
   if (!slient) console.log(chalk.bold.underline('Build main process & preload'))
   const startTime = Date.now()
@@ -41,6 +49,26 @@ async function buildMain(options: BuildOptions, slient = false) {
   if (options.metafile) {
     await writeFile('./meta.json', JSON.stringify(out.metafile, null, 2))
   }
+  const targetArch = typeof target.arch === 'number'
+    ? ['ia32', 'x64', 'armv7l', 'arm64', 'universal'][target.arch]
+    : target.arch
+  if (!targetArch || targetArch === 'universal') throw new Error(`Unsupported native target architecture: ${target.arch}`)
+  if (target.platform === 'win32') {
+    const msalRuntimeDir = path.dirname(require.resolve('@azure/msal-node-runtime/package.json'))
+    const runtime = targetArch === 'x64'
+      ? { directory: 'x64', dll: 'msalruntime.dll' }
+      : targetArch === 'ia32'
+        ? { directory: 'x86', dll: 'msalruntime_x86.dll' }
+        : undefined
+    if (!runtime) throw new Error(`Unsupported MSAL runtime architecture: ${target.arch}`)
+    const source = join(msalRuntimeDir, 'dist', 'windows', runtime.directory)
+    await Promise.all([
+      copyFile(join(source, 'msal-node-runtime.node'), join(__dirname, 'dist', `msal-node-runtime-${targetArch}.node`)),
+      copyFile(join(source, runtime.dll), join(__dirname, 'dist', `msalruntime-${targetArch}.dll`)),
+    ])
+  }
+  const koffiPlatform = target.platform
+  await copyFile(await resolveKoffiBinary(koffiPlatform, targetArch), join(__dirname, 'dist', 'koffi.node'))
   const time = ((Date.now() - startTime) / 1000).toFixed(2)
   if (!slient) console.log(`Build completed in ${time}s.`)
   await copy(path.join(__dirname, '../xmcl-keystone-ui/dist'), path.join(__dirname, './dist/renderer'))
@@ -58,6 +86,10 @@ async function buildElectron(config: Configuration, dir: boolean) {
   console.log(chalk.bold.underline('Build electron'))
   const start = Date.now()
   const files = await electronBuilder({
+    // electron-builder's `CliOptions` extends `PublishOptions` from
+    // `electron-publish`, but that import fails to resolve under pnpm's
+    // strict isolation (electron-builder doesn't declare it as a dep),
+    // so TS erases `publish` from the type. Cast to keep the option.
     publish: 'never',
     config,
     ...(dir ? {
@@ -65,7 +97,7 @@ async function buildElectron(config: Configuration, dir: boolean) {
       x64: true,
       arm64: process.platform !== 'win32'
     } : {}),
-  })
+  } as Parameters<typeof electronBuilder>[0])
 
   for (const file of files) {
     const fstat = await stat(file)
@@ -104,16 +136,18 @@ async function start() {
         buildPath: context.appDir,
         electronVersion: context.electronVersion,
         arch: context.arch,
-        ignoreModules: ['cpu-features'],
         types: ['dev'],
-        useCache: true,
+        onlyModules: ['node_datachannel'],
       })
       rebuildProcess.lifecycle.on('module-found', (path: string) => {
         console.log(`  ${chalk.blue('•')} rebuild module ${chalk.blue('path')}=${path}`)
       })
       await rebuildProcess
       console.log(`  ${chalk.blue('•')} rebuilt native modules ${chalk.blue('electron')}=${context.electronVersion} ${chalk.blue('arch')}=${context.arch}`)
-      const time = await buildMain({ ...esbuildConfig, metafile: true }, true)
+      const time = await buildMain({ ...esbuildConfig, metafile: true }, true, {
+        platform: context.platform.nodeName,
+        arch: context.arch,
+      })
       console.log(`  ${chalk.blue('•')} compiled main process & preload in ${chalk.blue('time')}=${time}s`)
     },
     async afterPack(context) {
@@ -124,14 +158,22 @@ async function start() {
       const gzipDest = dest + '.gz'
       let src = join(context.appOutDir, 'resources/app.asar')
       if (!existsSync(src)) {
-        src = join(context.appOutDir, 'PbtModLauncherX.app/Contents/Resources/app.asar')
-      } else if (!existsSync(src)) {
+        src = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app/Contents/Resources/app.asar`)
         console.log(`  ${chalk.yellow('•')} fallback to ${chalk.yellow('Resources/app.asar')} for ${chalk.yellow('resources/app.asar')} not found`)
       }
       await copyFile(src, dest)
       await writeHash('sha256', dest)
       await promisify(pipeline)(createReadStream(dest), createGzip(), createWriteStream(gzipDest))
       console.log(`  ${chalk.blue('•')} prepare asar with checksum ${chalk.blue('from')}=${src} ${chalk.blue('to')}=${dest}`)
+
+      // Pin the exact Electron version used for this build. The release
+      // pipeline reads this to tag the `@xmcl/app` npm package, so the
+      // portable script installer knows which Electron prebuilt to fetch from
+      // the mirror. Same value across platforms/arches, so overwriting is fine.
+      await writeFile('build/output/manifest.json', JSON.stringify({
+        version,
+        electron: context.packager.info.framework.version,
+      }, null, 2))
     },
     async artifactBuildStarted(context) {
       if (context.targetPresentableName.toLowerCase() === 'appx') {

@@ -1,5 +1,5 @@
-import { WindowController } from '@xmcl/runtime-api'
-import { contextBridge, ipcRenderer, clipboard } from 'electron'
+import type { WindowController } from '@xmcl/runtime-api'
+import { contextBridge, ipcRenderer, clipboard, webUtils } from 'electron'
 import EventEmitter from 'events'
 
 export enum Operation {
@@ -38,6 +38,9 @@ function createController(): WindowController {
   ipcRenderer.on('minimize', (_, v) => {
     emitter.emit('minimize', v)
   })
+  ipcRenderer.on('navigate', (_, route: string) => {
+    emitter.emit('navigate', route)
+  })
   const emitter = new EventEmitter()
 
   const writeClipboard =
@@ -45,14 +48,27 @@ function createController(): WindowController {
       ? (text: string) => clipboard.writeText(text)
       : (text: string) => ipcRenderer.invoke('write-clipboard', text)
 
+  const writeClipboardImage = (imageUrl: string) => {
+    ipcRenderer.invoke('write-clipboard-image', imageUrl)
+  }
+  const getPathForFile = (file: File) => {
+    const legacyPath = (file as File & { path?: string }).path
+    return webUtils.getPathForFile(file) || legacyPath || ''
+  }
+
   return {
     on(channel, listener) {
       emitter.on(channel, listener)
       return this
     },
+    writeClipboardImage,
     writeClipboard,
+    getPathForFile,
     queryAudioPermission: () => ipcRenderer.invoke('query-audio-permission'),
-    openMultiplayerWindow: () => ipcRenderer.invoke('open-multiplayer-window'),
+    getMonitors: () => ipcRenderer.invoke('get-monitors'),
+    setTranslucent(enable) {
+      ipcRenderer.invoke('set-translucent', enable)
+    },
     once(channel, listener) {
       emitter.once(channel, listener)
       return this
@@ -79,6 +95,12 @@ function createController(): WindowController {
     },
     stopFindInPage() {
       return ipcRenderer.invoke('stop-find-in-page')
+    },
+    startProfiling() {
+      return ipcRenderer.invoke('start-profiling')
+    },
+    stopProfiling() {
+      return ipcRenderer.invoke('stop-profiling')
     },
   }
 }

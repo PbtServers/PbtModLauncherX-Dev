@@ -1,11 +1,12 @@
 <template>
   <v-btn-toggle
     v-model="memoryMode"
-    dense
+    variant="outlined"
+    density="compact"
   >
     <v-btn>
       <v-icon
-        left
+        start
       >
         hide_source
       </v-icon>
@@ -13,7 +14,7 @@
     </v-btn>
     <v-btn>
       <v-icon
-        left
+        start
         color="primary"
       >
         memory
@@ -22,7 +23,7 @@
     </v-btn>
     <v-btn>
       <v-icon
-        left
+        start
         color="deep-orange"
       >
         pinch

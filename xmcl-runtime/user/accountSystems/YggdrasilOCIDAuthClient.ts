@@ -1,8 +1,8 @@
 import { DeviceCodeResponse } from '@azure/msal-common'
 import { AuthenticationResult, PublicClientApplication } from '@azure/msal-node'
 import { SecretStorage } from '~/app/SecretStorage'
-import { Logger } from '~/logger'
-import { AnyError } from '~/util/error'
+import { Logger } from '~/infra'
+import { AnyError } from '@xmcl/utils'
 import { createNodeSystemOptions } from '../NodeSystemOptions'
 import { createPlugin } from '../credentialPlugin'
 
@@ -15,19 +15,18 @@ export class YggdrasilOCIDAuthClient {
   ) {
   }
 
-  protected async getOAuthApp(authority: string, clientId: string, account: string, signal?: AbortSignal) {
+  protected async getOAuthApp(authority: string, clientId: string, signal?: AbortSignal) {
     return new PublicClientApplication({
       auth: {
         authority: authority,
         knownAuthorities: [authority],
         clientId: clientId,
-        protocolMode: 'OIDC',
         azureCloudOptions: {
           azureCloudInstance: 'none',
         }
       },
       cache: {
-        cachePlugin: createPlugin('xmcl-oauth', account, this.logger, this.storage),
+        cachePlugin: createPlugin('xmcl-oauth', this.logger, this.storage),
       },
       system: createNodeSystemOptions(this.logger, this.fetch, signal, true),
     })
@@ -44,7 +43,7 @@ export class YggdrasilOCIDAuthClient {
       homeAccountId?: string
       extraScopes?: string[]
     } = {}) {
-    const app = await this.getOAuthApp(authority, clientId, username, options.signal)
+    const app = await this.getOAuthApp(authority, clientId, options.signal)
     if (options.homeAccountId) {
       const accounts = await app.getTokenCache().getAllAccounts().catch(() => [])
       const account = accounts.find(a => a.homeAccountId === options.homeAccountId)

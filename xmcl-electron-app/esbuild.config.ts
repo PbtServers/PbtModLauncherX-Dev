@@ -11,6 +11,7 @@ import createSourcemapPlugin from './plugins/esbuild.sourcemap.plugin'
 import pluginStatic from './plugins/esbuild.static.plugin'
 import pluginWorker from './plugins/esbuild.worker.plugin'
 import pluginElevate from './plugins/esbuild.elevate.plugin'
+import pluginTreeshake from 'plugins/esbuild.treeshake.plugin'
 
 const config = {
   bundle: true,
@@ -44,6 +45,7 @@ const config = {
     '.wasm': 'file',
   },
   plugins: [
+    pluginTreeshake(),
     pluginRenderer(),
     pluginStatic(),
     createSourcemapPlugin(),
@@ -52,7 +54,7 @@ const config = {
     pluginWorker(),
     pluginElevate(),
     // pluginJsdetect(),
-    plugin7Zip(path.resolve(__dirname, './node_modules')),
+    plugin7Zip(),
     pluginNode(),
     yamlPlugin({}) as any,
   ],

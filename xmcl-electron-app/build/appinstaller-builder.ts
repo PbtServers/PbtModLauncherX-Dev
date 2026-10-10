@@ -5,13 +5,13 @@ function getAppInstallerContent(version: string, publisher: string) {
   <AppInstaller
       xmlns="http://schemas.microsoft.com/appx/appinstaller/2018"
       Version="${version}.0"
-      Uri="https://xmcl.blob.core.windows.net/releases/xmcl.appinstaller" >
+      Uri="https://github.com/PbtServers/PbtModLauncherX-Dev/releases/latest/download/pbtmodlauncherx.appinstaller" >
       <MainPackage
-          Name="PBTMODLAUNCHERX"
+          Name="pbtmodlauncherx"
           Publisher="${publisher}"
           Version="${version}.${process.env.BUILD_NUMBER || '0'}"
           ProcessorArchitecture="x64"
-           Uri="https://cdn.xmcl.app/releases/xmcl-${version}-win32-x64.appx" />
+          Uri="https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/pbtmodlauncherx-${version}-win32-x64.appx" />
       <UpdateSettings>
       </UpdateSettings>
   </AppInstaller>`

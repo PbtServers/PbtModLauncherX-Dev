@@ -1,5 +1,5 @@
 import { computed, InjectionKey, onMounted, reactive, Ref, toRefs, watch } from 'vue'
-import { GameProfileAndTexture, UserServiceKey } from '@xmcl/runtime-api'
+import { AUTHORITY_DEV, AUTHORITY_MICROSOFT, GameProfileAndTexture, UserServiceKey, UserProfile } from '@xmcl/runtime-api'
 import { useService } from '@/composables'
 import steveSkin from '@/assets/steve_skin.png'
 
@@ -9,7 +9,7 @@ export function usePlayerName(gameProfile: Ref<GameProfileAndTexture>) {
   return name
 }
 
-export function useUserSkin(userId: Ref<string>, gameProfile: Ref<GameProfileAndTexture>) {
+export function useUserSkin(userId: Ref<string>, gameProfile: Ref<GameProfileAndTexture>, user?: Ref<UserProfile | undefined>) {
   const { uploadSkin, saveSkin } = useService(UserServiceKey)
   const data = reactive({
     /**
@@ -25,21 +25,33 @@ export function useUserSkin(userId: Ref<string>, gameProfile: Ref<GameProfileAnd
     inferModelType: false,
   })
 
-  const currentSkin = computed(() => gameProfile.value?.textures.SKIN.url)
-  const currentSlim = computed(() => gameProfile.value.textures.SKIN.metadata ? gameProfile.value?.textures.SKIN.metadata.model === 'slim' : false)
-  const currentCape = computed(() => gameProfile.value.capes ? gameProfile.value.capes?.find(c => c.state === 'ACTIVE')?.url : gameProfile.value.textures.CAPE?.url)
-  const uploadable = computed(() => gameProfile.value.uploadable ? gameProfile.value.uploadable : ['skin', 'cape'])
+  const activeSkinUrl = computed(() => (gameProfile.value?.skins ? gameProfile.value.skins.find(s => s.state === 'ACTIVE')?.url : undefined) || gameProfile.value?.textures?.SKIN?.url || steveSkin)
+  const activeSlim = computed(() => {
+    const active = gameProfile.value?.skins?.find(s => s.state === 'ACTIVE')
+    if (active) return active.variant === 'SLIM'
+    return gameProfile.value?.textures?.SKIN?.metadata ? gameProfile.value.textures.SKIN.metadata.model === 'slim' : false
+  })
+  const activeCapeUrl = computed(() => (gameProfile.value?.capes ? gameProfile.value.capes.find(c => c.state === 'ACTIVE')?.url : undefined) || gameProfile.value?.textures?.CAPE?.url)
+
+  const currentSkin = computed(() => activeSkinUrl.value)
+  const currentSlim = computed(() => activeSlim.value)
+  const currentCape = computed(() => activeCapeUrl.value)
+  const uploadable = computed(() => {
+    if (gameProfile.value?.uploadable) return gameProfile.value.uploadable
+    const authority = user?.value?.authority
+    return authority === AUTHORITY_MICROSOFT || authority === AUTHORITY_DEV ? ['skin', 'cape'] : []
+  })
   const canUploadSkin = computed(() => uploadable.value.indexOf('skin') !== -1)
   const canUploadCape = computed(() => uploadable.value.indexOf('cape') !== -1)
 
   function reset() {
     const prof = gameProfile.value
     if (!prof) return
-    data.cape = currentCape.value
-    data.skin = prof.textures.SKIN.url || steveSkin
-    data.slim = prof.textures.SKIN.metadata ? prof.textures.SKIN.metadata.model === 'slim' : false
+    data.cape = activeCapeUrl.value
+    data.skin = activeSkinUrl.value
+    data.slim = activeSlim.value
   }
-  const skinModified = computed(() => (data.skin !== currentSkin.value && data.skin !== steveSkin) || data.slim !== currentSlim.value)
+  const skinModified = computed(() => data.skin !== currentSkin.value || data.slim !== currentSlim.value)
   const capeModified = computed(() => data.cape !== currentCape.value)
   const modified = computed(() => skinModified.value || capeModified.value)
 
@@ -61,8 +73,10 @@ export function useUserSkin(userId: Ref<string>, gameProfile: Ref<GameProfileAnd
   onMounted(() => {
     reset()
   })
-  watch(gameProfile, () => {
-    reset()
+  watch(() => gameProfile.value?.id, (newId, oldId) => {
+    if (newId !== oldId) {
+      reset()
+    }
   })
 
   return {

@@ -1,6 +1,6 @@
 import { Mod } from '@xmcl/curseforge'
 import { SearchResultHit } from '@xmcl/modrinth'
-import { ResourceSourceCurseforge, ResourceSourceModrinth } from '@xmcl/runtime-api'
+import { ResourceSourceCurseforge, ResourceSourceModrinth } from '@xmcl/resource'
 import { TextComponent } from '@xmcl/text-component'
 
 /**
@@ -40,6 +40,12 @@ export interface ProjectEntry<T extends ProjectFile = ProjectFile> {
    */
   modrinth?: SearchResultHit
   modrinthProjectId?: string
+  /**
+   * An optional content-type marker used when a single market list mixes
+   * multiple content kinds (e.g. the save market shows both worlds and data
+   * packs). Set by the search composable that produced the entry.
+   */
+  contentType?: string
   /**
    * The files under resources storage
    */

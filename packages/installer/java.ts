@@ -1,0 +1,241 @@
+import { execFile } from 'child_process'
+import { stat } from 'fs/promises'
+import { EOL, platform } from 'os'
+import { join } from 'path'
+import { missing } from './utils'
+
+export interface JavaInfo {
+  /**
+   * Full java executable path
+   */
+  path: string
+  /**
+   * Java version string
+   */
+  version: string
+  /**
+   * Major version of java
+   */
+  majorVersion: number
+}
+
+export interface JavaResolveDiagnostic {
+  java?: JavaInfo
+  exitCode?: number
+  signal?: string
+  stdout: string
+  stderr: string
+}
+
+/**
+ * Try to resolve a java info at this path. This will call `java -version`
+ * @param path The java exectuable path.
+ */
+export async function resolveJava(path: string): Promise<JavaInfo | undefined> {
+  return (await resolveJavaWithDiagnostic(path)).java
+}
+
+/**
+ * Resolve Java while retaining the process output for callers that need to
+ * diagnose why an existing, executable runtime could not be recognized.
+ */
+export async function resolveJavaWithDiagnostic(path: string): Promise<JavaResolveDiagnostic> {
+  if (await missing(path)) {
+    return { stdout: '', stderr: '' }
+  }
+
+  return new Promise((resolve) => {
+    try {
+      execFile(path, ['-version'], (error, stdout, stderr) => {
+        // Most JVMs write version output to stderr, but some wrappers and
+        // distributions use stdout. Accept either so a functional JRE is not
+        // misclassified as invalid solely because of its output stream.
+        const ver = parseJavaVersionOutput(stdout, stderr)
+        resolve({
+          java: ver ? { path, ...ver } : undefined,
+          exitCode: typeof error?.code === 'number' ? error.code : undefined,
+          signal: error?.signal ?? undefined,
+          stdout,
+          stderr,
+        })
+      })
+    } catch (error) {
+      resolve({
+        stdout: '',
+        stderr: error instanceof Error ? error.message : String(error),
+      })
+    }
+  })
+}
+
+export function parseJavaVersionOutput(
+  stdout: string,
+  stderr: string,
+): { version: string; majorVersion: number; patch: number } | undefined {
+  return parseJavaVersion(stderr) ?? parseJavaVersion(stdout)
+}
+
+export class ParseJavaVersionError extends Error {
+  name = 'ParseJavaVersionError'
+
+  constructor(message: string) {
+    super(message)
+  }
+}
+
+function execFileOutput(command: string, args: string[]) {
+  return new Promise<string>((resolve) => {
+    try {
+      execFile(command, args, (error, stdout) => resolve(error ? '' : stdout))
+        .once('error', () => resolve(''))
+    } catch {
+      resolve('')
+    }
+  })
+}
+
+/**
+ * Parse version string and major version number from `java -version` output.
+ *
+ * @param versionText The stdout or stderr for `java -version`
+ */
+export function parseJavaVersion(
+  versionText: string,
+): { version: string; majorVersion: number; patch: number } | undefined {
+  const getVersion = (str?: string) => {
+    if (!str) {
+      return undefined
+    }
+    if (!/(?:^|\s)(?:openjdk|java(?:[ _]version)?)(?:\s|=)/im.test(str)) {
+      return undefined
+    }
+    const match = /(\d+)\.(\d)+\.(\d+)(_\d+)?/.exec(str)
+    if (match === null) {
+      // Fallback: handle modern major-only version strings such as
+      //   java version "25" 2025-09-16 LTS         (Oracle JDK)
+      //   openjdk version "25" 2025-09-16          (OpenJDK / Zulu / etc.)
+      //   JAVA_VERSION="25"                        (release file)
+      // The previous fallback only matched the literal "openjdk" keyword which
+      // missed Oracle JDK's `java version "<n>"` output, breaking detection of
+      // any GA build that has no dotted patch component.
+      const majorOnlyMatch = /(?:openjdk|java)(?:[ _]version)?[ =]"?(\d+)"?/i.exec(str)
+      if (majorOnlyMatch) {
+        return {
+          version: majorOnlyMatch[1],
+          majorVersion: Number.parseInt(majorOnlyMatch[1]),
+          patch: -1,
+        }
+      }
+      return undefined
+    }
+    if (match[1] === '1') {
+      return {
+        version: match[0],
+        majorVersion: Number.parseInt(match[2]),
+        patch: Number.parseInt(match[4]?.substring(1) ?? '-1'),
+      }
+    }
+    return {
+      version: match[0],
+      majorVersion: Number.parseInt(match[1]),
+      patch: Number.parseInt(match[3]),
+    }
+  }
+  try {
+    const javaVersion = getVersion(versionText)
+    if (!javaVersion) {
+      return undefined
+    }
+    return javaVersion
+  } catch (e) {
+    throw new ParseJavaVersionError(
+      `Fail to parse java version [${versionText}]: ${(e as any).message}`,
+    )
+  }
+}
+
+/**
+ * Get all potential java locations for Minecraft.
+ *
+ * On mac/linux, it will perform `which java`. On win32, it will perform `where java`
+ *
+ * @returns The absolute java locations path
+ */
+export async function getPotentialJavaLocations(): Promise<string[]> {
+  const unchecked = new Set<string>()
+  const currentPlatform = platform()
+  const javaFile = currentPlatform === 'win32' ? 'java.exe' : 'java'
+
+  if (process.env.JAVA_HOME) {
+    unchecked.add(join(process.env.JAVA_HOME, 'bin', javaFile))
+  }
+
+  const which = () => execFileOutput('which', ['java']).then((stdout) => stdout.replace('\n', ''))
+  const where = () => execFileOutput('where.exe', ['java']).then((stdout) => stdout.split('\r\n'))
+
+  if (currentPlatform === 'win32') {
+    const registry = await execFileOutput(
+      'reg.exe',
+      ['QUERY', 'HKEY_LOCAL_MACHINE\\Software\\JavaSoft\\', '/s', '/v', 'JavaHome'],
+    )
+    const out = registry
+      .split(EOL)
+      .map((item) => item.replace(/[\r\n]/g, ''))
+      .filter((item) => item !== null && item !== undefined)
+      .filter((item) => item[0] === ' ')
+      .map((item) => `${item.split('    ')[3]}\\bin\\java.exe`)
+    for (const o of [...out, ...(await where())]) {
+      unchecked.add(o)
+    }
+  } else if (currentPlatform === 'darwin') {
+    unchecked.add('/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java')
+    unchecked.add(await which())
+  } else {
+    unchecked.add(await which())
+  }
+
+  const checkingList = Array.from(unchecked)
+    .filter((jPath) => typeof jPath === 'string')
+    .filter((p) => p !== '')
+
+  return checkingList
+}
+
+async function dedupJreExecutables(files: Iterable<string>) {
+  // some file might shared same ino
+  const inos = new Set<number>()
+  const result: string[] = []
+  for (const file of files) {
+    const fstat = await stat(file).catch(() => ({ ino: -1 }))
+    if (inos.has(fstat.ino)) {
+      continue
+    }
+    inos.add(fstat.ino)
+    result.push(file)
+  }
+  return result
+}
+
+/**
+ * Scan local java version on the disk.
+ *
+ * It will check if the passed `locations` are the home of java.
+ * Notice that the locations should not be the executable, but the path of java installation, like JAVA_HOME.
+ *
+ * This will call `getPotentialJavaLocations` and then `resolveJava`
+ *
+ * @param locations The location (like java_home) want to check.
+ * @returns All validate java info
+ */
+export async function scanLocalJava(locations: string[]): Promise<JavaInfo[]> {
+  const unchecked = new Set(locations)
+  const potential = await getPotentialJavaLocations()
+  potential.forEach((p) => unchecked.add(p))
+
+  const checkingList = await dedupJreExecutables(
+    [...unchecked].filter((jPath) => typeof jPath === 'string').filter((p) => p !== ''),
+  )
+
+  const javas = await Promise.all(checkingList.map((jPath) => resolveJava(jPath)))
+  return javas.filter(((j) => j !== undefined) as (j?: JavaInfo) => j is JavaInfo)
+}

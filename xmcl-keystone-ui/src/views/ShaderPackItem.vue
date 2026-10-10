@@ -7,6 +7,8 @@
     :checked="checked"
     :dense="dense"
     :height="itemHeight"
+    :indent="indent"
+    :indent-color="indentColor"
     :get-context-menu-items="getContextMenuItems"
     :install="install"
     @click="emit('click', $event)"
@@ -31,6 +33,9 @@ const props = defineProps<{
   hasUpdate?: boolean
   dense?: boolean
   itemHeight?: number
+  indent?: boolean
+  indentColor?: string
+  getContextMenuItems?: (item: ShaderPackProject) => ContextMenuItem[]
   install: (p: ProjectEntry) => Promise<void>
 }>()
 
@@ -49,18 +54,20 @@ const getContextMenuItems = () => {
   // const id = props.pack.modrinth?.project_id || props.pack.modrinthProjectId
   if (props.pack.installed.length > 0) {
     all.push({
-      text: t('delete.name', { name: props.pack.title }),
-      onClick: () => {
-        uninstall(path.value, props.pack.installed.map(f => f.path))
-      },
-      icon: 'delete',
-      color: 'error',
-    }, {
       text: t('shaderPack.showFile', { file: props.pack.installed[0].path }),
       onClick: () => {
         showItemInDirectory(props.pack.installed[0].path)
       },
       icon: 'folder',
+      section: 'action',
+    }, {
+      text: t('delete.name', { name: props.pack.title }),
+      onClick: () => {
+        uninstall({ path: path.value, files: props.pack.installed.map(f => f.path) })
+      },
+      icon: 'delete',
+      color: 'error',
+      section: 'danger',
     })
   }
   // if (id) {
@@ -69,10 +76,10 @@ const getContextMenuItems = () => {
   //     onClick: () => {
   //       goModrinthProject(id)
   //     },
-  //     icon: '$vuetify.icons.modrinth',
+  //     icon: 'xmcl:modrinth',
   //   })
   // }
-  return all
+  return all.concat(props.getContextMenuItems?.(props.pack) ?? [])
 }
 
 </script>

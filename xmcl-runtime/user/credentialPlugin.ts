@@ -5,18 +5,27 @@
 
 import { ICachePlugin, TokenCacheContext } from '@azure/msal-common'
 import { SecretStorage } from '~/app/SecretStorage'
-import { Logger } from '~/logger'
-import { AnyError } from '~/util/error'
+import { Logger } from '~/infra'
+import { AnyError } from '@xmcl/utils'
 
 const CredentialSerializeError = AnyError.make('CredentialSerializeError')
+const MICROSOFT_ACCOUNT_CACHE = 'XMCL_MICROSOFT_ACCOUNT'
 
-export function createPlugin(serviceName: string, accountName: string, logger: Logger, storage: SecretStorage): ICachePlugin {
-  accountName = accountName || 'XMCL_MICROSOFT_ACCOUNT'
+export function createPlugin(serviceName: string, logger: Logger, storage: SecretStorage): ICachePlugin {
   let cachedInMemory: boolean
+  let lastReadFailure: string | undefined
+  const reportReadFailure = (kind: string, error: unknown) => {
+    const signature = `${kind}:${error instanceof Error ? error.message : String(error)}`
+    if (lastReadFailure === signature) return
+    lastReadFailure = signature
+    logger.error(new CredentialSerializeError(`Fail to ${kind} the credential cache`, { cause: error }))
+  }
   const plugin: ICachePlugin = {
     async beforeCacheAccess(cacheContext: TokenCacheContext): Promise<void> {
-      const secret = await storage.get(serviceName, accountName).catch((e) => {
-        logger.error(new CredentialSerializeError('Fail to deserialize the credential cache', { cause: e }))
+      let readFailed = false
+      const secret = await storage.get(serviceName, MICROSOFT_ACCOUNT_CACHE).catch((e) => {
+        readFailed = true
+        reportReadFailure('read', e)
       })
       if (cachedInMemory && cacheContext.cacheHasChanged) {
         return
@@ -24,9 +33,12 @@ export function createPlugin(serviceName: string, accountName: string, logger: L
       if (secret) {
         try {
           cacheContext.tokenCache.deserialize(secret)
+          lastReadFailure = undefined
         } catch (e) {
-          logger.error(new CredentialSerializeError('Fail to deserialize the credential cache', { cause: e }))
+          reportReadFailure('deserialize', e)
         }
+      } else if (!readFailed) {
+        lastReadFailure = undefined
       }
     },
     async afterCacheAccess(cacheContext: TokenCacheContext): Promise<void> {
@@ -34,7 +46,8 @@ export function createPlugin(serviceName: string, accountName: string, logger: L
         if (cacheContext.cacheHasChanged) {
           const currentCache = cacheContext.tokenCache.serialize()
           cachedInMemory = true
-          await storage.put(serviceName, accountName, currentCache)
+          await storage.put(serviceName, MICROSOFT_ACCOUNT_CACHE, currentCache)
+          lastReadFailure = undefined
         }
       } catch (e) {
         logger.error(new CredentialSerializeError('Fail to serialzie the credential cache', { cause: e }))

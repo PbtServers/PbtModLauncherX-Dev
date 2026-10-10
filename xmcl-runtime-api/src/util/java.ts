@@ -1,6 +1,7 @@
 import { Java } from '../entities/java.schema'
 import { JavaRecord } from '../entities/java'
 import type { JavaVersion, ResolvedVersion } from '@xmcl/core'
+import { getCompatibleJavaVersion } from '@xmcl/core'
 import { parseVersion } from './mavenVersion'
 
 export enum JavaCompatibleState {
@@ -38,7 +39,7 @@ export interface VersionPreference {
   requirement: string
 }
 
-export function selectJavaByPreference(allJava: JavaRecord[], { match, okay }: VersionPreference) {
+export function selectJavaByPreference(allJava: JavaRecord[], { match, okay }: VersionPreference, preferredPath?: string) {
   const records = allJava.filter(v => v.valid)
   // const root = this.getPath('jre')
   // const isUnderPath = (p: string) => !relative(root, p).startsWith('..')
@@ -55,6 +56,23 @@ export function selectJavaByPreference(allJava: JavaRecord[], { match, okay }: V
     }
   }
   if (bestMatched.length > 0) {
+    // Honor the user's globally preferred Java only when it is fully
+    // compatible with this version — otherwise we fall through to the
+    // regular auto-selection (or a download) instead of forcing it.
+    if (preferredPath) {
+      const preferred = bestMatched.find(j => j.path === preferredPath)
+      if (preferred) {
+        return [preferred, JavaCompatibleState.Matched] as const
+      }
+    }
+    if (bestMatched.length > 1) {
+      // Deprioritize OpenJ9 — HotSpot is the de-facto compatibility baseline.
+      bestMatched.sort((a, b) => {
+        const ao = a.path.toLowerCase().includes('openj9')
+        const bo = b.path.toLowerCase().includes('openj9')
+        return ao === bo ? 0 : ao ? 1 : -1
+      })
+    }
     return [bestMatched[0], JavaCompatibleState.Matched] as const
   }
   if (fine.length > 0) {
@@ -70,9 +88,45 @@ export function getVersionPreference<T extends object>(
   forge: string | undefined,
   selectedVersion?: InstanceResolvedVersion<T>,
 ) {
+  // Java 16 is the first JDK with the modular cleanup Minecraft 1.17+ was
+  // designed against, and the JVM has been broadly forward-compatible from
+  // that point on (Mojang's own bootstrap accepts any newer LTS). Treat any
+  // requirement >= 16 as forward-compatible so that, e.g., Java 25 is a
+  // perfect match for a Java 21 *or* Java 17 requirement instead of being
+  // rejected as "no compatible Java found". Java 8 stays strict because
+  // legacy MC depends on Java 8 internals removed in 9+.
+  const JAVA_FORWARD_COMPAT_THRESHOLD = 16
+
   let javaVersion = selectedVersion && 'javaVersion' in selectedVersion ? selectedVersion?.javaVersion : undefined
+  const compatibleJavaMajors = selectedVersion && 'compatibleJavaMajors' in selectedVersion
+    ? selectedVersion.compatibleJavaMajors
+    : undefined
+  if (compatibleJavaMajors) {
+    javaVersion = getCompatibleJavaVersion(compatibleJavaMajors, javaVersion)
+    const match = (java: Java) => compatibleJavaMajors.includes(java.majorVersion)
+    return {
+      javaVersion,
+      versionPref: {
+        match,
+        okay: match,
+        requirement: [...new Set(compatibleJavaMajors)].sort((a, b) => a - b).map(major => `=${major}`).join(' || '),
+      },
+    }
+  }
   const resolvedMcVersion = parseVersion(minecraft)
   const minecraftMinor = resolvedMcVersion.minorVersion!
+
+  // Forge's bundled bytecode tooling is not necessarily compatible with newer
+  // JDKs. Keep the Java 17 generation on 17 unless explicit compatibility
+  // metadata above declares otherwise.
+  if (forge && resolvedMcVersion.majorVersion === 1 &&
+    (minecraftMinor === 18 || minecraftMinor === 19 ||
+      (minecraftMinor === 20 && (resolvedMcVersion.incrementalVersion ?? 0) <= 4)) &&
+    (!javaVersion || javaVersion.majorVersion === 17)) {
+    javaVersion ??= { component: 'java-runtime-gamma', majorVersion: 17 }
+    const match = (java: Java) => java.majorVersion === 17
+    return { javaVersion, versionPref: { match, okay: match, requirement: '=17' } }
+  }
 
   const getBuilderNumber = (v: string) => {
     const [, build] = v.split('_')
@@ -84,17 +138,26 @@ export function getVersionPreference<T extends object>(
 
   if (javaVersion) {
     const v = javaVersion
-    // if it assign version officially, we need to
-    preferredMatchedVersion = (j) => j.majorVersion === v.majorVersion
+    // For older versions, require exact match to avoid compatibility issues
+    preferredMatchedVersion = v.majorVersion >= JAVA_FORWARD_COMPAT_THRESHOLD
+      ? (j) => j.majorVersion >= v.majorVersion
+      : (j) => j.majorVersion === v.majorVersion
   }
+
+  // Helper to format requirement string based on Java version
+  const getRequirement = (version: number) => {
+    return version >= JAVA_FORWARD_COMPAT_THRESHOLD ? `>=${version}` : `=${version}`
+  }
+
   let versionPref: VersionPreference
   // instance version is not installed
   if (minecraftMinor < 13) {
-    // need java 8 for version below 1.13
+    // need java 8 for version below 1.13; tolerate 9–11 as a close-enough
+    // alternative when no Java 8 is installed.
     versionPref = {
       match: preferredMatchedVersion || ((j) => j.majorVersion === 8),
-      okay: j => j.majorVersion < 8 || j.majorVersion < 11,
-      requirement: javaVersion ? `=${javaVersion.majorVersion.toString()}` : '=8',
+      okay: j => j.majorVersion >= 8 && j.majorVersion <= 11,
+      requirement: javaVersion ? getRequirement(javaVersion.majorVersion) : '=8',
     }
     if (!javaVersion) {
       javaVersion = {
@@ -120,7 +183,7 @@ export function getVersionPreference<T extends object>(
     versionPref = {
       match: preferredMatchedVersion || (j => j.majorVersion >= 8 && j.majorVersion <= 16),
       okay: _ => true,
-      requirement: javaVersion ? `=${javaVersion.majorVersion.toString()}` : '>=8,<=16',
+      requirement: javaVersion ? getRequirement(javaVersion.majorVersion) : '>=8,<=16',
     }
     if (!javaVersion) {
       javaVersion = {
@@ -134,7 +197,7 @@ export function getVersionPreference<T extends object>(
     versionPref = {
       match: preferredMatchedVersion || (j => j.majorVersion >= 16),
       okay: _ => true,
-      requirement: javaVersion ? `=${javaVersion.majorVersion.toString()}` : '>=16',
+      requirement: javaVersion ? getRequirement(javaVersion.majorVersion) : '>=16',
     }
     if (!javaVersion) {
       javaVersion = {
@@ -155,6 +218,7 @@ export function getAutoSelectedJava<T extends object>(
   minecraft: string,
   forge: string | undefined,
   selectedVersion?: InstanceResolvedVersion<T>,
+  preferredPath?: string,
 ): AutoDetectedJava {
   const { javaVersion, versionPref } = getVersionPreference(minecraft, forge, selectedVersion)
 
@@ -169,7 +233,7 @@ export function getAutoSelectedJava<T extends object>(
     }
   }
 
-  const [computedJava, computedQuality] = selectJavaByPreference(all, versionPref)
+  const [computedJava, computedQuality] = selectJavaByPreference(all, versionPref, preferredPath)
 
   return computedQuality !== JavaCompatibleState.Matched
     ? {
@@ -219,6 +283,12 @@ export async function getAutoOrManuallJava(
       }
     }
 
+    // Trust the resolver's verdict: if it tells us the record is invalid
+    // (stale cache entry pointing at a deleted JDK, etc.), preserve that.
+    // Lying with `valid: true` here causes launch to spawn a missing
+    // executable instead of falling back to the auto-detected Java.
+    const resolvedValid = (record as Partial<JavaRecord>).valid !== false
+
     let resultQuality: JavaCompatibleState
     // check if this version matched
     if (criteria.preference.match(record)) {
@@ -233,7 +303,7 @@ export async function getAutoOrManuallJava(
       auto: criteria,
       java: {
         ...record,
-        valid: true,
+        valid: resolvedValid,
       } as JavaRecord,
       quality: resultQuality,
     }

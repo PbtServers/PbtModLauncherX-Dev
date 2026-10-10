@@ -1,0 +1,108 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558 
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "label": "build",
+            "script": "build",
+            "group": {
+                "kind": "build"
+            },
+            "options": {
+                "env": {
+                    "NODE_ENV": "production"
+                }
+            }
+        },
+        {
+            "type": "npm",
+            "label": "build:renderer",
+            "script": "build:renderer",
+            "group": {
+                "kind": "build",
+            },
+            "options": {
+                "env": {
+                    "NODE_ENV": "production"
+                }
+            }
+        },
+        {
+            "label": "dev",
+            "dependsOn": [
+                "dev:main",
+                "dev:renderer"
+            ]
+        },
+        {
+            "label": "dev:main",
+            "type": "npm",
+            "script": "dev:main",
+            "group": "build",
+            "isBackground": true,
+            "options": {
+                "env": {
+                    "LAUNCH_BY": "vscode"
+                }
+            },
+            "presentation": {
+                "group": "dev",
+                "panel": "dedicated"
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "pnpm run --prefix=xmcl-electron-app dev",
+                        "endsPattern": "^electron main ready",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "dev:renderer",
+            "type": "npm",
+            "script": "dev:renderer",
+            "group": "none",
+            "isBackground": true,
+            "presentation": {
+                "group": "dev",
+                "panel": "dedicated"
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "[ ]+vite v.* dev server running at:.*",
+                        "endsPattern": "[ ]+ready in .+ ms",
+                    }
+                }
+            ]
+        },
+        {
+            "type": "npm",
+            "script": "lint",
+            "problemMatcher": [
+                "$eslint-compact"
+            ]
+        }
+    ]
+}

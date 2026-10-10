@@ -5,8 +5,8 @@ import { darkIco, darkIcon, darkTray, lightIco, lightIcon, lightTray } from './u
 import { HAS_DEV_SERVER, HOST } from './constant'
 
 const manifest: InstalledAppManifest = {
-  name: 'KeyStone Launcher',
-  description: 'The default launcher UI',
+  name: 'PbtModLauncherX',
+  description: 'The PbtModLauncherX interface',
   url: HAS_DEV_SERVER ? defaultUrl : `http://${HOST}/index.html`,
   backgroundColor: '0x424242',
   minWidth: 800,
@@ -34,8 +34,8 @@ const manifest: InstalledAppManifest = {
     dockIcon: lightIcon,
     darkDockIcon: darkIcon,
   },
-  defaultWidth: 800,
-  defaultHeight: 600
+  defaultWidth: 1200,
+  defaultHeight: 720
 }
 
 export default manifest

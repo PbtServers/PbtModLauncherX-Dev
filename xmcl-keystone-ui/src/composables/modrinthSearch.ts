@@ -2,6 +2,7 @@ import { ProjectEntry } from '@/util/search'
 import { useSearchPattern } from './useSearchPattern'
 import { useModrinthSearchFunc } from './modrinth'
 import { SearchModel } from './search'
+import { useMarketPageSize } from './marketPageSize'
 
 export function useModrinthSearch<T extends ProjectEntry<any>>(
   projectType: string,
@@ -12,19 +13,21 @@ export function useModrinthSearch<T extends ProjectEntry<any>>(
     modrinthSort: sort,
     gameVersion,
     isModrinthDisabled: disabled,
-    currentView
+    currentView,
+    modrinthEnvironment: environment,
   }: SearchModel
 ) {
+  const { pageSize } = useMarketPageSize()
   const search = useModrinthSearchFunc(
     keyword,
     gameVersion,
     '',
     categories,
     modLoaders,
-    '',
+    environment,
     sort,
     projectType,
-    20,
+    pageSize,
   )
 
   const {
@@ -35,8 +38,8 @@ export function useModrinthSearch<T extends ProjectEntry<any>>(
     hasMore,
     loadMore,
   } = useSearchPattern(
-    async (index) => {
-      const result = await search(index)
+    async (index, signal) => {
+      const result = await search(index, signal)
       return {
         data: result.hits,
         limit: result.limit,
@@ -53,6 +56,7 @@ export function useModrinthSearch<T extends ProjectEntry<any>>(
       }
       return true
     },
+    pageSize,
   )
 
   function effect() {
@@ -61,6 +65,8 @@ export function useModrinthSearch<T extends ProjectEntry<any>>(
     watch(sort, onSearch)
     watch(gameVersion, onSearch)
     watch(disabled, onSearch)
+    watch(environment, onSearch)
+    watch(pageSize, onSearch)
     onSearch()
   }
 
@@ -81,9 +87,12 @@ export function useModrinthSearch<T extends ProjectEntry<any>>(
     return projects
   })
 
+  const modrinthTotal = computed(() => modrinth.value?.total ?? 0)
+
   return {
     modrinth: result,
     modrinthError: error,
+    modrinthTotal,
     hasMore,
     loadMoreModrinth: loadMore,
     effect,

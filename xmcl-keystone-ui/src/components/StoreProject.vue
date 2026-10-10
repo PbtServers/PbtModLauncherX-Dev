@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="!project"
-    class="flex w-full flex-col gap-4 overflow-auto p-4 lg:flex-row"
+    class="flex w-full flex-col gap-4 overflow-auto p-4 lg:flex-row select-none"
   >
     <v-progress-linear
       class="absolute left-0 top-0 z-10 m-0 p-0"
@@ -16,7 +16,7 @@
   </div>
   <div
     v-else
-    class="flex flex-col gap-4 p-4"
+    class="flex flex-col gap-4 p-4 select-none"
   >
     <v-progress-linear
       class="absolute left-0 top-0 z-10 m-0 p-0"
@@ -24,24 +24,26 @@
       height="3"
       :indeterminate="true"
     />
-    <v-card class="flex flex-col gap-1 xl:flex-row">
-      <StoreProjectGallery
-        class="h-full flex-grow"
-        :project="project"
-      />
-      <StoreProjectHeader
-        class="flex-shrink flex-grow-0"
-        :project="project"
-        :installing="installing || !!installDialog"
-        :installed="installed"
-        @open="onOpen"
-        @install="onInstall"
-      />
-    </v-card>
-    <div class="xl:(grid grid-cols-3) flex flex-col gap-4">
-      <v-card class="flex flex-col p-4">
-        <StoreProjectExternal :project="project" />
-        <v-divider class="my-2 w-full" />
+    <div class="w-full flex flex-col gap-2 lg:(grid grid-cols-3 gap-4 max-w-360)">
+      <v-card class="col-span-2 flex flex-col gap-1 surface-card-prominent">
+        <StoreProjectGallery
+          class="h-full flex-grow"
+          :project="project"
+        />
+        <StoreProjectHeader
+          class="flex-shrink flex-grow-0"
+          :project="project"
+          :installing="installing || !!installDialog"
+          :installed="installed"
+          @open="onOpen"
+          @install="onInstall"
+        />
+      </v-card>
+      <v-card class="flex flex-col p-4 surface-card-prominent">
+        <template v-if="project.links.length > 0">
+          <StoreProjectExternal :project="project" />
+          <v-divider class="my-2 w-full" />
+        </template>
         <StoreProjectMembers
           :members="members"
           :loading="loadingMembers"
@@ -50,20 +52,19 @@
         <v-divider class="my-2 w-full" />
         <StoreProjectTags :project="project" />
       </v-card>
-      <div class="col-span-2 flex max-w-full flex-col">
-        <div
-          v-if="project.htmlDescription"
-          class="markdown-body p-4"
-          v-html="project.htmlDescription"
-        />
-      </div>
+    </div>
+    <div class="flex flex-col max-w-360 select-text">
+      <div
+        v-if="project.htmlDescription"
+        class="markdown-body p-4"
+        v-html="project.htmlDescription"
+      />
     </div>
     <StoreProjectInstallVersionDialog
-      :value="installDialog"
+      v-model="installDialog"
       :versions="versions || []"
       :get-version-detail="getVersionDetail"
       @load="emit('load')"
-      @input="installDialog = false"
       @install="onInstallVersion"
     />
   </div>
@@ -77,6 +78,7 @@ import StoreProjectInstallVersionDialog, { StoreProjectVersion, StoreProjectVers
 import StoreProjectMembers, { TeamMember } from './StoreProjectMembers.vue'
 import StoreProjectTags from './StoreProjectTags.vue'
 import { CategoryChipProps } from './CategoryChip.vue'
+import { useGamepadAction } from '@/composables/gamepad'
 
 export interface StoreProject {
   id: string
@@ -92,6 +94,8 @@ export interface StoreProject {
   links: Array<{ url: string; name: string }>
   info: Array<{ name: string; value: string; url?: string; icon?: string }>
   htmlDescription?: string
+  localizedTitle?: string
+  localizedDescription?: string
   gallery: Array<{
     rawUrl?: string
     url: string
@@ -133,4 +137,11 @@ const onInstallVersion = (v: StoreProjectVersion) => {
   installDialog.value = false
   emit('install', v)
 }
+
+// Gamepad X installs the project (opens the version picker).
+const { t } = useI18n()
+useGamepadAction('X', {
+  label: () => t('shared.install'),
+  handler: onInstall,
+})
 </script>

@@ -1,6 +1,7 @@
-import { InvalidDirectoryErrorCode } from '../services/BaseService'
-import { SettingSchema } from './setting.schema'
-import { ReleaseInfo } from './update'
+import { type InvalidDirectoryErrorCode } from '../services/BaseService'
+import { DEFAULT_AGENT_ENDPOINT, DEFAULT_AGENT_MODEL } from '../services/AgentService'
+import { type SettingSchema } from './setting.schema'
+import { type ReleaseInfo } from './update'
 
 /**
  * The basic setting of the launcher.
@@ -10,9 +11,11 @@ import { ReleaseInfo } from './update'
 export class Settings implements SettingSchema {
   globalDisableAuthlibInjector = false
   globalDisableElyByAuthlib = false
+  globalSyncGameLanguage = false
   globalMinMemory = 0
   globalMaxMemory = 0
   globalAssignMemory: 'auto' | boolean = false
+  globalJava: string = ''
   globalVmOptions: string[] = []
   globalMcOptions: string[] = []
   globalPrependCommand: string = ''
@@ -21,11 +24,16 @@ export class Settings implements SettingSchema {
   globalHideLauncher = false
   globalShowLog = false
   globalEnv: Record<string, string> = {}
-  globalResolution: { width?: number; height?: number; fullscreen?: boolean } = {}
+  globalResolution: { width?: number; height?: number; fullscreen?: boolean; monitor?: string } = {}
   discordPresence = false
   developerMode = false
   disableTelemetry = false
+  multiplayerTransport: import('../multiplayer').MultiplayerTransport = 'webrtc'
+  agentEndpoint = DEFAULT_AGENT_ENDPOINT
+  agentModel = DEFAULT_AGENT_MODEL
   linuxTitlebar = false
+  windowTranslucent = false
+  quickActionShortcut = ''
 
   locale = ''
 
@@ -56,7 +64,6 @@ export class Settings implements SettingSchema {
    * Is current environment connecting to internet?
    */
   online = false
-  allowTurn = false
   replaceNatives: 'all' | 'legacy-only' | false = 'legacy-only'
 
   httpProxy = ''
@@ -71,23 +78,32 @@ export class Settings implements SettingSchema {
 
   databaseReady = false
 
+  /**
+   * Number of resource DB rows whose curseforge/modrinth metadata was
+   * detected as corrupted (e.g. a file path leaked into modrinth.versionId)
+   * during the startup sweep. The rows have already been healed
+   * (offending fields nulled); this count is purely a UI hint so the
+   * user knows some resource attribution was lost.
+   */
+  corruptedResourceCount = 0
+
   invalidGameDataPath: InvalidDirectoryErrorCode = undefined
 
   config(config: SettingSchema) {
     this.locale = config.locale
     this.autoDownload = config.autoDownload || false
-    this.autoInstallOnAppQuit = config.autoDownload || false
+    this.autoInstallOnAppQuit = config.autoInstallOnAppQuit || false
     this.allowPrerelease = config.allowPrerelease || false
     this.apiSetsPreference = config.apiSetsPreference
     this.httpProxy = config.httpProxy
     this.httpProxyEnabled = config.httpProxyEnabled
     this.maxSockets = config.maxSockets ?? 16
     this.maxAPISockets = config.maxAPISockets ?? 0
-    this.allowTurn = config.allowTurn ?? false
     this.theme = config.theme
     this.globalMinMemory = config.globalMinMemory
     this.globalMaxMemory = config.globalMaxMemory
     this.globalAssignMemory = config.globalAssignMemory
+    this.globalJava = config.globalJava
     this.globalVmOptions = config.globalVmOptions
     this.globalMcOptions = config.globalMcOptions
     this.globalFastLaunch = config.globalFastLaunch
@@ -95,20 +111,30 @@ export class Settings implements SettingSchema {
     this.globalHideLauncher = config.globalHideLauncher
     this.globalShowLog = config.globalShowLog
     this.globalDisableElyByAuthlib = config.globalDisableElyByAuthlib
+    this.globalSyncGameLanguage = config.globalSyncGameLanguage ?? false
     this.globalDisableAuthlibInjector = config.globalDisableAuthlibInjector
     this.globalPreExecuteCommand = config.globalPreExecuteCommand
     this.globalEnv = config.globalEnv
     this.discordPresence = config.discordPresence
     this.developerMode = config.developerMode
     this.disableTelemetry = config.disableTelemetry
+    this.multiplayerTransport = config.multiplayerTransport
+    this.agentEndpoint = config.agentEndpoint
+    this.agentModel = config.agentModel
     this.linuxTitlebar = config.linuxTitlebar
+    this.windowTranslucent = config.windowTranslucent
     this.enableDedicatedGPUOptimization = config.enableDedicatedGPUOptimization
     this.replaceNatives = config.replaceNatives
     this.globalResolution = config.globalResolution
+    this.quickActionShortcut = config.quickActionShortcut ?? ''
   }
 
   developerModeSet(developerMode: boolean) {
     this.developerMode = developerMode
+  }
+
+  quickActionShortcutSet(shortcut: string) {
+    this.quickActionShortcut = shortcut
   }
 
   discordPresenceSet(presence: boolean) {
@@ -176,10 +202,6 @@ export class Settings implements SettingSchema {
     this.apiSets = sets
   }
 
-  allowTurnSet(allowTurn: boolean) {
-    this.allowTurn = allowTurn
-  }
-
   onlineSet(online: boolean) {
     this.online = online
   }
@@ -196,15 +218,28 @@ export class Settings implements SettingSchema {
     this.disableTelemetry = disable
   }
 
+  multiplayerTransportSet(transport: import('../multiplayer').MultiplayerTransport) {
+    this.multiplayerTransport = transport
+  }
+
+  agentProviderSet(provider: { endpoint: string; model: string }) {
+    this.agentEndpoint = provider.endpoint
+    this.agentModel = provider.model
+  }
+
   linuxTitlebarSet(enabled: boolean) {
     this.linuxTitlebar = enabled
+  }
+
+  windowTranslucentSet(enabled: boolean) {
+    this.windowTranslucent = enabled
   }
 
   replaceNativesSet(replace: 'all' | 'legacy-only' | false) {
     this.replaceNatives = replace
   }
 
-  globalResolutionSet(resolution: { width?: number; height?: number; fullscreen?: boolean }) {
+  globalResolutionSet(resolution: { width?: number; height?: number; fullscreen?: boolean; monitor?: string }) {
     this.globalResolution = resolution
   }
 
@@ -216,6 +251,10 @@ export class Settings implements SettingSchema {
     this.databaseReady = ready
   }
 
+  corruptedResourceCountSet(count: number) {
+    this.corruptedResourceCount = count
+  }
+
   invalidGameDataPathSet(invalid: InvalidDirectoryErrorCode) {
     this.invalidGameDataPath = invalid
   }
@@ -224,6 +263,7 @@ export class Settings implements SettingSchema {
     globalMinMemory: number
     globalMaxMemory: number
     globalAssignMemory: boolean | 'auto'
+    globalJava: string
     globalVmOptions: string[]
     globalMcOptions: string[]
     globalFastLaunch: boolean
@@ -231,14 +271,16 @@ export class Settings implements SettingSchema {
     globalShowLog: boolean
     globalDisableAuthlibInjector: boolean
     globalDisableElyByAuthlib: boolean
+    globalSyncGameLanguage?: boolean
     globalPrependCommand: string
     globalPreExecuteCommand: string
     globalEnv: Record<string, string>
-    globalResolution: { width?: number; height?: number; fullscreen?: boolean }
+    globalResolution: { width?: number; height?: number; fullscreen?: boolean; monitor?: string }
   }) {
     this.globalMinMemory = settings.globalMinMemory
     this.globalMaxMemory = settings.globalMaxMemory
     this.globalAssignMemory = settings.globalAssignMemory
+    this.globalJava = settings.globalJava
     this.globalVmOptions = settings.globalVmOptions
     this.globalMcOptions = settings.globalMcOptions
     this.globalFastLaunch = settings.globalFastLaunch
@@ -246,6 +288,9 @@ export class Settings implements SettingSchema {
     this.globalShowLog = settings.globalShowLog
     this.globalDisableAuthlibInjector = settings.globalDisableAuthlibInjector
     this.globalDisableElyByAuthlib = settings.globalDisableElyByAuthlib
+    if (typeof settings.globalSyncGameLanguage === 'boolean') {
+      this.globalSyncGameLanguage = settings.globalSyncGameLanguage
+    }
     this.globalPrependCommand = settings.globalPrependCommand
     this.globalPreExecuteCommand = settings.globalPreExecuteCommand
     this.globalEnv = settings.globalEnv

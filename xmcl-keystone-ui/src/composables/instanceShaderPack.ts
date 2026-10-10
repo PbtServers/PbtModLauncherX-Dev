@@ -2,13 +2,15 @@ import { BuiltinImages } from '@/constant'
 import { ModFile } from '@/util/mod'
 import { ProjectFile } from '@/util/search'
 import { FabricModMetadata } from '@xmcl/mod-parser'
-import { GameOptionsState, InstanceOptionsServiceKey, InstanceShaderPacksServiceKey, Resource, ResourceState, RuntimeVersions } from '@xmcl/runtime-api'
-import debounce from 'lodash.debounce'
+import { GameOptionsState, InstanceOptionsServiceKey, InstanceShaderPacksServiceKey } from '@xmcl/runtime-api'
+import { useDebounceFn } from '@vueuse/core'
 import { InjectionKey, Ref } from 'vue'
 import { useRefreshable } from './refreshable'
+import { useResourceParseErrorNotifier } from './resourceParseError'
 import { useService } from './service'
 import { useState } from './syncableState'
 import { ReactiveResourceState } from '@/util/ReactiveResourceState'
+import { RuntimeVersions } from '@xmcl/instance'
 
 export const kInstanceShaderPacks: InjectionKey<ReturnType<typeof useInstanceShaderPacks>> = Symbol('InstanceShaderPacks')
 
@@ -21,10 +23,12 @@ export interface InstanceShaderFile extends ProjectFile {
 }
 
 export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<RuntimeVersions>, mods: Ref<ModFile[]>, gameOptions: Ref<GameOptionsState | undefined>) {
-  const { link, watch: watchShaderPacks } = useService(InstanceShaderPacksServiceKey)
+  const { watch: watchShaderPacks } = useService(InstanceShaderPacksServiceKey)
   const { editOculusShaderOptions, getOculusShaderOptions, getIrisShaderOptions, editIrisShaderOptions, getShaderOptions, editShaderOptions } = useService(InstanceOptionsServiceKey)
 
-  const { state, error, isValidating } = useState(() => instancePath.value ? watchShaderPacks(instancePath.value) : undefined, ReactiveResourceState)
+  const { state, error, isValidating, revalidate } = useState(() => instancePath.value ? watchShaderPacks(instancePath.value) : undefined, ReactiveResourceState)
+
+  useResourceParseErrorNotifier(state)
 
   const shaderPacks = computed(() => state.value?.files.map(f => ({
     path: f.path,
@@ -37,11 +41,6 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     modrinth: f.metadata.modrinth,
     curseforge: f.metadata.curseforge,
   } as InstanceShaderFile)) || [])
-  const linked = ref(false)
-  const { refresh: refreshLinkedStatus, refreshing } = useRefreshable<string>(async (path) => {
-    if (!path) return
-    linked.value = await link(path)
-  })
   const shaderMod = computed(() => {
     if (runtime.value.optifine) {
       return {
@@ -54,13 +53,16 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     const shader = mods.value.find(m => {
       if (!m.enabled) return false
       const forge = m.forge
+      const neoforge = m.neoforge
       const fabric = m.fabric
       if (forge) {
         // optifine in forge
-        if (forge.modid.toLowerCase() === 'optifine') {
+        if (forge.modid?.toLowerCase() === 'optifine') {
           return true
         }
-        return forge.modid.toLowerCase() === 'oculus'
+        return forge.modid?.toLowerCase() === 'oculus'
+      } else if (neoforge) {
+        if (neoforge.modid?.toLowerCase() === 'oculus' || neoforge.modid?.toLowerCase() === 'iris') return true
       } else if (fabric) {
         if (fabric instanceof Array) {
           // optifine fabric or iris
@@ -104,6 +106,13 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
         version: shader.forge.version,
         icon: shader.icon,
       }
+      : shader?.neoforge
+      ? {
+        id: shader.neoforge.modid,
+        name: shader.neoforge.displayName,
+        version: shader.neoforge.version,
+        icon: shader.icon,
+      }
       : shader?.fabric ? normalzieFabricResource(shader.fabric, shader.icon) : undefined
   })
   const shaderPackPath = computed(() => {
@@ -111,7 +120,7 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     return gameOptions.value?.shaderPack
   })
 
-  const shaderPackStatus = ref(undefined as [string, string | undefined] | undefined)
+  const shaderPackStatus = shallowRef(undefined as [string, string | undefined] | undefined)
   const { refresh: mutateShaderPackOptions } = useRefreshable(async () => {
     const mod = shaderMod.value
     const inst = instancePath.value
@@ -136,7 +145,7 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
     }
   })
 
-  const debouncedMutateShaderPackOptions = debounce(mutateShaderPackOptions, 300)
+  const debouncedMutateShaderPackOptions = useDebounceFn(mutateShaderPackOptions, 300)
   watch([shaderMod, shaderPackPath], () => debouncedMutateShaderPackOptions())
 
   const shaderPack = computed({
@@ -180,15 +189,12 @@ export function useInstanceShaderPacks(instancePath: Ref<string>, runtime: Ref<R
   function effect() {
   }
 
-  watch(instancePath, refreshLinkedStatus, { immediate: true })
-
   return {
-    linked,
     shaderMod,
     shaderPack,
     shaderPacks,
-    refresh: refreshLinkedStatus,
-    refreshing: computed(() => refreshing.value || isValidating.value),
+    refreshing: isValidating,
+    revalidate,
     error,
     effect,
   }

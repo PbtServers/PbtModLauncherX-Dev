@@ -1,47 +1,81 @@
-import { kFilterCombobox, useExternalRoute, useFilterComboboxData, useI18nSync } from '@/composables'
-import { kCurseforgeCategories, useCurseforgeCategories } from '@/composables/curseforge'
+import { useExternalRoute, useI18nSync } from '@/composables'
+import { kXmclAccount, useXmclAccount } from '@/composables/xmclAccount'
 import { kCriticalStatus, useCriticalStatus } from '@/composables/criticalStatus'
+import { kCurseforgeCategories, useCurseforgeCategories } from '@/composables/curseforge'
+import { kCustomCss, useCustomCss } from '@/composables/customCss'
 import { kDropHandler, useDropHandler } from '@/composables/dropHandler'
 import { kEnvironment, useEnvironment } from '@/composables/environment'
 import { kImageDialog, useImageDialog } from '@/composables/imageDialog'
 import { kInstance, useInstance } from '@/composables/instance'
-import { kInstanceDefaultSource, useInstanceDefaultSource } from '@/composables/instanceDefaultSource'
+import { kInstanceBlueprints, useInstanceBlueprints } from '@/composables/instanceBlueprints'
+import {
+  kInstanceDefaultSource,
+  useInstanceDefaultSource,
+} from '@/composables/instanceDefaultSource'
 import { kInstanceFiles, useInstanceFiles } from '@/composables/instanceFiles'
 import { kInstanceJava, useInstanceJava } from '@/composables/instanceJava'
 import { kInstanceJavaDiagnose, useInstanceJavaDiagnose } from '@/composables/instanceJavaDiagnose'
 import { kInstanceLaunch, useInstanceLaunch } from '@/composables/instanceLaunch'
 import { kInstanceModsContext, useInstanceMods } from '@/composables/instanceMods'
 import { kInstanceOptions, useInstanceOptions } from '@/composables/instanceOptions'
-import { kInstanceResourcePacks, useInstanceResourcePacks } from '@/composables/instanceResourcePack'
+import {
+  kInstanceResourcePacks,
+  useInstanceResourcePacks,
+} from '@/composables/instanceResourcePack'
 import { kInstanceSave, useInstanceSaves } from '@/composables/instanceSave'
+import { kInstanceServerInfo, useInstanceServerInfo } from '@/composables/instanceServerInfo'
 import { kInstanceShaderPacks, useInstanceShaderPacks } from '@/composables/instanceShaderPack'
+import { kInstanceTheme, useInstanceTheme } from '@/composables/instanceTheme'
 import { kInstanceVersion, useInstanceVersion } from '@/composables/instanceVersion'
-import { kInstanceVersionInstall, useInstanceVersionInstallInstruction } from '@/composables/instanceVersionInstall'
+import {
+  kInstanceVersionInstall,
+  useInstanceVersionInstallInstruction,
+} from '@/composables/instanceVersionInstall'
 import { kInstances, useInstances } from '@/composables/instances'
 import { kJavaContext, useJavaContext } from '@/composables/java'
 import { kLaunchTask, useLaunchTask } from '@/composables/launchTask'
 import { kModDependenciesCheck, useModDependenciesCheck } from '@/composables/modDependenciesCheck'
 import { kModLibCleaner, useModLibCleaner } from '@/composables/modLibCleaner'
-import { kModsSearch, useModsSearch } from '@/composables/modSearch'
 import { kModUpgrade, useModUpgrade } from '@/composables/modUpgrade'
+import { kModpackExport, useModpackExport } from '@/composables/modpack'
+import { kInstanceServerLaunch, useInstanceServerLaunch } from '@/composables/instanceServerLaunch'
 import { kModrinthTags, useModrinthTags } from '@/composables/modrinth'
-import { kModrinthAuthenticatedAPI, useModrinthAuthenticatedAPI } from '@/composables/modrinthAuthenticatedAPI'
-import { kPeerShared, usePeerConnections } from '@/composables/peers'
-import { kResourcePackSearch, useResourcePackSearch } from '@/composables/resourcePackSearch'
-import { kSaveSearch, useSavesSearch } from '@/composables/savesSearch'
+import {
+  kModrinthAuthenticatedAPI,
+  useModrinthAuthenticatedAPI,
+} from '@/composables/modrinthAuthenticatedAPI'
+import { kLocalCollections, useLocalCollections } from '@/composables/localCollections'
+import { kPeerState, usePeerState } from '@/composables/peers'
 import { kSearchModel, useSearchModel } from '@/composables/search'
 import { kServerStatusCache, useServerStatusCache } from '@/composables/serverStatus'
 import { kSettingsState, useSettingsState } from '@/composables/setting'
-import { kShaderPackSearch, useShaderPackSearch } from '@/composables/shaderPackSearch'
+import {
+  DEFAULT_CARD_CLICKABLE_RADIUS,
+  DEFAULT_CARD_ITEM_RADIUS,
+  DEFAULT_CARD_PROMINENT_RADIUS,
+  DEFAULT_CARD_RADIUS,
+  DEFAULT_CARD_SUBSECTION_RADIUS,
+  DEFAULT_PANEL_RADIUS,
+  DEFAULT_SURFACE_MENU_ITEM_RADIUS,
+  DEFAULT_SURFACE_PILL_RADIUS,
+  DEFAULT_SURFACE_RADIUS,
+  DEFAULT_SURFACE_BUTTON_RADIUS,
+  DEFAULT_SURFACE_DIALOG_RADIUS,
+  DEFAULT_SURFACE_TOOLTIP_RADIUS,
+  kSurfaceTokens,
+  useSurfaceTokens,
+} from '@/composables/surfaceTokens'
 import { useTelemetryTrack } from '@/composables/telemetryTrack'
 import { kTheme, useTheme } from '@/composables/theme'
-import { kUILayout, useUILayout } from '@/composables/uiLayout'
+
+import { kNetworkStatus, useNetworkStatus } from '@/composables/useNetworkStatus'
 import { kUserContext, useUserContext } from '@/composables/user'
+import { kLatestMinecraftVersion, useMinecraftLatestRelease } from '@/composables/version'
 import { kLocalVersions, useLocalVersions } from '@/composables/versionLocal'
 import { kSupportedAuthorityMetadata, useSupportedAuthority } from '@/composables/yggrasil'
 import { vuetify } from '@/vuetify'
-import 'virtual:uno.css'
-import { provide } from 'vue'
+import { provide, watchEffect } from 'vue'
+import { useTogetherMultiplayer } from './multiplayerTogether'
 
 export default defineComponent({
   setup(props, ctx) {
@@ -50,43 +84,103 @@ export default defineComponent({
     provide(kDropHandler, useDropHandler())
 
     const user = useUserContext()
+    provide(kUserContext, user)
     const java = useJavaContext()
     const localVersions = useLocalVersions()
     const instances = useInstances()
+    const router = useRouter()
+    const onNavigate = (route: string) => { void router.push(route) }
+    windowController.on('navigate', onNavigate)
+    onUnmounted(() => windowController.removeListener('navigate', onNavigate))
+    watch([instances.ready, instances.allInstances], ([ready, current], [wasReady, previous]) => {
+      if (ready && current.length === 0 && (!wasReady || previous.length > 0) && router.currentRoute.value.path !== '/me') {
+        router.replace('/me')
+      }
+    })
     const instance = useInstance(instances.selectedInstance, instances.instances)
-    provide(kPeerShared, usePeerConnections())
-
     const settings = useSettingsState()
-    const instanceVersion = useInstanceVersion(instance.instance, localVersions.versions, localVersions.servers)
-    const instanceJava = useInstanceJava(instance.instance, instanceVersion.resolvedVersion, java.all)
+    const multiplayerTransport = computed(() => settings.state.value?.multiplayerTransport ?? 'webrtc')
+    const togetherMultiplayer = typeof multiplayerNetworkDiagnostics !== 'undefined'
+      ? useTogetherMultiplayer(multiplayerTransport)
+      : undefined
+    if (togetherMultiplayer) {
+      provide(kPeerState, usePeerState(
+        user.gameProfile,
+        togetherMultiplayer.multiplayer,
+        togetherMultiplayer.state,
+        togetherMultiplayer.refreshNat,
+        instances.selectedInstance,
+      ))
+    }
+    const instanceVersion = useInstanceVersion(
+      instance.instance,
+      localVersions.versions,
+      localVersions.servers,
+    )
+    const instanceJava = useInstanceJava(
+      instance.instance,
+      instanceVersion.resolvedVersion,
+      java.all,
+      computed(() => settings.state.value?.globalJava),
+    )
     provide(kInstanceJavaDiagnose, useInstanceJavaDiagnose(instanceJava))
     const instanceDefaultSource = useInstanceDefaultSource(instance.path)
     const options = useInstanceOptions(instance.path)
     const saves = useInstanceSaves(instance.path)
+    const serverInfo = useInstanceServerInfo(instance.path)
     const resourcePacks = useInstanceResourcePacks(instance.path, options.gameOptions)
     const instanceMods = useInstanceMods(instance.path, instance.runtime, instanceJava.java)
-    const shaderPacks = useInstanceShaderPacks(instance.path, instance.runtime, instanceMods.mods, options.gameOptions)
+    const blueprints = useInstanceBlueprints(
+      instance.path,
+      computed(() => router.currentRoute.value.meta.blueprintState === true),
+    )
+    const shaderPacks = useInstanceShaderPacks(
+      instance.path,
+      instance.runtime,
+      instanceMods.mods,
+      options.gameOptions,
+    )
     const files = useInstanceFiles(instance.path)
     const task = useLaunchTask(instance.path, instance.runtime, instanceVersion.versionId)
-    const instanceLaunch = useInstanceLaunch(instance.instance, instanceVersion.versionId, instanceVersion.serverVersionId, instanceJava.java, user.userProfile, settings, instanceMods.mods)
+    const instanceLaunch = useInstanceLaunch(
+      instance.instance,
+      instanceVersion.versionId,
+      instanceVersion.serverVersionId,
+      instanceJava.java,
+      user.userProfile,
+      settings,
+      instanceMods.mods,
+    )
 
     const modrinthAPI = useModrinthAuthenticatedAPI()
     provide(kModrinthAuthenticatedAPI, modrinthAPI)
+    provide(
+      kXmclAccount,
+      useXmclAccount(),
+    )
+    provide(kLocalCollections, useLocalCollections())
     const searchModel = useSearchModel(instance.runtime)
     provide(kSearchModel, searchModel)
-    const modsSearch = useModsSearch(instance.path, instance.runtime, instanceMods.mods, instanceMods.isValidating, settings.state, modrinthAPI, searchModel)
-    const modUpgrade = useModUpgrade(instance.path, instance.runtime, instanceMods.mods)
+    const modUpgrade = useModUpgrade(
+      instance.path,
+      instance.runtime,
+      instanceMods.mods,
+      instanceMods.updateMetadataAndWait,
+    )
 
-    const resourcePackSearch = useResourcePackSearch(resourcePacks.enabled, resourcePacks.disabled, modrinthAPI, searchModel)
-    const shaderPackSearch = useShaderPackSearch(shaderPacks.shaderPacks, modrinthAPI, searchModel)
-
-    const install = useInstanceVersionInstallInstruction(instance.path, instance.instances, instanceVersion.resolvedVersion, instanceVersion.refreshResolvedVersion, localVersions.versions, localVersions.servers, java.all, java.refresh)
+    const install = useInstanceVersionInstallInstruction(
+      instance.path,
+      instance.instances,
+      instanceVersion.resolvedVersion,
+      instanceVersion.refreshResolvedVersion,
+      java.all,
+    )
 
     useTelemetryTrack(settings.state)
 
     provide(kCriticalStatus, useCriticalStatus(settings.state))
 
-    provide(kUserContext, user)
+    provide(kLatestMinecraftVersion, useMinecraftLatestRelease())
     provide(kJavaContext, java)
     provide(kSettingsState, settings)
     provide(kInstances, instances)
@@ -99,35 +193,106 @@ export default defineComponent({
     provide(kInstanceJava, instanceJava)
     provide(kInstanceOptions, options)
     provide(kInstanceSave, saves)
+    provide(kInstanceServerInfo, serverInfo)
     provide(kInstanceResourcePacks, resourcePacks)
     provide(kInstanceModsContext, instanceMods)
+    provide(kInstanceBlueprints, blueprints)
     provide(kInstanceFiles, files)
     provide(kLaunchTask, task)
 
     provide(kInstanceVersionInstall, install)
 
     provide(kInstanceShaderPacks, shaderPacks)
-    provide(kResourcePackSearch, resourcePackSearch)
-    provide(kShaderPackSearch, shaderPackSearch)
-    provide(kModsSearch, modsSearch)
-    provide(kModDependenciesCheck, useModDependenciesCheck(instance.path, instance.runtime, instanceMods.mods, instanceVersion.refreshResolvedVersion))
+    provide(
+      kModDependenciesCheck,
+      useModDependenciesCheck(
+        instance.path,
+        instance.runtime,
+        instanceMods.mods,
+        instanceMods.updateMetadataAndWait,
+      ),
+    )
     provide(kModLibCleaner, useModLibCleaner(instanceMods.mods, instanceMods.allowLoaders))
-    provide(kSaveSearch, useSavesSearch(saves.saves, saves.sharedSaves, searchModel))
     provide(kModUpgrade, modUpgrade)
     provide(kEnvironment, useEnvironment())
-    provide(kTheme, useTheme(vuetify.framework))
 
-    useI18nSync(vuetify.framework, settings.state)
+    const instanceTheme = useInstanceTheme(instance.path)
+    provide(kInstanceTheme, instanceTheme)
+    const theme = useTheme(instanceTheme.instanceTheme)
+    provide(kTheme, theme)
+    const surfaceTokens = useSurfaceTokens()
+    provide(kSurfaceTokens, surfaceTokens)
 
-    const router = useRouter()
+    watchEffect(() => {
+      const enabled = theme.currentTheme.value.borderRadiusEnabled ?? true
+      surfaceTokens.radius.value = enabled ? DEFAULT_SURFACE_RADIUS : 0
+      surfaceTokens.dialogRadius.value = enabled ? DEFAULT_SURFACE_DIALOG_RADIUS : 0
+      surfaceTokens.menuItemRadius.value = enabled ? DEFAULT_SURFACE_MENU_ITEM_RADIUS : 0
+      surfaceTokens.cardRadius.value = enabled ? DEFAULT_CARD_RADIUS : 0
+      surfaceTokens.cardSubsectionRadius.value = enabled ? DEFAULT_CARD_SUBSECTION_RADIUS : 0
+      surfaceTokens.cardItemRadius.value = enabled ? DEFAULT_CARD_ITEM_RADIUS : 0
+      surfaceTokens.panelRadius.value = enabled ? DEFAULT_PANEL_RADIUS : 0
+      surfaceTokens.cardProminentRadius.value = enabled ? DEFAULT_CARD_PROMINENT_RADIUS : 0
+      surfaceTokens.cardClickableRadius.value = enabled ? DEFAULT_CARD_CLICKABLE_RADIUS : 0
+      surfaceTokens.tooltipRadius.value = enabled ? DEFAULT_SURFACE_TOOLTIP_RADIUS : 0
+      surfaceTokens.pillRadius.value = enabled ? DEFAULT_SURFACE_PILL_RADIUS : 0
+      vuetify.defaults.value = {
+        ...vuetify.defaults.value,
+        VBtn: {
+          ...vuetify.defaults.value?.VBtn,
+          rounded: enabled ? DEFAULT_SURFACE_BUTTON_RADIUS : 0,
+        },
+        VBtnGroup: {
+          ...vuetify.defaults.value?.VBtnGroup,
+          rounded: enabled ? DEFAULT_SURFACE_BUTTON_RADIUS : 0,
+          VBtn: {
+            rounded: null,
+          },
+        },
+        VBtnToggle: {
+          ...vuetify.defaults.value?.VBtnToggle,
+          rounded: enabled ? DEFAULT_SURFACE_BUTTON_RADIUS : 0,
+        },
+        VChip: {
+          ...vuetify.defaults.value?.VChip,
+          rounded: enabled ? DEFAULT_SURFACE_BUTTON_RADIUS : 0,
+        },
+        VTextField: {
+          ...vuetify.defaults.value?.VTextField,
+          rounded: enabled ? DEFAULT_SURFACE_BUTTON_RADIUS : 0,
+        },
+        VSelect: {
+          ...vuetify.defaults.value?.VSelect,
+          rounded: enabled ? DEFAULT_SURFACE_BUTTON_RADIUS : 0,
+        },
+        VSwitch: {
+          ...vuetify.defaults.value?.VSwitch,
+          rounded: enabled ? undefined : 0,
+        },
+      }
+    })
+
+    provide(
+      kCustomCss,
+      useCustomCss({
+        currentTheme: theme.currentTheme,
+        instanceTheme: instanceTheme.instanceTheme,
+        instanceCss: instanceTheme.customCss,
+        suppressed: theme.suppressed,
+      }),
+    )
+
+    useI18nSync(settings.state)
+
     useExternalRoute(router)
 
-    provide(kUILayout, useUILayout())
     provide(kImageDialog, useImageDialog())
-    provide(kFilterCombobox, useFilterComboboxData())
     provide(kSupportedAuthorityMetadata, useSupportedAuthority())
     provide(kModrinthTags, useModrinthTags())
     provide(kCurseforgeCategories, useCurseforgeCategories())
+    provide(kModpackExport, useModpackExport())
+    provide(kInstanceServerLaunch, useInstanceServerLaunch())
+    provide(kNetworkStatus, useNetworkStatus())
 
     return () => ctx.slots.default?.()
   },

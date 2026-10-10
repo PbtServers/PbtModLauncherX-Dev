@@ -5,36 +5,33 @@
     two-line
     subheader
   >
-    <v-subheader style="padding-right: 2px">
+    <v-list-subheader style="padding-right: 2px">
       {{ t("modpack.name", 1) }}
-    </v-subheader>
+    </v-list-subheader>
     <v-list-item>
       <v-list-item-action>
         <v-checkbox
           hide-details
         />
       </v-list-item-action>
-      <v-list-item-content>
-        <v-list-item-title>
+      <v-list-item-title>
           {{ t("instance.fileApi") }}
         </v-list-item-title>
         <v-list-item-subtitle>
           {{ t("instance.fileApiHint") }}
         </v-list-item-subtitle>
-      </v-list-item-content>
-      <v-list-item-action style="width: 50%">
+<v-list-item-action style="width: 50%">
         <v-text-field
           v-model="data.fileServerApi"
           hide-details
-          placeholder="Please enter the remote sync url here if you want to keep the resource sync"
+          :placeholder="t('instance.fileApiPlaceholder')"
         />
       </v-list-item-action>
       <v-list-item-action>
         <v-btn
           icon
-          text
           @click="gotoHelp"
-        >
+         variant="text">
           <v-icon>question_mark</v-icon>
         </v-btn>
       </v-list-item-action>

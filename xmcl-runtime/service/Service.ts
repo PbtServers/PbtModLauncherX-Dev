@@ -1,9 +1,9 @@
 import { createPromiseSignal, PromiseSignal, ServiceKey, SharedState, State } from '@xmcl/runtime-api'
 import { join } from 'path'
 import { EventEmitter } from 'stream'
-import { Logger } from '~/logger'
+import { Logger } from '~/infra'
 import { LauncherApp } from '../app/LauncherApp'
-import { AnyError } from '../util/error'
+import { AnyError } from '@xmcl/utils'
 
 export type ServiceConstructor<T extends AbstractService = AbstractService> = {
   new(...args: any[]): T
@@ -93,12 +93,13 @@ export function Singleton<T extends AbstractService>(param: ParamSerializer<T> =
       if (last) {
         return last
       } else {
-        this.log(`Acquire singleton ${targetKey}`)
-
         const startTime = Date.now()
         instances[targetKey] = exec().finally(() => {
           const endTime = Date.now()
-          this.log(`Release singleton ${targetKey}. Took ${endTime - startTime}ms.`)
+          const time = endTime - startTime
+          if (time > 1000) {
+            this.log(`Release singleton ${targetKey}. Took ${time}ms.`)
+          }
           delete instances[targetKey]
         })
         return instances[targetKey]

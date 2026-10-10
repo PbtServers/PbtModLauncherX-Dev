@@ -1,171 +1,213 @@
 name: Build & Release
-
 on:
   push:
     branches:
       - master
     tags:
-      - "v*"
+      - v*
     paths:
-      - 'xmcl-runtime/**'
-      - 'xmcl-runtime-api/**'
-      - 'xmcl-keystone-ui/**'
-      - 'xmcl-electron-app/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - '.github/**'
+      - xmcl-runtime/**
+      - xmcl-runtime-api/**
+      - xmcl-keystone-ui/**
+      - xmcl-electron-app/**
+      - package.json
+      - pnpm-lock.yaml
+      - .github/**
+      - deskgap-app/**
+      - packages/**
+      - pnpm-workspace.yaml
+      - xmcl-client-vue/**
+      - patches/**
   workflow_dispatch:
     inputs:
       tag:
         description: "Tag de release (ej: v1.0.6). Si vacío y no es push tag, usa v0.0.0-dev"
         required: false
         default: ""
-
 permissions:
   contents: write
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+      fail-fast: false
+    env:
+      ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+      ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - name: Fix node-gyp and Python
+        if: ${{ runner.os == 'macOS' || runner.os == 'Windows' }}
+        run: python3 -m pip install --break-system-packages --user packaging setuptools
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
         with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v4
+          node-version: 22
+          cache: pnpm
+      - name: Cache Electron binaries
+        uses: actions/cache@v5
         with:
-          version: 9.3.0
-
-      - name: Setup Python (node-gyp)
-        uses: actions/setup-python@v5
+          path: |
+            ${{ github.workspace }}/.cache/electron
+            ${{ github.workspace }}/.cache/electron-builder
+          key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Cache Vite deps
+        uses: actions/cache@v5
         with:
-          python-version: "3.x"
-
-      - name: Fix node-gyp tooling
-        run: python -m pip install --upgrade pip packaging setuptools
-        shell: bash
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install (retry)
-        shell: bash
+          path: xmcl-keystone-ui/node_modules/.vite
+          key: ${{ runner.os }}-vite-${{ hashFiles('pnpm-lock.yaml', 'xmcl-keystone-ui/vite.config.ts') }}
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Setup Linux
+        if: ${{ runner.os == 'Linux' }}
         run: |
-          n=0
-          until [ $n -ge 3 ]
-          do
-            pnpm install --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-mintimeout=10000 --fetch-retry-maxtimeout=60000 && break
-            n=$((n+1))
-            echo "retry $n..."
-            sleep 10
-          done
-          [ $n -lt 3 ]
-
-      - name: Build UI
-        run: pnpm run --prefix xmcl-keystone-ui build
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+      - name: Build
+        run: |
+          pnpm run --prefix xmcl-keystone-ui build
+          pnpm run --prefix xmcl-electron-app build
         env:
-          NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=8192' || '--max-old-space-size=4096' }}
-        shell: bash
-
-      - name: Build Electron
-        run: pnpm run --prefix xmcl-electron-app build:all
-        env:
-          NODE_OPTIONS: ${{ runner.os == 'macOS' && '--max-old-space-size=8192' || '--max-old-space-size=4096' }}
           BUILD_NUMBER: ${{ github.run_number }}
+          NODE_OPTIONS: --max-old-space-size=32768
           NODE_ENV: production
+          RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
           CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_TOKEN }}
-        shell: bash
-
+          PUBLISHER: ${{ vars.CODE_SIGN_PUBLISHER }}
+      - name: Resolve pinned DeskGap runtime
+        if: ${{ runner.os == 'Windows' }}
+        id: deskgap
+        shell: pwsh
+        run: |
+          $version = (Get-Content deskgap-app\package.json -Raw | ConvertFrom-Json).config.deskgapVersion
+          if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Pin an exact published DeskGap version in deskgap-app/package.json' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Checkout matching DeskGap packaging helpers
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/checkout@v5
+        with:
+          repository: Voxelum/DeskGap
+          ref: v${{ steps.deskgap.outputs.version }}
+          path: deskgap-runtime-source
+          persist-credentials: false
+      - name: Use Node.js 24 for DeskGap packaging
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install DeskGap packaging helpers
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: deskgap-runtime-source
+        run: npm ci
+      - name: Download pinned DeskGap Windows runtime
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        env:
+          DESKGAP_VERSION: ${{ steps.deskgap.outputs.version }}
+        run: |
+          $name = "deskgap-v$env:DESKGAP_VERSION-win32-x64.zip"
+          $base = "https://github.com/Voxelum/DeskGap/releases/download/v$env:DESKGAP_VERSION"
+          $directory = 'deskgap-app\build\runtime'
+          New-Item -ItemType Directory -Force $directory | Out-Null
+          Invoke-WebRequest "$base/SHA256SUMS" -OutFile "$directory\SHA256SUMS"
+          $pattern = '^([a-fA-F0-9]{64})\s+\*?' + [regex]::Escape($name) + '$'
+          $entries = @(Get-Content "$directory\SHA256SUMS" | Where-Object { $_ -match $pattern })
+          if ($entries.Count -ne 1) { throw "Expected exactly one checksum for $name in the pinned runtime release" }
+          $expected = [regex]::Match($entries[0], $pattern).Groups[1].Value
+          Invoke-WebRequest "$base/$name" -OutFile "$directory\$name"
+          if ((Get-FileHash "$directory\$name" -Algorithm SHA256).Hash -ne $expected) { throw 'DeskGap runtime checksum mismatch' }
+          Expand-Archive "$directory\$name" "$directory\extracted"
+      - name: Build DeskGap single EXE alongside Electron
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        env:
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_TOKEN }}
+          DESKGAP_VERSION: ${{ steps.deskgap.outputs.version }}
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'deskgap-runtime-source'
+          $extracted = Join-Path $env:GITHUB_WORKSPACE 'deskgap-app\build\runtime\extracted'
+          $runtime = Join-Path $extracted 'DeskGap'
+          $bootstrap = Join-Path $extracted "DeskGapBootstrap-v$env:DESKGAP_VERSION-win32-x64.exe"
+          pnpm --prefix=deskgap-app package "$source" "$runtime" "$bootstrap"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          Copy-Item "deskgap-app\build\output\release\pbtmodlauncherx-deskgap-$version-win32-x64.exe" xmcl-electron-app\build\output\
       - name: Upload Source Maps
         if: ${{ runner.os == 'Windows' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sourcemap
           path: |
             xmcl-electron-app/dist/*.js.map
-          if-no-files-found: warn
-
-      - name: Upload Build Output
-        uses: actions/upload-artifact@v4
+            xmcl-electron-app/dist/renderer/assets/*.js.map
+      - name: Upload Build
+        uses: actions/upload-artifact@v6
         with:
           name: build-${{ runner.os }}
-          path: xmcl-electron-app/build/output/
-          if-no-files-found: warn
-
-      - name: Upload Windows unpacked
+          path: |
+            xmcl-electron-app/build/output/
+      - name: Upload Windows Zip Build
         if: ${{ runner.os == 'Windows' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: win-b${{ github.run_number }}
-          path: xmcl-electron-app/build/output/win-unpacked/
-          if-no-files-found: warn
-
-      - name: Upload Linux x64 unpacked
+          path: |
+            xmcl-electron-app/build/output/win-unpacked/
+      - name: Upload Linux x64 Zip Build
         if: ${{ runner.os == 'Linux' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-b${{ github.run_number }}-x64
-          path: xmcl-electron-app/build/output/linux-unpacked/
-          if-no-files-found: warn
-
-      - name: Upload Linux arm64 unpacked
+          path: |
+            xmcl-electron-app/build/output/linux-unpacked/
+      - name: Upload Linux arm64 Zip Build
         if: ${{ runner.os == 'Linux' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-b${{ github.run_number }}-arm64
-          path: xmcl-electron-app/build/output/linux-arm64-unpacked/
-          if-no-files-found: warn
-
-      - name: Upload Mac x64 unpacked
+          path: |
+            xmcl-electron-app/build/output/linux-arm64-unpacked/
+      - name: Upload Mac x64 Zip Build
         if: ${{ runner.os == 'macOS' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: mac-b${{ github.run_number }}-x64
-          path: xmcl-electron-app/build/output/mac/
-          if-no-files-found: warn
-
-      - name: Upload Mac arm64 unpacked
+          path: |
+            xmcl-electron-app/build/output/mac/
+      - name: Upload Mac arm64 Zip Build
         if: ${{ runner.os == 'macOS' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: mac-b${{ github.run_number }}-arm64
-          path: xmcl-electron-app/build/output/mac-arm64/
-          if-no-files-found: warn
-
+          path: |
+            xmcl-electron-app/build/output/mac-arm64/
   release:
     name: Publish Release (tag only)
     runs-on: ubuntu-latest
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
-
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: build-*
           merge-multiple: true
           path: build
-
       - name: Generate SHA256SUMS
         shell: bash
         run: |
           cd build
           find . -maxdepth 1 -type f -print0 | xargs -0 -I{} sha256sum "{}" > SHA256SUMS.txt || true
-
       - name: Build release body
         shell: bash
         run: |
@@ -178,10 +220,13 @@ jobs:
           - Artefactos adjuntos generados por GitHub Actions.
           - Archivo de checksums SHA256.
 
+          ### DeskGap Windows x64 — UNSIGNED PREVIEW
+          El EXE de DeskGap es una vista previa para instalación manual (manual installation only).
+          The launcher intentionally rejects unsigned EXEs as automatic updates.
+
           ### *Aún por añadir:*
           - Ajustes menores y mejoras según feedback de usuarios.
           EOF
-
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:

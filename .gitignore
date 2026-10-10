@@ -1,5 +1,6 @@
 .DS_Store
 */dist/**/*
+**/dist/
 *.gen
 coverage
 node_modules/
@@ -18,3 +19,18 @@ p2p.network
 
 */build/output/*
 package-lock.json
+
+
+## CODE EDITORS
+!.vscode/
+!.zed/
+/docs/
+!/docs/tutorial/
+
+# e2e artifacts
+e2e/artifacts/
+e2e/playwright-report/
+e2e/test-results/
+
+# local download-probe / benchmark artifacts (opt-in tests)
+/bench-out/

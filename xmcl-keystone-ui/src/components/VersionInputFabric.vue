@@ -6,6 +6,7 @@ import { BuiltinImages } from '../constant'
 const props = defineProps<{
   minecraft: string
   value?: string
+  autoSelectLatest?: boolean
 }>()
 const { t } = useI18n()
 const showStableOnly = ref(false)
@@ -22,6 +23,7 @@ const items = computed(() => {
     })
   return result
 })
+const latestVersion = computed(() => items.value[0]?.name ?? '')
 
 const emit = defineEmits<{
   (event: 'input', value: string): void
@@ -38,10 +40,11 @@ const emit = defineEmits<{
     :error="error"
     :clear-text="t('fabricVersion.disable')"
     :empty-text="t('fabricVersion.empty', { version: minecraft })"
-    :snapshot.sync="showStableOnly"
+    v-model:snapshot="showStableOnly"
     :snapshot-tooltip="t('fabricVersion.showSnapshot')"
     :refreshing="isValidating"
     :placeholder="t('fabricVersion.disable')"
+    :auto-select="autoSelectLatest ? latestVersion : undefined"
     :value="value"
     @refresh="mutate()"
     @input="emit('input', $event)"

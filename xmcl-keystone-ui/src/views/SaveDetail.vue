@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import MarketProjectDetail, { ProjectDetail } from '@/components/MarketProjectDetail.vue'
+import MarketProjectDetailSave from '@/components/MarketProjectDetailContentSave.vue'
 import { ProjectVersion } from '@/components/MarketProjectDetailVersion.vue'
+import SaveWorldMap from '@/components/SaveWorldMap.vue'
+import SaveProgress from '@/components/SaveProgress.vue'
 import { useDateString } from '@/composables/date'
 import { InstanceSaveFile, kInstanceSave } from '@/composables/instanceSave'
+import { useInstanceSaveProgress } from '@/composables/instanceSaveProgress'
+import { kInstance } from '@/composables/instance'
 import { injection } from '@/util/inject'
 import { ProjectEntry } from '@/util/search'
+
+const { path: instancePath, instance } = injection(kInstance)
 
 const props = defineProps<{
   save: ProjectEntry<InstanceSaveFile>
@@ -16,6 +23,15 @@ const emit = defineEmits<{
 
 const { getDateString } = useDateString()
 const { t } = useI18n()
+
+const savePath = computed(() => props.save.installed[0]?.path || '')
+const version = computed(() => JSON.stringify([instance.value.version, instance.value.runtime]))
+const { progress, loading: loadingProgress, error: progressError, refresh: refreshProgress } = useInstanceSaveProgress(savePath, instancePath, version)
+
+const hasQuests = computed(() => !!progress.value?.quests && progress.value.quests.chapters.length > 0)
+const progressCategory = computed(() => hasQuests.value ? 'quests' : 'advancements')
+const currentTab = ref<'progress' | 'map'>('progress')
+
 const model = computed(() => {
   const v = props.save
   const f = v.files![0]
@@ -34,18 +50,6 @@ const model = computed(() => {
     externals: [],
     galleries: [],
     info: [{
-      name: t('save.gameMode'),
-      value: getLevelMode(f.mode),
-      icon: 'shop',
-    }, {
-      name: t('save.cheat'),
-      value: f.cheat + '',
-      icon: 'mode',
-    }, {
-      name: t('save.levelName'),
-      value: f.levelName,
-      icon: 'badge',
-    }, {
       name: t('instance.lastPlayed'),
       value: getDateString(f.lastPlayed),
       icon: 'history',
@@ -54,18 +58,6 @@ const model = computed(() => {
 
   return detail
 })
-
-const getLevelMode = (mode: number) => {
-  switch (mode) {
-    case 0: return t('gameType.survival')
-    case 1: return t('gameType.creative')
-    case 2: return t('gameType.adventure')
-    case 3: return t('gameType.spectator')
-    case -1:
-    default:
-      return 'Non'
-  }
-}
 
 const versions = computed(() => {
   const v = props.save
@@ -110,5 +102,54 @@ const onEnable = (enable: boolean) => {
     @install="onInstall"
     @delete="emit('delete', save.installed[0])"
     @enable="onEnable"
-  />
+    no-padding-content
+  >
+    <template #tabs>
+      <v-tabs v-model="currentTab" bg-color="transparent">
+        <v-tab value="progress">
+          <v-icon size="small" class="mr-1.5">{{ hasQuests ? 'military_tech' : 'emoji_events' }}</v-icon>
+          {{ t(`save.progress.${progressCategory}`) }}
+        </v-tab>
+        <v-tab value="map">
+          <v-icon size="small" class="mr-1.5">map</v-icon>
+          {{ t('save.map.tabTitle') }}
+        </v-tab>
+      </v-tabs>
+    </template>
+    <template #content>
+      <div class="save-container relative overflow-hidden h-full w-full">
+        <SaveProgress
+          v-if="currentTab === 'progress'"
+          class="h-full"
+          :category="progressCategory"
+          :progress="progress"
+          :loading="loadingProgress"
+          :error="progressError"
+          @refresh="refreshProgress"
+          :save-path="save.installed[0].path"
+          :instance-path="instancePath"
+        />
+        <div v-else-if="currentTab === 'map'" class="save-content-wrapper h-full">
+          <SaveWorldMap :save-path="save.installed[0].path" />
+        </div>
+      </div>
+    </template>
+    <template #properties>
+      <MarketProjectDetailSave
+        :save-file="save.installed[0]"
+      />
+    </template>
+  </MarketProjectDetail>
 </template>
+
+<style scoped>
+.save-container {
+  height: clamp(320px, calc(100vh - 260px), 640px);
+  width: 100%;
+}
+.save-content-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+</style>

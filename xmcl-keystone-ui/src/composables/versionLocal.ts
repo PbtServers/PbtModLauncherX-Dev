@@ -1,9 +1,11 @@
 import { useService } from '@/composables'
-import { VersionServiceKey, LocalVersions, VersionHeader, RuntimeVersions } from '@xmcl/runtime-api'
+import { VersionServiceKey, LocalVersions, VersionHeader } from '@xmcl/runtime-api'
 import { computed, InjectionKey } from 'vue'
 import { useState } from './syncableState'
-import { MaybeRef, get } from '@vueuse/core'
+import { get } from '@vueuse/core'
+import type { MaybeRef } from 'vue'
 import { BuiltinImages } from '@/constant'
+import { RuntimeVersions } from '@xmcl/instance'
 
 export const kLocalVersions: InjectionKey<ReturnType<typeof useLocalVersions>> = Symbol('LocalVersions')
 

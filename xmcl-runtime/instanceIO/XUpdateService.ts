@@ -1,9 +1,11 @@
 import { checksum } from '@xmcl/core'
-import { XUpdateService as IXUpdateService, InstanceFile, InstanceIOException, InstanceManifest, InstanceUpdate, SetInstanceManifestOptions } from '@xmcl/runtime-api'
+import type { InstanceFile } from '@xmcl/instance'
+import { InstanceIOException, type XUpdateService as IXUpdateService, type InstanceManifest, type InstanceUpdate, type SetInstanceManifestOptions } from '@xmcl/runtime-api'
 import { randomUUID } from 'crypto'
 import { createReadStream } from 'fs'
 import { unlink } from 'fs-extra'
 import { join } from 'path'
+import { Readable } from 'stream'
 import { Inject, LauncherAppKey, kTempDataPath } from '~/app'
 import { InstanceService } from '~/instance'
 import { AbstractService, Singleton } from '~/service'
@@ -11,8 +13,8 @@ import { UserService } from '~/user'
 import { LauncherApp } from '../app/LauncherApp'
 import { missing } from '../util/fs'
 import { isValidUrl, joinUrl } from '../util/url'
-import { ZipTask } from '../util/zip'
-import { Readable } from 'stream'
+import { writeZipFile } from '../util/zip'
+import { ZipFile } from 'yazl'
 
 export class XUpdateService extends AbstractService implements IXUpdateService {
   constructor(@Inject(LauncherAppKey) app: LauncherApp,
@@ -51,19 +53,19 @@ export class XUpdateService extends AbstractService implements IXUpdateService {
 
     if (!useJson) {
       this.log(`Use zip to upload instance ${instancePath} to ${instance.fileApi}`)
-      const task = new ZipTask(tempZipFile)
+      const zipFile = new ZipFile()
 
       for (const file of manifest.files) {
         const realPath = join(instancePath, file.path)
         const canBeDownload = file.modrinth || file.curseforge || (file.downloads && file.downloads.length > 0)
         if (includeFileWithDownloads || !canBeDownload) {
-          task.addFile(realPath, file.path)
+          zipFile.addFile(realPath, file.path)
         }
       }
 
-      task.addBuffer(Buffer.from(JSON.stringify(manifest), 'utf-8'), 'manifest.json')
+      zipFile.addBuffer(Buffer.from(JSON.stringify(manifest), 'utf-8'), 'manifest.json')
 
-      await task.startAndWait()
+      await writeZipFile(zipFile, tempZipFile)
     } else {
       this.log(`Use json to upload instance ${instancePath} to ${instance.fileApi}`)
     }

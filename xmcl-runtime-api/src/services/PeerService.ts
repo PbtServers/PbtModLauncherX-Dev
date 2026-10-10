@@ -1,10 +1,27 @@
-import { InstanceManifest } from '../entities/instanceManifest.schema'
-import { GenericEventEmitter } from '../events'
-import { ConnectionState, ConnectionUserInfo, IceGatheringState, Peer, SelectedCandidateInfo, SignalingState } from '../multiplayer'
-import { SharedState } from '../util/SharedState'
-import { ServiceKey } from './Service'
+import type { InstanceManifest } from '../entities/instanceManifest.schema'
+import type { GenericEventEmitter } from '../events'
+import type {
+  ConnectionState,
+  ConnectionUserInfo,
+  IceGatheringState,
+  Peer,
+  MultiplayerRoomMember,
+  MultiplayerRoomState,
+  SelectedCandidateInfo,
+  SignalingState,
+} from '../multiplayer'
+import type { SharedState } from '../util/SharedState'
+import type { ServiceKey } from './Service'
 
-export type NatType = 'Blocked' | 'Open Internet' | 'Full Cone' | 'Symmetric UDP Firewall' | 'Restrict NAT' | 'Restrict Port NAT' | 'Symmetric NAT' | 'Unknown'
+export type NatType =
+  | 'Blocked'
+  | 'Open Internet'
+  | 'Full Cone'
+  | 'Symmetric UDP Firewall'
+  | 'Restrict NAT'
+  | 'Restrict Port NAT'
+  | 'Symmetric NAT'
+  | 'Unknown'
 
 export interface NatDeviceInfo {
   deviceType: string
@@ -17,6 +34,14 @@ export interface NatDeviceInfo {
   serialNumber: string
   UDN: string
 }
+
+export interface NetworkDiagnostics {
+  refresh(iceServers: RTCIceServer[]): Promise<{
+    device?: NatDeviceInfo
+    ips: string[]
+    natType: NatType
+  }>
+}
 export class PeerState {
   connections = [] as Peer[]
   validIceServers = [] as string[]
@@ -24,6 +49,13 @@ export class PeerState {
   ips = [] as string[]
   turnservers = {} as Record<string, string>
   group = ''
+  groupRole: 'master' | 'member' | '' = ''
+  groupSelfPeerId = ''
+  groupMasterPeerId = ''
+  groupMembers = [] as MultiplayerRoomMember[]
+  groupRevision = 0
+  groupStatus: 'open' | 'waiting-master' | 'closed' | '' = ''
+  groupMaxPeers = 0
   groupState: 'connecting' | 'connected' | 'closing' | 'closed' = 'closed'
   groupError?: Error
 
@@ -35,7 +67,7 @@ export class PeerState {
   ping = 0
   timestamp = 0
 
-  pingSet({ ping, timestamp }: { ping: number, timestamp: number }) {
+  pingSet({ ping, timestamp }: { ping: number; timestamp: number }) {
     this.ping = ping
     this.timestamp = timestamp
   }
@@ -48,9 +80,54 @@ export class PeerState {
     this.natType = type
   }
 
-  groupSet({ group, state }: { group: string; state: 'connecting' | 'connected' | 'closing' | 'closed' }) {
+  groupSet({
+    group,
+    state,
+    role,
+    maxPeers,
+    selfPeerId,
+    masterPeerId = '',
+  }: {
+    group: string
+    state: 'connecting' | 'connected' | 'closing' | 'closed'
+    role: 'master' | 'member'
+    maxPeers: number
+    selfPeerId: string
+    masterPeerId?: string
+  }) {
     this.group = group
     this.groupState = state
+    this.groupRole = role
+    this.groupMaxPeers = maxPeers
+    this.groupSelfPeerId = selfPeerId
+    this.groupMasterPeerId = masterPeerId
+    this.groupMembers = []
+    this.groupRevision = 0
+    this.groupStatus = ''
+    this.groupError = undefined
+  }
+
+  groupRoomStateSet(room: MultiplayerRoomState) {
+    this.groupSelfPeerId = room.selfPeerId
+    this.groupMasterPeerId = room.masterPeerId
+    this.groupMembers = room.members
+    this.groupRevision = room.revision
+    this.groupStatus = room.status
+    this.groupMaxPeers = room.maxPeers
+    this.groupRole = room.selfPeerId === room.masterPeerId ? 'master' : 'member'
+  }
+
+  groupReset() {
+    this.group = ''
+    this.groupRole = ''
+    this.groupSelfPeerId = ''
+    this.groupMasterPeerId = ''
+    this.groupMembers = []
+    this.groupRevision = 0
+    this.groupStatus = ''
+    this.groupMaxPeers = 0
+    this.groupState = 'closed'
+    this.groupError = undefined
   }
 
   groupStateSet(state: 'connecting' | 'connected' | 'closing' | 'closed') {
@@ -61,44 +138,48 @@ export class PeerState {
     this.groupError = error
   }
 
+  groupErrorClear() {
+    this.groupError = undefined
+  }
+
   connectionClear() {
     this.connections = []
   }
 
   connectionUserInfo({ id, info }: { id: string; info: ConnectionUserInfo }) {
-    const conn = this.connections.find(c => c.id === id)
+    const conn = this.connections.find((c) => c.id === id)
     if (conn) {
       conn.userInfo = info
     }
   }
 
   connectionShareManifest({ id, manifest }: { id: string; manifest?: InstanceManifest }) {
-    const conn = this.connections.find(c => c.id === id)
+    const conn = this.connections.find((c) => c.id === id)
     if (conn) {
       conn.sharing = manifest
     }
   }
 
   connectionRemoteSet({ id, remoteId }: { id: string; remoteId: string }) {
-    const conn = this.connections.find(c => c.id === id)
+    const conn = this.connections.find((c) => c.id === id)
     if (conn) {
       conn.remoteId = remoteId
     }
   }
 
   connectionAdd(connection: Peer) {
-    if (this.connections.find(c => c.id === connection.id)) {
+    if (this.connections.find((c) => c.id === connection.id)) {
       return
     }
-    this.connections.push(connection)
+    this.connections = [...this.connections, connection]
   }
 
   connectionDrop(connectionId: string) {
-    this.connections = this.connections.filter(c => c.id !== connectionId)
+    this.connections = this.connections.filter((c) => c.id !== connectionId)
   }
 
   connectionIceServerSet({ id, iceServer }: { id: string; iceServer: RTCIceServer }) {
-    const conn = this.connections.find(c => c.id === id)
+    const conn = this.connections.find((c) => c.id === id)
     if (conn) {
       if (conn.iceServer) {
         conn.triedIceServers.push(conn.iceServer)
@@ -108,25 +189,30 @@ export class PeerState {
   }
 
   connectionLocalDescription(update: { id: string; description: string }) {
-    const conn = this.connections.find(c => c.id === update.id)
-    if (conn) {
-      conn.localDescriptionSDP = update.description
-    }
+    this.connections = this.connections.map((connection) =>
+      connection.id === update.id
+        ? { ...connection, localDescriptionSDP: update.description }
+        : connection,
+    )
   }
 
   connectionStateChange(update: { id: string; connectionState: ConnectionState }) {
-    const conn = this.connections.find(c => c.id === update.id)
+    const conn = this.connections.find((c) => c.id === update.id)
     if (conn) {
       conn.connectionState = update.connectionState
     }
   }
 
-  connectionSelectedCandidate({ id, local, remote }: {
+  connectionSelectedCandidate({
+    id,
+    local,
+    remote,
+  }: {
     id: string
     local: SelectedCandidateInfo
     remote: SelectedCandidateInfo
   }) {
-    const conn = this.connections.find(c => c.id === id)
+    const conn = this.connections.find((c) => c.id === id)
     if (conn) {
       conn.selectedCandidate = {
         local,
@@ -136,35 +222,35 @@ export class PeerState {
   }
 
   connectionPing(update: { id: string; ping: number }) {
-    const conn = this.connections.find(c => c.id === update.id)
+    const conn = this.connections.find((c) => c.id === update.id)
     if (conn) {
       conn.ping = update.ping
     }
   }
 
   connectionPreferredIceServers({ id, servers }: { id: string; servers: RTCIceServer[] }) {
-    const conn = this.connections.find(c => c.id === id)
+    const conn = this.connections.find((c) => c.id === id)
     if (conn) {
       conn.preferredIceServers = servers
     }
   }
 
   iceGatheringStateChange(update: { id: string; iceGatheringState: IceGatheringState }) {
-    const conn = this.connections.find(c => c.id === update.id)
+    const conn = this.connections.find((c) => c.id === update.id)
     if (conn) {
       conn.iceGatheringState = update.iceGatheringState
     }
   }
 
   signalingStateChange(update: { id: string; signalingState: SignalingState }) {
-    const conn = this.connections.find(c => c.id === update.id)
+    const conn = this.connections.find((c) => c.id === update.id)
     if (conn) {
       conn.signalingState = update.signalingState
     }
   }
 
   connectionIceServersSet({ id, iceServer }: { id: string; iceServer: RTCIceServer }) {
-    const conn = this.connections.find(c => c.id === id)
+    const conn = this.connections.find((c) => c.id === id)
     if (conn) {
       conn.iceServer = iceServer
       conn.triedIceServers = [...conn.triedIceServers, conn.iceServer]
@@ -200,15 +286,42 @@ export interface ShareInstanceOptions {
   manifest?: InstanceManifest
 }
 
+export interface MultiplayerInitPayload {
+  appDataPath: string
+  resourcePath: string
+  sessionId: string
+  launcherSessionId: string
+  signalingBaseUrl: string
+}
+
+export interface MultiplayerLogEvent {
+  level: 'info' | 'warn' | 'error'
+  event: string
+  data?: Record<string, unknown>
+}
+
 interface PeerServiceEvents {
   share: { id: string; manifest?: InstanceManifest }
+  'connection-unexpected-closed': { id: string }
+  'local-lan': import('@xmcl/client').LanServerInfo
+  lan: import('@xmcl/client').LanServerInfo & { session: string }
 }
 
 export interface PeerService extends GenericEventEmitter<PeerServiceEvents> {
   getPeerState(): Promise<SharedState<PeerState>>
+  setMultiplayerTransport(transport: import('../multiplayer').MultiplayerTransport): Promise<void>
+  multiplayerRefreshIceServers(): Promise<void>
+  multiplayerSetUserInfo(info: import('../multiplayer').ConnectionUserInfo): Promise<void>
+  multiplayerInitiate(): Promise<string>
+  multiplayerSetRemoteDescription(options: import('../multiplayer').SetRemoteDescriptionOptions): Promise<string>
+  multiplayerDrop(id: string): Promise<void>
+  multiplayerCreateGroup(): Promise<void>
+  multiplayerJoinGroup(groupId: string): Promise<void>
+  multiplayerTransferGroupMaster(peerId: string): Promise<void>
+  multiplayerLeaveGroup(): Promise<void>
   /**
-    * Share the instance to other peers
-    */
+   * Share the instance to other peers
+   */
   shareInstance(options: ShareInstanceOptions): Promise<void>
 
   exposePort(port: number, protocol: number): Promise<void>

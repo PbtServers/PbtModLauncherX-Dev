@@ -6,11 +6,14 @@
     class="instance-manifest-file-item"
     @click.stop="$emit('toggle')"
   >
-    <v-simple-checkbox
+    <v-checkbox-btn
       v-if="selectable"
-      :value="value"
+      :model-value="value"
+      :indeterminate="indeterminate"
       class="select-checkbox"
       color="success"
+      hide-details
+      density="compact"
       @click.stop="$emit('toggleValue')"
     />
     <div
@@ -39,16 +42,12 @@
     </div>
 
     <div class="flex-grow flex flex-col justify-center">
-      <div :style="{ fontSize: '16px', lineHeight: '100%', ...item.style }">
+      <div class="text-[16px] leading-none" :style="item.style">
         {{ basename(item.name, '/') }}
       </div>
       <div
         v-if="description"
-        :style="{
-          opacity: 0.6,
-          fontStyle: 'italic',
-          fontSize: '12px',
-        }"
+        class="opacity-60 italic text-[12px]"
       >
         {{ description }}
       </div>
@@ -56,20 +55,20 @@
         v-if="item.size > 0"
         class="inline-flex gap-2 items-center"
       >
-        <span :style="{ opacity: 0.6, fontStyle: 'italic', fontSize: '12px' }">
+        <span class="opacity-60 italic text-[12px]">
           {{ getExpectedSize(item.size) }}
         </span>
         <v-icon
           v-if="item.modrinth"
           size="20"
         >
-          $vuetify.icons.modrinth
+          xmcl:modrinth
         </v-icon>
         <v-icon
           v-if="item.curseforge"
           size="20"
         >
-          $vuetify.icons.curseforge
+          xmcl:curseforge
         </v-icon>
       </div>
     </div>
@@ -88,6 +87,7 @@ const props = defineProps<{
   item: TreeItem<InstanceFileNode<any>>
   open: boolean
   value: boolean
+  indeterminate?: boolean
   description: string
   selectable?: boolean
 }>()
@@ -97,7 +97,7 @@ const depth = computed(() => props.item.depth)
 
 function getIcon(file: InstanceFileNode<any>) {
   if (file.path.endsWith('.jar') || file.path.endsWith('.zip')) {
-    return '$vuetify.icons.package'
+    return 'xmcl:package'
   }
   return 'insert_drive_file'
 }
@@ -132,6 +132,8 @@ function getIcon(file: InstanceFileNode<any>) {
 
   .select-checkbox {
     padding-top: 0;
-    margin-top: 0
+    margin-top: 0;
+    display: flex;
+    flex-grow: 0;
   }
 </style>

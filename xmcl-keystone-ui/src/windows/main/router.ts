@@ -1,4 +1,6 @@
 import BaseSetting from '@/views/BaseSetting.vue'
+import BaseSettingActions from '@/views/BaseSettingActions.vue'
+import BaseSettingExtension from '@/views/BaseSettingExtension.vue'
 import Home from '@/views/Home.vue'
 import HomeActions from '@/views/HomeActions.vue'
 import HomeExtension from '@/views/HomeExtension.vue'
@@ -7,7 +9,7 @@ import Me from '@/views/Me.vue'
 import Mod from '@/views/Mod.vue'
 import ModActions from '@/views/ModActions.vue'
 import ModExtension from '@/views/ModExtension.vue'
-import Multiplayer from '@/views/Multiplayer.vue'
+import MultiplayerDesktop from '@/views/MultiplayerDesktop.vue'
 import ResourcePack from '@/views/ResourcePack.vue'
 import ResourcePackActions from '@/views/ResourcePackActions.vue'
 import ResourcePackExtension from '@/views/ResourcePackExtension.vue'
@@ -19,22 +21,17 @@ import ShaderPack from '@/views/ShaderPack.vue'
 import ShaderPackActions from '@/views/ShaderPackActions.vue'
 import ShaderPackExtension from '@/views/ShaderPackExtension.vue'
 import Store from '@/views/Store.vue'
-import StoreEntry from '@/views/StoreEntry.vue'
-import StoreProjectCurseforge from '@/views/StoreProjectCurseforge.vue'
-import StoreProjectFeedTheBeast from '@/views/StoreProjectFeedTheBeast.vue'
-import StoreProjectModrinth from '@/views/StoreProjectModrinth.vue'
-import Vue from 'vue'
-import Router from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
-Vue.use(Router)
-export const router = new Router({
+export const router = createRouter({
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
       component: HomeLayout,
       children: [
         {
-          path: '/',
+          path: '',
           components: {
             default: Home,
             extensions: HomeExtension,
@@ -42,7 +39,7 @@ export const router = new Router({
           },
         },
         {
-          path: '/save',
+          path: 'save',
           components: {
             default: Save,
             extensions: SaveExtension,
@@ -50,7 +47,7 @@ export const router = new Router({
           },
         },
         {
-          path: '/mods',
+          path: 'mods',
           components: {
             default: Mod,
             extensions: ModExtension,
@@ -58,7 +55,7 @@ export const router = new Router({
           },
         },
         {
-          path: '/resourcepacks',
+          path: 'resourcepacks',
           components: {
             default: ResourcePack,
             extensions: ResourcePackExtension,
@@ -66,7 +63,7 @@ export const router = new Router({
           },
         },
         {
-          path: '/shaderpacks',
+          path: 'shaderpacks',
           components: {
             default: ShaderPack,
             extensions: ShaderPackExtension,
@@ -74,12 +71,25 @@ export const router = new Router({
           },
         },
         {
-          path: '/base-setting',
+          path: 'blueprints',
+          meta: { blueprintState: true },
+          components: {
+            default: () => import('@/views/Blueprint.vue'),
+            extensions: () => import('@/views/BlueprintExtension.vue'),
+            actions: () => import('@/views/BlueprintActions.vue'),
+          },
+        },
+        {
+          path: 'base-setting',
           components: {
             default: BaseSetting,
-            extensions: HomeExtension,
-            actions: HomeActions,
+            extensions: BaseSettingExtension,
+            actions: BaseSettingActions,
           },
+        },
+        {
+          path: 'base-setting/modrinth-project',
+          redirect: { path: '/base-setting', query: { target: 'modrinth-project' } },
         },
       ],
     },
@@ -88,23 +98,23 @@ export const router = new Router({
       component: Store,
       children: [
         {
-          path: '/',
-          component: StoreEntry,
+          path: '',
+          component: () => import('@/views/StoreEntry.vue'),
         },
         {
-          path: '/store/modrinth/:id',
-          component: StoreProjectModrinth,
-          props: (route) => ({ id: route.path.split('/')[3] }),
+          path: 'modrinth/:id',
+          component: () => import('@/views/StoreProjectModrinth.vue'),
+          props: (route) => ({ id: route.params.id }),
         },
         {
-          path: '/store/curseforge/:id',
-          component: StoreProjectCurseforge,
-          props: (route) => ({ id: Number(route.path.split('/')[3]) }),
+          path: 'curseforge/:id',
+          component: () => import('@/views/StoreProjectCurseforge.vue'),
+          props: (route) => ({ id: Number(route.params.id) }),
         },
         {
-          path: '/store/ftb/:id',
-          component: StoreProjectFeedTheBeast,
-          props: (route) => ({ id: Number(route.path.split('/')[3]) }),
+          path: 'ftb/:id',
+          component: () => import('@/views/StoreProjectFeedTheBeast.vue'),
+          props: (route) => ({ id: Number(route.params.id) }),
         },
       ],
     },
@@ -115,10 +125,13 @@ export const router = new Router({
     {
       path: '/me',
       component: Me,
+      meta: { workspaceSidePanel: true },
     },
     {
       path: '/multiplayer',
-      component: Multiplayer,
+      component: MultiplayerDesktop,
+      meta: { workspaceSidePanel: true },
     },
   ],
 })
+

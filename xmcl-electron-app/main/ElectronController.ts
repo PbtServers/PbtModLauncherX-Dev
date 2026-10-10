@@ -1,17 +1,17 @@
-import { AccentState, HAS_DEV_SERVER, HOST, IS_DEV, WindowsBuild } from '@/constant'
+import { HAS_DEV_SERVER, HOST, IS_DEV, WindowsBuild } from '@/constant'
 import browsePreload from '@preload/browse'
 import indexPreload from '@preload/index'
+import indexTogetherPreload from '@preload/indexTogether'
 import migrationPreload from '@preload/migration'
 import monitorPreload from '@preload/monitor'
-import multiplayerPreload from '@preload/multiplayer'
 import browserWinUrl from '@renderer/browser.html'
 import loggerWinUrl from '@renderer/logger.html'
 import migrateWinUrl from '@renderer/migration.html'
 import { InstalledAppManifest, Settings } from '@xmcl/runtime-api'
-import { Client, LauncherAppController } from '@xmcl/runtime/app'
-import { Logger } from '@xmcl/runtime/logger'
+import { Client, LauncherAppController, MicrosoftAuthTelemetryEvent } from '@xmcl/runtime/app'
+import { Logger } from '@xmcl/runtime/infra'
 import { kSettings } from '@xmcl/runtime/settings'
-import { BrowserWindow, Event, HandlerDetails, Session, Tray, WebContents, dialog, ipcMain, nativeTheme, protocol, shell } from 'electron'
+import { BrowserWindow, Event, HandlerDetails, Session, Tray, WebContents, app, dialog, ipcMain, nativeTheme, protocol, shell } from 'electron'
 import ElectronLauncherApp from './ElectronLauncherApp'
 import { plugins } from './controllers'
 import defaultApp from './defaultApp'
@@ -20,6 +20,8 @@ import { createI18n } from './utils/i18n'
 import { darkIcon } from './utils/icons'
 import { getLoginSuccessHTML } from './utils/login'
 import { createWindowTracker } from './utils/windowSizeTracker'
+import { MultiplayerNetworkDiagnosticsController } from './MultiplayerNetworkDiagnosticsController'
+import { BrowserRtcController } from './BrowserRtcController'
 
 export class ElectronController implements LauncherAppController {
   protected windowsVersion?: { major: number; minor: number; build: number }
@@ -29,8 +31,6 @@ export class ElectronController implements LauncherAppController {
   protected loggerWin: BrowserWindow | undefined = undefined
 
   protected browserRef: BrowserWindow | undefined = undefined
-
-  protected multiplayerRef: BrowserWindow | undefined = undefined
 
   protected migrationRef: BrowserWindow | undefined = undefined
 
@@ -53,6 +53,12 @@ export class ElectronController implements LauncherAppController {
 
   private migrated: { from: string; to: string } | undefined
 
+  private readonly multiplayerNetworkDiagnostics: MultiplayerNetworkDiagnosticsController
+
+  readonly browserRtc = new BrowserRtcController()
+
+  maximized: boolean | undefined
+
   private windowOpenHandler: Parameters<WebContents['setWindowOpenHandler']>[0] = (detail: HandlerDetails) => {
     const url = new URL(detail.url)
     const features = detail.features.split(',')
@@ -61,11 +67,13 @@ export class ElectronController implements LauncherAppController {
     const minWidth = parseInt(features.find(f => f.startsWith('min-width'))?.split('=')[1] ?? '600', 10)
     const minHeight = parseInt(features.find(f => f.startsWith('min-height'))?.split('=')[1] ?? '600', 10)
     const man = this.activatedManifest!
+    // Determine if translucency should be enabled (from user settings or app manifest)
+    const enableTranslucency = this.settings?.windowTranslucent || man.vibrancy
     if (url.host === 'app' || detail.frameName === 'app' || (url.host.startsWith('localhost') && HAS_DEV_SERVER)) {
       return {
         action: 'allow',
         overrideBrowserWindowOptions: {
-          vibrancy: man.vibrancy ? 'sidebar' : undefined, // or popover
+          vibrancy: enableTranslucency && this.app.platform.os === 'osx' ? 'sidebar' : undefined, // macOS vibrancy
           icon: nativeTheme.shouldUseDarkColors ? man.iconSets.darkIcon : man.iconSets.icon,
           titleBarStyle: this.getTitlebarStyle(),
           trafficLightPosition: this.app.platform.os === 'osx' ? { x: 14, y: 10 } : undefined,
@@ -105,19 +113,31 @@ export class ElectronController implements LauncherAppController {
   }
 
   constructor(protected app: ElectronLauncherApp) {
+    this.multiplayerNetworkDiagnostics = new MultiplayerNetworkDiagnosticsController(ipcMain)
     plugins.forEach(p => p.call(this))
 
     if (app.platform.os === 'windows') {
-      this.windowsVersion = app.windowsUtils?.getWindowsVersion()
+      queueMicrotask(() => {
+        this.windowsVersion = app.windowsUtils?.getWindowsVersion()
+      })
     }
-
-    this.handle('open-multiplayer-window', () => {
-      this.openMultiplayerWindow()
-    })
 
     this.app.on('window-all-closed', () => {
       if (process.platform !== 'darwin' && !this.parking) {
         this.app.quit()
+      }
+    })
+
+    this.app.on('second-instance', () => {
+      if (this.parking) {
+        if (this.mainWin) {
+          if (this.mainWin.isMinimized()) {
+            this.mainWin.restore()
+          } else if (!this.mainWin.isVisible()) {
+            this.mainWin.show()
+          }
+          this.mainWin.focus()
+        }
       }
     })
 
@@ -166,15 +186,14 @@ export class ElectronController implements LauncherAppController {
 
   private setupBrowserLogger(ref: BrowserWindow, name: string) {
     const logger = this.app.getLogger(name, name)
-    ref.webContents.on('console-message', (e, level, message, line, id) => {
+    ref.webContents.on('console-message', (e) => {
+      const message = e.message
       if (message.startsWith("Listener added for a synchronous 'DOMNodeRemoved' DOM Mutation Event. This event type is deprecated")) {
         return
       }
-      if (level === 1) {
+      if (e.level === 'info') {
         logger.log(message)
-      } else if (level === 2) {
-        logger.warn(message)
-      } else if (level === 3) {
+      } else if (e.level === 'warning' || e.level === 'error') {
         logger.warn(message)
       }
     })
@@ -183,37 +202,29 @@ export class ElectronController implements LauncherAppController {
     })
   }
 
-  private setWindowBlurEffect(browser: BrowserWindow) {
-    const isWin = this.app.platform.os === 'windows'
-    if (isWin && this.app.windowsUtils) {
-      const handle = browser.getNativeWindowHandle()
-      const windowsVersion = this.windowsVersion
-      if (windowsVersion) {
-        if (windowsVersion.build >= WindowsBuild.Windows11) {
-          this.app.windowsUtils.setMica(handle.buffer, true)
-          this.logger.log(`Set window Mica ${handle.toString('hex')}`)
-        } else {
-          let blur: AccentState
-          if (windowsVersion.build >= WindowsBuild.Windows10Build1903) {
-            blur = AccentState.ACCENT_ENABLE_BLURBEHIND
-          } else if (windowsVersion.build >= WindowsBuild.Windows10Build1809) {
-            blur = AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND
-          } else if (windowsVersion.build >= WindowsBuild.Windows10) {
-            blur = AccentState.ACCENT_ENABLE_BLURBEHIND
-          } else {
-            blur = AccentState.ACCENT_ENABLE_TRANSPARENTGRADIENT
-          }
-          if (this.app.windowsUtils.setWindowBlur(handle.buffer, blur)) {
-            this.logger.log(`Set window Acrylic transparent ${handle.toString('hex')}`)
-          } else {
-            this.logger.warn(`Set window Acrylic failed ${handle.toString('hex')}`)
-          }
-        }
-      }
-    }
+  private getBackgroundMaterial(enableTranslucency: boolean): 'none' | 'mica' | 'acrylic' | 'auto' | undefined {
+    return undefined
+    // const isWin = this.app.platform.os === 'windows'
+    // if (!isWin) {
+    //   return undefined
+    // }
+    // const windowsVersion = this.windowsVersion
+    // const win11 = windowsVersion && windowsVersion.build >= WindowsBuild.Windows11
+    // if (!enableTranslucency) {
+    //   return win11 ? 'mica' : 'auto'
+    // }
+    // const win10 = windowsVersion && windowsVersion.build >= WindowsBuild.Windows10
+    // if (!win10 && !win11) {
+    //   return 'auto'
+    // }
+    // return 'acrylic'
   }
 
   async startMigrate() {
+    // The migration runs from `LauncherApp.setup()`, which races with the
+    // engine becoming ready. Creating a BrowserWindow before the app is ready
+    // throws, so wait for readiness before showing the progress window.
+    await app.whenReady()
     const restoredSession = this.app.session.getSession(defaultApp.url)
     const browser = new BrowserWindow({
       title: 'XMCL Launcher Migrate',
@@ -257,6 +268,9 @@ export class ElectronController implements LauncherAppController {
   }
 
   async createBrowseWindow() {
+    // Determine if translucency should be enabled
+    const enableTranslucency = this.settings?.windowTranslucent ?? false
+
     const browser = new BrowserWindow({
       title: 'XMCL Launcher Browser',
       frame: false,
@@ -265,7 +279,8 @@ export class ElectronController implements LauncherAppController {
       width: 860,
       height: 450,
       useContentSize: true,
-      vibrancy: 'sidebar', // or popover
+      vibrancy: enableTranslucency && this.app.platform.os === 'osx' ? 'sidebar' : undefined, // macOS vibrancy
+      backgroundMaterial: this.getBackgroundMaterial(enableTranslucency), // Windows mica/acrylic
       icon: darkIcon,
       webPreferences: {
         preload: browsePreload,
@@ -273,60 +288,26 @@ export class ElectronController implements LauncherAppController {
     })
 
     browser.loadURL(browserWinUrl)
-    browser.on('ready-to-show', () => {
-      this.setWindowBlurEffect(browser)
-    })
 
     this.browserRef = browser
   }
 
-  async openMultiplayerWindow() {
-    if (!this.multiplayerRef || this.multiplayerRef.isDestroyed()) {
-      const man = this.activatedManifest!
-      const tracker = createWindowTracker(this.app, 'multiplayer', man)
-      const config = await tracker.getConfig()
+  openMultiplayer() {
+    const window = this.mainWin
+    if (!window || window.isDestroyed()) return
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
+    window.webContents.send('navigate', '/multiplayer')
+  }
 
-      const win = new BrowserWindow({
-        icon: nativeTheme.shouldUseDarkColors ? man.iconSets.darkIcon : man.iconSets.icon,
-        titleBarStyle: this.getTitlebarStyle(),
-        trafficLightPosition: this.app.platform.os === 'osx' ? { x: 14, y: 10 } : undefined,
-        minWidth: 400,
-        minHeight: 600,
-        width: config.getWidth(400, 400),
-        height: config.getHeight(600, 600),
-        x: config.x,
-        y: config.y,
-        show: false,
-        frame: this.getFrameOption(),
-
-        webPreferences: {
-          session: this.app.session.getSession(this.activatedManifest!.url),
-          contextIsolation: true,
-          sandbox: false,
-          preload: multiplayerPreload,
-          devTools: IS_DEV,
-        },
-      })
-
-      tracker.track(win)
-
-      const url = new URL(man.url)
-      url.pathname = '/app.html'
-      win.loadURL(url.toString())
-      this.onWebContentCreateWindow(win)
-      win.once('ready-to-show', () => {
-        win.show()
-      })
-      win.on('close', (e) => {
-        if (this.mainWin && !this.mainWin.isDestroyed()) {
-          win.hide()
-          e.preventDefault()
-        }
-      })
-      this.multiplayerRef = win
-    } else {
-      this.multiplayerRef.show()
-      this.multiplayerRef.focus()
+  setWindowTranslucent(enable: boolean) {
+    if (this.mainWin && !this.mainWin.isDestroyed()) {
+      if (this.app.platform.os === 'osx') {
+        this.mainWin.setVibrancy(enable ? 'sidebar' : null)
+      } else if (this.app.platform.os === 'windows') {
+        this.mainWin.setBackgroundMaterial(this.getBackgroundMaterial(enable) ?? 'auto')
+      }
     }
   }
 
@@ -341,10 +322,13 @@ export class ElectronController implements LauncherAppController {
     const defaultWidth = man.defaultWidth ?? 800
     const defaultHeight = man.defaultHeight ?? 600
 
-    // Ensure the settings is loaded
-    if (this.app.platform.os === 'linux' && !this.settings) {
+    // Ensure the settings is loaded for translucency and Linux titlebar options
+    if (!this.settings) {
       this.settings = await this.app.registry.get(kSettings)
     }
+
+    // Determine if translucency should be enabled (from user settings or app manifest)
+    const enableTranslucency = this.settings?.windowTranslucent || man.vibrancy
 
     const browser = new BrowserWindow({
       title: man.name,
@@ -355,18 +339,24 @@ export class ElectronController implements LauncherAppController {
       minWidth: man.minWidth,
       minHeight: man.minHeight,
       frame: this.getFrameOption(),
-      backgroundColor: man.backgroundColor,
-      vibrancy: man.vibrancy ? 'sidebar' : undefined, // or popover
+      backgroundColor: enableTranslucency ? undefined : man.backgroundColor, // Transparent when translucency is enabled
+      vibrancy: enableTranslucency && this.app.platform.os === 'osx' ? 'sidebar' : undefined, // macOS vibrancy
+      backgroundMaterial: this.getBackgroundMaterial(enableTranslucency), // Windows mica/acrylic
       icon: nativeTheme.shouldUseDarkColors ? man.iconSets.darkIcon : man.iconSets.icon,
       titleBarStyle: this.getTitlebarStyle(),
       trafficLightPosition: this.app.platform.os === 'osx' ? { x: 14, y: 10 } : undefined,
       webPreferences: {
-        preload: indexPreload,
+        preload: indexTogetherPreload,
         session: restoredSession,
+        contextIsolation: true,
+        sandbox: true,
         webviewTag: true,
       },
       show: false,
     })
+
+    this.multiplayerNetworkDiagnostics.attach(browser.webContents)
+    this.browserRtc.attach(browser.webContents)
 
     if (man.ratio) {
       browser.setAspectRatio(minWidth / minHeight)
@@ -374,10 +364,6 @@ export class ElectronController implements LauncherAppController {
 
     browser.on('ready-to-show', () => {
       this.logger.log('App Window is ready to show!')
-
-      if (man.vibrancy) {
-        this.setWindowBlurEffect(browser)
-      }
 
       if (config.maximized) {
         browser.maximize()
@@ -391,9 +377,11 @@ export class ElectronController implements LauncherAppController {
     browser.webContents.on('will-navigate', this.onWebContentWillNavigate)
     browser.webContents.on('did-create-window', this.onWebContentCreateWindow)
     browser.webContents.setWindowOpenHandler(this.windowOpenHandler)
+    const webContentsId = browser.webContents.id
     browser.on('closed', () => {
+      this.multiplayerNetworkDiagnostics.detach(webContentsId)
+      this.browserRtc.detach(webContentsId)
       this.mainWin = undefined
-      this.multiplayerRef?.close()
     })
 
     this.setupBrowserLogger(browser, 'app')
@@ -413,6 +401,15 @@ export class ElectronController implements LauncherAppController {
     this.logger.log(`Load main window url ${url.toString()}`)
 
     this.mainWin = browser
+    browser.on('enter-full-screen', () => {
+      this.maximized = true
+    })
+    browser.on('maximize', () => {
+      this.maximized = true
+    })
+    browser.on('unmaximize', () => {
+      this.maximized = false
+    })
 
     this.app.emit('app-booted', man)
   }
@@ -426,6 +423,8 @@ export class ElectronController implements LauncherAppController {
 
   async createMonitorWindow() {
     const tracker = createWindowTracker(this.app, 'monitor', this.activatedManifest!)
+    // Determine if translucency should be enabled
+    const enableTranslucency = this.settings?.windowTranslucent ?? false
 
     const config = await tracker.getConfig()
     const browser = new BrowserWindow({
@@ -441,6 +440,7 @@ export class ElectronController implements LauncherAppController {
       hasShadow: false,
       maximizable: false,
       icon: darkIcon,
+      backgroundMaterial: this.getBackgroundMaterial(enableTranslucency), // Windows mica/acrylic
       webPreferences: {
         preload: monitorPreload,
         session: this.app.session.getSession(this.activatedManifest!.url),
@@ -448,7 +448,6 @@ export class ElectronController implements LauncherAppController {
     })
 
     this.setupBrowserLogger(browser, 'logger')
-    this.setWindowBlurEffect(browser)
 
     browser.loadURL(loggerWinUrl)
     browser.show()
@@ -501,10 +500,159 @@ export class ElectronController implements LauncherAppController {
     return this.mainWin ?? this.loggerWin
   }
 
+  getNativeWindowHandle() {
+    const window = this.activeWindow
+    if (!window || window.isDestroyed()) {
+      return undefined
+    }
+    return window.getNativeWindowHandle()
+  }
+
+  async openMicrosoftLogin(authorizationUrl: string, redirectUri: string, signal?: AbortSignal, authAttemptId?: string): Promise<string> {
+    const redirect = new URL(redirectUri)
+    await app.whenReady()
+    return new Promise<string>((resolve, reject) => {
+      let settled = false
+      const startedAt = Date.now()
+      let readyToShow = false
+      let didFinishLoad = false
+      let lastStage = 'created'
+      let lastLoadErrorCode: number | undefined
+      const parent = this.activeWindow
+      const browser = new BrowserWindow({
+        title: 'Sign in to Microsoft',
+        width: 560,
+        height: 720,
+        minWidth: 420,
+        minHeight: 600,
+        parent,
+        modal: !!parent,
+        autoHideMenuBar: true,
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+          partition: 'persist:xmcl-microsoft-login',
+        },
+        show: false,
+      })
+      const finish = (
+        outcome: string,
+        error?: Error,
+        code?: string,
+        extraProperties: Record<string, string | number | boolean> = {},
+      ) => {
+        if (settled) return
+        settled = true
+        signal?.removeEventListener('abort', onAbort)
+        if (authAttemptId) {
+          const properties: MicrosoftAuthTelemetryEvent['properties'] = {
+            authAttemptId,
+            outcome,
+            readyToShow,
+            didFinishLoad,
+            lastStage,
+            ...extraProperties,
+          }
+          if (error) properties.errorName = error.name
+          if (outcome === 'load_failed' && lastLoadErrorCode !== undefined) {
+            properties.loadErrorCode = lastLoadErrorCode
+          }
+          this.app.emit('microsoft-auth-telemetry', {
+            name: 'microsoft-auth-webview-result',
+            properties,
+            measurements: {
+              durationMs: Date.now() - startedAt,
+            },
+          })
+        }
+        if (!browser.isDestroyed()) {
+          browser.close()
+        }
+        if (error) reject(error)
+        else resolve(code!)
+      }
+      const onAbort = () => {
+        lastStage = 'aborted'
+        const error = new Error('Microsoft authorization was cancelled.')
+        error.name = 'AbortError'
+        finish('aborted', error)
+      }
+      const onNavigate = (event: Event, url: string) => {
+        const target = new URL(url)
+        if (target.origin !== redirect.origin || target.pathname !== redirect.pathname) return
+        event.preventDefault()
+        lastStage = 'oauth_callback'
+        const error = target.searchParams.get('error')
+        if (error) {
+          finish('oauth_error', new Error(target.searchParams.get('error_description') || error), undefined, {
+            oauthError: /^[a-z0-9_.-]{1,128}$/i.test(error) ? error : 'other',
+          })
+          return
+        }
+        const code = target.searchParams.get('code')
+        finish(code ? 'success' : 'no_code', code ? undefined : new Error('Microsoft authorization returned no code.'), code ?? undefined)
+      }
+      browser.webContents.on('will-navigate', onNavigate)
+      browser.webContents.on('will-redirect', onNavigate)
+      browser.webContents.on('did-finish-load', () => {
+        didFinishLoad = true
+        lastStage = 'did_finish_load'
+      })
+      browser.webContents.on('did-fail-load', (_event, errorCode, _errorDescription, _validatedUrl, isMainFrame) => {
+        if (!isMainFrame) return
+        lastLoadErrorCode = errorCode
+        lastStage = 'did_fail_load'
+      })
+      browser.webContents.on('render-process-gone', (_event, details) => {
+        lastStage = 'render_process_gone'
+        finish('renderer_gone', new Error('Microsoft authorization renderer exited.'), undefined, {
+          reason: details.reason,
+          exitCode: details.exitCode,
+        })
+      })
+      browser.on('unresponsive', () => {
+        lastStage = 'unresponsive'
+      })
+      browser.webContents.setWindowOpenHandler(({ url }) => {
+        try {
+          const target = new URL(url)
+          if (target.protocol === 'https:' || target.origin === redirect.origin) {
+            lastStage = 'popup_navigation'
+            void browser.loadURL(url).catch(error => {
+              lastStage = 'popup_load_failed'
+              finish('load_failed', error)
+            })
+          }
+        } catch {
+          // Ignore malformed popup targets from third-party identity pages.
+        }
+        return { action: 'deny' }
+      })
+      browser.once('ready-to-show', () => {
+        readyToShow = true
+        lastStage = 'ready_to_show'
+        browser.show()
+      })
+      browser.once('closed', () => {
+        const closeFromStage = lastStage
+        lastStage = 'closed'
+        finish('closed', new Error('Microsoft authorization window was closed.'), undefined, {
+          closeFromStage,
+        })
+      })
+      signal?.addEventListener('abort', onAbort, { once: true })
+      lastStage = 'loading_authorization_url'
+      void browser.loadURL(authorizationUrl).catch(error => {
+        lastStage = 'initial_load_failed'
+        finish('load_failed', error)
+      })
+    })
+  }
+
   getLoginSuccessHTML() {
     const title = this.i18n.t('urlSuccess')
-    const body = this.i18n.t('autoCloseHint').replace('{time}', '<span id="countdown">10</span>')
-    return getLoginSuccessHTML(title, body)
+    return getLoginSuccessHTML(title)
   }
 
   openDevTools() {
@@ -513,7 +661,7 @@ export class ElectronController implements LauncherAppController {
         win.webContents.closeDevTools()
         win.webContents.openDevTools({ mode: 'detach' })
       } catch {
-        
+
       }
     }
   }

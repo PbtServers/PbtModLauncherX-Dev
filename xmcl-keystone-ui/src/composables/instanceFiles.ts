@@ -1,10 +1,14 @@
-import { InstanceFile, InstanceInstallServiceKey, InstanceInstallStatus } from '@xmcl/runtime-api'
-import debounce from 'lodash.debounce'
+import { InstanceInstallServiceKey, InstanceInstallStatus } from '@xmcl/runtime-api'
+import { useDebounceFn } from '@vueuse/core'
 import { InjectionKey, Ref } from 'vue'
 import { useService } from './service'
 import { useState } from './syncableState'
+import { InstanceFile } from '@xmcl/instance'
+import { runRendererAction, type RendererActionScope } from '@/rendererAction'
+import { useDialog } from './dialog'
 
-export const kInstanceFiles: InjectionKey<ReturnType<typeof useInstanceFiles>> = Symbol('InstanceFiles')
+export const kInstanceFiles: InjectionKey<ReturnType<typeof useInstanceFiles>> =
+  Symbol('InstanceFiles')
 
 export interface InstanceFilesStatus {
   files: InstanceFile[]
@@ -12,51 +16,94 @@ export interface InstanceFilesStatus {
 }
 
 export function useInstanceFiles(instancePath: Ref<string>) {
+  const { show: showChecksumDialog } = useDialog('InstanceInstallSkipDialog')
   const { watchInstanceInstall, resumeInstanceInstall } = useService(InstanceInstallServiceKey)
-  const { error, isValidating, state: instanceFileStatus } = useState(() => watchInstanceInstall(instancePath.value), InstanceInstallStatus)
+  const {
+    error,
+    isValidating,
+    state: instanceFileStatus,
+  } = useState(
+    () => (instancePath.value ? watchInstanceInstall(instancePath.value) : undefined),
+    InstanceInstallStatus,
+  )
 
   const _validating = ref(false)
-  const update = debounce(() => {
+  const update = useDebounceFn(() => {
     _validating.value = isValidating.value
   }, 400)
   watch(isValidating, update)
 
-  interface ChecksumErrorFile { file: InstanceFile; expect: string; actual: string }
+  interface ChecksumErrorFile {
+    file: InstanceFile
+    expect: string
+    actual: string
+  }
 
-  const checksumErrorCount = shallowRef(undefined as undefined | { key: string; count: number; files: ChecksumErrorFile[] })
-  const unzipFileNotFound = shallowRef(undefined as undefined | string)
+  const checksumErrorCount = shallowRef(
+    undefined as undefined | { key: string; count: number; files: ChecksumErrorFile[] },
+  )
+  const unzipFileNotFoundState = shallowRef(
+    undefined as undefined | { instance: string; file: string },
+  )
+  const unzipFileNotFound = computed(() =>
+    unzipFileNotFoundState.value?.instance === instancePath.value
+      ? unzipFileNotFoundState.value.file
+      : undefined,
+  )
   const shouldHintUserSkipChecksum = computed(() => checksumErrorCount.value?.count)
   const blockingFiles = computed(() => checksumErrorCount.value?.files)
   const unresolvedFiles = computed(() => instanceFileStatus.value?.unresolvedFiles)
 
   function countUpChecksumError(key: string, files: ChecksumErrorFile[]) {
     if (checksumErrorCount.value?.key === key) {
-      checksumErrorCount.value = { ...checksumErrorCount.value, count: checksumErrorCount.value.count + 1 }
+      checksumErrorCount.value = {
+        ...checksumErrorCount.value,
+        count: checksumErrorCount.value.count + 1,
+      }
     } else {
-      checksumErrorCount.value = { key, count: 1, files: files.filter(f => !!f.file) }
+      checksumErrorCount.value = { key, count: 1, files: files.filter((f) => !!f.file) }
     }
+    showChecksumDialog()
   }
 
   const resumingInstall = shallowRef({} as Record<string, boolean>)
 
-  async function resumeInstall(instancePath: string, bypass?: InstanceFile[]) {
+  async function resumeInstall(
+    instancePath: string,
+    bypass?: InstanceFile[],
+    parentAction?: RendererActionScope,
+  ) {
     if (resumingInstall.value[instancePath]) {
       return
     }
-    resumingInstall.value = { ...resumingInstall.value, [instancePath]: true }
-    const errors = await resumeInstanceInstall(instancePath, bypass).finally(() => {
-      resumingInstall.value = { ...resumingInstall.value, [instancePath]: false }
+    return runRendererAction(parentAction, 'user_action.instance.repair', async (action) => {
+      resumingInstall.value = { ...resumingInstall.value, [instancePath]: true }
+      const errors = await action
+        .run(() => resumeInstanceInstall(instancePath, bypass))
+        .finally(() => {
+          resumingInstall.value = { ...resumingInstall.value, [instancePath]: false }
+        })
+      if (errors) {
+        const checksumErrors = errors.filter(
+          (e) => e.name === 'ChecksumNotMatchError',
+        ) as ChecksumErrorFile[]
+        if (checksumErrors.length > 0) {
+          countUpChecksumError(
+            checksumErrors.map((e) => e.expect).join(),
+            checksumErrors.map((e) => ({ file: e.file, expect: e.expect, actual: e.actual })),
+          )
+        }
+        const unzipErrors = errors
+          .filter((e) => e.name === 'UnpackZipFileNotFoundError')
+          .map((e) => e as { file: string })
+        if (unzipErrors[0]?.file) {
+          unzipFileNotFoundState.value = { instance: instancePath, file: unzipErrors[0].file }
+        }
+        if (errors.length > 0) {
+          action.fail(new Error(`Instance repair completed with ${errors.length} file errors`))
+        }
+      }
     })
-    if (errors) {
-      const checksumErrors = errors.filter(e => e.name === 'ChecksumNotMatchError') as ChecksumErrorFile[]
-      if (checksumErrors.length > 0) {
-        countUpChecksumError(checksumErrors.map(e => e.expect).join(), checksumErrors.map(e => ({ file: e.file, expect: e.expect, actual: e.actual })))
-      }
-      const unzipErrors = errors.filter(e => e.name === 'UnpackZipFileNotFoundError').map(e => e as { file: string })
-      if (unzipErrors[0]?.file) {
-        unzipFileNotFound.value = unzipErrors[0].file
-      }
-    }
   }
 
   function resetChecksumError() {

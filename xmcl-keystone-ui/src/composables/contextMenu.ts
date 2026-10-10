@@ -1,10 +1,16 @@
-import { Ref, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 
 export interface ContextMenuItem {
   text: string
   icon: string
   color?: string
   children?: ContextMenuItem[]
+  /**
+   * Group items into sections. A divider is only rendered between items that
+   * belong to different sections. If no item declares a section, the menu
+   * falls back to rendering a divider between every item.
+   */
+  section?: string
   onClick: () => void
 }
 
@@ -12,6 +18,7 @@ const x = ref(0)
 const y = ref(0)
 const items = ref([] as ContextMenuItem[])
 const shown = ref(false)
+const generation = ref(0)
 
 export function useContextMenu() {
   const cx = x
@@ -23,10 +30,14 @@ export function useContextMenu() {
   const zitems = citems
   const zshown = cshown
   function open(x: number, y: number, items: ContextMenuItem[]) {
+    zshown.value = false
     zx.value = x
     zy.value = y
     zitems.value = items
-    zshown.value = true
+    generation.value += 1
+    nextTick(() => {
+      zshown.value = true
+    })
   }
   return {
     open,
@@ -35,6 +46,6 @@ export function useContextMenu() {
 
 export function useContextMenuData() {
   return {
-    x, y, items, shown,
+    x, y, items, shown, generation,
   }
 }

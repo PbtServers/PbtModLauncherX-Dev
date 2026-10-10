@@ -12,33 +12,38 @@
       <AvatarItemList :items="items" />
     </div>
     <v-spacer />
-    <MarketTextFieldWithMenu
-      no-tab
-     :placeholder="t('save.search')"
-      :keyword.sync="keyword"
-      :curseforge-category.sync="curseforgeCategory"
-      curseforge-category-filter="worlds"
-      :modrinth-categories="[]"
-      :modrinth-category-filter="''"
-      :enable-curseforge.sync="isCurseforgeActive"
-      :sort.sync="sort"
-      :mode="'remote'"
-      :game-version.sync="gameVersion"
+    <MarketTextField
+      :clearable="!!curseforgeCategory || !!keyword"
+      :value="keyword"
+      :placeholder="t('save.search')"
+      :game-version="gameVersion !== version.minecraft ? gameVersion : undefined"
+      :category="!!curseforgeCategory"
+      :icon="source === 'remote' ? 'storefront' : source === 'local' ? 'inventory_2' : 'favorite'"
+      @clear="curseforgeCategory = undefined"
+      @clear-version="gameVersion = version.minecraft"
+      @input="keyword = $event ?? ''"
+      @clear-category="curseforgeCategory = undefined"
+      @blur="focused = false"
     />
   </div>
 </template>
 
 <script lang="ts" setup>
 import AvatarItemList from '@/components/AvatarItemList.vue'
-import MarketTextFieldWithMenu from '@/components/MarketTextFieldWithMenu.vue'
+import MarketTextField from '@/components/MarketTextField.vue'
 import { kInstance } from '@/composables/instance'
 import { kInstanceSave } from '@/composables/instanceSave'
 import { kCompact } from '@/composables/scrollTop'
 import { kSearchModel } from '@/composables/search'
 import { getExtensionItemsFromRuntime } from '@/util/extensionItems'
 import { injection } from '@/util/inject'
+import { useQuery } from '@/composables/query'
 
 const { keyword, source, gameVersion, curseforgeCategory, isCurseforgeActive, sort } = injection(kSearchModel)
+const focused = ref(false)
+provide('focused', focused)
+const selectedId = useQuery('id')
+watch(focused, (v) => { if (v) selectedId.value = '' })
 
 const { runtime: version } = injection(kInstance)
 const { isInstanceLinked } = injection(kInstanceSave)
