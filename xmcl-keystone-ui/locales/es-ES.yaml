@@ -2255,6 +2255,8 @@ settingLabel:
   local: Local
   localHint: Esta configuración está modificada por la instancia actual
 setup:
+  requestFailed: No se ha podido completar la configuraci?n inicial. Comprueba la carpeta seleccionada e int?ntalo de nuevo.
+  retryRequest: Reintentar
   account:
     description: Inicia sesión en tu cuenta del juego. Si no tienes una, puedes saltarte esto por ahora.
     name: Añadir una cuenta de juego

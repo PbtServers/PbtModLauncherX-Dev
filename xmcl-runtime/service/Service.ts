@@ -168,12 +168,14 @@ export abstract class AbstractService extends EventEmitter {
       this.initializeSignal = createPromiseSignal()
       if (this.initializer) {
         const startTime = Date.now()
+        this.log('[startup] service initialization started')
         this.initializeSignal.accept(this.initializer().catch((e) => {
+          this.warn('[startup] service initialization failed')
           this.error(new AnyError('ServiceInitializeError', 'Fail to initialize', { cause: e }))
           throw e
         }).finally(() => {
           const endTime = Date.now()
-          this.log(`Initialized in ${endTime - startTime}ms.`)
+          this.log(`[startup] service initialization settled in ${endTime - startTime}ms.`)
         }))
       } else {
         this.initializeSignal.resolve()

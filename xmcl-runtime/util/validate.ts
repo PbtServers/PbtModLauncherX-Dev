@@ -20,7 +20,7 @@ async function isExistedXMCLDir(path: string) {
 
 export function isValidPathName(pathName: string) {
   // eslint-disable-next-line no-useless-escape
-  const allowedChars = /^[a-zA-Z0-9\-_\.\s\/\\:\(\)\,\[\]\{\}'"!@#\$%\^&\+=;~`]+$/
+  const allowedChars = /^[\p{L}\p{M}\p{N}_\.\s/\\:(),\[\]{}'"!@#$%\^&+=;~`-]+$/u
   if (!allowedChars.test(pathName)) {
     return false
   }

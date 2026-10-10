@@ -2182,6 +2182,8 @@ settingLabel:
   local: Local
   localHint: Aquesta configuració ha estat modificada per la instància actual
 setup:
+  requestFailed: No s?ha pogut completar la configuraci? inicial. Comprova la carpeta seleccionada i torna-ho a provar.
+  retryRequest: Torna-ho a provar
   appearance:
     name: '@:setting.appearance'
   dataRoot:

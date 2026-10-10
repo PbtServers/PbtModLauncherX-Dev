@@ -115,6 +115,10 @@
           </div>
         </v-stepper-window-item>
       </v-stepper-window>
+      <v-alert v-if="requestError" type="error" class="mx-4" role="alert">
+        {{ t('setup.requestFailed') }}
+        <v-btn v-if="hasError" @click="validateSelectedPath">{{ t('setup.retryRequest') }}</v-btn>
+      </v-alert>
       <slot name="actions">
         <SetupFooter
           :prev="data.step !== 1"
@@ -130,12 +134,14 @@
   </AppMoodBackground>
   <v-card
     v-else
-    class="flex h-full w-full items-center justify-center"
+    class="flex h-full w-full flex-col items-center justify-center"
   >
     <v-img
       class="max-w-50"
       src="http://launcher/icons/logoDark"
     />
+    <v-alert v-if="requestError" type="error" role="alert">{{ t('setup.requestFailed') }}</v-alert>
+    <v-btn v-if="requestError" @click="loadPreset">{{ t('setup.retryRequest') }}</v-btn>
   </v-card>
 </template>
 
@@ -146,6 +152,7 @@ import { useService } from '@/composables'
 import { kSettingsState } from '@/composables/setting'
 import { BackgroundType, kTheme } from '@/composables/theme'
 import { injection } from '@/util/inject'
+import { setupRequest } from '@/util/setupRequest'
 import { BaseServiceKey, Drive, InvalidDirectoryErrorCode } from '@xmcl/runtime-api'
 import SetupAccount from './SetupAccount.vue'
 import SetupAppearance from './SetupAppearance.vue'
@@ -184,29 +191,49 @@ const data = reactive({
   theme: 'system',
 })
 provide('setup', data)
-bootstrap.preset().then(({ minecraftPath, defaultPath, locale: locale_, drives }) => {
-  data.fetching = false
-  locale.value = locale_
-  data.minecraftPath = minecraftPath
-  data.instancePath = minecraftPath
-  data.path = defaultPath
-  data.defaultPath = defaultPath
-  data.drives = drives
-})
+const requestError = ref(false)
+const completing = ref(false)
+async function loadPreset() {
+  requestError.value = false
+  try {
+    const { minecraftPath, defaultPath, locale: initialLocale, drives } = await setupRequest(() => bootstrap.preset())
+    locale.value = initialLocale
+    data.minecraftPath = minecraftPath
+    data.instancePath = minecraftPath
+    data.path = defaultPath
+    data.defaultPath = defaultPath
+    data.drives = drives
+    data.fetching = false
+  } catch {
+    requestError.value = true
+    console.warn('[startup] setup preset failed or timed out')
+  }
+}
+void loadPreset()
 
 const hasError = computed(() => !!data.pathError && data.pathError !== 'exists')
-watch(() => data.path, (newPath) => {
+let validationRevision = 0
+async function validateSelectedPath() {
+  if (completing.value) return
+  const revision = ++validationRevision
+  const newPath = data.path
+  const current = () => revision === validationRevision && !completing.value
   data.loading = true
   data.pathError = undefined
-  validateDataDictionary(newPath).then((reason) => {
-    data.loading = false
-    if (!reason) {
-      data.path = newPath
-    } else {
-      data.pathError = reason
+  requestError.value = false
+  try {
+    const reason = await setupRequest(() => validateDataDictionary(newPath))
+    if (current()) data.pathError = reason
+  } catch {
+    if (current()) {
+      requestError.value = true
+      data.pathError = 'bad'
     }
-  })
-})
+  } finally {
+    if (current()) data.loading = false
+  }
+}
+watch(() => data.path, validateSelectedPath)
 
 const { isDark, currentTheme, saveCurrentTheme } = injection(kTheme)
 
@@ -235,30 +262,36 @@ async function persistInitialTheme() {
   // otherwise the first launch shows Halo but `theme.json` is never
   // written and the next launch falls back to `BackgroundType.NONE`.
   try {
-    const e = await getEnvironment()
+    const e = await setupRequest(() => getEnvironment(), 5_000)
     if (e.gpu && isDark.value) {
       currentTheme.value.backgroundType = BackgroundType.HALO
     }
-  } catch (err) {
-    console.error('Failed to detect environment during setup', err)
+  } catch {
+    console.warn('[startup] optional environment detection failed or timed out')
   }
   try {
     await saveCurrentTheme()
-  } catch (err) {
-    console.error('Failed to persist initial theme during setup', err)
+  } catch {
+    console.warn('[startup] initial theme persistence failed')
   }
 }
 
 async function setup() {
-  if (data.loading) return
+  if (data.loading || hasError.value) return
   data.loading = true
+  completing.value = true
+  const selectedPath = data.path
+  requestError.value = false
   try {
-    await bootstrap.bootstrap(data.path)
-  } catch (err) {
+    await setupRequest(() => bootstrap.bootstrap(selectedPath), 30_000)
+  } catch {
+    completing.value = false
     data.loading = false
-    throw err
+    requestError.value = true
+    console.warn('[startup] setup completion failed or timed out')
+    return
   }
-  emit('ready', data)
+  emit('ready', { ...data, path: selectedPath })
   if (state.value) {
     state.value.localeSet(locale.value)
   } else {

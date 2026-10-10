@@ -2,7 +2,8 @@ import { getPlatform } from '@xmcl/core'
 import type { InstallEvent } from '@xmcl/installer'
 import { AgentRunTrace, InstalledAppManifest, Platform, createPromiseSignal } from '@xmcl/runtime-api'
 import { EventEmitter } from 'events'
-import { ensureDir, readFile, writeFile } from 'fs-extra'
+import { ensureDir, readFile } from 'fs-extra'
+import { createInitialSetup, prepareInitialRoot } from './initialSetup'
 import { Server, createServer } from 'http'
 import { join } from 'path'
 import { Readable } from 'stream'
@@ -309,10 +310,15 @@ export class LauncherApp extends EventEmitter {
   // setup code
 
   async start(): Promise<void> {
+    this.logger.log('[startup] launcher initialization started')
     await Promise.all([
       this.setup(),
-      this.host.whenReady().then(() => this.onEngineReady()),
+      this.host.whenReady().then(() => {
+        this.logger.log('[startup] host ready; activating renderer')
+        return this.onEngineReady()
+      }),
     ])
+    this.logger.log('[startup] launcher initialization completed')
   }
 
   /**
@@ -350,15 +356,25 @@ export class LauncherApp extends EventEmitter {
       this.#isBootstrapSignal.resolve(false)
     } catch (e) {
       if (isSystemError(e) && e.code === 'ENOENT') {
-        // first launch
-        this.#isBootstrapSignal.resolve(true)
-        const path = await new Promise<string>((resolve) => {
-          this.controller.handle('bootstrap', (_, path) => {
-            resolve(path)
-          }, true)
+        // Register before revealing the wizard. A retry must wait for the same operation.
+        await new Promise<void>((resolve) => {
+          const complete = createInitialSetup(async (path) => {
+            this.logger.log('[startup] initial setup started')
+            try {
+              await prepareInitialRoot(this.appDataPath, path)
+              await this.#registerGamePath(path)
+              this.logger.log('[startup] initial setup completed')
+              resolve()
+            } catch (error) {
+              this.logger.warn('[startup] initial setup failed; retry available')
+              throw error
+            }
+          })
+          this.controller.handle('bootstrap', (_, path) => complete(path))
+          this.#isBootstrapSignal.resolve(true)
+          this.logger.log('[startup] waiting for initial setup')
         })
-        gameDataPath = (path)
-        await writeFile(join(this.appDataPath, 'root'), path)
+        return
       } else {
         this.#isBootstrapSignal.resolve(false)
         gameDataPath = (this.appDataPath)
@@ -376,18 +392,16 @@ export class LauncherApp extends EventEmitter {
   }
 
   async #registerGamePath(gamePath: string) {
+    await ensureDir(join(gamePath, 'temp'))
     this.#gamePath = gamePath
     validateDirectory(this.platform, gamePath).then((code) => {
       if (code) {
-        this.registry.get(kSettings).then(s => s.invalidGameDataPathSet(code))
+        return this.registry.get(kSettings).then(s => s.invalidGameDataPathSet(code))
       }
-    })
+    }).catch(() => this.logger.warn('[startup] directory diagnostics failed'))
     this.registry.register(kGameDataPath, (...args) => {
       return join(this.#gamePath, ...args)
     })
-
-    const temporaryPath = join(this.#gamePath, 'temp')
-    await ensureDir(temporaryPath)
 
     this.registry.register(kTempDataPath, (...args) => {
       return join(this.#gamePath, 'temp', ...args)

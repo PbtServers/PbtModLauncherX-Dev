@@ -2157,6 +2157,8 @@ settingLabel:
   local: Local
   localHint: This setting is modified by current instance
 setup:
+  requestFailed: Initial setup could not be completed. Check the selected folder and try again.
+  retryRequest: Retry
   account:
     description: Login your game account. If you don't have one, you can skip it for now.
     name: Add Game Account
