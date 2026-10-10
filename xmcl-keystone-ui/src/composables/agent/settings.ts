@@ -13,6 +13,7 @@ export const useAgentSettings = createSharedComposable(() => {
   const apiKey = ref('')
   const endpoint = ref('')
   const model = ref('')
+  const detectedEndpoint = ref('')
   const historyEnabled = ref(true)
   const contextWindow = ref(8192)
   const providerConfigured = ref(false)
@@ -42,6 +43,8 @@ export const useAgentSettings = createSharedComposable(() => {
     providerConfigured.value = false
     try {
       const settings = await service.getProviderSettings()
+      detectedEndpoint.value = settings.detectedEndpoint || ''
+      if (!model.value.trim() && isOllamaEndpoint(endpoint.value || OLLAMA_ENDPOINT) && settings.model) model.value = settings.model
       providerConfigured.value = settings.configured
       toolsSupported.value = settings.toolsSupported !== false
       await inspectLocal()
@@ -57,6 +60,7 @@ export const useAgentSettings = createSharedComposable(() => {
     try {
       const settings = await service.getProviderSettings()
       endpoint.value = settings.endpoint
+      detectedEndpoint.value = settings.detectedEndpoint || ''
       model.value = settings.model
       historyEnabled.value = settings.historyEnabled !== false
       contextWindow.value = settings.contextWindow ?? 8192
@@ -223,6 +227,7 @@ export const useAgentSettings = createSharedComposable(() => {
     updateApiKey,
     clearApiKey,
     resolvedEndpoint,
+    detectedEndpoint,
     resolvedModel,
   }
 })

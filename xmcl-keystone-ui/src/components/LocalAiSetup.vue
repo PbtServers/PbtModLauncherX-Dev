@@ -19,6 +19,10 @@
         <p v-if="status.models.some(entry => !entry.compatible && entry.chatCompatible)">{{ t('pbtadmin.chatOnly') }}</p>
         <p v-if="status.models.some(entry => !entry.compatible && !entry.chatCompatible)">{{ t('pbtadmin.unsupported') }}</p>
         <p>{{ t('pbtadmin.recommendation') }} {{ status.recommendedModels.join(', ') || t('pbtadmin.lowMemory') }}</p>
+        <v-alert v-if="lowFactoryResources" type="warning" class="my-2">
+          {{ t('pbtadmin.lowMemory') }} {{ t('pbtadmin.recommendation') }} qwen3:1.7b-q4_K_M
+          <v-btn class="mt-2" @click="offerLightModel">{{ t('pbtadmin.setup') }}</v-btn>
+        </v-alert>
       </template>
       <v-btn class="my-2" @click="wizard = true">{{ t('pbtadmin.setup') }}</v-btn>
       <p v-if="download.state !== 'idle'">{{ t(`pbtadmin.download.${download.state}`) }} {{ download.model }} <span v-if="download.total">{{ gib(download.completed || 0) }} / {{ gib(download.total) }} GiB</span></p>
@@ -80,7 +84,13 @@ const starting = ref(false)
 const error = ref('')
 const wizard = ref(false)
 const consent = ref(false)
-const downloadModel = ref<'qwen3:4b' | 'qwen3:8b'>('qwen3:4b')
+const downloadModel = ref<(typeof LOCAL_AI_MODELS)[number]['name']>('qwen3:4b-q4_K_M')
+const lowFactoryResources = computed(() => !!status.value && !status.value.recommendedModels.includes('qwen3:4b-q4_K_M'))
+function offerLightModel() {
+  downloadModel.value = 'qwen3:1.7b-q4_K_M'
+  consent.value = false
+  wizard.value = true
+}
 const estimatedBytes = computed(() => LOCAL_AI_MODELS.find(entry => entry.name === downloadModel.value)?.estimatedBytes || 0)
 const gib = (bytes: number) => (bytes / 1024 ** 3).toFixed(1)
 watch([wizard, downloadModel], () => { consent.value = false })

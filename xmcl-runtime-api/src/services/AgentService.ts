@@ -140,6 +140,8 @@ export interface AgentDocumentSearchResult extends AgentDocumentMetadata {
 
 export interface AgentProviderSettings {
   endpoint: string
+  /** Detected transport URL; never persisted as the provider selector. */
+  detectedEndpoint?: string
   model: string
   configured: boolean
   toolsSupported?: boolean

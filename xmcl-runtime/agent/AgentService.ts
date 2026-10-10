@@ -2,6 +2,7 @@ import { LOCAL_AI_MODELS, OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtim
 import { OllamaController } from './ollama'
 import { ManagedOllama, kOllamaResourceRoot, type LocalRuntimeConfig } from './managedOllama'
 import { validateOllamaBundle } from './runtimeBundle'
+import { FACTORY_MODEL, HF_FACTORY_MODEL } from './modelBundle'
 import { XMCL_CLOUD_ENABLED, assertIndependentUrl, isXmclExclusiveUrl, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import {
   AgentServiceKey,
@@ -58,7 +59,7 @@ export class AgentService extends AbstractService implements IAgentService {
     @Inject(kOllamaResourceRoot) resourceRoot: string,
   ) {
     super(app)
-    this.engine = new ManagedOllama({ bundle: resourceRoot, data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args))
+    this.engine = new ManagedOllama({ bundle: resourceRoot, seed: join(resourceRoot, '..', 'ollama-model'), data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args))
     this.ollama = new OllamaController((...args) => app.fetch(...args), async () => {
       try { await validateOllamaBundle(resourceRoot); return true } catch { return false }
     }, undefined, () => this.engine.ensure())
@@ -77,7 +78,8 @@ export class AgentService extends AbstractService implements IAgentService {
         .catch(() => undefined)
     return {
       endpoint,
-      model: settings.agentModel || DEFAULT_AGENT_MODEL,
+      model: provider.mode === 'custom' ? provider.model : settings.agentModel || DEFAULT_AGENT_MODEL,
+      ...(provider.mode === 'custom' && provider.localOrigin ? { detectedEndpoint: new URL('/v1/chat/completions', provider.localOrigin).href } : {}),
       configured,
       toolsSupported: provider.mode === 'custom' ? provider.toolsSupported !== false : false,
       mode: provider.mode,
@@ -116,7 +118,16 @@ export class AgentService extends AbstractService implements IAgentService {
   async [kResolvedAgentProvider](): Promise<ResolvedAgentProvider> {
     const settings = await this.app.registry.get(kSettings)
     const endpoint = settings.agentEndpoint.trim() || OLLAMA_ENDPOINT
-    const model = settings.agentModel.trim()
+    let model = settings.agentModel.trim()
+    if (!model && isOllamaEndpoint(endpoint)) {
+      const local = await this.ollama.resolveModel(HF_FACTORY_MODEL) || await this.ollama.resolveModel(FACTORY_MODEL)
+      if (local) {
+        const latest = await this.app.registry.get(kSettings)
+        if (latest.agentModel.trim() || (latest.agentEndpoint.trim() || OLLAMA_ENDPOINT) !== endpoint) return this[kResolvedAgentProvider]()
+        model = local.name
+        await settings.agentProviderSet({ endpoint, model, historyEnabled: settings.agentHistoryEnabled })
+      }
+    }
     if (endpoint || model) {
       if (!endpoint || !model || isXmclExclusiveUrl(endpoint)) return { mode: 'unconfigured' }
       if (isOllamaEndpoint(endpoint)) {

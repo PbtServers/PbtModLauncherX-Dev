@@ -1,5 +1,6 @@
 import { BUILTIN_AGENT_FLIGHT } from '@xmcl/runtime-api'
 import { describe, expect, test, vi } from 'vitest'
+import { FACTORY_MODEL, HF_FACTORY_MODEL } from './modelBundle'
 
 vi.mock('~/app', () => ({
   Inject: () => () => {},
@@ -46,7 +47,7 @@ function createServiceContext(flights: Record<string, unknown>) {
       },
     },
     settings,
-    ollama: { resolveModel: vi.fn(async (name: string) => ({ name, compatible: true, size: 1, contextWindow: 4096 })) },
+    ollama: { resolveModel: vi.fn(async (name: string) => name === FACTORY_MODEL || name === HF_FACTORY_MODEL ? undefined : ({ name, compatible: true, size: 1, contextWindow: 4096 })) },
     engine: { ensure: vi.fn(async () => 'http://127.0.0.1:32123') },
     apiKeys: {
       get: vi.fn().mockResolvedValue(''),
@@ -144,4 +145,42 @@ test('uses a local AI server without an XMCL account or a fabricated API key', a
   await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toEqual({
     mode: 'custom', endpoint: service.settings.agentEndpoint, model: 'local-model', apiKey: '', contextWindow: 4096, toolsSupported: true, localOrigin: 'http://127.0.0.1:32123',
   })
+})
+
+test('selects the factory model only after the local engine verifies usable metadata', async () => {
+  const service = createServiceContext({})
+  service.ollama.resolveModel.mockResolvedValue({ name: FACTORY_MODEL, compatible: false, size: 1, contextWindow: 4096 })
+  await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ mode: 'custom', model: FACTORY_MODEL, apiKey: '', toolsSupported: false })
+  expect(service.settings.agentProviderSet).toHaveBeenCalledWith(expect.objectContaining({ model: FACTORY_MODEL }))
+  expect(service.apiKeys.get).not.toHaveBeenCalled()
+})
+
+test('returns the resolved imported model immediately and refreshes the dynamic endpoint after engine restart', async () => {
+  const service = createServiceContext({})
+  service.ollama.resolveModel.mockResolvedValue({ name: HF_FACTORY_MODEL, compatible: true, size: 1, contextWindow: 4096 })
+  Object.assign(service, { [kResolvedAgentProvider]: () => (AgentService.prototype as any)[kResolvedAgentProvider].call(service) })
+  const read = () => AgentService.prototype.getProviderSettings.call(service)
+  await expect(read()).resolves.toMatchObject({ model: HF_FACTORY_MODEL, configured: true, detectedEndpoint: 'http://127.0.0.1:32123/v1/chat/completions' })
+  service.engine.ensure.mockResolvedValue('http://127.0.0.1:32124')
+  await expect(read()).resolves.toMatchObject({ detectedEndpoint: 'http://127.0.0.1:32124/v1/chat/completions' })
+  expect(service.apiKeys.get).not.toHaveBeenCalled()
+})
+
+test('does not overwrite a user choice made while automatic discovery is awaiting the engine', async () => {
+  const service = createServiceContext({})
+  Object.assign(service, { [kResolvedAgentProvider]: () => (AgentService.prototype as any)[kResolvedAgentProvider].call(service) })
+  service.ollama.resolveModel.mockImplementation(async name => {
+    if (name === HF_FACTORY_MODEL) service.settings.agentModel = 'user-choice'
+    return { name, compatible: true, size: 1, contextWindow: 4096 }
+  })
+  await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ model: 'user-choice' })
+  expect(service.settings.agentProviderSet).not.toHaveBeenCalled()
+})
+
+test('preserves an existing local model selection instead of selecting the factory model', async () => {
+  const service = createServiceContext({})
+  service.settings.agentModel = 'qwen3:1.7b-q4_K_M'
+  await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ model: 'qwen3:1.7b-q4_K_M' })
+  expect(service.settings.agentProviderSet).not.toHaveBeenCalled()
+  expect(service.ollama.resolveModel).not.toHaveBeenCalledWith(FACTORY_MODEL)
 })

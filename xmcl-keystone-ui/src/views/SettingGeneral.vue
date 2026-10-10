@@ -172,7 +172,9 @@
         </template>
         <template #action>
           <v-text-field
-            v-model="agentModel"
+            :model-value="agentLocal ? (agentModel || t('pbtadmin.noModels')) : agentModel"
+            :readonly="agentLocal"
+            @update:model-value="value => { if (!agentLocal) agentModel = value }"
             variant="outlined"
             density="compact"
             class="setting-item-input"
@@ -191,7 +193,9 @@
         </template>
         <template #action>
           <v-text-field
-            v-model="agentEndpoint"
+            :model-value="agentLocal ? (agentDetectedEndpoint || t('pbtadmin.stopped')) : agentEndpoint"
+            :readonly="agentLocal"
+            @update:model-value="value => { if (!agentLocal) agentEndpoint = value }"
             variant="outlined"
             density="compact"
             class="setting-item-input"
@@ -216,7 +220,7 @@ import { injection } from '@/util/inject'
 import { formatShortcutDisplay } from '@/util/shortcut'
 import { useDialog } from '../composables/dialog'
 import { useAgentSettings } from '../composables/agent/settings'
-import { OLLAMA_ENDPOINT } from '@xmcl/runtime-api'
+import { OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtime-api'
 import { useGameDirectory, useSettings } from '../composables/setting'
 
 const { isNoEmptySpace, invalidGameDataPath } = injection(kCriticalStatus)
@@ -259,10 +263,12 @@ const {
   mode: agentProviderMode,
   error: agentSettingsError,
   resolvedEndpoint: agentResolvedEndpoint,
+  detectedEndpoint: agentDetectedEndpoint,
   resolvedModel: agentResolvedModel,
   updateApiKey: updateAgentApiKey,
   clearApiKey: clearAgentApiKey,
 } = useAgentSettings()
+const agentLocal = computed(() => isOllamaEndpoint(agentEndpoint.value || OLLAMA_ENDPOINT))
 const showAgentApiKey = ref(false)
 // Re-hide the key when the field empties (provider switch, or the user cleared it)
 // so the next key typed does not start out visible.

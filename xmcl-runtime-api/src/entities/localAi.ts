@@ -20,7 +20,8 @@ export function isAnthropicEndpoint(endpoint: string) {
 
 /** Estimates, not hardware benchmarks; leave room for Minecraft and context. */
 export const LOCAL_AI_MODELS = [
-  { name: 'qwen3:4b', estimatedBytes: 2_600_000_000, minRamBytes: 8 * 1024 ** 3 },
+  { name: 'qwen3:1.7b-q4_K_M', estimatedBytes: 1_500_000_000, minRamBytes: 4 * 1024 ** 3 },
+  { name: 'qwen3:4b-q4_K_M', estimatedBytes: 2_600_000_000, minRamBytes: 8 * 1024 ** 3 },
   { name: 'qwen3:8b', estimatedBytes: 5_200_000_000, minRamBytes: 16 * 1024 ** 3 },
 ] as const
 

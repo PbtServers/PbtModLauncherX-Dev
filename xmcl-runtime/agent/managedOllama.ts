@@ -6,9 +6,10 @@ import { isAbsolute, join, relative, resolve } from 'path'
 import { validateOllamaBundle } from './runtimeBundle'
 import { OLLAMA_SUPERVISOR } from './ollamaSupervisor'
 import { ownsOllamaPort } from './ollamaPortOwner'
+import { installFactoryModel } from './modelBundle'
 export const kOllamaResourceRoot = Symbol('ollama-resource-root')
 
-export interface ManagedOllamaOptions { bundle: string; data: string; portableBase?: string; readinessTimeoutMs?: number }
+export interface ManagedOllamaOptions { bundle: string; data: string; seed?: string; portableBase?: string; readinessTimeoutMs?: number }
 export interface LocalRuntimeConfig { modelsDirectory?: string; externalOrigin?: string }
 
 export function modelDirectory(options: ManagedOllamaOptions, config: LocalRuntimeConfig) {
@@ -99,6 +100,7 @@ export class ManagedOllama {
     const reservation = createServer()
     try {
       await this.lock.writeFile(JSON.stringify({ pid: process.pid }))
+      if (this.options.seed) await installFactoryModel(this.options.seed, models)
       if (controller.signal.aborted) throw new Error('ollama_start_cancelled')
       await new Promise<void>((done, reject) => { reservation.once('error', reject); reservation.listen(0, '127.0.0.1', done) })
       const port = (reservation.address() as { port: number }).port
