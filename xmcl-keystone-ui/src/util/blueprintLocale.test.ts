@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs'
+import localeRegistry from '../../../assets/locales.json'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
@@ -43,7 +44,7 @@ describe('blueprint locales', () => {
   const english = loadLocale('en.yaml').blueprint
 
   test('covers every key used by the blueprint views in every locale', () => {
-    expect(localeFiles).toHaveLength(29)
+    expect(localeFiles.map(file => file.replace(/\.yaml$/, '')).sort()).toEqual(Object.keys(localeRegistry).sort())
     for (const fileName of localeFiles) {
       const blueprint = loadLocale(fileName).blueprint
       for (const key of blueprintKeys) {

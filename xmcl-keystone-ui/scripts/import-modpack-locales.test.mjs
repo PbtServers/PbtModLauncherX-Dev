@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest'
 import { flatten, LOCALES_DIR, scanSource, SRC_DIR } from './i18n-core.mjs'
 
 const base = flatten(yaml.load(readFileSync(join(LOCALES_DIR, 'en.yaml'), 'utf8')))
-const importKeys = [...base.keys()].filter(key => key.startsWith('importModpack.'))
+// The fork also retains task notifications under this namespace. They are not
+// dialog labels, so they must not be required in the upstream dialog catalogs.
+const taskKeys = new Set(['importModpack.failed', 'importModpack.name', 'importModpack.success'])
+const importKeys = [...base.keys()].filter(key => key.startsWith('importModpack.') && !taskKeys.has(key))
 const reusedKeys = ['userSkin.localFile', 'shared.install']
 const removedKeys = ['fromFile', 'fromUrlTitle', 'fromUrlPlaceholder', 'import', 'importVersion', 'resolving']
 const parameters = message => [...message.matchAll(/\{(\w+)\}/g)].map(match => match[1]).sort()

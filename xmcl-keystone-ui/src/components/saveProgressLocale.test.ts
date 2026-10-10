@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { load } from 'js-yaml'
 import { baseCompile } from '@intlify/message-compiler'
 import { describe, expect, test } from 'vitest'
+import localeRegistry from '../../../assets/locales.json'
 
 const directory = new URL('../../locales/', import.meta.url)
 const files = readdirSync(directory).filter(file => file.endsWith('.yaml'))
@@ -26,7 +27,9 @@ interface Messages {
   duration: Record<string, string>
 }
 describe('save progress locale coverage', () => {
-  test('covers every shipped locale', () => { expect(files).toHaveLength(29) })
+  test('covers every shipped locale', () => {
+    expect(files.map(file => file.replace(/\.yaml$/, '')).sort()).toEqual(Object.keys(localeRegistry).sort())
+  })
   test('discovers shared instructions from the actual progress component sources', () => {
     expect(referencedKeys).toEqual(expect.arrayContaining(['save.mapHintPan', 'save.resetView', 'shared.close']))
   })

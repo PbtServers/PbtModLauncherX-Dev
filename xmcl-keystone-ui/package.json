@@ -23,6 +23,7 @@
         "lint:fix": "pnpm lint fix",
         "i18n": "node ./scripts/i18n.mjs",
         "lint:i18n": "node ./scripts/i18n.mjs lint",
+        "validate:translations": "node ./scripts/validate-translations.mjs",
         "i18n:remove": "node ./scripts/i18n.mjs remove",
         "i18n:rename": "node ./scripts/i18n.mjs rename",
         "i18n:daemon": "node ./scripts/i18n.mjs daemon"

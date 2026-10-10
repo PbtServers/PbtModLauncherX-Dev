@@ -2698,3 +2698,12 @@ modSearchType:
   local: Local
   explore: ModPacks
   installed: Installed
+accessibility:
+  window: Window
+  windowControls: Window controls
+  minimize: Minimize
+  maximize: Maximize
+  sidebarNavigation: Sidebar navigation
+  instanceGroup: Instance group
+  selectedCount: '{count} selected'
+  moreCount: '+{count} more'

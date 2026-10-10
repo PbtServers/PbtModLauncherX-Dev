@@ -15,7 +15,7 @@
         color="primary"
         variant="flat"
         density="comfortable"
-        :aria-label="`${selectedCount} selected`"
+        :aria-label="t('accessibility.selectedCount', { count: selectedCount })"
       >
         {{ selectedCount }}
       </v-chip>
@@ -83,7 +83,7 @@
         class="filter-card__more block w-full text-center mt-1 text-xs opacity-60 cursor-pointer hover:opacity-100"
         @click="expanded = true"
       >
-        +{{ items.length - collapsedCount }} more
+        {{ t('accessibility.moreCount', { count: items.length - collapsedCount }) }}
       </button>
     </div>
   </v-card>

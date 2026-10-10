@@ -5,11 +5,15 @@ AppAddInstanceDialog:
   downloadedNotification: El modpack {name} s'ha descarregat. Vols crear una instància?
   serverTitle: Introdueix l'adreça del servidor
 AppShareInstanceDialog:
-  alterDownloadDescription: Si no vols modificar la instància actual, pots crear una nova instància des de la configuració del teu company. Fes clic al botó de baix per crear-la.
+  alterDownloadDescription: >-
+    Si no vols modificar la instància actual, pots crear una nova instància des de la configuració del teu company. Fes
+    clic al botó de baix per crear-la.
   baseInfo: Informació Bàsica
   cancelShare: Cancel·la la Compartició
   description: Quan comparteixes el perfil, altres persones poden descarregar aquests fitxers des del teu ordinador.
-  downloadDescription: Verifica els fitxers que el teu company t'ha proporcionat. Selecciona els fitxers que vols descarregar. Es col·locaran a la instància actual {name}.
+  downloadDescription: >-
+    Verifica els fitxers que el teu company t'ha proporcionat. Selecciona els fitxers que vols descarregar. Es
+    col·locaran a la instància actual {name}.
   downloadNotifyTitle: Descarrega la instància de {user}
   downloadTitle: Descarrega fitxers d'altres companys
   downloadToLocal: Descarrega a la instància actual
@@ -19,6 +23,11 @@ AppShareInstanceDialog:
   share: Compartir
   shareNotifyTitle: Compartir Instància
   shareTitle: Comparteix fitxers del joc amb altres jugadors
+  editScopeDescription: >-
+    Selecciona els fitxers que els altres jugadors poden descarregar quan detectin aquest joc en execució a la xarxa
+    local.
+  editScopeTitle: Edita què es comparteix
+  instanceToShare: Joc en execució
 BaseSetting: {}
 BaseSettingGeneral:
   title: General
@@ -35,10 +44,10 @@ HomeJavaIssueDialog:
   incompatibleJava: Java Incompatible
   incompatibleJavaHint: El Java actual pot ser incompatible amb el Minecraft seleccionat!
   missingJava: Java no Trobat
-  missingJavaHint: 'El launcher no pot detectar cap Java al teu ordinador. Pots:'
+  missingJavaHint: 'El llançador no pot detectar cap Java al teu ordinador. Pots:'
   needDownloadHint: No es troba cap versió adequada de Java al teu ordinador. Es recomana descarregar-ne una de nova.
   optionAutoDownload:
-    message: El launcher descarregarà i instal·larà Java des de la font de Mojang.
+    message: El llançador descarregarà i instal·larà Java des de la font de Mojang.
     name: Descarrega Automàticament
   optionGoToDownloadPage:
     message: Obre la pàgina de descàrrega de Java. Pots descarregar i instal·lar Java manualment.
@@ -46,6 +55,18 @@ HomeJavaIssueDialog:
   optionLocalJava:
     message: Usa Java local si el tens al teu ordinador.
     name: Usa Java Local
+  optionSwitch:
+    name: Canvia a {version}
+    disabled: No s'ha trobat cap Java {version} a la base de dades.
+    message: Utilitza el Java {version} que ja tens a l'ordinador
+  optionSelectJava:
+    message: Pot ser que el llançador no hagi trobat el teu Java. Indica on és.
+    name: Selecciona el Java de l'ordinador
+  recommendedVersionHint: Per a {version} es recomana una versió de Java dins de l'interval {range}.
+  selectMatchedHint: S'han trobat versions locals de Java adequades. Pots seleccionar-ne una.
+  selectSecondaryHint: >-
+    S'han trobat versions locals de Java, però pot ser que no compleixin els requisits. Les pots utilitzar per iniciar
+    el joc, tot i que aquest avís continuarà apareixent.
 HomeLaunchMultiInstanceDialog:
   confirm: Sí, Llança
   description: Estàs llançant diverses instàncies de Minecraft. Estàs segur?
@@ -56,14 +77,23 @@ HomeSyncDialog:
   description: Sincronitza la teva instància amb la font remota.
   sync: Sincronitza
   title: Sincronització
+  pull: Descarrega els canvis
+  push: Puja els canvis
 HomeSyncDialogPull:
   description: Descarrega els canvis del servidor remot.
   pull: Descarrega
   title: Descarrega Canvis
+  failText: No s'ha pogut obtenir l'actualització. {url}
+  refresh: Actualitza
+  update: Actualitza
 HomeSyncDialogPush:
   description: Puja els canvis locals al servidor remot.
   push: Puja
   title: Puja Canvis
+  authError: L'autenticació de l'usuari no és vàlida. Comprova que tinguis permís per pujar fitxers al servidor.
+  refresh: Actualitza
+  unknownError: Error desconegut del servidor. Torna-ho a provar.
+  upload: Puja la instància
 SettingMigrationDialog:
   selectRootDirectory: Selecciona el Directori Arrel
 add: Afegeix
@@ -77,6 +107,24 @@ author: Autor
 back: Enrere
 baseSetting:
   title: Configuració Bàsica
+  info:
+    address: Adreça
+    changes: Canvis
+    custom: Personalitzat
+    disabled: Desactivat
+    enabled: Activat
+    exportFormats: Formats d'exportació
+    inherited: Heretat
+    modLoader: Carregador de mods
+    notConfigured: Sense configurar
+    notSet: Sense especificar
+    offline: Arxiu sense connexió
+    projectId: ID del projecte
+    running: En execució
+    saved: Desat
+    status: Estat
+    stopped: Aturat
+    vanilla: Vanilla
 browse: Navega
 browseApp:
   createShortcut: Crea una Drecera
@@ -84,7 +132,8 @@ browseApp:
   delete: Elimina
   launch: Inicia i estableix com a predeterminat
 cancel: Cancel·la
-checkUpdate: Comprova Actualitzacions
+checkUpdate:
+  name: Cerca actualitzacions
 color: Color
 confirm: Comença
 copyClipboard:
@@ -96,10 +145,27 @@ curseforge:
   search: Cerca
   title: CurseForge
   view: Veure
+  category: Categoria
+  createdDate: Data de creació
+  lastUpdate: Darrera actualització
+  releasedDate: Data de publicació
+  authors: Autors
+  downloadOnly: Descarrega
+  file:
+    gameVersion: Versió del joc
+    modLoader: Carregador de mods
+  installTo: Instal·la a {path}
+  installToStorage: Instal·la a l'emmagatzematge
+  project:
+    description: Descripció
+    files: Fitxers
+    images: Imatges
+  recentFiles: Fitxers recents
+  totalDownloads: Descàrregues totals
 curseforgeCard: {}
 curseforgeCategory:
   API and Library: API i Biblioteques
-  Addons: Addons
+  Addons: Complements
   Adventure: Aventura
   Adventure and RPG: Aventura i RPG
   Animated: Animació
@@ -133,7 +199,7 @@ curseforgeCategory:
   Photo Realistic: Fotorealista
   Puzzle: Trencaclosques
   QoL: QoL
-  Quests: Tasques
+  Quests: Missions
   Redstone: Redstone
   Sci-Fi: Ciència-ficció
   Server Utility: Utilitat de Servidor
@@ -156,13 +222,13 @@ dataMigration:
   migrationDestinationIsNotEmptyDirectory: La destinació de la migració no és un directori buit! Assegura't de seleccionar un directori buit!
   migrationNoPermission: |-
     No hi ha permís per canviar el nom del directori antic al nou!
-    Assegura't que el launcher tingui accés a ambdós llocs!
+    Assegura't que el llançador tingui accés a ambdós llocs!
   placeholder: Fes clic aquí per seleccionar el directori
-  setRootCause: Perdràs les teves dades (Mapes, Paquets de Recursos, Mods) si tanques el Launcher durant aquest procés!
-  setRootDescription: Això canviarà la carpeta de dades arrel d'aquest launcher i Minecraft.
+  setRootCause: Perdràs les teves dades (Mapes, Paquets de Recursos, Mods) si tanques el Llançador durant aquest procés!
+  setRootDescription: Això canviarà la carpeta de dades arrel d'aquest llançador i Minecraft.
   setRootTitle: Estableix una nova ubicació d'emmagatzematge
   unknownError: Error Desconegut! Torna-ho a intentar o contacta amb el desenvolupador.
-  waitReload: Migrant dades. Si us plau, no tanquis el Launcher o perdràs les teves dades.
+  waitReload: Migrant dades. Si us plau, no tanquis el Llançador o perdràs les teves dades.
 delete:
   name: Elimina {name}
   'no': 'No'
@@ -173,6 +239,7 @@ dependencies:
   name: Dependències
   optional: Opcional
   required: Requerida
+  dependents: Mods que depenen d'aquest mod
 description: Descripció
 detail: Detall
 diagnosis:
@@ -180,13 +247,13 @@ diagnosis:
     message: Fes clic per intentar reinstal·lar aquesta versió.
     name: Instal·lació Errònia a {version}
   corruptedAssets:
-    message: El launcher instal·larà els assets per tu
+    message: El llançador instal·larà els assets per tu
     name: 'Asset corrupte: {name} | Asset corrupte: {name} | {count} assets corruptes'
   corruptedAssetsIndex:
-    message: El launcher descarregarà l'índex d'assets per tu
+    message: El llançador descarregarà l'índex d'assets per tu
     name: El fitxer d'índex d'assets {version} està corrupte.
   corruptedLibraries:
-    message: El launcher instal·larà les biblioteques per tu
+    message: El llançador instal·larà les biblioteques per tu
     name: 'Biblioteca corrupta: {name} | Biblioteca corrupta: {name} | {count} Biblioteques corruptes'
   corruptedVersionJar:
     message: Fes clic per instal·lar aquesta versió
@@ -195,7 +262,7 @@ diagnosis:
     message: Fes clic per instal·lar aquesta versió
     name: JSON de versió {version} corrupte.
   incompatibleJava:
-    message: Demana al launcher que ho descarregui per tu.
+    message: Demana al llançador que ho descarregui per tu.
     name: La versió de Java {javaVersion} no és adequada per a {version}!
   instanceFiles:
     description: La instal·lació de la instància inclou {counts} fitxers.
@@ -204,10 +271,10 @@ diagnosis:
     message: Fes clic per iniciar amb un altre Java.
     name: Ubicació de Java no vàlida.
   missingAssets:
-    message: El launcher instal·larà els assets per tu
+    message: El llançador instal·larà els assets per tu
     name: 'Asset que falta: {name} | Asset que falta: {name} | Falten {count} assets.'
   missingAssetsIndex:
-    message: El launcher descarregarà l'índex d'assets per tu
+    message: El llançador descarregarà l'índex d'assets per tu
     name: Falta el fitxer d'índex d'assets de {version}.
   missingAuthlibInjector: {}
   missingJava:
@@ -219,6 +286,17 @@ diagnosis:
   missingLibraries:
     message: Instal·larem les biblioteques per tu
     name: Falta la biblioteca {name} | Falta la biblioteca {name} | Falten {count} biblioteques
+  unresolvedFiles:
+    description: >-
+      No s'ha pogut resoldre {count} fitxer durant la instal·lació | No s'han pogut resoldre {count} fitxers durant la
+      instal·lació
+    title: Fitxers sense resoldre
+  unzipFileNotFound:
+    description: No s'ha trobat {file}
+    title: No s'ha trobat el fitxer del modpack
+  missingVersionJar:
+    message: Fes clic per instal·lar aquesta versió
+    name: Falta el JAR de Minecraft %{version}
 disable: Desactiva
 disk:
   available: Disponible
@@ -245,18 +323,62 @@ env:
   missingVersionJar:
     message: Fes clic per instal·lar aquesta versió
     name: Falta el jar de la versió {version}
-error: Error
+error:
+  name: Error | Errors
 errors:
   DatabaseNotOpened: |-
     La base de dades no està oberta!
-    El launcher no funcionarà correctament!
-    Selecciona un directori de dades al qual pugui accedir el launcher.
+    El llançador no funcionarà correctament!
+    Selecciona un directori de dades al qual pugui accedir el llançador.
     Pots intentar restablir l'arrel de dades a la pàgina de configuració.
   DiskIsFull: |-
     El disc està ple!
     No puc escriure res al disc!
     Totes les funcions poden no ser funcionals!
   NotFoundError: 404 No trobat
+  bedrockUnsupportedPlatform: Minecraft Bedrock Edition només és compatible amb la versió per al Windows.
+  bedrockNotInstalled: Minecraft Bedrock Edition no està instal·lat.
+  bedrockLaunchFailed: No s'ha pogut iniciar Minecraft Bedrock Edition.
+  bedrockInstallFailed: No s'ha pogut instal·lar Minecraft Bedrock Edition.
+  bedrockDownloadUrlUnavailable: >-
+    Aquesta versió de Bedrock no està disponible per al compte de Microsoft actual. Les versions Beta i Preview
+    requereixen un compte inscrit al programa beta de Minecraft.
+  bedrockDeveloperModeRequired: Cal activar el mode de desenvolupador del Windows per registrar aquesta versió de Bedrock.
+  bedrockRegisterFailed: No s'ha pogut registrar aquesta versió de Bedrock al Windows.
+  bedrockVersionNotFound: Aquesta versió de Bedrock no està instal·lada localment.
+  BadForgeInstallerJarError: >-
+    No s'ha pogut llegir el JAR de l'instal·lador de Forge. Pot ser que el format hagi canviat. Si el problema
+    persisteix, contacta amb els desenvolupadors.
+  BadInstanceType: 'El tipus d''instància no és vàlid: {type}'
+  BodyTimeoutError: S'ha esgotat el temps d'espera del cos HTTP
+  ChecksumNotMatchError: 'La suma de verificació no coincideix. Valor esperat: {expect}. Valor obtingut: {actual}.'
+  ConnectTimeoutError: S'ha esgotat el temps d'espera de connexió amb el servidor.
+  CorruptedResourceMetadata: >-
+    S'han detectat i eliminat metadades malmeses de {count} recursos. Els fitxers continuen funcionant, però se n'ha
+    perdut l'atribució a Modrinth o CurseForge, que es tornarà a detectar automàticament.
+  DNSNotFoundError: Error de resolució DNS
+  DownloadAggregateError: No s'ha pogut descarregar el fitxer.
+  DownloadFileSystemError: No s'ha pogut accedir a la ruta de descàrrega. Comprova que el llançador hi tingui permís d'escriptura.
+  HeadersTimeoutError: S'ha esgotat el temps d'espera de les capçaleres HTTP
+  InstallBackendUnresponsive:
+    body: >-
+      El procés en segon pla del llançador ha deixat de respondre i la instal·lació no s'ha pogut completar. Tanca
+      completament el llançador, torna'l a obrir i torna-ho a provar.
+    title: El llançador no respon
+  InstallInstructionFailed:
+    body: '{name}: {message}'
+    title: No s'han pogut instal·lar els fitxers de Minecraft
+  InstallNetworkError:
+    body: >-
+      Un problema de xarxa ha interromput la instal·lació. Comprova la connexió a Internet o el servidor intermediari i
+      torna-ho a provar.
+    title: No es poden descarregar els fitxers de Minecraft
+  InstallPermissionDenied:
+    body: >-
+      L'antivirus o els permisos de la carpeta han bloquejat la instal·lació. Afegeix el llançador a les exclusions de
+      l'antivirus o selecciona una altra carpeta de dades a la configuració.
+    title: No es pot escriure a la carpeta del llançador
+  SocketError: Error del sòcol del servidor
 eula:
   body: En marcar el botó de la casella de verificació, estàs indicant que estàs d'acord amb la {eula} de Minecraft.
   BadForgeInstallerJarError: No es pot llegir el jar de forge. Potser és un format nou de forge? Contacta amb els desenvolupadors si persisteix.
@@ -265,18 +387,24 @@ eula:
   ChecksumNotMatchError: El checksum no coincideix! S'esperava {expect}. Actual {actual}.
   ConnectTimeoutError: Temps d'espera de connexió al servidor.
   DNSNotFoundError: Cerca DNS Fallida
-  DatabaseNotOpened: Base de dades no oberta! El launcher no funcionarà correctament! Si us plau, estableix un directori de dades. Pots intentar restablir les dades principals a la pàgina d'ajustes.
+  DatabaseNotOpened: >-
+    Base de dades no oberta! El llançador no funcionarà correctament! Si us plau, estableix un directori de dades. Pots
+    intentar restablir les dades principals a la pàgina d'ajustes.
   DownloadAggregateError: Error en descarregar el fitxer.
-  DownloadFileSystemError: Error en accedir al directori de descàrrega. Si us plau, assegura't que el launcher té permís d'escriptura.
+  DownloadFileSystemError: Error en accedir al directori de descàrrega. Si us plau, assegura't que el llançador té permís d'escriptura.
   HeadersTimeoutError: Temps d'espera de la capçalera HTTP
   SocketError: Error de socket del servidor
 exception:
-  http: HTTP request to {url} failed. Status code {statusCode}. {code}. Please retry or check your network. If this error persist, please send report to developer team.
+  http: >-
+    La petició HTTP a {url} ha fallat. Codi d'estat: {statusCode}. {code}. Torna-ho a provar o comprova la xarxa. Si el
+    problema persisteix, envia un informe a l'equip de desenvolupament.
 existed: Ja existeix
 exportModpackTarget:
   curseforge: CurseForge
   modrinth: Modrinth
   title: Exporta Modpack a
+  github: Fitxer de GitHub
+  override: Fitxer de substitució (sense processar)
 extensions:
   mrpack: Modpack de Modrinth
   zip: Fitxer Zip
@@ -294,20 +422,29 @@ feedback:
   discordJoin: Uneix-te
   github: Problema a Github
   githubDescription: Obre un problema a Github per expressar la teva opinió
-  githubOpenIssue: Github
+  githubOpenIssue: GitHub
   kook: Kook
   kookDescription: Kook és una aplicació alternativa per als usuaris de Discord a la Xina continental
   name: Comentaris
   qq: Grup de QQ
   qqDescription: 'Uneix-te al grup de QQ de comentaris i parla directament amb els autors. Número del grup: {number}'
   qqEnterGroup: Uneix-te
+  generateReport: Genera un informe
+  generateSaveAs: Desa l'informe a
+  hint: >-
+    Prem el botó per crear un informe i contacta amb l'equip de desenvolupament. L'informe inclourà informació del
+    dispositiu, com ara el tipus i la versió del sistema operatiu i el nom d'usuari del sistema.
+  reddit: Reddit
+  redditDescription: Uneix-te a la comunitat de Reddit r/XMCL
 fileDetail:
   fileSize: Mida del Fitxer
   hash: Hash
+  filesize: Mida del fitxer
 filter: Filtre
 filterLocalOnly: Mostra només l'instal·lat
 finish: Finalitza
-forgeConfig: Configuració de Forge
+forgeConfig:
+  hint: Inicia el joc almenys una vegada amb aquest mod per poder detectar-ne el fitxer de configuració.
 forgeVersion:
   common: Comú
   disable: Desactiva Forge
@@ -331,6 +468,23 @@ importModpack:
   failed: Error en importar {modpack}
   name: Importa el paquet de modificacions
   success: Importació de {modpack} reeixida
+  fromFileSubtitle: Tria un fitxer .zip o .mrpack
+  fromUrl: Des d'un enllaç o URL…
+  fromUrlSubtitle: Instal·la des de l'URL d'un modpack
+  fromUrlDescription: 'Introdueix o enganxa l''URL del modpack:'
+  invalidUrl: Introdueix un URL vàlid (http:// o https://)
+  selectVersion: Selecciona la versió del modpack
+  selectVersionDescription: 'Tria la versió de {name} que vols instal·lar:'
+  pmcProtected: >-
+    Planet Minecraft està protegit per Cloudflare. Copia l'enllaç de descàrrega directa o el d'un servidor alternatiu de
+    la pàgina.
+  netdiskTitle: Descàrrega des del núvol
+  netdiskDescription: >-
+    Aquesta versió del modpack està allotjada en un servei d'emmagatzematge al núvol extern. Prem el botó de sota per
+    obrir la pàgina de descàrrega al navegador i arrossega el fitxer .zip o .mrpack descarregat a PbtModLauncherX.
+  openNetdisk: Obre el servei d'emmagatzematge al núvol
+  netdiskOpened: S'ha obert l'enllaç al navegador i s'ha copiat al porta-retalls.
+  noReleasesFound: No s'ha trobat cap versió de modpack .mrpack o .zip en aquest repositori.
 importResource: Importa Recurs
 install: Instal·la
 installAssets:
@@ -363,7 +517,13 @@ installLabyMod:
 installLibraries:
   library: Instal·la la Biblioteca
   name: Instal·la les Biblioteques
-installModpack: Instal·la Modpack
+installModpack:
+  deploy: Desplega
+  download:
+    file: Descarrega el fitxer
+    name: Descarrega
+  name: Instal·la el modpack
+  unpack: Descomprimeix el modpack
 installModrinthFile:
   name: Instal·la Modrinth
 installOptifine:
@@ -371,7 +531,9 @@ installOptifine:
   jar: Genera Jar
   json: Genera Json
   name: Instal·la Optifine
-installResource: Instal·la Recurs
+installResource:
+  fail: No s'ha pogut instal·lar {file}
+  success: S'ha instal·lat el recurs {file} correctament
 installVersion:
   jar: Instal·la el Jar de la Versió
   json: Instal·la el Json de la Versió
@@ -427,6 +589,31 @@ instance:
   vmVar: Variables d'Entorn
   vmVarHint: Fes clic al botó per afegir variables d'entorn
   width: Amplada
+  contents: Contingut
+  deleteFile: Elimina els fitxers de la instància
+  deleteHintBedrock: Minecraft Bedrock Edition i totes les seves dades s'eliminaran completament de l'ordinador. N'estàs segur?
+  envVarKey: Clau
+  envVarKeyPlaceholder: MY_VAR
+  envVarValue: Valor
+  envVarValuePlaceholder: valor
+  fileApiPlaceholder: Introdueix l'URL de sincronització remota per mantenir els recursos sincronitzats
+  monitor: Monitor per a la pantalla completa
+  monitorDefault: Per defecte (monitor principal)
+  monitorNumber: Monitor {number}
+  monitorPrimary: Principal
+  hideCard: Amaga aquesta targeta
+  moveToTop: Mou al principi
+  nameInvalidChars: 'El nom no pot contenir aquests caràcters: < > : " / \\ {''|''} ? *'
+  nameNoCyrillic: El nom no pot contenir caràcters ciríl·lics
+  namePathTraversal: El nom no pot contenir segments de ruta pare ("..")
+  nameReservedName: El sistema reserva aquest nom i no es pot utilitzar
+  nameTrailingDotOrSpace: El nom no pot acabar amb un punt o un espai
+  nameWhitespaceOnly: El nom no pot contenir només espais o punts
+  preExecCommand: Ordre prèvia a l'inici
+  preExecCommandHint: Ordre que s'executa abans d'iniciar Minecraft
+  showHiddenCards: Mostra les targetes amagades
+  updates: Actualitzacions
+  resolutionEnabled: Activa la resolució personalitzada
 instanceAge:
   older: Més Antic
   threeDay: En Tres Dies
@@ -451,6 +638,18 @@ instanceInstallSkip:
     Si confirmes que els fitxers actuals són vàlids, pots ometre la verificació de validació.
 instanceSetting:
   title: Configuració de la Instància
+  disableAuthlibInjector: Desactiva authlib-injector
+  disableAuthlibInjectorDescription: Si utilitzes un sistema d'aparences de tercers, authlib-injector et pot ajudar a mostrar-les al joc.
+  disableElyByAuthlib: Desactiva la substitució d'authlib d'ely.by
+  disableElyByAuthlibDescription: Ely.by ofereix una substitució d'authlib que permet mostrar les aparences a qualsevol servidor.
+  fastLaunch: Inici ràpid
+  fastLaunchHint: Ignora l'estat de l'usuari i els problemes pendents
+  hideLauncher: Amaga el llançador en iniciar el joc
+  icon: Tria una imatge
+  showLog: Mostra el registre de Minecraft
+  showLogHint: Obre una finestra amb el registre de Minecraft en temps real després d'iniciar el joc
+  syncGameLanguage: Sincronitza l'idioma del joc
+  syncGameLanguageDescription: Sincronitza automàticament l'idioma de Minecraft amb el del llançador en iniciar el joc
 instanceTemplate:
   curseforge: Aquest és un modpack de Curseforge
   ftb: Aquest és un modpack de FTB
@@ -472,6 +671,7 @@ instanceUpdate:
     Conserva {keep} fitxers.
   title: Actualitza la Instància
   update: Inicia l'Actualització
+  noFiles: No hi ha canvis als fitxers
 instances:
   add: Crea el Joc
   addDescription: Crea una nova instància des de zero
@@ -483,14 +683,31 @@ instances:
   addTemplate: Crea des del modpack descarregat
   addTemplateDescription: Importa des del modpack descarregat
   addVanilla: Crea des de Minecraft vanilla
-  addVanillaDescription: Importa des de la teva instància .minecraft; això duplicarà el teu joc original en aquest launcher.
+  addVanillaDescription: Importa des de la teva instància .minecraft; això duplicarà el teu joc original en aquest llançador.
   choose: Selecciona un Joc
   fix: Repara
   folderSetting: Configuració de carpeta
   importFolder: Importa des de la Carpeta
-  importFolderDescription: Importa Minecraft al Launcher
+  importFolderDescription: Importa Minecraft al Llançador
   loadingFiles: Carregant fitxers del Modpack
   refreshServers: Actualitza els Servidors
+  instanceCount: '{count} instàncies'
+  addCurseForgeDescription: Importa des de la carpeta de dades de CurseForge. Selecciona'n la carpeta arrel.
+  addPrismDescription: Importa una instància existent de PrismLauncher.
+  edition: Edició
+  editionJava: Java Edition
+  editionBedrock: Bedrock Edition
+  editionBedrockHint: >-
+    Bedrock Edition s'inicia mitjançant Microsoft Store i requereix una llicència de Bedrock. Els mods, els paquets de
+    recursos i altres funcions exclusives de Java no estan disponibles.
+  editionBedrockWindowsOnly: Bedrock Edition només és compatible amb la versió per al Windows.
+  folder: Carpeta
+  linkSharedFolders: Comparteix carpetes entre instàncies
+  linkSharedFoldersHint: >-
+    Crea aquestes carpetes com a enllaços a les carpetes compartides del llançador. Així, aquesta instància compartirà
+    el contingut amb totes les altres instàncies enllaçades. No és una còpia: els canvis fets en una instància apareixen
+    en totes. Les carpetes no seleccionades continuen sent privades.
+  linkFailed: No s'ha pogut enllaçar la carpeta {folder} amb la carpeta compartida
 items:
   count: '{count} ítems'
   total: '{total} total'
@@ -507,6 +724,27 @@ java:
   optionalJvmFlags: Indicadors JVM Opcionals
   recommendedMemory: Memòria Recomanada
   title: Java
+  allocatedLong: Utilitza el Java per defecte del sistema
+  allocatedShort: Assignació automàtica
+  allocation: Assignada
+  autoHint: El mínim augmenta amb el nombre de mods instal·lats; el màxim depèn de la memòria disponible del sistema.
+  change: Canvia
+  importFromFile: Importa Java des d'un fitxer
+  invalid: La ubicació de Java no és vàlida
+  location: Ubicació de Java
+  locationHint: No s'ha seleccionat cap Java; s'utilitza el del sistema
+  memory: Memòria de Java
+  memoryAuto: Automàtica
+  memoryManual: Manual
+  memoryUnassigned: Sense assignar
+  name: Java
+  noMemory: No limitis l'ús de memòria
+  openFolder: Obre la carpeta de Java
+  presets: Valors predefinits
+  refresh: Actualitza els Java locals
+  systemMemory: 'Memòria lliure del sistema: {free} / {total}'
+  browse: Selecciona l'executable de Java
+  modifyInstance: Modifica la ruta de Java
 labyMod:
   disable: Desactiva labymod
   empty: LabyMod no admet la versió actual de Minecraft
@@ -517,6 +755,9 @@ launch:
   cancel: Cancel·la
   kill: Atura
   launch: Inicia
+  forceKill: Força el tancament
+  launchAs: Inicia com a
+  launchTo: Inicia a
 launchBlocked:
   ignore: Força l'Inici
   launchBadVersion:
@@ -526,10 +767,14 @@ launchBlocked:
     description: Alguns errors han causat el tancament del joc.
     title: Inici fallit
   launchInvalidJavaPath:
-    description: La versió de Java seleccionada no és vàlida. Si us plau, tria'n una de nova. <span class="highlight"> {javaPath} </span>
+    description: >-
+      La versió de Java seleccionada no és vàlida. Si us plau, tria'n una de nova. <span class="highlight"> {javaPath}
+      </span>
     title: Java no vàlid
   launchJavaNoPermission:
-    description: El launcher no té permís per executar Java <span class="highlight"> {javaPath} </span>. Pots canviar el permís del fitxer de Java però també pots donar permisos al launcher.
+    description: >-
+      El llançador no té permís per executar Java <span class="highlight"> {javaPath} </span>. Pots canviar el permís
+      del fitxer de Java però també pots donar permisos al llançador.
     title: Sense permís per iniciar
   launchNoProperJava:
     description: No hi ha cap Java vàlid per iniciar el joc. ({javaPath} és vàlida?)
@@ -539,23 +784,46 @@ launchBlocked:
     title: Cap versió seleccionada
   launchSpawnProcessFailed:
     description: |-
-      Verifica el teu Java o concedeix més permisos al launcher i torna a intentar-ho.
+      Verifica el teu Java o concedeix més permisos al llançador i torna a intentar-ho.
       Si això encara no funciona, contacta amb els desenvolupadors.
     title: No es pot iniciar el procés del joc
   launchUserStatusRefreshFailed:
     description: No es pot recarregar l'estat de l'usuari.
     title: Error en validar l'estat de l'usuari
-  unexpectedText: Això no hauria d'ocórrer. Prova a reiniciar el launcher. Contacta amb els desenvolupadors si torna a ocórrer.
+  unexpectedText: Això no hauria d'ocórrer. Prova a reiniciar el llançador. Contacta amb els desenvolupadors si torna a ocórrer.
   userAcquireMicrosoftTokenFailed: No s'ha pogut obtenir el token de Microsoft. Si us plau, revisa el teu compte; alguna cosa ha anat malament.
   userCheckGameOwnershipFailed: Ha fallat en revisar el teu compte de Minecraft
   userExchangeXboxTokenFailed: Ha fallat en demanar el token de Xbox a Microsoft. Si us plau, torna a intentar-ho o revisa la teva connexió.
   userLoginMinecraftByXboxFailed: Ha fallat en iniciar sessió amb el token de Xbox. Si us plau, torna a intentar-ho o revisa la teva connexió.
+  launchLinuxDisplayUnavailable:
+    environmentMissing: >-
+      PbtModLauncherX no ha pogut recuperar la informació de la pantalla X11 de la sessió d'escriptori. Reinicia
+      PbtModLauncherX des d'un terminal de la sessió actual o tanca la sessió i torna a entrar-hi.
+    noGraphicalSession: >-
+      PbtModLauncherX no s'està executant en una sessió d'escriptori gràfica. Inicia'l des de l'escriptori abans
+      d'iniciar Minecraft.
+    sandboxDenied: >-
+      L'entorn aïllat de l'aplicació no té accés a X11. Dona a PbtModLauncherX accés al sòcol X11 als permisos de
+      Flatpak i reinicia'l.
+    title: La pantalla X11 no està disponible
+    xwaylandMissing: >-
+      Minecraft necessita XWayland en aquesta sessió de Wayland. Instal·la el paquet XWayland de la teva distribució de
+      Linux, tanca la sessió i torna a entrar-hi.
+    xwaylandNotRunning: >-
+      XWayland està instal·lat, però no hi ha cap pantalla X11 en execució. Activa XWayland a la configuració del
+      compositor, tanca la sessió i torna a entrar-hi.
 launchFailed:
   crash: El joc ha petat!!
   description: No hi ha informe d'error. Revisa els errors.
   failedToLaunch: Error d'inici
   latestLog: Registre més recent
   title: El joc s'ha tancat amb un codi estrany
+  elyByAuthlib:
+    description: >-
+      S'ha utilitzat la substitució d'authlib d'Ely.by per a Minecraft {version}, però pot ser que aquesta versió no
+      sigui plenament compatible.
+    suggestion: Pots desactivar la substitució d'authlib d'Ely.by a la configuració de la instància per evitar aquest problema.
+    title: Problema de compatibilitat amb l'authlib d'Ely.by
 launchPreExecuteCommandFailed:
   description: 'L''ordre prèvia a l''execució ha fallat amb un error: {error}. Comprova l''ordre i torna-ho a intentar.'
   title: Error en l'Ordre Prèvia a l'Execució
@@ -567,18 +835,33 @@ launchStatus:
   launchingSlow: Encara iniciant... El motor gràfic pot ser lent...
   refreshingUser: Recarregant token d'usuari
   spawningProcess: Creant Procés
+  elyByWarning: >-
+    La substitució d'authlib d'Ely.by està activada. Algunes versions de Minecraft poden ser incompatibles i fallar. Si
+    tens problemes, desactiva-la a la configuració de la instància.
 launcherUpdate:
   alreadyLatest: Actualitzat!
   installAndQuit: Reinicia per instal·lar
   noUpdateAvailable: No hi ha actualitzacions!
   reinstall: Reinstal·la
-  title: Actualització del Launcher
+  title: Actualització del Llançador
   tooltip: Hi ha una nova actualització disponible!
-liteloader: LiteLoader
+  updateToThisVersion: Descarrega i instal·la
+liteloader:
+  name: LiteLoader
 localVersion:
   fabricInstaller: Instal·lador de Fabric
   forgeInstaller: Instal·lador de Forge
   title: Versió Local
+  auto: Càlcul automàtic
+  empty: No hi ha cap versió instal·lada
+  hint: Inicia directament una versió local concreta
+  reinstallDescription: Si creus que la instal·lació d'aquesta versió té problemes, pots provar de reinstal·lar-la.
+  reinstallTitle: Reinstal·la {version}
+  delete: Elimina la versió local
+  deleteDescription: >-
+    Aquesta operació elimina els fitxers JSON i JAR de la versió local. Caldrà tornar-los a descarregar per
+    utilitzar-la.
+  refresh: Actualitza les versions
 logLevel:
   error: Error
   info: Info
@@ -594,6 +877,13 @@ login:
   offline: Sense connexió
   offlineHint: Juga sense iniciar sessió
   title: Inicia Sessió
+  dropHint: Arrossega aquí l'enllaç amb el codi d'autorització per iniciar la sessió manualment
+  forgetPassword: Has oblidat la contrasenya?
+  login: Inicia la sessió
+  manualLoginUrl: Si el navegador no s'obre, prem aquest enllaç per autoritzar l'accés.
+  signup: Registra't
+  signupDescription: Encara no tens un compte?
+  userRelogin: El testimoni d'accés ha caducat. Torna a iniciar la sessió.
 loginError:
   acquireMicrosoftTokenFailed: Ha fallat en obtenir el token de Microsoft. Pot ser un error de xarxa. Si us plau torna a intentar-ho.
   badNetworkOrServer: Si us plau, revisa la connectivitat de la teva xarxa! O pot ser que el servidor d'auth estigui caigut!
@@ -602,37 +892,96 @@ loginError:
   fetchMinecraftProfileFailed: 'Ha fallat en obtenir el perfil de Minecraft: {reason}'
   illegalEmail: El correu electrònic ha de ser vàlid
   invalidCredentials: Credencials no vàlides. Usuari o contrasenya.
-  loginMinecraftByXboxFailed: Ha fallat en canviar el token de Microsoft per Xbox. Si us plau, assegura't que tens Minecraft a Xbox, o torna a intentar-ho.
-  loginXboxFailed: Ha fallat en iniciar sessió amb Xbox. Si us plau, assegura't que el teu compte de Xbox està vinculat amb Microsoft. Torna a intentar-ho.
+  loginMinecraftByXboxFailed: >-
+    Ha fallat en canviar el token de Microsoft per Xbox. Si us plau, assegura't que tens Minecraft a Xbox, o torna a
+    intentar-ho.
+  loginXboxFailed: >-
+    Ha fallat en iniciar sessió amb Xbox. Si us plau, assegura't que el teu compte de Xbox està vinculat amb Microsoft.
+    Torna a intentar-ho.
   requestFailed: Ha fallat en iniciar sessió, no sabem la raó exacta. Torna a intentar-ho.
   requireEmail: Cal introduir el correu electrònic
   requirePassword: Cal introduir la contrasenya
   requireUsername: Cal introduir l'usuari
   timeout: Temps d'espera de l'inici de sessió. Torna a intentar-ho o revisa la teva xarxa.
+  loginCanceled: S'ha cancel·lat l'inici de sessió de Microsoft.
+  cyrillicNotAllowed: No es permeten caràcters ciríl·lics
+  illegalOfflineUsername: El nom d'usuari ha de tenir entre 3 i 16 caràcters i només pot contenir lletres angleses, números i guions baixos
+  loginMinecraftByXboxRateLimited: >-
+    El servei d'autenticació de Minecraft de Microsoft està limitant les peticions (HTTP 429). Espera una estona i
+    torna-ho a provar.
+  loginMinecraftByXboxRateLimitedWithRetry: >-
+    El servei d'autenticació de Minecraft de Microsoft està limitant les peticions (HTTP 429). Espera uns {seconds}
+    segons i torna-ho a provar.
+  loginMinecraftByXboxServerError: >-
+    El servei d'autenticació de Minecraft de Microsoft ha retornat un error del servidor (HTTP {status}). És un problema
+    del servei. Torna-ho a provar d'aquí a uns minuts.
+  loginMinecraftByXboxStatus: >-
+    No s'ha pogut obtenir el testimoni de Minecraft amb el d'Xbox (HTTP {status}). Comprova que tinguis Minecraft a Xbox
+    o torna-ho a provar.
+  loginXboxAdultVerification: >-
+    El compte de Microsoft requereix una verificació d'edat per iniciar la sessió a Xbox. Obre {url} al navegador,
+    completa la verificació i torna-ho a provar.
+  loginXboxAgeRestricted: >-
+    No s'ha pogut iniciar la sessió a Xbox per una restricció d'edat. Comprova que el compte de Microsoft tingui l'edat
+    configurada i que sigui superior a 18 anys.
+  loginXboxBadXsts: >-
+    Microsoft ha retornat una resposta XSTS sense les dades d'usuari esperades. Sol ser temporal; torna-ho a provar
+    d'aquí a uns minuts.
+  loginXboxBanned: >-
+    Microsoft ha suspès o bloquejat aquest compte de Microsoft o Xbox i no pot iniciar la sessió a Minecraft. Contacta
+    amb l'assistència de Microsoft o Xbox.
+  loginXboxChildAccount: >-
+    El compte de Microsoft és infantil i cal afegir-lo a una família de Microsoft per iniciar la sessió a Xbox o
+    Minecraft. Obre {url} al navegador per solucionar-ho i torna-ho a provar.
+  loginXboxFailedWithCode: >-
+    No s'ha pogut iniciar la sessió a Xbox amb el testimoni de Microsoft (XErr {code}). Cerca aquest codi per obtenir
+    ajuda o torna-ho a provar més tard.
+  loginXboxNoXboxProfile: >-
+    Aquest compte de Microsoft encara no té un perfil d'Xbox. Obre {url} al navegador per crear-ne un i torna-ho a
+    provar.
+  loginXboxRegionLocked: >-
+    Xbox Live no està disponible a la regió del compte. Canvia el país o la regió a la configuració del compte de
+    Microsoft i torna-ho a provar.
+  noProfileForNewUser: >-
+    No s'ha trobat cap perfil de joc. Si ets un usuari nou de Minecraft, inicia la sessió almenys una vegada al
+    llançador oficial.
+  xboxErrorGuideHint: Tens problemes per iniciar la sessió? Consulta com resoldre els problemes d'inici de sessió de Microsoft i Xbox.
+  openLoginGuide: Com es pot resoldre aquest problema
+  openDiscordSupport: Encara necessites ajuda? Uneix-te al nostre Discord
 logsCrashes:
   crashes: Informes d'Errors
   logs: Registres
   placeholder: No s'han trobat fitxers
   title: Registres o Informes d'Errors
+  failures: Errors d'inici
+  serverLogs: Registres del servidor
+  showFile: Mostra a la carpeta
 me:
   games: Els meus jocs
   modpacks: Els meus modpacks
   news: Notícies
   recentPlay: Joc Recent
   versions: Versions instal·lades
+  groupByDate: Agrupa per data
+  groupByFolder: Agrupa per carpeta
+  instanceViewMode: Mode de visualització de les instàncies
+  listView: Vista de llista
 minecraftVersion:
   empty: No es poden carregar les versions de Minecraft
   name: Versió de Minecraft
   release: Versió Estable
   showAlpha: Mostra les Versions Snapshot
   snapshot: Versió Snapshot
+  all: Totes les versions
 mod:
   acceptVersion: Accepta {version}
   applyGroupRules: Aplica les regles d'agrupació desades
   compatible: Mod Compatible.
   currentVersion: 'Versió Actual: {current}'
   deletion: Elimina el Mod
-  deletionHint: Perdràs aquest mod i les seves metadades per sempre. Estàs segur que vols eliminar-lo? | Perdràs aquests mods i les seves metadades per sempre. Estàs segur que vols fer-ho?
+  deletionHint: >-
+    Perdràs aquest mod i les seves metadades per sempre. Estàs segur que vols eliminar-lo? | Perdràs aquests mods i les
+    seves metadades per sempre. Estàs segur que vols fer-ho?
   deletionRestHint: I altres {rest} mods...
   denseView: Vista densa
   dropHint: Arrossega el fitxer .jar/.litemod del mod aquí per importar-lo.
@@ -672,6 +1021,21 @@ mod:
   syncGroupRules: Desa les regles d'agrupació
   toUpdate: '{count} per actualitzar'
   ungroup: Desagrupa
+  createGroup: Crea un grup
+  description: Descripció
+  disableAll: Desactiva'ls tots
+  enableAll: Activa'ls tots
+  group: Agrupa
+  hideInstalled: Amaga els mods instal·lats
+  installedFilterOff: Mostra tots els mods
+  groupName: Nom del grup
+  groupNameRequired: Cal indicar un nom per al grup
+  newFolder: Carpeta nova
+  noGroupsFound: No s'ha trobat cap grup
+  noGroupsYet: Encara no hi ha cap grup. Crea'n un!
+  searchGroups: Cerca grups…
+  searchOnMcWiki: Cerca {name} a l'enciclopèdia de Minecraft.
+  selectOrCreateGroup: Selecciona o crea un grup
 modFilter:
   clear: Esborra el Filtre
   dependenciesInstallOnly: Mostra només mods amb dependències que falten
@@ -694,7 +1058,7 @@ modInstall:
   installDependencies: Instal·la les dependències que falten
   installHint: S'instal·larà el fitxer {file} amb {dependencies} dependències
   installed: Instal·lat
-  noVersionSupported: El mod només és compatible amb Minecraft {compatible}.
+  noVersionSupported: El mod només és compatible amb Minecraft {supported}.
   recommendation: Explora les modificacions {first} o {second} a {modrinth} i {curseforge}!
   removeUnusedLibraries: Elimina els mods de biblioteques no usades
   search: Resultat de la Cerca
@@ -703,10 +1067,24 @@ modInstall:
   source: Font de Mods
   switch: Canvia la Versió
   upgrade: Actualitza els Mods
+  autoUpgrade:
+    description: >-
+      Has canviat la versió de Minecraft. Vols actualitzar automàticament els mods compatibles a versions adequades per
+      a Minecraft {version}?
+    'no': Omet
+    title: Vols actualitzar els mods?
+    'yes': Actualitza els mods
+  releaseOnly: Ignora les versions alfa i beta en actualitzar
+  scanUnusedLibraries: Cerca biblioteques no utilitzades
 modUpgradePolicy:
   active: Actualitza automàticament
   passive: Actualitza manualment
   title: Política d'Actualització de Mods
+  curseforge: Prioritza CurseForge
+  curseforgeOnly: Només CurseForge
+  modrinth: Prioritza Modrinth
+  modrinthOnly: Només Modrinth
+  name: Política d'actualització
 modified:
   reset: Restableix
   save: Desa
@@ -739,9 +1117,103 @@ modpack:
   showInModrinth: Mostra {name} a Modrinth
   url: URL
   urlHint: L'URL de la pàgina d'inici del teu modpack
+  exportDirectory: Carpeta d'exportació
+  exportDirectoryDescription: El modpack s'exportarà per defecte a la carpeta de baixades
+  modrinthProject: Projecte de Modrinth
+  selectDefaultFiles: Selecciona els fitxers per defecte
+  bindProject: Vincula un projecte
+  bindProjectHint: Selecciona un projecte de modpack de Modrinth gestionat pel compte actual.
+  bindProjectTypeImmutableHint: >-
+    Modrinth fixa el tipus de projecte quan s'hi puja la primera versió i després no es pot canviar. Es poden vincular
+    esborranys sense versions, però un projecte publicat com a mod, paquet de recursos o similar no es pot convertir en
+    modpack. Utilitza «Crea un projecte nou».
+  bindProjectNoProjects: No s'ha trobat cap projecte de Modrinth al teu compte.
+  unbindProject: Desvincula el projecte
+  unbindProjectConfirmTitle: Vols desvincular el projecte de Modrinth?
+  unbindProjectConfirmMessage: >-
+    Només s'elimina l'associació local entre aquesta instància i el projecte de Modrinth. El projecte i les seves
+    versions a Modrinth no es modifiquen.
+  editProject: Edita el projecte
+  projectDiscovery: Descoberta i compatibilitat
+  projectGallery: Galeria
+  projectGalleryAdd: Afegeix una imatge
+  projectGalleryEmpty: Encara no hi ha imatges a la galeria.
+  projectGalleryFeatured: Destacada
+  projectGalleryFromScreenshots: Tria una captura de pantalla
+  projectGalleryHint: Afegeix imatges de fins a 5 MiB i tria la imatge destacada del projecte.
+  projectGallerySelectScreenshot: Selecciona una captura de pantalla de la instància
+  projectIdentity: Identitat i descripció
+  projectLinks: Enllaços del projecte
+  projectLoadFailed: No s'ha pogut carregar el projecte de Modrinth vinculat.
+  projectNoChanges: No hi ha canvis del projecte pendents de desar.
+  projectNotBound: No hi ha cap projecte de Modrinth vinculat
+  projectNotBoundHint: Vincula un projecte existent o crea'n un de nou a Modrinth.
+  projectUnsavedChanges: '{count} camps del projecte modificats'
+  projectLatestDraft: Esborrany
+  projectVersions: versions
+  publish: Publica
+  publishCategories: Categories (separades per comes)
+  publishChannel: Canal de publicació
+  publishChangelog: Registre de canvis
+  publishChangelogGenerate: Genera amb IA
+  publishConfirmProjectChanges: Confirma els canvis del projecte
+  publishCreateProject: Crea un projecte
+  publishCreateDraft: Genera i crea un esborrany
+  publishCustomVersion: Personalitzada
+  publishDescription: Descripció del projecte
+  publishDiscordUrl: URL de Discord
+  publishDraftCreated: S'ha pujat l'esborrany de la versió.
+  publishSubmitted: S'ha enviat la versió a revisió.
+  publishExistingProject: Projecte existent
+  publishIcon: Icona del projecte
+  publishIconHint: PNG, JPEG o WebP
+  publishIconKeep: Es conserva si no se selecciona una imatge nova
+  publishIconUseInstance: Utilitza la icona de la instància
+  publishIssuesUrl: URL d'incidències
+  publishLicense: ID de la llicència
+  publishLogin: Inicia la sessió a Modrinth
+  publishFiles: fitxers seleccionats
+  publishLinkageSummary: >-
+    {linked} de {total} mods, paquets de recursos o paquets de shaders s'enllaçaran directament a la descàrrega de
+    Modrinth en lloc de pujar-se.
+  publishLinkageEmbeddedSummary: '{count} fitxers no es poden enllaçar i es pujaran integrats en aquesta versió.'
+  publishLinkageShowFiles: Mostra els fitxers que cal pujar
+  publishLinkageReason:
+    missing-file: No s'ha trobat el fitxer al disc
+    not-linked-to-modrinth: No s'ha reconegut com a recurs de Modrinth
+    no-downloadable-url: No s'ha trobat cap URL de descàrrega que permeti redistribuir-lo
+  publishModrinth: Publica a Modrinth
+  publishNewProject: Projecte nou
+  publishOpenProject: Obre el projecte
+  publishOpenVersion: Obre la versió
+  publishProfile: Perfil MRPack
+  publishProfileClient: Només client
+  publishProfileServer: Només servidor
+  publishProfileSplit: Universal amb fitxers separats de client i servidor
+  publishProfileUniversal: Universal
+  publishProject: Projecte
+  publishProjectDetailsTab: Detalls del projecte
+  publishProjectName: Nom del projecte
+  publishProjectRequired: Selecciona un projecte abans de publicar.
+  publishProjectSlug: Identificador llegible del projecte
+  publishProjectUrl: URL del projecte (opcional)
+  publishProjectUrlHint: Deixa-ho en blanc per utilitzar {slug}.
+  publishProjectSaved: S'han actualitzat els detalls del projecte.
+  publishSourceUrl: URL del codi font
+  publishSubmit: Envia l'esborrany a revisió
+  publishSummary: Resum breu
+  publishSummaryMinWords: El resum ha de contenir almenys 3 paraules.
+  publishVersionTitle: Títol de la versió
+  publishVersionTab: Publica la versió
+  publishVersion: Publica la versió
+  publishVisibility: Visibilitat
+  publishWikiUrl: URL de la wiki
+  visibilityPrivate: Privada
+  visibilityPublic: Pública
+  visibilityUnlisted: No llistada
 modpackImportConfirm:
   description: |-
-    He detectat que has deixat caure un fitxer al launcher.
+    He detectat que has deixat caure un fitxer al llançador.
     Estàs intentant importar un Modpack?
   title: Estàs intentant importar un Modpack?
 modrinth:
@@ -750,29 +1222,325 @@ modrinth:
   search: Cerca
   title: Modrinth
   view: Veure
+  browseUrl: Obre al navegador {url}
+  categories:
+    128x: 128x
+    16x: 16x
+    256x: 256x
+    32x: 32x
+    48x: 48x
+    512x+: 512x+
+    64x: 64x
+    8x-: 8x-
+    adventure: Aventura
+    atmosphere: Atmosfera
+    audio: Àudio
+    blocks: Blocs
+    bloom: Resplendor
+    bukkit: Bukkit
+    bungeecord: Bungeecord
+    canvas: Canvas
+    cartoon: Dibuixos animats
+    categories: Categories
+    challenging: Desafiant
+    colored-lighting: Il·luminació de colors
+    combat: Combat
+    core-shaders: Shaders del joc base
+    cursed: Insòlit
+    datapack: Paquet de dades
+    decoration: Decoració
+    economy: Economia
+    entities: Entitats
+    environment: Entorn
+    equipment: Equipament
+    fabric: Fabric
+    fantasy: Fantasia
+    features: Funcions
+    folia: Folia
+    foliage: Vegetació
+    fonts: Tipus de lletra
+    food: Menjar
+    forge: Forge
+    game-mechanics: Mecàniques de joc
+    gui: Interfície gràfica
+    high: Alt
+    iris: Iris
+    items: Objectes
+    kitchen-sink: De tot una mica
+    library: Biblioteca
+    lightweight: Lleuger
+    liteloader: LiteLoader
+    locale: Idioma
+    low: Baix
+    magic: Màgia
+    management: Gestió
+    medium: Mitjà
+    minecraft: Minecraft
+    minigame: Minijocs
+    misc: Diversos
+    mobs: Criatures
+    modded: Amb mods
+    models: Models
+    modloader: Carregador de mods
+    multiplayer: Multijugador
+    name: Categories
+    neoforge: NeoForge
+    optifine: OptiFine
+    optimization: Optimització
+    paper: Paper
+    path-tracing: Traçat de camins
+    pbr: PBR
+    performance impact: Impacte en el rendiment
+    potato: Equips modestos
+    purpur: Purpur
+    quests: Missions
+    quilt: Quilt
+    realistic: Realista
+    reflections: Reflexos
+    resolutions: Resolucions
+    rift: Rift
+    screenshot: Captures de pantalla
+    semi-realistic: Semirealista
+    shadows: Ombres
+    simplistic: Senzill
+    social: Social
+    spigot: Spigot
+    sponge: Sponge
+    storage: Emmagatzematge
+    technology: Tecnologia
+    themed: Temàtic
+    transportation: Transport
+    tweaks: Ajustos
+    utility: Utilitats
+    vanilla: Vanilla
+    vanilla-like: Similar a Vanilla
+    velocity: Velocity
+    waterfall: Waterfall
+    worldgen: Generació del món
+  clientSide: Costat del client
+  copyTitle: Copia el text {title} al porta-retalls
+  createAt: Creat
+  createCollection: Crea una col·lecció
+  description: Descripció
+  downloads: Descàrregues
+  environments:
+    all: Tots
+    default: Per defecte
+    name: Entorn
+    optional: Opcional
+    required: Obligatori
+    unsupported: No compatible
+    client: Client
+    server: Servidor
+  externalResources: Recursos externs
+  featuredVersions: Versions destacades
+  followedProjects: Projectes seguits
+  followers: Seguidors
+  gallery: Galeria
+  gameVersions:
+    name: Versions del joc
+  headers:
+    status: Estadístiques
+    support: Compatibilitat
+    version: Versió
+  issueUrl: Incidències
+  license: Llicència
+  licenses:
+    name: Llicències
+  loginHint: Aquesta operació requereix iniciar la sessió a Modrinth. El llançador obrirà una finestra del navegador per fer-ho.
+  loginTitle: Inicia la sessió a Modrinth
+  modLoaders:
+    name: Carregadors de mods
+  modpackSource:
+    source: Origen
+  projectId: ID del projecte
+  projectMembers: Membres del projecte
+  projectType:
+    datapack: Paquet de dades
+    mod: Mod
+    modpack: Modpack
+    plugin: Complement
+    resourcepack: Paquet de recursos
+    shader: Shader
+    name: Tipus de projecte
+    resourcePack: Paquet de recursos
+  projects: '{count} projectes'
+  serverSide: Costat del servidor
+  sort:
+    downloads: Nombre de descàrregues
+    follows: Nombre de seguidors
+    newest: Creació recent
+    relevance: Rellevància
+    title: Ordena per
+    updated: Actualització recent
+  sourceUrl: Codi font
+  technicalInformation: Informació tècnica
+  updateAt: Actualitzat
+  versions: Versions
+  wikiUrl: Wiki
+  perPage: Per pàgina
+  quickSearch: Cerca {title}
+  searchText: Cerca
 modrinthCard:
   currentVersion: Versió actual
-  projectHint: |
-    Aquesta instància ha estat creada des de Modrinth <code class="rounded p-1" style="background: rgba(123,123,123,0.2)">{title}</code> (id del projecte:
+  projectHint: >
+    Aquesta instància ha estat creada des de Modrinth <code class="rounded p-1" style="background:
+    rgba(123,123,123,0.2)">{title}</code> (id del projecte:
           <code class="rounded p-1" style="background: rgba(123,123,123,0.2)">{id}</code>)
 multiplayer:
   inviteAFriend: Convida un Amic
   title: Multijugador
+  addFunds: Afegeix saldo
+  autoShareAmbiguous: >-
+    Hi ha diversos jocs en execució. Selecciona la instància que allotja el món en xarxa local perquè PbtModLauncherX el
+    pugui compartir.
+  availableBalance: Saldo disponible
+  balanceHint: Disponible per als serveis de XMCL Together
+  billing: Facturació
+  billingDescription: Gestiona l'accés als repetidors, el pla Together Home i els pagaments.
+  billingError: No s'ha pogut carregar la facturació de Together. Torna-ho a provar d'aquí a una estona.
+  buyTogether: Compra Together
+  cancelTogether: Cancel·la el pla
+  checkout: Obre el pagament de Waffo
+  complete: Completa
+  confirm: Confirma
+  connectionError: Error de connexió
+  connectionFailedHint: No s'ha pogut establir la connexió. Comprova que els dos participants tinguin tipus de NAT compatibles.
+  connectionTogetherWarning: >-
+    Un membre de la sala fa estona que no es pot connectar amb tu. Prova XMCL Together per millorar la connectivitat de
+    tota la sala. Només cal que l'amfitrió tingui Together.
+  connectedToMaster: Connectat amb l'amfitrió de la sala
+  connections: Connexions
+  copied: Copiat!
+  copy: Copia
+  copyGroupToFriendHint: Els teus amics poden unir-se al grup amb aquest identificador
+  directConnection: Directa
+  copyLocalHint: >
+    Copia el text SDP local i envia'l a l'altre jugador perquè l'introdueixi a «Uneix-te a una connexió». <span>Un
+    testimoni només es pot utilitzar amb <span style="color: red; font-weight: bold;">un jugador</span>. No l'enviïs a
+    diversos jugadors!</span><br><span class="hint-text" style="font-style: italic;">Per connectar amb diversos
+    jugadors, crea <span style="font-weight: bold; color: rgba(245, 158, 11)">diverses</span> connexions.</span>
+  createLocalToken: Crea un testimoni local
+  currentIpTitle: IP pública detectada
+  currentNatTitle: 'Xarxa actual (NAT):'
+  difficultyLevelHint: Dificultat per establir una connexió
+  disconnect: Desconnecta
+  disconnectDescription: Vols desconnectar de l'usuari {user} ({id})?
+  disconnected: desconnectat
+  enterRemoteToken: Introdueix el testimoni remot
+  enterRemoteTokenHint: >-
+    Quan l'altre jugador introdueixi el teu testimoni, introdueix el seu al camp de sota. Prem Confirma per
+    connectar-vos.
+  exposedPortDescription: Port que has exposat als altres jugadors
+  exposedPorts: Ports redirigits
+  gatheringIce: >
+    Espera que el servidor ICE reculli prou informació de la xarxa. Pots enviar el SDP actual si ja hi ha prou
+    informació i prémer Següent. Envia el <span class="v-chip v-chip--label v-size--small" style="text-font:
+    bold">Testimoni local</span> a l'altre jugador perquè l'introdueixi a <span class="v-chip v-chip--label
+    v-size--small" style="text-font: bold">Uneix-te a una connexió</span>.<br>El servidor ICE pot trigar a generar el
+    <span class="v-chip v-chip--label v-size--small" style="text-font: bold">Testimoni local</span>.<br>No cal esperar
+    que acabi: si el testimoni de sota ja no canvia, el pots copiar i enviar.
+  gameAvailable: Partida disponible a la xarxa local
+  groupId: ID del grup
+  master: Amfitrió
+  masterHostsGameHint: >-
+    L'amfitrió de la sala és el centre de connexió i hauria d'allotjar el món de Minecraft en xarxa local. Transfereix
+    aquest rol abans de canviar d'amfitrió.
+  masterPurchaseHint: Només cal que l'amfitrió de la sala tingui Together Home per millorar la connectivitat de tots els participants.
+  member: Membre
+  illegalTokenDescription: El testimoni no és vàlid. Comprova que el testimoni de l'altre jugador sigui correcte.
+  initiateConnection: Inicia una connexió
+  joinConnection: Si l'altre jugador ja ha iniciat una connexió, selecciona «Uneix-te a una connexió».
+  joinDiscord: Uneix-te a Discord
+  joinGame: Uneix-te al joc
+  joinManual: Uneix-t'hi
+  joinOrCreateGroup: Uneix-te a un grup o crea'n un
+  joinOrCreateGroupHint: Obtén l'ID del grup dels teus amics o crea un grup
+  joinCreatesMissingRoomHint: Si la sala no existeix, la crearàs i en seràs l'amfitrió.
+  loginRequiredDescription: El multijugador P2P utilitza els serveis en línia de XMCL. Inicia la sessió amb un XMCL Account per continuar.
+  loginRequiredTitle: Inicia la sessió per al multijugador P2P
+  kernel: Motor P2P
+  kernelDescription: >-
+    Utilitza WebRTC natiu o node-datachannel. Canvia aquesta opció només si les connexions P2P fan fallar la finestra
+    del llançador.
+  leaveGroup: Surt del grup
+  localToken: Testimoni local
+  manualConnect: Connecta manualment
+  name: Multijugador en xarxa local
+  natTogetherWarning: >-
+    Pot ser que l'encaminador tingui problemes per connectar amb l'amfitrió de la sala. Si la connexió falla, prova XMCL
+    Together per millorar la connectivitat amb els teus amics.
+  openConsumerPortal: Obre el portal del consumidor
+  refundHint: >-
+    Necessites un reemborsament? Visita el portal del consumidor de Waffo per gestionar les comandes i les
+    subscripcions. Només cal que l'amfitrió compri Together per a la sala.
+  networkInfo: Informació de xarxa
+  next: Següent
+  otherExposedPortDescription: Port redirigit per {user}
+  placeholder: Connecta amb altres usuaris per jugar a Minecraft en xarxa local!
+  previous: Anterior
+  receiveHint: La connexió es crearà automàticament quan l'altre jugador introdueixi el teu testimoni. Ja pots tancar el diàleg.
+  receiveRemoteTokenHint: Introdueix aquí el testimoni de l'altre jugador.
+  remoteToken: Testimoni remot
+  relayConnection: Repetidor
+  routerInfo: Informació de l'encaminador
+  sendTokenToRemote: Envia el testimoni a l'altre jugador
+  editSharingScope: Edita què es comparteix
+  noRunningInstanceToShare: Inicia un joc abans d'editar què es comparteix
+  share: Comparteix la configuració de la instància
+  sharing: S'estan compartint els fitxers…
+  start: Inicia
+  startNewP2PConnection: Prem Inicia per crear una connexió nova amb un altre jugador
+  subscription:
+    active: Activa
+    cancelled: Cancel·lada
+    payment_due: Pagament pendent
+  togetherName: Minecraft Together
+  togetherSupportHint: >-
+    Si el multijugador no funciona, uneix-te al nostre Discord i contacta amb l'equip de desenvolupament. T'ajudarem a
+    resoldre el problema.
+  trial:
+    active: Prova activa
+    available: Prova gratuïta disponible
+    expired: Prova ja utilitzada
+    unavailable: Prova no disponible
+  trialDescription: Una prova de 7 dies amb 1 GB de trànsit de repetidor.
+  trialTitle: Prova de connectivitat
+  tryTogether: Prova Together
+  updateSharedInstanceConfirm: Actualitza i inicia
+  updateSharedInstanceDescription: >-
+    Els mods compartits són diferents dels de {instance}. Vols actualitzar aquesta instància perquè coincideixi amb la
+    de l'amfitrió abans d'iniciar-la? Es farà una còpia de seguretat dels fitxers modificats.
+  updateSharedInstanceTitle: Vols actualitzar la instància compartida?
+  month: mes
+  orderStatus: 'Comanda de Waffo: {status}'
+  planDescription: 20 GB mensuals de trànsit de repetidor gestionat i assistència amb IA per resoldre problemes del modpack.
+  relayAllowanceSummary: Queden {remaining} de {total} en aquest període
+  relayServiceAvailable: Servei de repetidor de XMCL Together disponible
+  waffoHint: Els pagaments es completen de manera segura a Waffo Pancake. XMCL no rep mai el número de la teva targeta.
+  waitingForMaster: S'espera que l'amfitrió de la sala es torni a connectar
+  allowTurn: Activa el servidor repetidor
+  allowTurnHint: >-
+    Permet un servidor repetidor si no et pots connectar amb el teu amic. Pot alentir la connexió; utilitza'l amb
+    precaució.
+  inviteLink: Enllaç d'invitació
+  sharingNotificationBody: Pots descarregar o crear una instància a partir de la configuració compartida de {name}.
+  sharingNotificationTitle: Un jugador comparteix la configuració del joc
 myStuff: Mods Locales
 name: Nom
 natType:
-  blocked: Blocked
-  fullCone: Full Cone
-  openInternet: Open Internet
-  restrictNat: Restrict NAT
-  restrictPortNat: Restrict Port NAT
-  symmetricNat: Symmetric NAT
-  symmetricUDPFirewall: Symmetric UDP Firewall
+  blocked: Bloquejat
+  fullCone: NAT de con complet
+  openInternet: Accés directe a Internet
+  restrictNat: NAT restringit
+  restrictPortNat: NAT restringit per port
+  symmetricNat: NAT simètric
+  symmetricUDPFirewall: Tallafoc UDP simètric
   unknown: Desconegut
 neoForgedVersion:
   disable: Desactiva NeoForged
   empty: NeoForged no admet la versió {version}
-  name: NeoForged
+  name: NeoForge
 news:
   name: Notícies
   readMore: Llegeix més
@@ -804,7 +1572,7 @@ popular: Popular
 presence:
   curseforge: Veient CurseForge
   curseforgeProject: Veient {name} a CurseForge
-  instance: Launcher Inactiu a la Instància {instance}
+  instance: Llançador Inactiu a la Instància {instance}
   instanceSetting: 'Edita la Configuració de la Instància: {instance}'
   mod: Veient Mods a {instance}
   modrinth: Veient Modrinth
@@ -814,6 +1582,11 @@ presence:
   setting: Veient la Pàgina de Configuració
   shaderPack: Veient Packs de Shaders a {instance}
   version: Veient la Pàgina de Versions
+  away: Absent
+  offline: Sense connexió
+  online: En línia
+  playing: Jugant a {game}
+  playingGeneric: Jugant
 previous: Anterior
 proxy:
   host: Amfitrió
@@ -847,6 +1620,15 @@ resourcepack:
   showFile: Mostra el paquet de recursos a la carpeta {file}
   showInCurseforge: Mostra {name} a CurseForge
   unselected: Paquets de Recursos No Seleccionats
+  linkShared: Comparteix paquets de recursos entre instàncies
+  linkSharedHint: >-
+    Enllaça la carpeta resourcepacks d'aquesta instància amb la carpeta compartida global perquè totes les instàncies
+    vegin els mateixos paquets de recursos. Els paquets existents es fusionaran a la carpeta compartida.
+  noLocalPacksFound: No s'ha trobat cap paquet de recursos local que coincideixi amb la cerca.
+  noPacks: No s'ha trobat cap paquet de recursos
+  noPacksInstalled: No tens cap paquet de recursos instal·lat.
+  search: Cerca paquets de recursos…
+  showDirectory: Mostra la carpeta de paquets de recursos
 save:
   cheat: Trucs
   copy:
@@ -858,14 +1640,18 @@ save:
   copyFrom:
     cancel: Cancel·la
     confirm: Inicia la Còpia
-    description: Pots desplegar partides desades en aquesta instància des d'altres instàncies, o des de recursos gestionats (CurseForge)
+    description: >-
+      Pots desplegar partides desades en aquesta instància des d'altres instàncies, o des de recursos gestionats
+      (CurseForge)
     from: Des de {src}
     fromProfile: Des d'Altres Instàncies
     fromResource: Des de Recursos Gestionats
     title: Importa la Partida des d'una Font Gestionada
   createNew: Crea un nou món
   createdWorlds: Tens {count} mons
-  deleteHint: Aquesta operació no es pot revertir. Perdràs les dades d'aquesta partida per sempre. Estàs segur d'eliminar aquesta partida?
+  deleteHint: >-
+    Aquesta operació no es pot revertir. Perdràs les dades d'aquesta partida per sempre. Estàs segur d'eliminar aquesta
+    partida?
   deleteTitle: Elimina la Partida
   detail: Més Informació
   dropHint: Arrossega el fitxer zip de la partida aquí per importar.
@@ -886,6 +1672,78 @@ save:
   showDirectory: Mostra el directori de desat
   unselected: fitxer compartit
   useCurrent: Usa el món actual
+  allowCheats: Permet ordres
+  difficulty: Dificultat
+  datapack:
+    name: Paquet de dades | Paquets de dades
+    noSaveHint: Crea o selecciona un món abans d'instal·lar aquest paquet de dades
+    packFormat: 'Format del paquet: {format}'
+    imported: S'ha importat el paquet de dades a {save}
+  duplicate: Duplica la partida
+  linkShared: Comparteix partides entre instàncies
+  linkSharedHint: >-
+    Enllaça la carpeta saves d'aquesta instància amb la carpeta compartida global perquè totes les instàncies
+    comparteixin els mateixos mons. Els mons existents es fusionaran a la carpeta compartida.
+  loadMap: Carrega el mapa
+  map:
+    tabTitle: Mapa del món
+  progress:
+    zoomIn: Apropa
+    zoomOut: Allunya
+    loading: S'està carregant el progrés…
+    noData: No s'ha trobat cap progrés
+    noDataHint: Juga en aquest món per generar avenços, estadístiques i progrés de missions.
+    quests: Missions
+    advancements: Avenços
+    done: Completat
+    inProgress: En curs
+    all: Tot
+    treeView: Vista d'arbre
+    filterPlaceholder: Filtra per nom…
+    root: Arrel
+    exitFullscreen: Surt de la pantalla completa
+    locked: Bloquejat
+  mapError: Error del mapa
+  mapInfo: 'Previsualització interactiva del món en 3D:'
+  mapLoaded: Mapa carregat
+  mapPreview: Previsualització del mapa
+  chunkSelectMode: Selecciona chunks
+  panMode: Desplaça
+  chunkSelected: '{count} chunks seleccionats'
+  mapHintPan: Arrossega per desplaçar
+  mapHintSelect: Selecciona
+  mapHintDeselect: Desselecciona
+  toggleGrid: Mostra o amaga la quadrícula de regions
+  heightTop: Superior
+  resetView: Restableix la vista
+  clearSelection: Neteja la selecció
+  copyChunks: Copia chunks
+  pasteChunks: Enganxa {count} chunks
+  pasteChunksPlaceHint: >-
+    Mou el ratolí per col·locar {count} chunks i fes clic per enganxar-los. Se sobreescriuran els chunks de destinació.
+    Prem Esc per cancel·lar.
+  pasteChunksCancel: Cancel·la
+  deleteChunks: Elimina chunks
+  deleteChunksTitle: Elimina els chunks seleccionats
+  deleteChunksHint: >-
+    Vols eliminar els {count} chunks seleccionats? Aquesta acció no es pot desfer. Es regeneraran la pròxima vegada que
+    el joc carregui la zona.
+  mapLoading: S'està carregant el mapa…
+  noRegions: Aquest món no té regions generades per previsualitzar.
+  dimOverworld: Overworld
+  dimNether: Nether
+  dimEnd: End
+  noLocalSavesFound: No s'ha trobat cap partida local que coincideixi amb la cerca.
+  noSavesFound: No s'ha trobat cap partida
+  noSavesInstalled: No tens cap partida.
+  openFolder: Obre la carpeta de partides
+  properties: Propietats del món
+  searchHint: Cerca mons a CurseForge
+  searchSaves: Cerca partides
+  seed: Llavor
+  useMouseRotate: Utilitza el ratolí per girar la vista
+  useScrollZoom: Utilitza la roda per ampliar o reduir
+  world: Món
 saves: Partides
 screenshots:
   empty: No tens captures de pantalla
@@ -893,8 +1751,17 @@ screenshots:
   name: Captures de Pantalla
   playRandom: Reprodueix aleatòriament
   playSequence: Reprodueix en ordre
+  gallery: Galeria de captures de pantalla
+  hint: Prem F2 al joc per fer captures de pantalla
+  openFolder: Obre la carpeta de captures de pantalla
 search:
   favorate: Recull
+  local: Instal·lats
+  market: Catàleg de mods
+  emptyInstalled: Encara no hi ha res instal·lat
+  browseMarket: Explora el catàleg
+  noResults: No s'ha trobat cap resultat
+  pageSize: Resultats per pàgina
 server:
   acceptingMinecraftVersion: Acceptant la Versió de Minecraft
   creationHint: Si us plau, completa l'adreça del servidor i fes-li ping
@@ -934,6 +1801,127 @@ server:
   upload: Servidor de càrrega
   version: El Servidor Requereix Versió
   versionHint: La Versió de Minecraft per fer ping
+  launch: Inicia el servidor
+  stop: Atura el servidor
+  addServer: Afegeix un servidor
+  address: Adreça del servidor
+  addressHint: P. ex., mc.hypixel.net
+  bindUpstream: Vincula com a servidor de referència
+  boundUpstream: Servidor de referència vinculat
+  boundUpstreamHint: Aquesta instància segueix la versió de Minecraft del servidor vinculat.
+  editServer: Edita el servidor
+  emptyHint: El fitxer servers.dat d'aquesta instància encara no conté servidors. Afegeix-ne un per començar.
+  entryCount: '{count} servidor | {count} servidors'
+  launchClient: Inicia el client
+  launchPinned: Fixat
+  launchTargetHint: Aquesta instància inicia directament el servidor fixat. Vols tornar al client?
+  nameHint: Nom que es mostra a la llista multijugador
+  pin: Fixa el servidor
+  pinAfterSave: Fixa com a destinació d'inici per defecte en desar
+  pinnedHeader: 'fixat: {name}'
+  clearLog: Neteja el registre
+  log: Registre del servidor
+  logWaiting: La sortida del servidor apareixerà aquí després d'iniciar-lo.
+  remoteActionSuccess: Fet.
+  remoteAdmin: Administració del servidor remot
+  remoteAuthMethod: Autenticació
+  remoteAuthPassword: Contrasenya
+  remoteAuthPrivateKey: Clau privada
+  remoteBuildOfflinePackage: Genera un paquet sense connexió
+  remoteConnected: Connectat
+  remoteConnection: Connexió
+  remoteDeployment: Desplegament
+  remoteDeploy: Desplega
+  remoteDisk: Disc
+  remoteConfigFiles: Fitxers de configuració
+  remoteExtraFiles: Fitxers addicionals
+  remoteForgetCredentials: Oblida les credencials desades
+  remoteInstallService: Instal·la el servei
+  remoteLoad: Càrrega mitjana
+  remoteLog: Registre remot
+  remoteMemory: Memòria
+  remoteMods: Mods
+  remoteNoWorldSelected: No s'ha seleccionat cap món de la instància
+  remoteJavaRequired: Java no està disponible a l'equip Linux remot.
+  remoteLinuxRequired: Només s'admeten destinacions SSH amb Linux.
+  remoteNotConfiguredHint: Emplena i desa les dades de connexió per consultar l'estat, controlar el servei i seguir el registre en temps real.
+  remotePathNotWritable: No es pot escriure a la carpeta del servidor remot.
+  remotePathWritable: Carpeta amb permís d'escriptura
+  remotePolicyInitialize: Inicialitza una vegada
+  remotePolicyMirror: Replica
+  remotePolicyOverlay: Superposa
+  remotePolicyPreserve: Conserva
+  remotePreview: Previsualitza els canvis
+  remotePhase:
+    connect: S'està connectant
+    error: Ha fallat l'aplicació de l'estat desitjat
+    idle: Preparat per aplicar l'estat desitjat
+    inspect: S'està inspeccionant la destinació
+    install: S'està instal·lant el servidor
+    logs: S'està connectant la consola
+    ready: S'ha aplicat l'estat desitjat
+    service: S'està comprovant el servei systemd
+    start: S'està iniciant el servidor
+    sync: S'està sincronitzant l'estat desitjat
+    world: S'està aplicant la política del món
+  remoteRememberCredentials: Recorda les credencials al clauer del sistema
+  remoteReconcileReady: La destinació coincideix amb aquesta instància i la consola està connectada.
+  remoteRestartService: Reinicia
+  remoteSavedCredentialsHint: S'utilitzen les credencials desades. Deixa-ho en blanc per conservar-les o escriu-ne unes altres per substituir-les.
+  remoteService: Servei systemd
+  remoteServiceActive: En execució
+  remoteServerInstalled: Fitxers del servidor instal·lats
+  remoteServiceName: Nom del servei
+  remoteServiceNameHint: Nom de la unitat systemd --user; p. ex., mc-server
+  remoteSelectedFiles: '{count} fitxers del servidor seleccionats'
+  remoteSelectFiles: Selecciona els fitxers
+  remoteStartCommand: Ordre d'inici
+  remoteStartCommandHint: P. ex., java -jar server.jar nogui
+  remoteStartService: Inicia
+  remoteStatus: Estat
+  remoteSystemdRequired: Els serveis d'usuari de systemd no estan disponibles a l'equip Linux remot.
+  remoteTargetName: Nom de la destinació
+  remoteStopService: Atura
+  remoteStopWatchLog: Atura el seguiment
+  remoteTestConnection: Prova la connexió
+  remoteTestConnectionSuccess: Connexió correcta.
+  remoteUninstallConfirmMessage: Aquesta acció desactiva i elimina la unitat systemd de l'equip remot. No modifica els fitxers del servidor.
+  remoteUninstallService: Desinstal·la el servei
+  remoteRunInstall: Instal·la o repara
+  remoteWatchLog: Segueix el registre en directe
+  remoteWorldAlways: Substitueix cada vegada que s'apliqui l'estat desitjat
+  remoteWorldDeployment: Desplegament del món de la instància
+  remoteWorldDeploymentHint: La sincronització habitual mai no puja dades del món tret que aquesta política ho permeti explícitament.
+  remoteWorldFirstInstall: Inicialitza només si la destinació no té cap món
+  remoteWorldNever: No pugis mai cap món
+  remoteWorldPresent: Món de destinació
+  remoteWorld: Món
+  remoteWorldWillDeploy: S'aplicarà l'estat desitjat i es pujarà el món seleccionat de la instància.
+  serverName: Nom del servidor
+  serviceInstall: Instal·la el servei
+  serviceManagedLaunch: Utilitza el servei del sistema per iniciar i aturar
+  serviceManager: Servei del sistema
+  serviceName: Nom del servei
+  serviceNameHint: Identificador estable amb lletres, números, punts, guions baixos o guions
+  serviceNotInstalled: No instal·lat
+  serviceStartCommand: Ordre d'inici
+  serviceSystemd: systemd --user
+  serviceWindows: Servei del Windows
+  serviceWindowsCommandHint: L'ordre de Java es genera a partir d'aquesta instància quan s'instal·la el servei.
+  serversListTitle: Llista de servidors
+  target: Destinació del servidor
+  targetLocal: localhost
+  targetLocalHint: Instal·la i executa el servidor en aquest ordinador.
+  targetRemote: Destinació SSH
+  targetRemoteHint: Connecta, instal·la, inicia i supervisa un servidor mitjançant SSH.
+  unbindUpstream: Desvincula
+  unpin: Desfixa
+  upstreamUpToDate: La instància coincideix amb el servidor ({version}).
+  upstreamUpToDateHint: No cal actualitzar. Fes clic per tornar a consultar el servidor.
+  upstreamUpdateAvailable: El servidor utilitza ara Minecraft {version}. Fes clic per aplicar-la.
+  upstreamUpdateHint: Aplica la versió suggerida de Minecraft a aquesta instància.
+  useAsUpstreamHint: La instància seguirà la versió de Minecraft que indiqui el servidor.
+  worldPreserve: Conserva el món de destinació
 serverStatus:
   nohost: §4No es troba l'amfitrió!
   ping: Fent ping...
@@ -943,6 +1931,250 @@ setting:
   general: General
   instance: Instància
   title: Ajustos
+  multiplayerTransport: Transport de Together
+  multiplayerTransportDescription: Tria la implementació de WebRTC que utilitza Together. Canviar el transport desconnecta els participants actius.
+  about: Quant a
+  aboutBmclDescription: BMCL API facilita les descàrregues als usuaris de la Xina continental
+  aboutContributors: 🧑‍💻 Col·laboradors 🧑‍💻
+  aboutDenoDescription: PbtModLauncherX utilitza Deno Deploy, una plataforma senzilla per a aplicacions JavaScript sense servidor
+  aboutLicense: LLICÈNCIA MIT
+  aboutLicenseInfo: SignPath.io proporciona la signatura gratuïta del codi per al Windows, amb un certificat de SignPath Foundation
+  aboutSponsors: 😇 Patrocinadors 😇
+  advancedJavaOptions: Opcions avançades de Java
+  advancedSettings: Configuració avançada
+  advancedSettingsHint: 'Zona de risc: restableix o gestiona les dades del llançador'
+  aiAgentApiKey: Clau d'API de l'agent d'IA
+  aiAgentApiKeyClear: Esborra la clau
+  aiAgentApiKeyDescription: Introdueix la clau del servei configurat compatible amb OpenAI. Les claus es desen localment per a cada servidor.
+  aiAgentApiKeyEmpty: Enganxa la clau d'API
+  aiAgentApiKeyNotNeeded: No necessària
+  aiAgentApiKeyNotNeededHint: Aquest proveïdor s'executa localment i no necessita cap clau d'API
+  aiAgentApiKeySaved: Desada
+  aiAgentApiKeyStored: Clau desada; escriu-ne una altra per substituir-la
+  aiAgentApiKeyPlaceholder: Clau d'API del proveïdor OpenAI o Claude
+  aiAgentBuiltin: Integrat
+  aiAgentCustom: Personalitzat
+  aiAgentEndpoint: Punt d'accés de l'agent d'IA
+  aiAgentEndpointDescription: URL del punt d'accés per completar converses.
+  aiAgentEndpointPlaceholder: https://api.openai.com/v1/chat/completions
+  aiAgentModelPlaceholder: gpt-5.6 o claude-sonnet-4-5
+  aiAgentModel: Model de l'agent d'IA
+  aiAgentModelDescription: Nom del model que s'envia a les peticions de conversa.
+  apiSets:
+    auto: Automàtic (segons la xarxa)
+    official: Oficial (Mojang)
+  appearance: Aparença
+  appearanceDescription: Personalitza l'aparença del llançador
+  appxUpdateHint: El llançador descarregarà i executarà l'instal·lador. Si no s'obre, executa'l manualment.
+  authenticationSettings: Autenticació
+  backdropBlur: Desenfocament del fons
+  backgroundColorAbove: Mostra el color de fons com a capa superior
+  backgroundColorAboveDescription: El color de fons es mostrarà per sobre de la imatge o el vídeo.
+  backgroundImage: Imatge de fons
+  backgroundImageClear: esborra
+  backgroundImageDescription: Selecciona una imatge de fons o elimina-la
+  useDesktopBackground: Utilitza el fons d'escriptori actual
+  backgroundImageFit:
+    contain: Enquadra
+    cover: Cobreix
+    name: Ajust de la imatge
+  backgroundImageUrl: URL de la imatge
+  backgroundImageUrlPlaceholder: Introdueix un URL HTTP/HTTPS per a la imatge
+  backgroundMusic: Música de fons del tema
+  backgroundMusicUrl: URL de la música
+  backgroundMusicUrlPlaceholder: Introdueix un URL HTTP/HTTPS per a la música
+  backgroundType: Tipus de fons
+  backgroundTypeDescription: Mostra un efecte especial al fons (pot afectar el rendiment)
+  backgroundTypes:
+    halo: Halo
+    image: Imatge
+    none: Cap
+    particle: Partícules
+    video: Vídeo
+  backgroundVideo: Vídeo de fons
+  backgroundVideoDescription: Selecciona un vídeo o elimina'l
+  backgroundVideoUrl: URL del vídeo
+  backgroundVideoUrlPlaceholder: Introdueix un URL HTTP/HTTPS per al vídeo
+  backgroundVideoVolume: Volum
+  backgroundVideoVolumeDescription: Arrossega per ajustar el volum
+  browseRoot: Explora
+  checkUpdate: Cerca actualitzacions
+  colorTheme:
+    appBarColor: Barra de l'aplicació
+    backgroundColor: Color de fons
+    cardColor: Color de les targetes
+    description: Canvia els colors del tema
+    errorColor: Color d'error
+    name: Colors i desenfocament del tema
+    primaryColor: Color principal
+    sideBarColor: Barra lateral
+    warningColor: Color d'avís
+    secondaryColor: Color secundari
+  customCss:
+    advancedDescription: Substitueix l'estil actual del llançador amb el teu CSS.
+    assistantHint: Descriu l'aparença que vols i escriuré el CSS per a tu.
+    assistantSuggestion1: Fes que la barra lateral sigui translúcida
+    assistantSuggestion2: Afegeix un degradat subtil al fons de les targetes
+    assistantTitle: Assistent de CSS
+    dropHint: Arrossega un fitxer .css per carregar-lo
+    editorPlaceholder: /* Escriu aquí el teu CSS personalitzat */
+    globalToggle: Activa o desactiva el CSS personalitzat
+    openInDialog: Obre al diàleg de l'agent
+    title: CSS personalitzat
+    warning: >-
+      El CSS personalitzat permet modificar qualsevol aspecte del llançador. Ves amb compte amb el CSS d'orígens no
+      fiables, ja que pot alterar la distribució de la interfície.
+  darkTheme: Tema
+  darkThemeDescription: Tria el tema clar o el fosc
+  devModeLabel: DEV
+  developerMode: Mode de desenvolupador
+  developerModeDescription: El mode de desenvolupador permet provar els teus mods
+  disableTelemetry: Desactiva la telemetria
+  disableTelemetryDescription: PbtModLauncherX recull els esdeveniments d'inici del joc i d'inici de sessió.
+  enableDedicatedGPUOptimization: Assigna la GPU dedicada
+  enableDedicatedGPUOptimizationDescription: Aquesta opció assigna la GPU dedicada al procés de Minecraft.
+  enableDiscord: Activa la presència a Discord
+  enableDiscordDescription: Actualitza l'estat de Discord amb l'activitat del llançador
+  enterUrl: Introdueix l'URL
+  exportSettings: Exporta la configuració
+  exportSettingsHint: Desa la configuració actual en un fitxer
+  githubRelease: Versió de GitHub
+  globalJava: Java preferit
+  globalJavaHint: >-
+    En mode automàtic es prova primer aquest Java. Només s'utilitza la detecció automàtica si no és compatible amb la
+    versió del joc.
+  globalSetting: Joc
+  globalSettingHint: Les instàncies utilitzaran aquesta configuració per defecte.
+  importSettings: Importa la configuració
+  importSettingsHint: Carrega la configuració d'un fitxer exportat prèviament
+  instanceTheme:
+    activeDescription: Aquesta instància utilitza un tema personalitzat. El pots eliminar per utilitzar el tema global.
+    description: Activa un tema personalitzat per a aquesta instància. Es crearà una còpia del tema global actual.
+    name: Tema de la instància
+  language: Idioma
+  languageDescription: Idioma de la interfície
+  latestVersion: Darrera versió
+  layout:
+    default: Distribució per defecte
+    focus: Distribució centrada
+  layoutDescription: Distribució de la interfície del llançador
+  layoutTitle: Distribució
+  linuxEnableDedicatedGPUOptimization: Assigna un processador gràfic dedicat
+  linuxEnableDedicatedGPUOptimizationDescription: Aquesta opció assigna una GPU dedicada al procés de Minecraft.
+  linuxTitlebar: Barra de títol nativa
+  linuxTitlebarDescription: Utilitza la barra de títol nativa de Linux per al llançador
+  livePreview: Previsualització en directe
+  location: Ubicació de les dades
+  manualUpdateHint: Aquesta versió no es pot actualitzar automàticament. Torna a descarregar el llançador des del lloc web oficial.
+  maunalUpdateHint: Aquesta versió no es pot actualitzar automàticament. Torna a descarregar el llançador des del lloc web.
+  maxSockets: Per servidor
+  maxSocketsDescription: Limita el nombre màxim de sòcols per servidor o en total. El valor 0 indica que no hi ha límit.
+  maxSocketsTitle: Nombre màxim de sòcols HTTP
+  memoryAssignment: Assignació de memòria
+  migrateFromOther: Importa d'un altre llançador
+  minecraftOptions: Opcions de Minecraft
+  name: Configuració global | Configuracions globals
+  network: Xarxa
+  newsPosition: Mou la secció de notícies
+  officialWebsite: Lloc web oficial
+  particleMode:
+    bubble: Bombolla
+    name: Mode de partícules
+    push: Afegeix
+    remove: Elimina
+    repulse: Repel·leix
+  particleModeDescription: Selecciona què fan les partícules en fer-hi clic
+  quickLaunchSettings: Inici ràpid
+  replaceNative: Substitueix les biblioteques natives
+  replaceNativeDescription: Substitueix les biblioteques natives segons l'arquitectura de l'ordinador.
+  replaceNatives:
+    all: Totes
+    legacy: Només versions antigues
+  resetAllSettings: Restableix tota la configuració
+  resetAllSettingsConfirmMessage: >-
+    S'eliminaran permanentment la configuració, els comptes, les instàncies, els grups i les dades de memòria cau.
+    Aquesta acció no es pot desfer. N'estàs segur?
+  resetAllSettingsConfirmTitle: Vols restablir tota la configuració?
+  resetAllSettingsHint: Restableix el llançador als valors de fàbrica (s'elimina tot)
+  resetAllSettingsSuccess: S'ha restablert tota la configuració. El llançador es reiniciarà.
+  resetSettingsError: 'Error en restablir la configuració: {error}'
+  resetToDefault: Restableix els valors per defecte
+  select: Selecciona
+  setAsBackground:
+    failed: No s'ha pogut establir la imatge de fons
+    global: Estableix com a fons del llançador
+    instance: Estableix com a fons de la instància
+    successGlobal: S'ha actualitzat la imatge de fons.
+    successInstance: S'ha actualitzat la imatge de fons de la instància.
+  settingsExported: S'ha exportat la configuració correctament
+  settingsImportError: No s'ha pogut importar la configuració. Comprova el format del fitxer.
+  settingsImported: S'ha importat la configuració correctament
+  settingsReloadHint: El llançador es reiniciarà per aplicar tota la configuració.
+  showNewsHeader: Mostra la secció de notícies
+  showRoot: Mostra
+  sidebarAlign: Alineació de la barra lateral
+  sidebarAutoHide: Amaga automàticament la barra lateral
+  sidebarAutoHideHint: Amaga la barra lateral i mostra-la en passar-hi el cursor
+  sidebarClassic: Clàssica
+  sidebarNotch: Amb osca
+  sidebarPosition: Posició de la barra lateral
+  sidebarScale: Escala de la barra lateral
+  sidebarShowOnlyPinned: Mostra només les instàncies fixades
+  sidebarShowOnlyPinnedHint: Mostra només les instàncies fixades a la barra lateral
+  sidebarStyle: Estil de la barra lateral
+  sidebarStyleHint: Tria el disseny clàssic o el modern amb osca
+  streamerMode: Mode de retransmissió
+  streamerModeDescription: Amaga informació privada del llançador, com ara l'adreça electrònica.
+  theme:
+    dark: Tema fosc
+    light: Tema clar
+    system: Utilitza el tema del sistema
+  themeExport: Exporta el tema
+  themeBorderRadius: Cantonades arrodonides
+  themeBorderRadiusDescription: Activa o desactiva les cantonades arrodonides de targetes, diàlegs, menús i plafons.
+  themeFont: Tipus de lletra
+  themeFontDescription: Canvia el tipus de lletra del llançador.
+  themeFontUrl: URL del tipus de lletra
+  themeFontUrlPlaceholder: Introdueix un URL HTTP/HTTPS per al tipus de lletra
+  themeImport: Importa el tema
+  themeResetFont: Restableix el tipus de lletra
+  themeSelectFont: Selecciona un tipus de lletra
+  themeSettings: Configuració del tema
+  themeShare: Comparteix el tema
+  themeShareDescription: Pots compartir el tema amb els teus amics.
+  themeStore:
+    description: Desa i gestiona els temes globals
+    loadConfirmMessage: Carregar un tema desat substituirà el tema actual. Fes-ne una còpia de seguretat si cal.
+    loadConfirmTitle: Vols substituir el tema actual?
+    loadTheme: Carrega el tema
+    name: Biblioteca de temes
+    noSavedThemes: Encara no hi ha temes desats
+    saveDialogTitle: Desa el tema
+    saveToStore: Desa a la biblioteca
+    savedThemes: Temes desats
+    themeName: Nom del tema
+    themeNameHint: Nom amb què es desarà aquest tema
+  update: Actualitza
+  useBmclAPI: Utilitza BMCL API
+  useBmclAPIDescription: Utilitza BMCLAPI per descarregar Minecraft a la Xina continental. No t'afecta si ets fora d'aquesta regió.
+  useProxy: Servidor intermediari HTTP
+  useProxyDescription: Adreça del servidor intermediari per a les peticions HTTP
+  viewBackgroundMusic: Mostra la música
+  allowPrerelease: Descarrega versions preliminars
+  allowPrereleaseDescription: Les versions preliminars poden ser inestables
+  autoDownload: Descàrrega automàtica
+  autoDownloadDescription: Descarrega les actualitzacions automàticament quan estiguin disponibles
+  autoInstallOnAppQuit: Instal·lació automàtica
+  autoInstallOnAppQuitDescription: Instal·la l'actualització automàticament en tancar l'aplicació
+  backgroundImageBlur: Desenfocament de la imatge
+  backgroundImageBlurDescription: Arrossega per ajustar el desenfocament
+  backgroundImageSelect: Selecciona
+  backgroundVideoSelect: Selecciona
+  blurAppBar: Desenfoca la barra de l'aplicació
+  blurMainBody: Desenfoca el plafó principal
+  blurMainBodyDescription: Desenfoca el plafó dret del llançador
+  blurSidebar: Desenfoca la barra lateral
+  hideNewsHeader: Amaga la secció de notícies
 settingLabel:
   global: Global
   globalHint: Aquesta configuració seguirà la configuració global
@@ -952,25 +2184,44 @@ setup:
   appearance:
     name: '@:setting.appearance'
   dataRoot:
-    description: El directori de dades no és un directori .minecraft comú. Com que l'estructura de directoris de dades del launcher és diferent de la versió original, no recomanem usar el directori .minecraft comú com a directori de dades.
+    description: >-
+      El directori de dades no és un directori .minecraft comú. Com que l'estructura de directoris de dades del
+      llançador és diferent de la versió original, no recomanem usar el directori .minecraft comú com a directori de
+      dades.
     name: Estableix el Directori de Dades
-  defaultLayoutDescription: La forma principal intenta millorar el disseny "instància". El que fa és assemblar-se a Discord. També s'inspira en launchers d'altres marques com Steam, etc.
+    drives: Ubicacions recomanades
+  defaultLayoutDescription: >-
+    La forma principal intenta millorar el disseny "instància". El que fa és assemblar-se a Discord. També s'inspira en
+    launchers d'altres marques com Steam, etc.
   defaultPath: Directori Principal
   error:
-    badDataRoot: Directori no vàlid per a les dades del launcher! Si us plau, usa'n un altre!
-    exists: El directori actual no està buit. Està bé, però recomanem fer còpies de les teves dades.
-    noPermission: El launcher no té permís per accedir! Si us plau, prova un altre directori.
+    badDataRoot: Directori no vàlid per a les dades del llançador! Si us plau, usa'n un altre!
+    exists: La carpeta no és buida. Fes-ne una còpia de seguretat.
+    noPermission: El llançador no té permís per accedir! Si us plau, prova un altre directori.
     nonDictionary: El lloc escollit és un fitxer! Tria un directori!
-  focusLayoutDescription: El look focus és la interfície normal del launcher de Minecraft. Està dissenyat per usar-se amb una instància o poques.
+    invalidChar: >-
+      La ruta conté caràcters no vàlids que poden impedir que Minecraft s'iniciï. Utilitza només caràcters i símbols
+      anglesos.
+  focusLayoutDescription: >-
+    El look focus és la interfície normal del llançador de Minecraft. Està dissenyat per usar-se amb una instància o
+    poques.
   game:
-    description: Tria un directori de joc existent (.minecraft) per importar recursos existents. Així podràs identificar ràpidament els mods, paquets de recursos, etc.
+    description: >-
+      Tria un directori de joc existent (.minecraft) per importar recursos existents. Així podràs identificar ràpidament
+      els mods, paquets de recursos, etc.
     name: Importa el Joc Existent
   locale:
-    description: Tria el teu idioma preferit si el tenim! Si no veus el teu idioma nadiu i vols ajudar, pots visitar el nostre Github i enviar pull requests per traduir.
+    description: >-
+      Tria el teu idioma preferit si el tenim! Si no veus el teu idioma nadiu i vols ajudar, pots visitar el nostre
+      Github i enviar pull requests per traduir.
     language: Idioma
     name: Estableix l'Idioma
   path: Ruta Actual
   title: 'Benvingut/da! Això és PbtModLauncherX. Abans de començar, necessitem que '
+  account:
+    description: Inicia la sessió amb el compte de joc. Si no en tens cap, pots ometre aquest pas.
+    name: Afegeix un compte de joc
+    skip: Omet per ara
 shaderPack:
   deletion: Elimina el Pack de Shaders
   deletionHint: Això eliminarà el fitxer del pack de shaders {path} i no es podrà desfer.
@@ -988,21 +2239,74 @@ shaderPack:
   noShaderModInstallHint: Has d'instal·lar un dels mods següents per carregar el paquet de shaders.
   showDirectory: Mostra el directori de packs de shaders
   showFile: Mostra aquest pack de shaders a la carpeta
+  market: Catàleg de shaders
+  linkShared: Comparteix paquets de shaders entre instàncies
+  linkSharedHint: >-
+    Enllaça la carpeta shaderpacks d'aquesta instància amb la carpeta compartida global perquè totes les instàncies
+    vegin els mateixos paquets. Els paquets existents es fusionaran a la carpeta compartida.
+  noLocalPacksFound: No s'ha trobat cap paquet de shaders local que coincideixi amb la cerca.
+  noPacks: No hi ha paquets de shaders instal·lats
+  noPacksInstalled: No tens cap paquet de shaders instal·lat.
+  search: Cerca paquets de shaders…
 shared:
   accept: Accepta
   keepSelected: Mantén seleccionat
   skipForNow: Salta per ara
+  pressKeyCombination: Prem una combinació de tecles…
+  add: Afegeix
+  author: Autor
+  back: Enrere
+  browse: Explora
+  cancel: Cancel·la
+  checkUpgrade: Cerca actualitzacions
+  client: Client
+  copied: Copiat
+  copy: Copia
+  close: Tanca
+  copyFailed: No s'ha pogut copiar
+  copyFailedHint: No s'ha pogut copiar al porta-retalls
+  description: Descripció
+  disable: Desactiva
+  download: Descarrega
+  edit: Edita
+  enable: Activa
+  failed: Ha fallat
+  filter: Filtra
+  install: Instal·la
+  installed: Instal·lat
+  manage: Gestiona
+  name: Nom
+  next: Següent
+  'no': 'No'
+  ok: D'acord
+  previous: Anterior
+  refresh: Actualitza
+  remove: Elimina
+  save: Desa
+  search: Cerca
+  server: Servidor
+  upgrade: Actualitza
+  'yes': Sí
+  delete: Elimina
 sortBy:
   alphabetAsc: Ordena per alfabet (ascendent)
   alphabetDesc: Ordena per alfabet (descendent)
   timeAsc: Ordena per temps de modificació (ascendent)
   timeDesc: Ordena per temps de modificació (descendent)
+  name: Ordena per
 store:
   explore: Explora
   latestMinecraft: Versió de Minecraft Recent
   name: Cerca ModPacks
   popular: ModPacks Populars
   recentUpdated: Actualitzats Recentment
+  discover: Descobreix
+  empty: No s'ha trobat cap modpack
+  emptyHint: Prova de canviar els filtres o la cerca.
+  popularity: Popularitat / seguidors
+  searchHint: Cerca mods, modpacks, paquets de recursos…
+  searchResult: Resultat de la cerca
+  trending: Tendències
 summery: Resum
 tag:
   create: Crea una Etiqueta
@@ -1025,10 +2329,20 @@ task:
   nTaskRunning: '{count} tasques en execució'
   name: Tasca | Tasques
   pause: Pausa
+  running: En execució…
+  succeed: Completat
+  eta: Queden ~{time}
+  remaining: Queden {size}
+  totalRemaining: '{size} pendents'
+  op:
+    update: Actualitza
+    export: Exporta
+    duplicate: Duplica
 theme:
   selectImage: Selecciona una imatge
   selectMusic: Selecciona música
   selectVideo: Selecciona un vídeo
+  title: PbtModLauncherX
 title: PbtModLauncherX
 transportType:
   host: Candidat d'Amfitrió
@@ -1038,6 +2352,9 @@ transportType:
 turnRegion:
   fr: França
   po: Polònia
+  guangzhou: Guangzhou, Xina
+  hk: Hong Kong
+  liaoning: Liaoning, Xina
 tutorial:
   hideNewsHeaderDescription: |-
     Pots veure el bloc de notícies a l'esquerra.
@@ -1052,17 +2369,131 @@ tutorial:
     Pots cercar Modpacks escrivint en aquest quadre de text.
     Prem Entrar per cercar.
   storeSearchResultDescription: Veuràs tots els resultats de cerca llistats aquí.
+  blueprint:
+    detailDescription: Inspecciona el contingut del plànol i els mods que inclou, i crea'n instàncies noves.
+    detailTitle: Detalls del plànol
+    listDescription: Consulta i gestiona tots els plànols i les plantilles d'instàncies desats.
+    listTitle: Llista de plànols
+    searchDescription: Cerca plànols locals i de la comunitat per nom o etiqueta.
+    searchTitle: Cerca plànols
+  done: Entesos!
+  helpDescription: Guia interactiva del llançador i de la pàgina actual.
+  me:
+    instancesDescription: Consulta les instàncies instal·lades, agrupa-les per carpeta o data, filtra-les i inicia-les.
+    instancesTitle: Gestió d'instàncies
+    profileDescription: Canvia de compte i gestiona les credencials d'inici de sessió.
+    profileTitle: Compte i perfil
+    skinDescription: Previsualitza el personatge en 3D, canvia'n l'aparença i equipa-hi capes.
+    skinTitle: Personalització d'aparences i capes
+  multiplayer:
+    contentDescription: Aquí es mostraran les connexions amb els altres jugadors.
+    contentTitle: '@:multiplayer.connections'
+    groupDescription: >-
+      Pots crear un grup o unir-te a un grup d'altres jugadors. El llançador intentarà establir connexions P2P entre els
+      membres. Introdueix el nom que t'han donat els teus amics o crea'n un d'únic.
+    groupTitle: Uneix-te a un grup
+    joinDescription: >-
+      Després d'introduir el nom del grup, prem aquest botó per unir-t'hi o crear-lo. Si el deixes en blanc, el
+      llançador generarà un nom.
+    manualDescription: >-
+      Si tu o el teu amic no us podeu connectar al grup, proveu d'intercanviar els testimonis amb «Connecta manualment».
+      Si tampoc funciona, pot ser un problema de connexió a Internet.
+    railDescription: Comprova el tipus de NAT i l'estat de la xarxa, i accedeix a les connexions, la configuració i la facturació.
+    railTitle: Xarxa i navegació
+  resourcepack:
+    detailDescription: Consulta les captures, la descripció, les versions compatibles de Minecraft i els detalls dels fitxers.
+    detailTitle: Detalls del paquet de recursos
+    listDescription: Explora els paquets de recursos instal·lats, activa'ls o desactiva'ls i ordena'n la prioritat.
+    listTitle: Llista de paquets de recursos
+    searchDescription: Cerca paquets de recursos a Modrinth, CurseForge o als fitxers locals.
+    searchTitle: Cerca paquets de recursos
+  save:
+    detailDescription: Fes còpies de seguretat, exporta, inspecciona level.dat o gestiona la configuració del món.
+    detailTitle: Detalls i accions del món
+    listDescription: Consulta els mons desats amb el mode de joc, la darrera partida i la mida del fitxer.
+    listTitle: Llista de mons
+    searchDescription: Filtra i cerca els mons de la instància actual per nom.
+    searchTitle: Cerca partides i mons
+  settings:
+    appearanceDescription: Personalitza el tema, els fons, els colors de ressaltat i l'estil de distribució.
+    generalDescription: Configura l'idioma del llançador, la carpeta de dades, els canals d'actualització i les opcions d'inici.
+    globalDescription: Configura el Java per defecte, l'assignació de memòria i els arguments d'inici de la JVM.
+    navDescription: Canvia entre General, Aparença, Configuració global del joc i Xarxa.
+    networkDescription: Configura els servidors de descàrrega alternatius, el servidor intermediari i els límits de tasques simultànies.
+  shaderpack:
+    detailDescription: Consulta l'autor, els requisits de resolució, els perfils predefinits i les opcions dels shaders.
+    detailTitle: Detalls del paquet de shaders
+    listDescription: Explora els shaders instal·lats i canvia entre ells ràpidament.
+    listTitle: Llista de paquets de shaders
+    searchDescription: Cerca paquets de shaders a Modrinth, CurseForge o a la memòria cau local.
+    searchTitle: Cerca paquets de shaders
+  tooltip: Ajuda i guia interactiva
+  feedbackDescription: Si tens algun problema, prem aquest botó per enviar comentaris.
+  instance:
+    appearanceThemeDescription: Personalitza el fons, els colors i l'estil visual d'aquesta instància.
+    appearanceThemeTitle: Aparença de la instància
+    iconDescription: Fes clic per canviar la icona.
+    iconTitle: Icona de la instància
+    javaDescription: Tria o canvia la versió de Java.
+    javaImportDescription: Importa Java des de l'emmagatzematge local.
+    javaImportTitle: Importa Java
+    javaTitle: Llista de Java
+    modpackExportDescription: Genera i empaqueta la instància configurada en un modpack a punt per compartir.
+    modpackExportTitle: Exporta el modpack
+    modpackFilesDescription: >-
+      Selecciona els fitxers de configuració, els mods i els recursos que s'inclouran al modpack exportat per al client
+      i el servidor.
+    modpackFilesTitle: Fitxers inclosos
+    modpackMetaDescription: Especifica la versió, l'autor, la descripció i el lloc web del modpack.
+    modpackMetaTitle: Detalls del modpack
+    modpackOptionsDescription: Tria la carpeta de destinació i els formats d'exportació, com ara els modpacks de Modrinth o CurseForge.
+    modpackOptionsTitle: Opcions d'exportació
+    serverLaunchDescription: Inicia o atura el servidor dedicat d'aquesta instància des de la capçalera.
+    serverLaunchTitle: Inicia o atura el servidor
+    serverPropertiesDescription: 'Configura les propietats del servidor: port, dificultat, MOTD, límit de jugadors i regles del joc.'
+    serverPropertiesTitle: Configuració del servidor
+    serverServiceDescription: >-
+      Gestiona el servidor com a servei en segon pla del sistema (systemd o servei del Windows) perquè es mantingui
+      actiu automàticament.
+    serverServiceTitle: Servei del sistema
+    serverTargetDescription: Tria entre executar el servidor al teu ordinador o gestionar un servidor Linux remot mitjançant SSH.
+    serverTargetTitle: Destinació del servidor
+    versionDescription: Selecciona la versió de Minecraft i els carregadors Forge, Fabric, Quilt o NeoForge.
+    versionTitle: Versió de Minecraft i del carregador
+  instanceAddDescription: >-
+    Prem aquest botó per importar una instància existent de Minecraft o crear-ne una de nova des de zero o a partir d'un
+    modpack.
+  launchDescription: Prem aquest botó per instal·lar o iniciar el joc.
+  mod:
+    defaultSourceDescription: >-
+      Tria l'origen dels detalls dels mods. Alguns es publiquen tant a Modrinth com a CurseForge. Canvia aquesta opció
+      per alternar entre els dos proveïdors.
+    defaultSourceTitle: Selecciona l'origen del contingut dels mods
+    detailDescription: >-
+      Selecciona un element de l'esquerra per veure els detalls del mod. El contingut pot provenir de Modrinth,
+      CurseForge o de l'anàlisi del mod.
+    detailTitle: Detalls del mod
+    listDescription: >-
+      Sense cap cerca es mostren els mods instal·lats. Quan introdueixis una paraula clau o seleccionis una categoria,
+      es mostraran els resultats de la cerca.
+    listTitle: Mods instal·lats o resultats de cerca
+    searchDescription: Utilitza aquest camp per cercar mods a Modrinth, CurseForge o a la memòria cau local.
+    searchTitle: Cerca mods
+  userAccountDescription: Prem aquesta icona per afegir o gestionar el compte de Minecraft.
 universalDrop:
   enableModsAfterImport: Habilita els Mods Després de la Importació
   start: Importació Iniciada
   title: Deixa el(s) Fitxer(s) Aquí per Importar com a
   unknownResource: Desconegut
-update: Actualitza
+update:
+  goOfficialWebDownload: Torna a descarregar des del lloc web oficial
 upstream:
   downgrade: Retrocedeix versió
-  missingModpackMetadata: |-
+  missingModpackMetadata: >-
     No s'han trobat les metadades antigues del modpack.
-    Encara pots actualitzar, però el resultat podria ser incorrecte. Si us plau, fes una còpia de seguretat dels fitxers de la instància.
+
+    Encara pots actualitzar, però el resultat podria ser incorrecte. Si us plau, fes una còpia de seguretat dels fitxers
+    de la instància.
   onlyShowCurrentVersion: Mostra només la versió actual
   update: Actualitza
 user:
@@ -1090,14 +2521,34 @@ userAccount:
   removeTitle: Elimina el compte
 userCape:
   changeTitle: Canvia la teva capa
-  description: 'Les capes són recompenses especials que reben els jugadors en certs esdeveniments, campanyes, i altres ocasions. En aquest lloc pots canviar entre les que tens actualment:'
+  description: >-
+    Les capes són recompenses especials que reben els jugadors en certs esdeveniments, campanyes, i altres ocasions. En
+    aquest lloc pots canviar entre les que tens actualment:
   noCape: Sense Capa
 userService:
   description: Gestiona els teus comptes d'usuari.
   title: Comptes
+  add: Afegeix més serveis
+  authlibInjectorMetadata: Metadades d'authlib-injector
+  baseUrlHint: URL base del teu servei personalitzat
+  homepage: Pàgina principal
+  implementation: Implementació
+  manageServices: Gestiona els serveis d'autenticació
+  register: Registra't
+  server: Servidor
+  skinDomains: Dominis d'aparences
+  version: Versió
+  authLibInjector: Segueix el suggeriment d'authlib-injector
+  validateHint: S'utilitza per comprovar si el testimoni de l'usuari encara és vàlid
 userServices:
   microsoft:
     name: Microsoft
+    account: Compte de Microsoft
+    deviceCode: Codi de dispositiu
+    deviceCodeHint: El codi de dispositiu es generarà quan premis Inicia la sessió
+    password: Introdueix la contrasenya al navegador
+    useDeviceCode: Inicia la sessió amb un codi de dispositiu
+    fastLogin: Inici de sessió ràpid
   mojang:
     account: Adreça de Correu Electrònic
     name: Mojang
@@ -1120,9 +2571,53 @@ userSkin:
   urlNotEmpty: L'URL de la skin no pot estar buit
   urlNotValid: L'URL de la skin no és vàlid
   useSlim: Usa Model Prim
+  classic: Clàssica
+  invalidImage: Tria una imatge d'aparença de Minecraft vàlida.
+  invalidImageTitle: Imatge d'aparença no vàlida
+  saveSuccess: S'ha desat l'aparença al disc!
+  saveFailed: No s'ha pogut desar l'aparença al disc
+  slim: Prima
+  uploadFailed: No s'ha pogut pujar l'aparença
+  uploadRejected: Minecraft ha rebutjat l'aparença. Torna-ho a provar més tard.
+  libraryTitle: Armari local
+  librarySubtitle: Tria, gestiona i desa les aparences localment
+  manage: Gestiona
+  all: Totes
+  currentSkin: Aparença actual
+  savedCount: aparences desades
+  newSkin: Aparença nova
+  addNewSkin: Afegeix una aparença nova
+  editSkin: Edita l'aparença
+  skinName: Nom de l'aparença
+  skinNamePlaceholder: P. ex., La meva aparença preferida
+  localFile: Fitxer local
+  urlOrPlayer: URL / nom del jugador
+  urlOrPlayerPlaceholder: Introdueix l'URL de la imatge d'aparença o un nom d'usuari de Minecraft
+  urlOrPlayerHint: Introdueix un URL directe a una imatge .png o el nom d'un jugador per obtenir-ne l'aparença de Mojang
+  dropFileHere: Arrossega aquí un fitxer .PNG d'aparença o fes clic per seleccionar-lo
+  supportedFormats: 'Format admès: imatge PNG de 64x64 o 64x32'
+  preview: Previsualització de l'aparença
+  previewPlaceholder: No hi ha cap previsualització disponible
+  saveToLibrary: Desa a l'armari
+  saveAndEquip: Desa i equipa
+  equip: Equipa
+  equipToAccount: Equipa al compte de Minecraft
+  equipped: Equipada
+  noSkinSelected: No s'ha seleccionat cap aparença
+  saveCurrent: Desa l'actual
+  officialPreset: Aparença oficial predefinida
+  mySkins: Les meves aparences
+  presets: Predefinides
+  noSkinsFound: No s'ha trobat cap aparença
+  tryAddingOne: Afegeix una aparença nova amb el botó de dalt.
+  skinUpdated: S'ha actualitzat l'aparença!
+  skinDeleteFailed: No s'ha pogut eliminar l'aparença de l'armari
+  edit: Edita
+  fetch: Carrega
 version:
   name: Versió | Versions
   notInstalled: La versió no està instal·lada
+  checkIntegrity: Comprova la integritat
 versionType:
   alpha: Alfa
   beta: Beta
@@ -1133,10 +2628,10 @@ agent:
   callingTool: cridant a {name}…
   disabledPlaceholder: Agent desactivat
   emptyHint: Demana a l'agent que inspeccioni la teva instància, activi mods, llegeixi els registres o diagnostiqui un error.
-  inputPlaceholder: Pregunta a l'agent… (Enter per enviar, Shift+Enter per nova línia)
-  notConfiguredHint: Configura la teva clau API, model i endpoint a Ajustes → General → Agent IA per activar l'agent.
+  inputPlaceholder: Pregunta a l'agent… (Retorn per enviar, Maj+Retorn per crear una línia nova)
+  notConfiguredHint: Configura la clau d'API, el model i el punt d'accés a Configuració → General → Agent d'IA per activar l'agent.
   notConfiguredTitle: Agent no configurat
-  openSettings: Obre els ajustes
+  openSettings: Obre la configuració
   reset: Reinicia la conversa
   setupGuide: Guia de configuració
   statusDisabled: Desactivat — falta la clau API
@@ -1148,15 +2643,58 @@ agent:
   thinking: pensant…
   title: Agent PbtModLauncherX
   toggleHint: per activar/desactivar
+  accessRequiredHint: Subscriu-te a XMCL per utilitzar l'agent integrat o configura el teu proveïdor d'IA a la configuració.
+  abort: Atura la generació
+  confirmAccept: Continua
+  confirmAllowAll: Permet-ho tot
+  confirmCancel: Cancel·la
+  confirmPending: S'espera la confirmació
+  confirmTitle: Confirma l'acció de l'agent
+  errorTitle: S'ha produït un error a l'agent
+  subscribeXmcl: Subscriu-te a XMCL
+  passiveGameCrashed: El joc ha fallat
+  passiveGameExitCode: Codi de sortida {code}
+  passiveGameExited: El joc s'ha tancat
+  passiveGameExitSignal: Senyal {signal}
+  passiveGameExitSummary: '{duration} · {result}'
+  passiveGameExitUnknown: Estat de sortida desconegut
+  reasoning: Raonament
+  passiveGameStarted: El joc s'ha iniciat
+  passiveGameStartedSummary: Minecraft {minecraft} · {version} · PID {pid}
+  passiveModDiagnosis: Informe de compatibilitat dels mods
+  passiveModDiagnosisError: El diagnòstic de compatibilitat ha fallat
+  passiveModDiagnosisSummary: '{checked} mods comprovats · {incompatibilities} incompatibilitats · {duplicates} duplicats'
+  passiveModDuplicate: 'Mod duplicat {mod}: {files}'
+  passiveModInstalled: 'versió instal·lada: {version}'
+  toolArguments: Arguments
+  toolResult: Resultat
+  toolRunning: S'espera el resultat…
+  marketConfirmMessage: Vols instal·lar {name} a la instància actual?
+  marketConfirmTarget: 'Destinació: {instance}'
+  marketConfirmTitle: Instal·la {type}
+  marketInstall: Instal·la
+  marketInstalled: Instal·lat
+  marketInstallFailed: No s'ha pogut instal·lar {type}
+  marketType:
+    datapack: paquet de dades
+    mod: mod
+    modpack: modpack
+    resourcepack: paquet de recursos
+    shader: paquet de shaders
+  marketResultCount: '{count} resultats'
 askAICrash:
-  agentNotConfigured: Afegeix un proveïdor d'IA i una clau API als ajustes perquè l'agent integrat del launcher diagnostiqui i solucioni això per tu.
+  agentNotConfigured: >-
+    Afegeix un proveïdor d'IA i una clau d'API a la configuració perquè l'agent integrat del llançador pugui
+    diagnosticar i resoldre el problema.
   askAgent: Diagnostica amb l'agent IA integrat
   copyPrompt: Copia el prompt per preguntar a la IA
-  description: Deixa que la IA t'ajudi a entendre l'error del joc! Segueix les instruccions a continuació per preguntar a la IA sobre aquest error.
+  description: >-
+    Deixa que la IA t'ajudi a entendre l'error del joc! Segueix les instruccions a continuació per preguntar a la IA
+    sobre aquest error.
   orExternal: o usa una IA externa
   selectPlatform: Obre una plataforma d'IA i enganxa el prompt que acabes de copiar.
   setupAgent: Configura l'agent IA
-browseApps: Veient la interfície del launcher
+browseApps: Veient la interfície del llançador
 command:
   instance:
     launch:
@@ -1191,6 +2729,7 @@ commandPalette:
   hintEnter: entrar
   hintBack: tornar
   hintClose: tancar
+  hintAskAgent: pregunta a l'agent
 difficulty:
   easy: Fàcil
   hard: Difícil
@@ -1221,7 +2760,7 @@ migrationWindow:
   migrating: Movent les teves dades
   done: Migració completada
   files: fitxers
-  warning: Mantén el launcher obert fins que acabi, o podries perdre les dades.
+  warning: Mantén el llançador obert fins que acabi, o podries perdre les dades.
   error: Error en la migració
 minecraftFriends:
   accept: Accepta
@@ -1235,6 +2774,10 @@ minecraftFriends:
     inviteRejected: Aquest jugador no té els amics activats o no accepta invitacions.
     tokenExpired: La teva sessió de Microsoft ha expirat. Torna a iniciar sessió.
     unknownProfile: No hem pogut trobar cap jugador amb aquest nom.
+    friendsDisabled: >-
+      El compte de Minecraft té els amics desactivats o no pot utilitzar aquesta funció. Activa-la a la configuració del
+      compte i torna-ho a provar.
+    invalidName: Els noms d'usuari de Minecraft han de tenir entre 3 i 16 caràcters.
   expiresRelative: Expira {time}
   friends: Amics
   heroEmptyHint: Afegeix un jugador de Minecraft pel nom d'usuari a dalt per enviar una sol·licitud d'amistat.
@@ -1261,7 +2804,7 @@ modSearch:
 modSearchType:
   all: Tots
   local: Locals
-  explore: ModPacks
+  explore: Modpacks
   installed: Instal·lats
 reinstall:
   name: Reinstal·la {version}
@@ -1272,7 +2815,9 @@ relative:
   minutesAgo: fa {count} minut | fa {count} minuts
   secondsAgo: fa {count} segon | fa {count} segons
 resourceError:
-  body: '"{path}" no s''ha pogut analitzar ({code}). El fitxer pot estar malmès, bloquejat o incomplet. Torna a descarregar-lo o elimina''l.'
+  body: >-
+    "{path}" no s'ha pogut analitzar ({code}). El fitxer pot estar malmès, bloquejat o incomplet. Torna a descarregar-lo
+    o elimina'l.
   title: No es pot llegir {file}
 sidebar:
   pin: Fixa
@@ -1284,7 +2829,9 @@ unauthenticatedWarning:
   playAnyway: Juga de totes formes
   title: No has iniciat sessió
 unresolvedFiles:
-  description: Aquests fitxers no s'han pogut descarregar durant la instal·lació. Cerca una font coincident, instal·la les coincidències o ignora els fitxers per iniciar de totes formes.
+  description: >-
+    Aquests fitxers no s'han pogut descarregar durant la instal·lació. Cerca una font coincident, instal·la les
+    coincidències o ignora els fitxers per iniciar de totes formes.
   empty: Tots els fitxers estan resolts.
   ignoreSelected: Ignora {count}
   install: Instal·la {count} coincidències
@@ -1298,3 +2845,190 @@ unresolvedFiles:
     modrinth-name: Modrinth
   title: Fitxers sense resoldre
   via: via {source}
+bedrock:
+  description: >-
+    Minecraft Bedrock Edition s'instal·la i s'inicia mitjançant Microsoft Store. Cal que el teu compte de Microsoft
+    tingui una llicència de Bedrock.
+  install: Obtén-lo a Microsoft Store
+  installFailed: No s'ha pogut obrir Microsoft Store
+  installed: 'Instal·lat: {version}'
+  launchHint: Prem el botó Juga per iniciar Bedrock Edition.
+  installBedrockVersion: S'està descarregant Bedrock {version}
+  licenseRequired: Inicia la sessió amb un compte de Microsoft que tingui Minecraft per instal·lar Bedrock Edition i jugar-hi.
+  refresh: Actualitza
+  versionsTitle: Gestor de versions
+  versionsHint: >-
+    Descarrega diverses versions de Bedrock dels servidors de Microsoft i canvia entre elles. Només es pot registrar una
+    versió al Windows alhora; en iniciar-ne una, es torna a registrar.
+  versionsError: No s'ha pogut carregar la llista de versions. Comprova la connexió i torna-ho a provar.
+  channel: Canal
+  channelRelease: Estable
+  channelBeta: Beta
+  channelPreview: Preview
+  active: Activa
+  play: Juga
+  download: Descarrega
+  installedTag: Instal·lat
+  developerModeRequired: >-
+    Per registrar una versió descarregada cal activar el mode de desenvolupador del Windows. Per activar-lo es demana
+    permís d'administrador.
+  enableDeveloperMode: Activa el mode de desenvolupador
+  enableDeveloperModeFailed: No s'ha pogut activar el mode de desenvolupador
+  downloadFailed: No s'ha pogut descarregar Bedrock {version}
+  launchFailed: No s'ha pogut iniciar aquesta versió de Bedrock
+  removeFailed: No s'ha pogut eliminar Bedrock {version}
+xmclAccount:
+  accountSummary: Compte
+  confirmMerge: Confirma la fusió de comptes
+  createdAt: Creat el {date}
+  description: La teva identitat XMCL sense contrasenya, independent dels comptes de joc de Minecraft.
+  expiresAt: Caduca el {date}
+  gameAccountsSeparate: Eliminar un compte de joc no desenllaça cap mètode d'inici de sessió de XMCL.
+  guest: Convidat
+  identityConflict: Aquest inici de sessió de {provider} pertany a un altre XMCL Account. Els comptes mai no es fusionen automàticament.
+  linkAccountWith: Enllaça el compte amb
+  mergePreview: Revisa els recursos que es transferiran abans de confirmar.
+  mergeNeedsSession: Inicia la sessió a l'XMCL Account que vols conservar abans de revisar la fusió.
+  mergeQueued: La fusió de comptes està en curs.
+  requestFailed: El servei XMCL Account no ha pogut completar la petició. El compte de joc no ha canviat.
+  reviewMerge: Revisa la fusió
+  session: Sessió
+  sessionActive: Activa
+  sessionExpired: Caducada
+  signOutAll: Tanca la sessió a tots els dispositius
+  signOutDevice: Tanca la sessió en aquest dispositiu
+  status:
+    active: Actiu
+    deleted: Eliminat
+    deletion_pending: Eliminació pendent
+    merged: Fusionat
+  title: XMCL Account
+modpackUpdateOrCreate:
+  createNew: Crea'n una de nova
+  description: Ja hi ha una instància «{name}» per a aquest modpack. Vols actualitzar-la o crear-ne una de nova?
+  title: La instància ja existeix
+  update: Actualitza l'existent
+blueprint:
+  name: Plànol | Plànols
+  count: '{count} plànols'
+  searchLocal: Cerca plànols…
+  searchOnline: Cerca en línia…
+  market: Catàleg
+  local: Local
+  provider: Proveïdor
+  import: Importa
+  openFolder: Obre la carpeta
+  refresh: Actualitza
+  empty: No s'ha trobat cap plànol. Importa un fitxer .litematic, .schem o .nbt, o explora el catàleg.
+  dropHint: Arrossega aquí fitxers de plànols (.litematic, .schem o .nbt) per importar-los.
+  selectHint: Selecciona un plànol per previsualitzar-lo.
+  blocks: '{count} blocs'
+  materials: Materials
+  allNamespaces: Tots
+  findMod: Cerca el mod d'aquest espai de noms
+  compatible: Compatible
+  incompatible: Falten mods
+  missingNamespaces: 'Falten mods per a: {namespaces}'
+  delete: Elimina
+  cancel: Cancel·la
+  install: Instal·la
+  goTo: Lloc web
+  byAuthor: de {author}
+  noDescription: No s'ha proporcionat cap descripció.
+  loadMore: Carrega'n més
+  cmsBrowseOnly: Aquest origen només permet explorar; obre el lloc web per descarregar.
+  mixedSources: Els resultats combinen tots els orígens. Alguns només permeten explorar; obre'n el lloc web per descarregar.
+  formats:
+    structure: Estructura de Vanilla
+  preview:
+    title: Previsualització 3D
+    loading: S'està carregant la previsualització…
+    empty: Aquest plànol no conté blocs per mostrar.
+    hint: '{count} blocs · {x}×{y}×{z}'
+    controls: 'WASD: mou-te · Espai/Maj: puja/baixa · Arrossega: mira · Roda: amplia'
+  convert:
+    title: Converteix el format
+    hint: Converteix aquest plànol a un altre format. Es crearà un fitxer nou.
+    target: Format de destinació
+    action: Converteix
+  replace:
+    title: Substitueix blocs
+    simple: Simple
+    precise: Precís
+    simpleHint: Compara només l'ID del bloc i conserva les propietats d'estat existents.
+    preciseHint: Compara l'estat complet del bloc (ID i propietats) i substitueix-lo completament.
+    from: Origen
+    to: Destinació
+    addRule: Afegeix una regla
+    newFile: Desa en un fitxer nou
+    action: Substitueix
+localCollection:
+  title: Col·leccions del llançador
+  newCollection: Col·lecció nova
+  namePlaceholder: Nom de la col·lecció
+  addToCollection: Afegeix a una col·lecció
+  empty: Encara no hi ha col·leccions al llançador
+  corrupted: >-
+    No s'han pogut llegir les col·leccions desades i s'han restablert. Se n'ha conservat una còpia de seguretat al
+    costat del fitxer de dades.
+  modrinthSection: Compte de Modrinth
+  installAll: Instal·la-ho tot
+  incompatibleAlert: >-
+    S'ha omès 1 projecte perquè no és compatible amb la instància actual: | S'han omès {count} projectes perquè no són
+    compatibles amb la instància actual:
+  projects: Cap projecte | {count} projecte | {count} projectes
+gamepad:
+  detectedTitle: S'ha detectat un comandament
+  connected: Comandament connectat
+  guideTitle: Controls del comandament
+  enableSwitchLabel: Controls del comandament
+  enabledState: Activats
+  disabledState: Desactivats
+  toggle: Activa o desactiva
+  disabledNotify: S'han desactivat els controls del comandament.
+  enabledNotify: >-
+    S'han activat els controls del comandament! Utilitza la creueta o la palanca esquerra per navegar, {btnA} per
+    seleccionar i {btnB} per tornar enrere.
+  guide:
+    confirm: Selecciona
+    navigate: Navega
+    tabs: Canvia de pestanya
+    sections: Canvia de secció
+    launch: Inicia el joc
+    instanceSettings: Configuració de la instància
+  modSuggestTitle: Mod per a comandaments
+  modSuggestBody: >-
+    Per utilitzar el comandament a Minecraft es recomana un mod de compatibilitat. Vols instal·lar el mod adequat per al
+    teu carregador?
+  modInstall: Instal·la el mod
+  modSkip: Omet
+  modDone: Fet
+  modInstalled: S'ha instal·lat el mod per a comandaments. Estarà actiu la pròxima vegada que iniciïs Minecraft.
+  modInstalledNotify: S'ha instal·lat {name} per permetre l'ús del comandament al joc.
+  modNotFound: No s'ha trobat cap versió compatible amb {loader} per a Minecraft {version}.
+  autoEnableLabel: Activa els controls automàticament
+  autoEnableHint: Activa la navegació amb comandament quan se'n detecti un.
+  autoOpenKeyboardLabel: Obre automàticament el teclat de Steam
+  autoOpenKeyboardHint: Obre el teclat en pantalla de Steam en seleccionar camps de text.
+  focusTooltipsLabel: Mostra consells als elements seleccionats
+  focusTooltipsHint: Mostra els consells emergents en navegar pels elements amb el comandament.
+  disableModPromptLabel: Desactiva els suggeriments de mods per a comandaments
+  disableModPromptHint: No proposis instal·lar mods per a comandaments en iniciar el joc amb un comandament.
+  settingSteamTitle: Afegeix el llançador a Steam
+  steamAddedNotify: S'ha afegit el llançador a la biblioteca de Steam. Reinicia Steam per veure'l.
+  steamAlreadyAddedNotify: El llançador ja és a la biblioteca de Steam.
+  steamDeckTitle: S'ha detectat una Steam Deck
+  steamDeckDesc: >-
+    S'ha detectat que utilitzes una Steam Deck. Vols afegir PbtModLauncherX a la biblioteca de Steam com a joc extern
+    per integrar la interfície superposada i el comandament al mode de joc?
+  steamDeckAddBtn: Afegeix a Steam ({btn})
+  steamDeckCancelBtn: Cancel·la ({btn})
+accessibility:
+  window: Finestra
+  windowControls: Controls de la finestra
+  minimize: Minimitza
+  maximize: Maximitza
+  sidebarNavigation: Navegació de la barra lateral
+  instanceGroup: Grup d'instàncies
+  selectedCount: '{count} seleccionats'
+  moreCount: '+{count} més'

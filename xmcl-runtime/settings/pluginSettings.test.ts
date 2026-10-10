@@ -119,6 +119,24 @@ describe('pluginSettings', () => {
     expect(mockState.locale).toBe('en')
   })
 
+  test.each(['es-ES', 'ca'])('uses system locale %s without a saved language', async (locale) => {
+    vi.mocked(fsExtra.readJson).mockResolvedValue({})
+    mockApp.host.getLocale.mockReturnValue(locale)
+    const { pluginSettings } = await import('./pluginSettings')
+    await pluginSettings(mockApp, mockManifest)
+    await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
+    expect(mockState.locale).toBe(locale)
+  })
+
+  test.each(['es-ES', 'ca'])('keeps saved locale %s over the system language', async (locale) => {
+    vi.mocked(fsExtra.readJson).mockResolvedValue({ locale })
+    const { pluginSettings } = await import('./pluginSettings')
+    await pluginSettings(mockApp, mockManifest)
+    await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
+    expect(mockState.locale).toBe(locale)
+    expect(mockApp.host.getLocale).not.toHaveBeenCalled()
+  })
+
   test('should handle missing setting.json gracefully', async () => {
     vi.mocked(fsExtra.readJson).mockRejectedValue(new Error('File not found'))
 

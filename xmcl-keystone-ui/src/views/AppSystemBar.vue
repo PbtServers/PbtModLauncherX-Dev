@@ -299,12 +299,12 @@ const onBack = () => {
   router.back()
 }
 
-const systemBarAriaLabel = 'Window'
+const systemBarAriaLabel = computed(() => t('accessibility.window'))
 const backAriaLabel = computed(() => t('shared.back'))
-const minimizeAriaLabel = 'Minimize'
-const maximizeAriaLabel = 'Maximize'
-const closeAriaLabel = 'Close'
-const windowControlsAriaLabel = 'Window controls'
+const minimizeAriaLabel = computed(() => t('accessibility.minimize'))
+const maximizeAriaLabel = computed(() => t('accessibility.maximize'))
+const closeAriaLabel = computed(() => t('shared.close'))
+const windowControlsAriaLabel = computed(() => t('accessibility.windowControls'))
 </script>
 <style lang="css" scoped>
 /* Keep a long controller name from pushing/overflowing the bar. */

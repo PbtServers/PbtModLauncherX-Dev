@@ -2,24 +2,22 @@ browseApps: Explorar la interfaz de usuario personalizada del lanzador
 checkUpdate: Buscar actualizaciones
 openUrl:
   cancel: Cancelar
-  message: >-
-    El lanzador quiere abrir {url} en tu navegador por defecto. ¿Permites esta
-    operación?
+  message: El lanzador quiere abrir {url} en tu navegador por defecto. ¿Permites esta operación?
   title: Abrir en el navegador
   trust: Confiar en este sitio y no volver a preguntar
   'yes': Sí
 quit: Salir
-relaunch: Relanzar
+relaunch: Reiniciar
 showDiagnosis: Mostrar diagnóstico
 showLauncher: Mostrar lanzador
 showLogsFolder: Mostrar carpeta de registros
 task:
   continue: Ver en el lanzador
-  fail: Una tarea falló
+  fail: Una tarea ha fallado
   success: Una tarea completada
 title: PbtModLauncherX
-urlFailed: >-
-  URL no encontrada {url}. Revisa la URL o contacta al desarrollador.
-urlSuccess: '¡Hecho! Ya puedes cerrar esta ventana y volver al lanzador.'
+urlFailed: URL no encontrada {url}. Revisa la URL o contacta al desarrollador.
+urlSuccess: ¡Hecho! Ya puedes cerrar esta ventana y volver al lanzador.
 multiplayer: Multijugador P2P
 makeDesktopShortcut: Crear acceso directo en el escritorio
+autoCloseHint: Esta ventana se cerrará en {time} segundos

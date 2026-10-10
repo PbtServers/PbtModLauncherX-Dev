@@ -277,7 +277,7 @@ const { t } = useI18n()
 const { back } = useRouter()
 const route = useRoute()
 
-const navigationAriaLabel = 'Sidebar navigation'
+const navigationAriaLabel = computed(() => t('accessibility.sidebarNavigation'))
 const backAriaLabel = computed(() => t('shared.back'))
 const myStuffAriaLabel = computed(() => t('myStuff'))
 const storeAriaLabel = computed(() => t('store.name', 2))

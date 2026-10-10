@@ -12,7 +12,11 @@ export function useI18nSync(state: Ref<Settings | undefined>) {
   const vuetifyLocale = useLocale()
   watch(computed(() => state.value?.locale || ''), (newValue: string, oldValue: string) => {
     console.log(`Locale changed ${oldValue} -> ${newValue}`)
-    if (newValue === 'zh-CN') {
+    if (newValue === 'es-ES') {
+      vuetifyLocale.current.value = 'es'
+    } else if (newValue === 'ca') {
+      vuetifyLocale.current.value = 'ca'
+    } else if (newValue === 'zh-CN') {
       vuetifyLocale.current.value = 'zhHans'
     } else if (newValue === 'zh-TW' || newValue === 'zh-HK') {
       vuetifyLocale.current.value = 'zhHant'

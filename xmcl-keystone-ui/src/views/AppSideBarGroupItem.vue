@@ -13,7 +13,7 @@
       class="sidebar-group non-moveable"
       role="button"
       tabindex="0"
-      :aria-label="group.name || 'Instance group'"
+      :aria-label="group.name || t('accessibility.instanceGroup')"
       :aria-expanded="expanded"
       draggable="true"
       @click="onClick"

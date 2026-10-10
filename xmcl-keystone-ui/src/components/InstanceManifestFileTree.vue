@@ -290,6 +290,74 @@ intro:
     versions: Same with vanilla. Save multiple versions' JSON & JAR
 </i18n>
 
+<i18n locale="es-ES" lang="yaml">
+intro:
+  struct:
+    assets: Caché de los recursos del juego, igual que en Vanilla
+    config: Carpeta de configuración de la instancia
+    forge-versions: Caché global de metadatos de versiones de Forge
+    java: Caché global de las instalaciones de Java detectadas
+    jre: Caché del JRE descargado por el lanzador (JVM 8)
+    libraries: Bibliotecas, igual que en Vanilla
+    lite-versions: Caché global de metadatos de versiones de LiteLoader
+    logs: Registros de los juegos iniciados
+    mclogs: Registros habituales de Minecraft
+    modJar: Archivo JAR del mod
+    modLite: Archivo del mod de LiteLoader
+    modManaged: Archivo JAR del mod gestionado
+    mods: Carpeta con todos los mods activados de este modpack
+    optionShadersTxt: Archivo de configuración de shaders de OptiFine
+    optionTxt: Archivo de configuración de Minecraft Vanilla
+    options: Configuración habitual de Minecraft
+    profile: Archivo JSON con la configuración del perfil de inicio
+    profileFolder: Carpeta de un perfil de inicio concreto, identificada por su UUID
+    profiles: Carpeta que contiene los perfiles de inicio
+    resourceJson: Metadatos correspondientes a un mod o paquete de recursos
+    resourcepack: Archivo ZIP de un paquete de recursos
+    resourcepacks: Carpeta con todos los paquetes de recursos de este modpack
+    resources: Carpeta con metadatos de los mods y paquetes de recursos gestionados
+    root: Carpeta raíz de los datos de Minecraft
+    saves: Partidas de Minecraft
+    temp: Carpeta temporal del lanzador para las descargas
+    user: Caché de los datos de autenticación del usuario
+    version: Caché global de metadatos de versiones de Minecraft
+    versions: Archivos JSON y JAR de las versiones, igual que en Vanilla
+</i18n>
+
+<i18n locale="ca" lang="yaml">
+intro:
+  struct:
+    assets: Memòria cau dels recursos del joc, igual que a Vanilla
+    config: Carpeta de configuració de la instància
+    forge-versions: Memòria cau global de metadades de versions de Forge
+    java: Memòria cau global de les instal·lacions de Java detectades
+    jre: Memòria cau del JRE descarregat pel llançador (JVM 8)
+    libraries: Biblioteques, igual que a Vanilla
+    lite-versions: Memòria cau global de metadades de versions de LiteLoader
+    logs: Registres dels jocs iniciats
+    mclogs: Registres habituals de Minecraft
+    modJar: Fitxer JAR del mod
+    modLite: Fitxer del mod de LiteLoader
+    modManaged: Fitxer JAR del mod gestionat
+    mods: Carpeta amb tots els mods activats d'aquest modpack
+    optionShadersTxt: Fitxer de configuració dels shaders d'OptiFine
+    optionTxt: Fitxer de configuració de Minecraft Vanilla
+    options: Configuració habitual de Minecraft
+    profile: Fitxer JSON amb la configuració del perfil d'inici
+    profileFolder: Carpeta d'un perfil d'inici concret, identificada pel seu UUID
+    profiles: Carpeta que conté els perfils d'inici
+    resourceJson: Metadades corresponents a un mod o paquet de recursos
+    resourcepack: Fitxer ZIP d'un paquet de recursos
+    resourcepacks: Carpeta amb tots els paquets de recursos d'aquest modpack
+    resources: Carpeta amb metadades dels mods i paquets de recursos gestionats
+    root: Carpeta arrel de les dades de Minecraft
+    saves: Partides de Minecraft
+    temp: Carpeta temporal del llançador per a les descàrregues
+    user: Memòria cau de les dades d'autenticació de l'usuari
+    version: Memòria cau global de metadades de versions de Minecraft
+    versions: Fitxers JSON i JAR de les versions, igual que a Vanilla
+</i18n>
+
 <i18n locale="zh-CN" lang="yaml">
 intro:
   struct:

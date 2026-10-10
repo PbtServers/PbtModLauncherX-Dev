@@ -14,7 +14,7 @@ import TechnicIcon from '@/components/TechnicIcon.vue'
 import { h } from 'vue'
 import { IconProps, IconSet, createVuetify } from 'vuetify'
 import { aliases, md } from 'vuetify/iconsets/md'
-import { ar, ru, zhHans } from 'vuetify/locale'
+import { ar, ca, es, ru, zhHans } from 'vuetify/locale'
 import 'vuetify/styles'
 import { BuiltinImages } from './constant'
 import { DEFAULT_SURFACE_BUTTON_RADIUS } from './composables/surfaceTokens'
@@ -53,7 +53,7 @@ export const vuetify = createVuetify({
   locale: {
     locale: 'en',
     fallback: 'en',
-    messages: { zhHans, ru, ar },
+    messages: { zhHans, ru, ar, ca, es },
     rtl: {
       ar: true,
     },
