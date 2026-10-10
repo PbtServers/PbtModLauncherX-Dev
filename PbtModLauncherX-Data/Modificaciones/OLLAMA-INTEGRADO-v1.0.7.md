@@ -281,6 +281,33 @@ Preservación actualizada: `temp/phase155-preservacion-20261010.zip`, `.manifest
 
 #### Fuente alternativa oficial Hugging Face e importación local
 
+### Fase 15.6 — reconstrucción y validación final (parcial, bloqueada para GUI)
+
+Base inicial confirmada: `02cad9690b7e6d5777cc07f7d383a6651487eae6`, commit `fix(ai): synchronize automatic PbtAdmin model and managed endpoint`, rama dev/upstream-v1.0.7. Árbol inicialmente limpio y versión 1.0.7. No se repiten implementaciones ni descargas. Scripts reutilizados: prepare-ollama.mjs, prepare-ollama-model.mjs con fuente huggingface, validate-bundled-ollama.mjs y build Electron existente.
+
+| Comprobación de esta fase | Estado | Evidencia |
+| --- | --- | --- |
+| Commit de configuración automática | APROBADO | HEAD indicado arriba, Git inicialmente limpio |
+| Regresiones runtime/agente/modelo/endpoint/historial/portable/preparadores | APROBADO | 65 aprobadas, 0 fallidas, 0 omitidas; temp/phase156-tests.json |
+| Typecheck completo | APROBADO | Código 0, temp/phase156-check.log |
+| Lint completo | APROBADO | Código 0, temp/phase156-lint.log |
+| Build Keystone UI | APROBADO | Código 0 y verify-bundle correcto; temp/phase156-renderer.log |
+| Build Electron portable dentro de Codex | BLOQUEADO | Código 1, uv_os_get_passwd/ENOMEM, temp/phase156-electron.log |
+| Recursos del portable ya existente | APROBADO | Inspección SHA-256 de runtime84 archivos y modelo5 archivos; temp/phase156-existing-package.log |
+| Nuevo portable construido por Codex en esta fase | BLOQUEADO | El fallo de build impide certificar uno nuevo |
+| Chat real nuevo, pregunta completa | NO EJECUTADO | Se solicita ejecución externa del validador actualizado |
+| Interfaz, campos readonly, selector, estados y tema | BLOQUEADO | Sin launcher activo ni listener9222/9300; no hay resultado visual nuevo |
+| Reapertura, traslado, otra unidad y offline explícito | NO EJECUTADO | Requieren portable y perfil aislado reales |
+| Instaladores Windows, Linux/macOS nativos | NO EJECUTADO | No hay nuevas distribuciones ni entornos nativos disponibles |
+
+El recurso existente contiene `pbtadmin-qwen3:4b-q4_K_M`, 2497291968 bytes en blobs, Qwen3 4B Q4_K_M y licencia verificada; runtime oficial Ollama v0.34.0 Windows x64 íntegro. SHA-256 del GGUF: 7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5. La presencia de texto detectedEndpoint en app.asar no sustituye la prueba de ejecución de la configuración automática ni permite certificar el build nuevo. La inferencia anterior con puerto63409, 245 fragmentos y cierre confirmado sigue siendo evidencia histórica; no se vuelve a presentar como prueba de esta fase ni de su nueva interfaz.
+
+El validador ahora pregunta «¿Quién eres, quién es tu creadora y qué sabes de PbtServers?», usa perfiles `temp/phase156-factory-chat-<uuid>` y conserva un `.result.json` UTF-8 con modelo, origen dinámico, metadatos, respuesta auténtica, fragmentos y cierre. Su lector de streaming conserva Unicode entre fragmentos. No descarga modelos ni consulta perfiles personales. Syntax check aprobado. La respuesta, el femenino y las afirmaciones sobre la network requieren revisar la evidencia real, no una respuesta simulada. Este script no sustituye el chat en GUI.
+
+Procedimiento externo pendiente: rebuild renderer y Electron con PBT_DISTRIBUTION_MODE=portable, BUILD_TARGET ausente y RELEASE=false (el build mantiene publish=never); ejecutar validate-bundled-ollama.mjs y devolver el JSON UTF-8/log. Después abrir únicamente el portable de prueba con PBT_PORTABLE_DATA relativo y único, conservar esa misma ruta para reapertura, registrar PID y puerto; comprobar Ajustes, modelo importado automático, endpoint distinto del selector lógico11434, readonly y ausencia de API key; enviar la pregunta completa en el chat; revisar español/catalán/inglés y tamaños1200x720/800x400; cerrar la ventana propia y comprobar limpieza. Tras cerrar, comprobar traslado sin tocar instalaciones personales. No se declaran esos pasos aprobados antes de ejecutarlos.
+
+Preservación de los cambios de validación y documentación: temp/phase156-preservacion-20261011.zip, .manifest.json y .patch; sin binarios, GGUF ni perfiles temporales. No hay push, merge, tag, release ni modificación de master/backup.
+
 Corrección posterior de configuración automática: campos identificados en `xmcl-keystone-ui/src/views/SettingGeneral.vue`, alimentados por `composables/agent/settings.ts` y `AgentService.getProviderSettings()`. El endpoint guardado 127.0.0.1:11434 es el identificador lógico histórico del proveedor Ollama, no el transporte del motor integrado; `OllamaController` y el puente de chat ya reciben el origen dinámico del gestor. Se conserva ese identificador para reconocer perfiles antiguos, sin persistir puertos efímeros. Se añade `detectedEndpoint` separado a la respuesta del servicio para mostrar la URL real, calculada desde localOrigin y renovada al consultar tras un reinicio.
 
 El servicio devolvía el modelo del snapshot de configuración incluso después de descubrir y seleccionar la semilla. Ahora devuelve directamente el modelo resuelto, espera la persistencia y vuelve a comprobar preferencias antes de escribir: una elección manual concurrente prevalece. El composable actualiza el modelo vacío a partir de la respuesta del servicio durante refresh; no sobrescribe selecciones existentes ni proveedores externos. Ajustes muestra modelo y endpoint detectados en solo lectura para Ollama, o estados localizados de ausencia/detención. Los campos manuales siguen disponibles para proveedores externos; el panel PbtAdmin conserva detección, selección de modelos instalados y asistente. No se pide API key a Ollama ni se inventa un modelo configurado si los metadatos no lo validan.
