@@ -84,12 +84,25 @@ describe('verified update publication', () => {
     const active = join(home, 'app.asar'), pending = join(directory, 'pending_update')
     const settings = JSON.stringify({ locale: 'ca', root: 'G:\\Minecraft personal', agentModel: 'local', classifications: { abc: 'required' } })
     await writeFile(join(home, 'setting.json'), settings)
+    // Fictitious opaque data: the updater must preserve bytes, not interpret
+    // account/vault formats or reset features introduced in earlier phases.
+    const preserved = {
+      'instance.json': JSON.stringify({ minecraft: '26.1', java: 'G:\\Java con espacios', memory: 4096 }),
+      'world.dat': 'fictitious world bytes',
+      'icon.gif': 'GIF89a-fictitious-icon',
+      'agent.json': JSON.stringify({ provider: 'ollama', model: 'existing-local-model', history: true }),
+      'vault.bin': 'fictitious-encrypted-credential-bytes',
+      'server-mod-decisions.json': JSON.stringify({ schema: 1, override: 'recommended' }),
+      'shader-options.txt': 'existing shader preference',
+    }
+    for (const [name, content] of Object.entries(preserved)) await writeFile(join(home, name), content)
     await writeFile(active, 'working 1.0.6')
     await writeFile(pending, bytes)
     const backup = await replaceVerifiedAsar(pending, active, hash)
     expect(await readFile(active)).toEqual(bytes)
     expect(await readFile(backup, 'utf8')).toBe('working 1.0.6')
     expect(await readFile(join(home, 'setting.json'), 'utf8')).toBe(settings)
+    for (const [name, content] of Object.entries(preserved)) expect(await readFile(join(home, name), 'utf8')).toBe(content)
   })
   it('rejects modification after download before touching the installed app', async () => {
     const active = join(directory, 'app.asar'), pending = join(directory, 'pending_update')

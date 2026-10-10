@@ -27,12 +27,21 @@ describe('common protocol', () => {
     pluginCommonProtocol({ protocol, fetch } as any, {} as any)
 
     await protocol.handle({
-      url: 'https://api.xmcl.app/translation',
+      url: 'https://provider.example/metadata',
       cache: 'force-cache',
     })
 
-    expect(fetch).toHaveBeenCalledWith('https://api.xmcl.app/translation', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith('https://provider.example/metadata', expect.objectContaining({
       cache: 'force-cache',
     }))
+  })
+
+  test('does not forward XMCL-exclusive requests even when caching is requested', async () => {
+    const protocol = new LauncherProtocolHandler()
+    const fetch = vi.fn()
+    pluginCommonProtocol({ protocol, fetch } as any, {} as any)
+    const response = await protocol.handle({ url: 'https://api.xmcl.app/translation', cache: 'force-cache' })
+    expect(response.status).toBe(503)
+    expect(fetch).not.toHaveBeenCalled()
   })
 })
