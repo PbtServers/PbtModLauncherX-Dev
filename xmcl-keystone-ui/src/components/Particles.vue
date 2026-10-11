@@ -63,7 +63,9 @@ const props = withDefaults(defineProps<{
   moveRandom: false,
 })
 
-const current = () => (window as any).pJSDom[0]
+let owned: any
+let disposed = false
+const current = () => owned
 
 watch(computed(() => props.moveEnabled), (e) => {
   const cur = current()
@@ -248,7 +250,10 @@ function initParticleJS() {
 
 onMounted(() => {
   nextTick().then(() => {
+    if (disposed) return
     initParticleJS()
+    owned = (window as any).pJSDom?.find((entry: any) => entry.pJS.canvas.el.parentElement?.id === 'particles-js')
   })
 })
+onUnmounted(() => { disposed = true; owned?.pJS.fn.vendors.destroypJS(); owned = undefined })
 </script>

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useService } from '@/composables'
-import { useLocalStorageCacheBool } from '@/composables/cache'
+import { useLocalStorage } from '@vueuse/core'
 import { useDateString } from '@/composables/date'
 import { useDialog } from '@/composables/dialog'
 import { kInstance } from '@/composables/instance'
@@ -12,9 +12,10 @@ import { getModrinthProjectModel } from '@/composables/modrinthProject'
 import { getModrinthVersionModel } from '@/composables/modrinthVersions'
 import { useSWRVModel } from '@/composables/swrv'
 import { injection } from '@/util/inject'
-import { ModpackServiceKey, ModrinthUpstream } from '@xmcl/runtime-api'
+import { ModpackServiceKey } from '@xmcl/runtime-api'
 import HomeUpstreamBase from './HomeUpstreamBase.vue'
 import { ProjectVersionProps } from './HomeUpstreamVersion.vue'
+import { ModrinthUpstream } from '@xmcl/instance'
 
 const props = defineProps<{
   id: string
@@ -47,7 +48,7 @@ const currentVersion = computed(() => {
   return result
 })
 const limit = ref(10)
-const onlyCurrentVersion = useLocalStorageCacheBool(computed(() => `instanceUpstreamOnlyShowCurrentVersion/${instance.value.path}`), false)
+const onlyCurrentVersion = useLocalStorage(computed(() => `instanceUpstreamOnlyShowCurrentVersion/${instance.value.path}`), false, { writeDefaults: false })
 const items = computed(() => {
   const result = {} as Record<string, ProjectVersionProps[]>
 
@@ -138,7 +139,7 @@ async function onDuplicate(v: ProjectVersionProps) {
     :header="headerData"
     :updating="updating"
     :duplicating="duplicating"
-    :only-current-version.sync="onlyCurrentVersion"
+    v-model:only-current-version="onlyCurrentVersion"
     @update="onUpdate"
     @duplicate="onDuplicate"
   />

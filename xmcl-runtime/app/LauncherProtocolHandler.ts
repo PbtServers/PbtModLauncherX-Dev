@@ -1,3 +1,4 @@
+import { isXmclExclusiveUrl } from '@xmcl/runtime-api'
 import { Readable } from 'stream'
 
 export interface Context {
@@ -11,6 +12,8 @@ export interface RequestOptions {
   url: string | URL
   headers?: Record<string, any>
   body?: string | Buffer | Readable
+  signal?: AbortSignal
+  cache?: RequestCache
 }
 
 export interface Request {
@@ -18,12 +21,18 @@ export interface Request {
   url: URL
   headers: Record<string, any>
   body?: string | Buffer | Readable
+  signal?: AbortSignal
+  cache?: RequestCache
+  /** Skip remaining protocol interceptors after the current handler, but still run the sink. */
+  skipRemainingHandlers?: boolean
 }
 
 export interface Response {
   status?: number
   headers: Record<string, any>
   body?: string | Buffer | Readable
+  /** Return this response without running remaining interceptors or a sink. */
+  handled?: boolean
 }
 
 export interface Handler {
@@ -73,8 +82,20 @@ export class LauncherProtocolHandler {
   async handle(request: RequestOptions): Promise<ResolvedResponse> {
     const handle: Handler = async (ctx) => {
       const handers = this.handlers.filter(v => `${v[0]}:` === ctx.request.url.protocol).map(v => v[1])
+      const rejectCloud = () => {
+        if (!isXmclExclusiveUrl(ctx.request.url)) return false
+        ctx.response.status = 503
+        ctx.response.headers = { 'content-type': 'application/json' }
+        ctx.response.body = JSON.stringify({ error: 'pbt_xmcl_cloud_disabled' })
+        ctx.response.handled = true
+        return true
+      }
+      if (rejectCloud()) return
       for (const handler of handers) {
         await handler(ctx)
+        if (rejectCloud()) return
+        if (ctx.response.handled) return
+        if (ctx.request.skipRemainingHandlers) break
       }
       await this.sinkHandlers[ctx.request.url.protocol.substring(0, ctx.request.url.protocol.length - 1)]?.(ctx)
     }
@@ -84,6 +105,8 @@ export class LauncherProtocolHandler {
         url: typeof request.url === 'string' ? new URL(request.url, 'xmcl://launcher') : request.url,
         headers: request.headers || {},
         body: request.body,
+        signal: request.signal,
+        cache: request.cache,
       },
       response: {
         headers: {},

@@ -1,5 +1,6 @@
 <template>
   <HomeCard
+    class="home-mods-card"
     icon="extension"
     :title="t('mod.name', 2)"
     :class="{
@@ -10,10 +11,10 @@
     :refreshing="isValidating"
     :addition-button="noAction ? undefined : { 
       icon: 'file_download',
-      text: t('install'),
+      text: t('shared.install'),
      }"
     :button="noAction || mods.length === 0 ? undefined : {
-      text: t('mod.manage'),
+      text: t('shared.manage'),
       icon: 'settings'
      }"
     :error="error"
@@ -26,7 +27,7 @@
 import { kInstanceModsContext } from '@/composables/instanceMods'
 import { injection } from '@/util/inject'
 import HomeCard from '@/components/HomeCard.vue'
-import { kDropHandler } from '@/composables/dropHandler'
+import { getDropFilePaths, kDropHandler } from '@/composables/dropHandler'
 import { useService } from '@/composables'
 import { InstanceModsServiceKey } from '@xmcl/runtime-api'
 import { kInstance } from '@/composables/instance'
@@ -45,11 +46,13 @@ const { path } = injection(kInstance)
 
 function onDrop(e: DragEvent) {
   if (e.dataTransfer) {
-    const filePaths = Array.from(e.dataTransfer.files).map(f => f.path)
+    const filePaths = getDropFilePaths(e.dataTransfer.files)
+    if (filePaths.length === 0) return
     install({
       path: path.value,
-      mods: filePaths,
+      files: filePaths,
     })
+    e.preventDefault()
   }
 }
 

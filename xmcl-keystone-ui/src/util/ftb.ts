@@ -1,5 +1,5 @@
-import { Template } from '@/composables/instanceTemplates'
-import { CachedFTBModpackVersionManifest, FTBFile, InstanceFile, JavaRecord, ModpackInstallProfile } from '@xmcl/runtime-api'
+import type { InstanceFile } from '@xmcl/instance'
+import { CachedFTBModpackVersionManifest, FTBFile, JavaRecord } from '@xmcl/runtime-api'
 
 export function getFTBPath(file: FTBFile) {
   const name = file.name.startsWith('/') ? file.name.substring(1) : file.name
@@ -57,9 +57,8 @@ export function getFTBTemplateAndFile(man: CachedFTBModpackVersionManifest, java
     quiltLoader: man.targets.find(f => f.name === 'quilt')?.version || '',
     neoForged: man.targets.find(f => f.name === 'neoforge')?.version || '',
     optifine: '',
-    liteloader: '',
-    yarn: '',
-  }
+    labyMod: '',
+  } 
   const files: InstanceFile[] = markRaw(man.files.map(f => ({
     path: getFTBPath(f),
     hashes: {
@@ -77,7 +76,7 @@ export function getFTBTemplateAndFile(man: CachedFTBModpackVersionManifest, java
 
   return [{
     name: `${man.projectName}-${man.name}`,
-    author: man.authors[0].name,
+    author: man.authors?.[0]?.name ?? '',
     java: getRuntime() ?? '',
     runtime,
     upstream: {
@@ -86,5 +85,5 @@ export function getFTBTemplateAndFile(man: CachedFTBModpackVersionManifest, java
       versionId: man.id,
     },
     icon: man.iconUrl,
-  } as ModpackInstallProfile['instance'], files] as const
+  }, files] as const
 }

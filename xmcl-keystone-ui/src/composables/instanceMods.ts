@@ -1,41 +1,73 @@
 import { ReactiveResourceState } from '@/util/ReactiveResourceState'
 import { basename } from '@/util/basename'
-import { ModFile, getModFileFromResource } from '@/util/mod'
-import { CompatibleDetail, getModsCompatiblity, resolveDepsCompatible } from '@/util/modCompatible'
-import { refThrottled, useEventListener } from '@vueuse/core'
-import { InstanceModsServiceKey, JavaRecord, Resource, ResourceState, RuntimeVersions, SharedState } from '@xmcl/runtime-api'
-import debounce from 'lodash.debounce'
+import { ModFile, getModFileFromResource, resolveModsToDisable, resolveModsToEnable } from '@/util/mod'
+import { CompatibleDetail, getModLoaderIncompatibilities, getModsCompatiblity, resolveDepsCompatible } from '@/util/modCompatible'
+import { refThrottled, useDebounceFn, useEventListener, useLocalStorage } from '@vueuse/core'
+import { InstanceModsServiceKey, JavaRecord, ResourceState, SharedState } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
-import { useLocalStorageCache } from './cache'
+import { useResourceParseErrorNotifier } from './resourceParseError'
+import { waitForModSnapshot } from './modSnapshot'
 import { useService } from './service'
 import { useState } from './syncableState'
+import { RuntimeVersions } from '@xmcl/instance'
+import { Resource } from '@xmcl/resource'
 
 export const kInstanceModsContext: InjectionKey<ReturnType<typeof useInstanceMods>> = Symbol('instance-mods')
 
 function useInstanceModsMetadataRefresh(instancePath: Ref<string>, state: Ref<SharedState<ResourceState> | undefined>) {
-  const lastUpdateMetadata = useLocalStorageCache<Record<string, number>>('instanceModsLastRefreshMetadata', () => ({}), JSON.stringify, JSON.parse)
+  const lastUpdateMetadata = useLocalStorage<Record<string, number>>('instanceModsLastRefreshMetadata', {}, { deep: false, writeDefaults: false })
   const { refreshMetadata } = useService(InstanceModsServiceKey)
   const expireTime = 1000 * 30 * 60 // 0.5 hour
 
+  // Resource hashes already accounted for in the current instance. A file whose
+  // hash is not here AND which carries no modrinth/curseforge source yet is a
+  // freshly added local file (the user dropped/copied a jar in) — it must be
+  // resolved right away instead of waiting out the 30-min throttle. Files that
+  // already have a source (installed from market / modpack) never trigger this.
+  let attempted = new Set<string>()
+  let attemptedPath = ''
+
+  function markAllAttempted() {
+    attemptedPath = instancePath.value
+    for (const f of state.value?.files ?? []) {
+      if (f.hash) attempted.add(f.hash)
+    }
+  }
+
   async function checkAndUpdate() {
+    if (attemptedPath !== instancePath.value) {
+      attempted = new Set()
+      markAllAttempted()
+    }
+    const files = state.value?.files ?? []
+    const hasNewLocalFile = files.some((f) =>
+      f.hash && !attempted.has(f.hash) && !f.metadata.modrinth && !f.metadata.curseforge)
     const last = lastUpdateMetadata.value[instancePath.value] || 0
-    if ((Date.now() - last) > expireTime) {
+    if (hasNewLocalFile || (Date.now() - last) > expireTime) {
       await update()
     }
   }
 
   async function update() {
     lastUpdateMetadata.value[instancePath.value] = Date.now()
+    // Mark everything currently present as attempted before refreshing so the
+    // `revalidate()` inside `refreshMetadata` (which re-emits `filesUpdates`)
+    // doesn't loop back into another refresh.
+    markAllAttempted()
     await refreshMetadata(instancePath.value)
   }
 
-  const debounced = debounce(checkAndUpdate, 1000)
+  const debounced = useDebounceFn(checkAndUpdate, 1000)
 
-  watch(state, (s) => {
+  watch(state, (s, _, onCleanup) => {
     if (!s) return
-    s.subscribe('filesUpdates', () => {
+    attempted = new Set()
+    markAllAttempted()
+    const onFilesUpdated = () => {
       debounced()
-    })
+    }
+    s.subscribe('filesUpdates', onFilesUpdated)
+    onCleanup(() => s.unsubscribe('filesUpdates', onFilesUpdated))
     if (s.files.length > 0) {
       checkAndUpdate()
     }
@@ -50,7 +82,7 @@ function useInstanceModsMetadataRefresh(instancePath: Ref<string>, state: Ref<Sh
 }
 
 export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<RuntimeVersions>, java: Ref<JavaRecord | undefined>) {
-  const { watch: watchMods } = useService(InstanceModsServiceKey)
+  const { watch: watchMods, enable: enableMods, disable: disableMods } = useService(InstanceModsServiceKey)
   const { isValidating, error, state, revalidate } = useState(async () => {
     const inst = instancePath.value
     if (!inst) { return undefined }
@@ -61,6 +93,8 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
     return mods as any
   }, ReactiveResourceState)
 
+  useResourceParseErrorNotifier(state)
+
   const modsRaw: Ref<ModFile[]> = shallowRef([])
   const mods = refThrottled(modsRaw, 500)
   const modsIconsMap: Ref<Record<string, string>> = shallowRef({})
@@ -69,7 +103,7 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
   const enabledMods = computed(() => mods.value.filter(v => v.enabled))
 
   function reset() {
-    mods.value = []
+    modsRaw.value = []
     modsIconsMap.value = {}
     provideRuntime.value = {}
   }
@@ -156,7 +190,7 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
       }
     } else if (instanceRuntime.fabricLoader) {
       loaders.push('fabric')
-    } else if (instanceRuntime.neoforge) {
+    } else if (instanceRuntime.neoForged) {
       loaders.push('neoforge')
     } else if (instanceRuntime.quiltLoader) {
       loaders.push('quilt')
@@ -194,7 +228,10 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
     return markRaw(result)
   })
 
+  const loaderIncompatibilities = computed(() => markRaw(getModLoaderIncompatibilities(mods.value, allowLoaders.value)))
+
   const incompatible = computed(() => {
+    if (loaderIncompatibilities.value.length) return true
     const com = compatibility.value
     for (const key in com) {
       if (!resolveDepsCompatible(com[key])) {
@@ -207,6 +244,52 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
   const { update: updateMetadata } = useInstanceModsMetadataRefresh(instancePath, state)
   const { t } = useI18n()
 
+  function waitForSnapshot(predicate?: (mods: ModFile[]) => boolean) {
+    return waitForModSnapshot(
+      () => ({ source: modsRaw.value, visible: mods.value, validating: isValidating.value }),
+      predicate,
+      { wait: async () => {
+        await nextTick()
+        await new Promise<void>(resolve => setTimeout(resolve, 50))
+      } },
+    )
+  }
+
+  async function updateMetadataAndWait() {
+    const previous = modsRaw.value
+    await updateMetadata()
+    await waitForSnapshot(() => modsRaw.value !== previous)
+  }
+
+  async function revalidateAndWait(predicate?: (mods: ModFile[]) => boolean) {
+    const previous = modsRaw.value
+    await revalidate()
+    return waitForSnapshot(mods => modsRaw.value !== previous && (!predicate || predicate(mods)))
+  }
+
+  /**
+   * Enable the given mod files together with their dependency mods.
+   */
+  function enable(options: { path: string; files: string[] }) {
+    const target = mods.value.filter(m => options.files.includes(m.path))
+    const files = target.length > 0
+      ? resolveModsToEnable(target, mods.value).map(m => m.path)
+      : options.files
+    return enableMods({ path: options.path, files })
+  }
+
+  /**
+   * Disable the given mod files together with their dependency mods that are no
+   * longer required by any other enabled mod.
+   */
+  function disable(options: { path: string; files: string[] }) {
+    const target = mods.value.filter(m => options.files.includes(m.path))
+    const files = target.length > 0
+      ? resolveModsToDisable(target, mods.value).map(m => m.path)
+      : options.files
+    return disableMods({ path: options.path, files })
+  }
+
   return {
     mods,
     allowLoaders,
@@ -214,10 +297,15 @@ export function useInstanceMods(instancePath: Ref<string>, instanceRuntime: Ref<
     modsIconsMap,
     provideRuntime,
     compatibility,
+    loaderIncompatibilities,
     incompatible,
     enabledMods,
     isValidating,
     updateMetadata,
+    updateMetadataAndWait,
+    revalidateAndWait,
+    enable,
+    disable,
     error: computed(() => Object.keys(conflicted.value).length ? t('mod.duplicatedDetected', { count: Object.keys(conflicted.value).length }) : error.value),
     revalidate,
   }

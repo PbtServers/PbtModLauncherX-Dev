@@ -1,8 +1,8 @@
 import { AuthorityMetadata, GameProfileAndTexture, LoginOptions, OICDLikeConfig, RefreshUserOptions, SkinPayload, UserException, UserProfile, normalizeUserId } from '@xmcl/runtime-api'
 import { GameProfile, YggdrasilError, YggdrasilTexturesInfo, YggdrasilThirdPartyClient } from '@xmcl/user'
 import { LauncherApp } from '~/app'
-import { Logger } from '~/logger'
-import { isSystemError } from '~/util/error'
+import { Logger } from '~/infra'
+import { isSystemError } from '@xmcl/utils'
 import { toRecord } from '~/util/object'
 import { isValidUrl } from '~/util/url'
 import { normalizeGameProfile, normalizeSkinData, transformGameProfileTexture } from '../user'
@@ -61,7 +61,6 @@ export class YggdrasilAccountSystem implements UserAccountSystem {
       const profile = await client.lookup(p.id, true, signal)
       try {
         const transformed = transformGameProfileTexture(profile)
-        if (!transformed) continue
         userProfile.profiles[p.id] = transformed
       } catch (e) {
         this.logger.error(e as Error)
@@ -70,9 +69,9 @@ export class YggdrasilAccountSystem implements UserAccountSystem {
     }
   }
 
-  async #loginOCID(ocidConfig: OICDLikeConfig, authority: string, username: string, slientOnly: boolean, homeAccountId?: string, signal?: AbortSignal): Promise<UserProfile> {
+  async #loginOCID(ocidConfig: OICDLikeConfig, authority: string, username: string, slientOnly: boolean, userProfile?: UserProfile, signal?: AbortSignal): Promise<UserProfile> {
     const client = this.ocidClient
-    const id = this.registry.getClientId(ocidConfig.issuer)
+    const id = this.registry.getClientId(ocidConfig.issuer) || ocidConfig.shared_client_id
 
     if (!id) {
       throw new UserException({ type: 'loginServiceNotSupported', authority }, `Service ${authority} is not supported`)
@@ -81,19 +80,19 @@ export class YggdrasilAccountSystem implements UserAccountSystem {
     const { result } = await client.authenticate(ocidConfig.issuer, id, username, ['Yggdrasil.Server.Join', 'Yggdrasil.PlayerProfiles.Select', 'openid', 'offline_access'], {
       signal,
       slientOnly,
-      homeAccountId,
+      homeAccountId: userProfile?.homeAccountId,
     })
 
     const selectedProfileRaw = 'selectedProfile' in result.idTokenClaims ? result.idTokenClaims.selectedProfile as any : undefined
     if (!selectedProfileRaw) {
+      if (userProfile && userProfile?.homeAccountId === result.account?.homeAccountId && result.fromCache) {
+        return userProfile
+      }
       throw new UserException({ type: 'fetchMinecraftProfileFailed', errorType: 'NOT_FOUND', error: 'NOT_FOUND', errorMessage: `No user profile@${authority}`, developerMessage: `No user profile@${authority}` },)
     }
 
-    const selectedProfile = { ...selectedProfileRaw, properties: Object.fromEntries(selectedProfileRaw.properties.map((p: any) => [p.name, p.value])) } as GameProfile
+    const selectedProfile = { ...selectedProfileRaw, properties: Object.fromEntries(selectedProfileRaw.properties?.map((p: any) => [p.name, p.value]) || []) } as GameProfile
     const transformed = transformGameProfileTexture(selectedProfile)
-    if (!transformed) {
-      throw new UserException({ type: 'fetchMinecraftProfileFailed', errorType: 'BadProfile', error: 'BadProfile', errorMessage: `BadProfile@${authority}`, developerMessage: `BadProfile@${authority}` },)
-    }
     const profile = {
       id: normalizeUserId(result.uniqueId, authority),
       username: username,
@@ -107,6 +106,9 @@ export class YggdrasilAccountSystem implements UserAccountSystem {
       homeAccountId: result.uniqueId,
     } as UserProfile
     await this.storage.put(profile, result.accessToken)
+    if (!selectedProfile?.properties?.textures) {
+      await this.#updateSkins(this.getClient(authority)!, profile, signal)
+    }
     return profile
   }
 
@@ -175,7 +177,7 @@ export class YggdrasilAccountSystem implements UserAccountSystem {
     if (auth?.ocidConfig && userProfile.homeAccountId) {
       const diff = Date.now() - userProfile.expiredAt
       if (force || !userProfile.expiredAt || diff > 0 || (diff / 1000 / 3600 / 24) > 14 || userProfile.invalidated) {
-        const result = await this.#loginOCID(auth.ocidConfig, userProfile.authority, userProfile.username, silent ?? true, userProfile.homeAccountId, signal)
+        const result = await this.#loginOCID(auth.ocidConfig, userProfile.authority, userProfile.username, silent ?? true, userProfile, signal)
         return result
       }
 
@@ -283,21 +285,7 @@ export class YggdrasilAccountSystem implements UserAccountSystem {
 
     // Update the game profile
     const newGameProfile = await client.lookup(gameProfile.id, true, signal)
-    const textures = JSON.parse(Buffer.from(newGameProfile.properties.textures, 'base64').toString()) as YggdrasilTexturesInfo
-    const uploadable = newGameProfile.properties.uploadableTextures
-
-    if (textures?.textures.SKIN) {
-      this.logger.log(`Update the skin for profile ${newGameProfile.name}`)
-
-      userProfile.profiles[newGameProfile.id] = {
-        ...newGameProfile,
-        textures: {
-          ...textures.textures,
-          SKIN: textures?.textures.SKIN,
-        },
-        uploadable: uploadable ? uploadable.split(',') as any : undefined,
-      }
-    }
+    userProfile.profiles[newGameProfile.id] = transformGameProfileTexture(newGameProfile)
 
     return userProfile
   }

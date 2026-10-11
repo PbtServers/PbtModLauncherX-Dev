@@ -8,9 +8,21 @@ export interface RTCSessionDescription {
   type: 'answer' | 'offer' | 'pranswer' | 'rollback'
 }
 
-export type ConnectionState = 'closed' | 'connected' | 'connecting' | 'disconnected' | 'failed' | 'new'
+export type ConnectionState =
+  | 'closed'
+  | 'connected'
+  | 'connecting'
+  | 'disconnected'
+  | 'failed'
+  | 'new'
 export type IceGatheringState = 'complete' | 'gathering' | 'new'
-export type SignalingState = 'closed' | 'have-local-offer' | 'have-local-pranswer' | 'have-remote-offer' | 'have-remote-pranswer' | 'stable'
+export type SignalingState =
+  | 'closed'
+  | 'have-local-offer'
+  | 'have-local-pranswer'
+  | 'have-remote-offer'
+  | 'have-remote-pranswer'
+  | 'stable'
 
 export interface SelectedCandidateInfo {
   address: string
@@ -72,6 +84,7 @@ export interface Peer {
 interface MultiplayerEvents {
   share: { id: string; manifest?: InstanceManifest }
   'connection-unexpected-closed': { id: string }
+  'local-lan': LanServerInfo
   lan: LanServerInfo & { session: string }
 }
 
@@ -93,6 +106,107 @@ export interface SetRemoteDescriptionOptions {
   description: string | TransferDescription
 }
 
+export interface MultiplayerRoomAdmission {
+  roomId: string
+  roomSessionId?: string
+  socketUrl: string
+  ticket: string
+  peerId: string
+  expiresAt: string
+  role: 'master' | 'member'
+  maxPeers: number
+}
+
+export interface MultiplayerRoomMember {
+  peerId: string
+  accountId: string
+  displayName: string
+  status: 'negotiating' | 'connected'
+  joinedAt: number
+}
+
+export interface MultiplayerRoomState {
+  selfPeerId: string
+  masterPeerId: string
+  members: MultiplayerRoomMember[]
+  status: 'open' | 'waiting-master' | 'closed'
+  maxPeers: number
+  revision: number
+}
+
+export interface MultiplayerIceServerCredential {
+  turnSessionId?: string
+  uris?: string[]
+  ttl?: number
+  password?: string
+  username?: string
+  stuns: string[]
+  meta?: Record<string, string>
+  servers?: Array<{
+    urls: string | string[]
+    username?: string
+    credential?: string
+  }>
+}
+
+export type MultiplayerTransport = 'webrtc' | 'node-datachannel'
+
+export type MultiplayerTelemetryStage =
+  | 'signaling_socket'
+  | 'peer_created'
+  | 'remote_description'
+  | 'ice_gathering'
+  | 'ice_connection'
+  | 'metadata_channel'
+  | 'minecraft_bridge'
+
+export type MultiplayerTelemetryAttemptKind =
+  | 'signaling_socket'
+  | 'peer_connection'
+  | 'minecraft_bridge'
+
+export type MultiplayerTelemetryOutcome =
+  | 'started'
+  | 'succeeded'
+  | 'failed'
+  | 'timed_out'
+  | 'cancelled'
+  | 'closed'
+
+export type MultiplayerTelemetryFailureCode =
+  | 'signaling_open_failed'
+  | 'signaling_closed'
+  | 'signaling_state_invalid'
+  | 'remote_description_invalid'
+  | 'ice_gathering_failed'
+  | 'ice_connection_failed'
+  | 'ice_timeout'
+  | 'data_channel_failed'
+  | 'metadata_timeout'
+  | 'bridge_bind_failed'
+  | 'bridge_connect_failed'
+  | 'peer_closed'
+  | 'launcher_shutdown'
+  | 'unknown'
+
+export interface MultiplayerTelemetryEvent {
+  attemptId: string
+  roomSessionId?: string
+  turnSessionId?: string
+  kind: MultiplayerTelemetryAttemptKind
+  mode: 'official_room' | 'manual_offer'
+  role: 'master' | 'member'
+  outcome: Exclude<MultiplayerTelemetryOutcome, 'started'>
+  failedStage?: MultiplayerTelemetryStage
+  failureCode?: MultiplayerTelemetryFailureCode
+  route?: 'unknown' | 'direct' | 'relay'
+  localCandidateType?: SelectedCandidateInfo['type']
+  remoteCandidateType?: SelectedCandidateInfo['type']
+  networkProtocol?: SelectedCandidateInfo['transportType']
+  retry: number
+  durationMs?: number
+}
+
 export interface Multiplayer extends GenericEventEmitter<MultiplayerEvents> {
   /**
    * Is the multiplayer module ready
@@ -103,7 +217,7 @@ export interface Multiplayer extends GenericEventEmitter<MultiplayerEvents> {
    */
   getPeers(): Peer[]
 
-  refreshNat(): Promise<void>
+  refreshIceServers(): Promise<void>
   /**
    * Set your user info
    */
@@ -124,13 +238,14 @@ export interface Multiplayer extends GenericEventEmitter<MultiplayerEvents> {
    * @param id The session to drop
    */
   drop(id: string): Promise<void>
-  /**
-   * Join the group.
-   * The group will automatically create connection between group members.
-   *
-   * @param groupId The group id
-   */
+  /** Create a new multiplayer room as its master. */
+  createGroup(): Promise<void>
+  /** Join an existing multiplayer room as a member. */
   joinGroup(groupId: string): Promise<void>
+  /**
+   * Transfer the room master role to another connected member.
+   */
+  transferGroupMaster(peerId: string): Promise<void>
   /**
    * Leave the group
    */

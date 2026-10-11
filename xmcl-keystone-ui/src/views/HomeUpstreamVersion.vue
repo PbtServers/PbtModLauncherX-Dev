@@ -1,107 +1,120 @@
 <template>
   <v-card
-    class="grid-cols-13 grid items-center gap-y-4 p-3 text-gray-700 dark:text-gray-300"
+    class="upstream-version"
     :outlined="outlined"
-    :style="{ 'content-visibility': 'auto', 'backdrop-filter': `blur(${blurCard}px)`, borderColor: '' }"
+    :style="{
+      'content-visibility': 'auto',
+      'backdrop-filter': `blur(${blurCard}px)`,
+      '--release-color': getColorCode(getColorForReleaseType(version.versionType)),
+    }"
     :color="cardColor"
   >
-    <div class="col-span-4">
-      {{ version.name }}
-    </div>
-    <div class="col-span-2">
-      <template v-for="l of version.loaders">
-        <v-icon
-          v-if="getLoader(l)"
-          :key="l"
-          v-shared-tooltip="l"
+    <!-- Header row: title + release badge + actions -->
+    <div class="upstream-version__header">
+      <div class="upstream-version__title-block">
+        <div class="upstream-version__name">
+          {{ version.name }}
+        </div>
+        <div class="upstream-version__meta">
+          <span class="upstream-version__release-badge">
+            {{ t(`versionType.${version.versionType}`) }}
+          </span>
+          <span class="upstream-version__version-number">
+            {{ version.versionNumber }}
+          </span>
+        </div>
+      </div>
+      <div class="upstream-version__actions">
+        <v-btn
+          v-shared-tooltip="t('instances.add')"
+          :loading="duplicating"
+          variant="text"
+          size="small"
+          icon
+          @click="$emit('duplicate', version)"
         >
-          {{ getLoader(l) }}
-        </v-icon>
-        <span
+          <v-icon>add</v-icon>
+        </v-btn>
+        <v-btn
+          v-if="!noAction"
+          :color="downgrade ? 'warning' : 'primary'"
+          :loading="updating"
+          variant="tonal"
+          size="small"
+          @click="$emit('update', version)"
+        >
+          {{ downgrade ? t('upstream.downgrade') : t('upstream.update') }}
+          <v-icon end size="18">
+            {{ downgrade ? 'keyboard_double_arrow_down' : 'upgrade' }}
+          </v-icon>
+        </v-btn>
+        <v-btn
           v-else
-          :key="l"
-        >{{ l }}</span>
-      </template>
+          color="primary"
+          :loading="updating"
+          variant="tonal"
+          size="small"
+          @click="$emit('update', version)"
+        >
+          {{ t('instances.fix') }}
+          <v-icon end size="18">build</v-icon>
+        </v-btn>
+      </div>
     </div>
-    <div class="col-span-3">
-      {{ t('downloadCount', { count: version.downloads }) }}
-    </div>
-    <div
-      class="col-span-4 justify-self-end"
-    >
-      <v-btn
-        v-if="!noAction"
-        small
-        :color="downgrade ? 'warning' : 'primary'"
-        :loading="updating"
-        @click="$emit('update', version)"
-      >
-        {{ downgrade? t('upstream.downgrade') : t('upstream.update') }}
-        <v-icon right>
-          {{ downgrade ? 'keyboard_double_arrow_down' : 'upgrade' }}
-        </v-icon>
-      </v-btn>
-      <v-btn
-        v-else
-        small
-        color="primary"
-        :loading="updating"
-        @click="$emit('update', version)"
-      >
-        {{ t('instances.fix') }}
-        <v-icon right>
-          build
-        </v-icon>
-      </v-btn>
-    </div>
-    <div class="col-span-4">
+
+    <!-- Metadata row -->
+    <div class="upstream-version__metadata">
       <span
-        :style="{ color: getColorCode(getColorForReleaseType(version.versionType)),borderColor: getColorCode(getColorForReleaseType(version.versionType)) }"
-        class="border-l-[3px] pl-3 font-bold"
+        v-if="version.loaders.length > 0"
+        class="upstream-version__chip"
       >
-        {{ t(`versionType.${version.versionType}`) }}
+        <template v-for="(l, i) of version.loaders" :key="l">
+          <v-icon
+            v-if="getLoader(l)"
+            v-shared-tooltip="l"
+            size="14"
+            :class="{ 'ml-1': i > 0 }"
+          >
+            {{ getLoader(l) }}
+          </v-icon>
+          <span
+            v-else
+            :class="{ 'ml-1': i > 0 }"
+          >{{ l }}</span>
+        </template>
       </span>
-      ·
-      {{ version.versionNumber }}
-    </div>
-    <div class="col-span-2">
-      {{ version.gameVersions.join(', ') }}
-    </div>
-    <div class="col-span-3">
-      {{ getDateString(version.datePublished, { timeStyle: 'short', dateStyle: 'long' }) }}
-    </div>
-    <div
-      class="col-span-4 justify-self-end"
-    >
-      <v-btn
-        small
-        text
-        :loading="duplicating"
-        @click="$emit('duplicate', version)"
+      <span
+        v-if="version.gameVersions.length > 0"
+        v-shared-tooltip="version.gameVersions.join(', ')"
+        class="upstream-version__chip"
       >
-        {{ t('instances.add') }}
-        <v-icon right>
-          add
-        </v-icon>
-      </v-btn>
+        <v-icon size="14" class="material-icons-outlined">sports_esports</v-icon>
+        {{ version.gameVersions.length === 1 ? version.gameVersions[0] : `${version.gameVersions[0]} +${version.gameVersions.length - 1}` }}
+      </span>
+      <span class="upstream-version__chip">
+        <v-icon size="14" class="material-icons-outlined">file_download</v-icon>
+        {{ t('downloadCount', { count: version.downloads }) }}
+      </span>
+      <span class="upstream-version__chip">
+        <v-icon size="14" class="material-icons-outlined">schedule</v-icon>
+        {{ getDateString(version.datePublished, { timeStyle: 'short', dateStyle: 'long' }) }}
+      </span>
     </div>
+
+    <!-- Changelog -->
     <div
       v-if="version.changelog"
       :key="`${version.id}-changelog`"
-      class="col-span-13 select-text"
+      class="upstream-version__changelog-wrapper"
     >
       <div
-        :style="{ borderColor: getColorCode(getColorForReleaseType(version.versionType)) }"
-        class="border-l-[3px] pl-3"
-      >
-        <div
-          class="markdown-body hover:(bg-[rgba(0,0,0,0.05)]) dark:hover:(bg-[rgba(0,0,0,0.3)]) max-h-140 overflow-auto rounded-lg bg-[rgba(0,0,0,0.07)] py-2 pl-2 text-gray-500 transition-colors hover:text-black dark:bg-[rgba(0,0,0,0.4)] dark:hover:text-gray-300"
-          v-html="version.changelog"
-        />
-      </div>
+        class="markdown-body upstream-version__changelog"
+        v-html="version.changelog"
+      />
     </div>
   </v-card>
 </template>
+
 <script lang="ts" setup>
 import { useDateString } from '@/composables/date'
 import { kTheme } from '@/composables/theme'
@@ -139,8 +152,10 @@ const { getColorCode } = useVuetifyColor()
 const { t } = useI18n()
 const getLoader = (loader: string) => {
   loader = loader.toLowerCase()
-  if (loader === 'forge') return '$vuetify.icons.forge'
-  if (loader === 'fabric') return '$vuetify.icons.fabric'
+  if (loader === 'forge') return 'xmcl:forge'
+  if (loader === 'fabric') return 'xmcl:fabric'
+  if (loader === 'neoforge') return 'xmcl:neoForged'
+  if (loader === 'quilt') return 'xmcl:quilt'
   return ''
 }
 const { getDateString } = useDateString()
@@ -149,3 +164,132 @@ watch(() => props.version, () => {
   emit('changelog')
 }, { immediate: true })
 </script>
+
+<style scoped>
+.upstream-version {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  border-left: 3px solid var(--release-color);
+  transition: border-color 0.5s ease;
+  color: rgba(var(--v-theme-on-surface), 0.85);
+}
+
+.upstream-version:hover {
+  border-color: color-mix(in srgb, var(--release-color) 45%, transparent);
+  border-left-color: var(--release-color);
+}
+
+.upstream-version__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.upstream-version__title-block {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upstream-version__name {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upstream-version__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  opacity: 0.85;
+  min-width: 0;
+}
+
+.upstream-version__release-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--release-color) 18%, transparent);
+  color: var(--release-color);
+  font-weight: 700;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.upstream-version__version-number {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upstream-version__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.upstream-version__metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.upstream-version__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background-color: rgba(128, 128, 128, 0.12);
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.upstream-version__changelog-wrapper {
+  margin-top: 4px;
+}
+
+.upstream-version__changelog {
+  max-height: 35rem;
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.06);
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  font-size: 0.85rem;
+  user-select: text;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.upstream-version__changelog:hover {
+  background-color: rgba(0, 0, 0, 0.09);
+  color: rgba(var(--v-theme-on-surface), 1);
+}
+
+.dark .upstream-version__changelog {
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.dark .upstream-version__changelog:hover {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+</style>

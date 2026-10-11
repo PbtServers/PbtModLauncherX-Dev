@@ -1,9 +1,37 @@
 import { ServiceKey } from './Service'
 
+export type LaunchEvidenceAvailability = 'available' | 'absent' | 'ambiguous'
+
+export interface LaunchHistoryRecord {
+  launchId: string
+  operationId: string
+  pid: number
+  side: 'client' | 'server'
+  version: string
+  minecraft: string
+  state: 'running' | 'exited'
+  startedAt: number
+  readyAt?: number
+  endedAt?: number
+  exitCode?: number
+  signal?: string
+  crashed?: boolean
+  evidence: {
+    gameLog: LaunchEvidenceAvailability
+    debugLog: LaunchEvidenceAvailability
+    crashReport: LaunchEvidenceAvailability
+    launcherOutput: LaunchEvidenceAvailability
+  }
+}
+
 /**
  * Provide the ability to list/read/remove log and crash reports of a instance.
  */
 export interface InstanceLogService {
+  listLaunches(instancePath: string): Promise<LaunchHistoryRecord[]>
+  getLaunch(instancePath: string, launchId: string): Promise<LaunchHistoryRecord | undefined>
+  getLaunchEvidence(instancePath: string, launchId: string, name: 'game.log' | 'debug.log' | 'crash-report.txt' | 'launcher-output.log'): Promise<string>
+  findLaunchByCrashReport(instancePath: string, name: string): Promise<LaunchHistoryRecord | undefined>
   /**
    * List the log in current instances
    */
@@ -18,6 +46,25 @@ export interface InstanceLogService {
    * @param name The log file name
    */
   getLogContent(instancePath: string, name: string): Promise<string>
+  /**
+   * List the dedicated-server logs in `<instance>/server/logs/`.
+   */
+  listServerLogs(instancePath: string): Promise<string[]>
+  /**
+   * Remove a dedicated-server log from disk
+   * @param name The log file name
+   */
+  removeServerLog(instancePath: string, name: string): Promise<void>
+  /**
+   * Get the dedicated-server log content.
+   * @param name The log file name
+   */
+  getServerLogContent(instancePath: string, name: string): Promise<string>
+  /**
+   * Show the dedicated-server log file on disk. This will open a file explorer.
+   * @param name The log file name
+   */
+  showServerLog(instancePath: string, name: string): void
   /**
    * List crash reports in current instance
    */

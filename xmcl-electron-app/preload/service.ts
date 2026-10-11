@@ -1,33 +1,24 @@
 /* eslint-disable no-dupe-class-members */
 
-import { AllStates, ServiceChannels, ServiceKey, SharedState, StateMetadata } from '@xmcl/runtime-api'
+import type { ServiceChannels, ServiceKey, SharedState } from '@xmcl/runtime-api'
 import { contextBridge, ipcRenderer } from 'electron'
 import EventEmitter from 'events'
 
-function getPrototypeMetadata(T: { new(): object }, prototype: object, name: string) {
-  const methods = Object.getOwnPropertyNames(prototype)
-    .map((name) => [name, Object.getOwnPropertyDescriptor(prototype, name)?.value] as const)
-    .filter(([, v]) => v instanceof Function)
-  return {
-    name,
-    constructor: () => new T(),
-    methods: methods.map(([name, f]) => [name, (f as Function)] as [string, (this: any, ...args: any[]) => any]),
-    prototype,
-  }
-}
-
-const typeToStatePrototype: Record<string, StateMetadata> = AllStates.reduce((obj, cur) => {
-  obj[cur.name] = getPrototypeMetadata(cur, cur.prototype, cur.name)
-  return obj
-}, {} as Record<string, StateMetadata>)
+// NOTE: this preload is intentionally a "dumb pipe". It does NOT import the
+// state classes from `@xmcl/runtime-api` (doing so drags the whole command
+// registry + zod schemas into every preload bundle). Because the main window
+// uses contextIsolation, the renderer keeps its own copy of each state object
+// and applies mutations itself using the class it already passes to `useState`
+// (see xmcl-keystone-ui/src/composables/syncableState.ts). The renderer also
+// installs the mutation-forwarding methods there, calling the generic
+// `commit(method, ...args)` channel exposed below.
 
 const kEmitter = Symbol('Emitter')
-const kMethods = Symbol('Methods')
 
-function createSharedState<T extends object>(val: T, id: string, methods: StateMetadata['methods']): SharedState<T> {
+function createSharedState<T extends object>(val: T, id: string): SharedState<T> {
   const emitter = new EventEmitter()
+  emitter.setMaxListeners(100)
   Object.defineProperty(val, kEmitter, { value: emitter })
-  Object.defineProperty(val, kMethods, { value: methods })
   return Object.assign(val, {
     subscribe(key: string, listener: (payload: any) => void) {
       emitter.addListener(key, listener)
@@ -45,8 +36,14 @@ function createSharedState<T extends object>(val: T, id: string, methods: StateM
       emitter.removeListener('*', listener)
       return this
     },
+    commit(method: string, ...args: any[]) {
+      return ipcRenderer.invoke('commit', id, method, ...args)
+    },
     revalidate() {
       ipcRenderer.invoke('revalidate', id)
+    },
+    unref() {
+      ipcRenderer.invoke('unref', id)
     },
   }) as any
 }
@@ -55,15 +52,17 @@ if (process.env.NODE_ENV === 'development') {
   console.log('serivce.ts preload')
 }
 
-async function receive(_result: any, states: Record<string, WeakRef<SharedState<any>>>, pendingCommits: Record<string, { type: string; payload: any }[]>, gc: FinalizationRegistry<string>) {
+async function receive(
+  _result: any,
+  states: Record<string, WeakRef<SharedState<any>>>,
+  pendingCommits: Record<string, { type: string; payload: any }[]>,
+  gc: FinalizationRegistry<string>,
+) {
   if (typeof _result !== 'object') {
     return
   }
   const { result, error } = _result
   if (error) {
-    if (error.errorMessage) {
-      error.toString = () => error.errorMessage
-    }
     return Promise.reject(error)
   }
 
@@ -79,21 +78,8 @@ async function receive(_result: any, states: Record<string, WeakRef<SharedState<
       return states[id].deref()
     }
 
-    const prototype = typeToStatePrototype[result.__state__]
-    if (!prototype) {
-      // Wrong version of runtime
-      throw new TypeError(`Unknown state object ${result.__state__}!`)
-    }
-
     delete result.__state__
-    const state = createSharedState(result, id, prototype.methods)
-
-    for (const [method, handler] of prototype.methods) {
-      // explictly bind to the state object under electron context isolation
-      state[method] = (...args: any[]) => {
-        ipcRenderer.invoke('commit', id, method, ...args)
-      }
-    }
+    const state = createSharedState(result, id)
 
     gc.register(state, state.id)
 
@@ -102,13 +88,8 @@ async function receive(_result: any, states: Record<string, WeakRef<SharedState<
     queueMicrotask(() => {
       if (pendingCommits[id]) {
         for (const mutation of pendingCommits[id]) {
-          (state as any)[kEmitter].emit(mutation.type, mutation.payload);
-          (state as any)[kEmitter].emit('*', mutation.type, mutation.payload)
-          const methods = (state as any)[kMethods]
-          const method = methods.find(([name]: [string]) => name === mutation.type)
-          if (typeof method?.[1] === 'function') {
-            method[1].call(state, mutation.payload)
-          }
+          ;(state as any)[kEmitter].emit(mutation.type, mutation.payload)
+          ;(state as any)[kEmitter].emit('*', mutation.type, mutation.payload)
         }
         delete pendingCommits[id]
       }
@@ -133,7 +114,7 @@ function createServiceChannels(): ServiceChannels {
   ipcRenderer.on('state-validating', (_, { id, semaphore }) => {
     const state = states[id]?.deref()
     if (state) {
-      (state as any)[kEmitter].emit('state-validating', semaphore)
+      ;(state as any)[kEmitter].emit('state-validating', semaphore)
     }
   })
 
@@ -147,13 +128,8 @@ function createServiceChannels(): ServiceChannels {
   ipcRenderer.on('commit', (_, id, type, payload) => {
     const state = states[id]?.deref()
     if (state) {
-      (state as any)[kEmitter].emit(type, payload);
-      (state as any)[kEmitter].emit('*', type, payload)
-      const methods = (state as any)[kMethods]
-      const method = methods.find(([name]: [string]) => name === type)
-      if (typeof method?.[1] === 'function') {
-        method[1].call(state, payload)
-      }
+      ;(state as any)[kEmitter].emit(type, payload)
+      ;(state as any)[kEmitter].emit('*', type, payload)
     } else {
       // pending commit
       if (!pendingCommits[id]) {
@@ -169,6 +145,7 @@ function createServiceChannels(): ServiceChannels {
         let emitter = servicesEmitters.get(serviceKey)?.deref()
         if (!emitter) {
           emitter = new EventEmitter()
+          emitter.setMaxListeners(100)
           servicesEmitters.set(serviceKey, new WeakRef(emitter))
         }
         return emitter
@@ -193,6 +170,16 @@ function createServiceChannels(): ServiceChannels {
           const result = await ipcRenderer.invoke('service-call', serviceKey, method, ...payload)
           return receive(result, states, pendingCommits, gc)
         },
+        async callWithTrace(traceContext, method, ...payload) {
+          const result = await ipcRenderer.invoke(
+            'service-call-traced',
+            traceContext,
+            serviceKey,
+            method,
+            ...payload,
+          )
+          return receive(result, states, pendingCommits, gc)
+        },
       }
     },
   }
@@ -200,4 +187,4 @@ function createServiceChannels(): ServiceChannels {
 
 export const serviceChannels = createServiceChannels()
 
-contextBridge.exposeInMainWorld('serviceChannels', createServiceChannels())
+contextBridge.exposeInMainWorld('serviceChannels', serviceChannels)

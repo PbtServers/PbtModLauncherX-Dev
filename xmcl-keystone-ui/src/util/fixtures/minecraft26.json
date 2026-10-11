@@ -1,0 +1,84 @@
+{
+  "source": "https://launchermeta.mojang.com/mc/game/version_manifest.json",
+  "captured": "2026-10-10",
+  "note": "Subset of the official metadata cached during phase 5; not a new live network fetch.",
+  "versions": [
+    {
+      "id": "1.8",
+      "type": "release",
+      "time": "2021-12-15T15:44:13+00:00",
+      "releaseTime": "2014-09-02T08:24:35+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/9eb165eef46294062d8698c8a78e8ac914949e7a/1.8.json"
+    },
+    {
+      "id": "1.12.2",
+      "type": "release",
+      "time": "2023-06-07T11:49:20+00:00",
+      "releaseTime": "2017-09-18T08:39:46+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/832d95b9f40699d4961394dcf6cf549e65f15dc5/1.12.2.json"
+    },
+    {
+      "id": "1.20.1",
+      "type": "release",
+      "time": "2026-10-06T06:41:19+00:00",
+      "releaseTime": "2023-06-12T13:25:51+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/760a390e336b2b6202ec5906757cee3a929a7c85/1.20.1.json"
+    },
+    {
+      "id": "1.21.1",
+      "type": "release",
+      "time": "2026-10-06T06:29:30+00:00",
+      "releaseTime": "2024-08-08T12:24:45+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/cedfc3b6dcbca34e2b478d498bf1d56a8fa2f404/1.21.1.json"
+    },
+    {
+      "id": "1.21.11",
+      "type": "release",
+      "time": "2026-10-06T06:36:34+00:00",
+      "releaseTime": "2025-12-09T12:23:30+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/6827f8e998ee6add1b3acff9286b6c95ebeebdc1/1.21.11.json"
+    },
+    {
+      "id": "26.1",
+      "type": "release",
+      "time": "2026-10-06T06:37:40+00:00",
+      "releaseTime": "2026-03-24T12:11:04+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/a52c7511e13957149b53a175364c7ea7c4149bb8/26.1.json"
+    },
+    {
+      "id": "26.1.1",
+      "type": "release",
+      "time": "2026-10-06T06:37:40+00:00",
+      "releaseTime": "2026-04-01T09:06:36+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/5bb509cb7859aeee25b8c657f2d07474be797bd1/26.1.1.json"
+    },
+    {
+      "id": "26.1.2",
+      "type": "release",
+      "time": "2026-10-06T06:37:40+00:00",
+      "releaseTime": "2026-04-09T10:12:23+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/78941de799d2675be5bddca699b245d7cbd567ae/26.1.2.json"
+    },
+    {
+      "id": "26.1-rc-3",
+      "type": "snapshot",
+      "time": "2026-10-06T06:37:40+00:00",
+      "releaseTime": "2026-03-23T11:11:54+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/f8dc9ba2096bddb7e2627200bc240f3171e955b2/26.1-rc-3.json"
+    },
+    {
+      "id": "26.1.2-rc-1",
+      "type": "snapshot",
+      "time": "2026-10-06T06:37:40+00:00",
+      "releaseTime": "2026-04-08T12:47:45+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/15101fe6665404c490048728ac5667c85940b985/26.1.2-rc-1.json"
+    },
+    {
+      "id": "26.1-snapshot-1",
+      "type": "snapshot",
+      "time": "2026-10-06T06:36:34+00:00",
+      "releaseTime": "2025-12-16T12:42:29+00:00",
+      "url": "https://piston-meta.mojang.com/v1/packages/241937cf4f534b85372c7064da44fe5a4caaed82/26.1-snapshot-1.json"
+    }
+  ]
+}

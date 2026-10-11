@@ -1,7 +1,5 @@
-import { injection } from '@/util/inject'
+import { parseLauncherReleaseNews, PBT_RELEASE_NEWS_URL } from '@/util/launcherReleaseNews'
 import useSWRV from 'swrv'
-import { kEnvironment } from './environment'
-import { kSettingsState } from './setting'
 import { useSWRVConfig } from './swrvConfig'
 
 export interface LauncherNews {
@@ -18,27 +16,9 @@ export interface LauncherNews {
 }
 
 export function useLauncherNews() {
-  const env = injection(kEnvironment)
-  const { state } = injection(kSettingsState)
-  const { data, error, isValidating, mutate } = useSWRV('/launcher-news', async () => {
-    const url = new URL('https://api.xmcl.app/news')
-    if (env.value) {
-      url.searchParams.append('version', env.value.version)
-      url.searchParams.append('osRelease', env.value.osRelease)
-      url.searchParams.append('os', env.value.os)
-      url.searchParams.append('arch', env.value.arch)
-      url.searchParams.append('env', env.value.env)
-      url.searchParams.append('build', env.value.build.toString())
-    }
-    if (state.value) {
-      url.searchParams.append('locale', state.value.locale)
-    }
-    const resp = await fetch(url)
-    if (resp.ok) {
-      const result: LauncherNews[] = await resp.json()
-      return result
-    }
-    return []
+  const { data, error, isValidating, mutate } = useSWRV<LauncherNews[]>('/launcher-news', async () => {
+    const response = await fetch(PBT_RELEASE_NEWS_URL, { signal: AbortSignal.timeout(8_000) })
+    return response.ok ? parseLauncherReleaseNews(await response.json()) : []
   }, useSWRVConfig())
   const news = computed(() => data.value || [] as LauncherNews[])
   return {

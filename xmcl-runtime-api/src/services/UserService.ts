@@ -1,10 +1,10 @@
-import { GameProfile } from '@xmcl/user'
+import type { GameProfile } from '@xmcl/user'
 import { Exception } from '../entities/exception'
-import { GameProfileAndTexture, UserProfile } from '../entities/user.schema'
-import { AuthlibInjectorApiProfile } from '../entities/yggdrasil.schema'
-import { GenericEventEmitter } from '../events'
-import { SharedState } from '../util/SharedState'
-import { ServiceKey } from './Service'
+import type { GameProfileAndTexture, UserProfile } from '../entities/user.schema'
+import type { AuthlibInjectorApiProfile } from '../entities/yggdrasil.schema'
+import type { GenericEventEmitter } from '../events'
+import type { SharedState } from '../util/SharedState'
+import type { ServiceKey } from './Service'
 
 export interface RefreshSkinOptions {
   gameProfileId?: string
@@ -77,6 +77,8 @@ export interface SwitchProfileOptions {
 
 interface UserServiceEventMap {
   'user-login': string
+  'user-login-success': UserProfile
+  'user-refresh-success': UserProfile
   'error': UserException
   'auth-profile-added': string
   'microsoft-authorize-url': string
@@ -158,7 +160,7 @@ export interface UserService extends GenericEventEmitter<UserServiceEventMap> {
    *
    * @throw 'userAccessTokenExpired'
    */
-  refreshUser(userId: string, options?: RefreshUserOptions): Promise<void>
+  refreshUser(userId: string, options?: RefreshUserOptions): Promise<UserProfile>
   /**
    * Upload the skin to server. If the userId and profileId is not assigned,
    * it will use the selected user and selected profile.
@@ -252,10 +254,43 @@ export type UserExceptions = {
   type: 'loginInternetNotConnected' | 'loginInvalidCredentials' | 'loginGeneral' | 'loginTimeout' | 'loginReset'
 } | {
   type: 'userAcquireMicrosoftTokenFailed'
+  /** The user closed the Windows native-broker account picker. */
+  reason?: 'USER_CANCELED' | 'NETWORK_ERROR'
 } | {
   type: 'userExchangeXboxTokenFailed'
+  /**
+    * The classified reason for the failure. New granular reasons were added
+    * for issue #1445 so the UI can show the user what exactly went wrong
+    * (and, where applicable, deep-link the Microsoft fix-it URL via
+    * {@link xErrRedirect}). `NO_ACCOUNT` / `BAD_AGE` / `BAD_XSTS` are kept
+    * for backwards compatibility with older renderers.
+    */
+  reason?: 'NO_ACCOUNT' | 'BAD_AGE' | 'BAD_XSTS'
+    | 'NO_XBOX_PROFILE'
+    | 'CHILD_ACCOUNT'
+    | 'ADULT_VERIFICATION_REQUIRED'
+    | 'REGION_LOCKED'
+    | 'BANNED'
+    | 'RATE_LIMITED'
+    | 'TIMEOUT'
+  /** Raw XErr code from the XSTS /authorize 401 body, if any. */
+  xErr?: number
+  /** The Message field from the XErr body (often empty). */
+  xErrMessage?: string
+  /** The Redirect URL Microsoft returns alongside the XErr (e.g. AddChildToFamily, CreateAccount). */
+  xErrRedirect?: string
 } | {
   type: 'userLoginMinecraftByXboxFailed'
+  /** HTTP status code from /authentication/login_with_xbox, if available. */
+  status?: number
+  /** Raw response body (truncated by the catch site) — useful when debugging. */
+  statusBody?: string
+  /** Whether the failure was a transient HTTP code retried by the client. */
+  retryable?: boolean
+  /** Effective Retry-After (ms) the server asked us to wait, if any. */
+  retryAfter?: number
+  /** A permanent account-state failure returned by Minecraft authentication. */
+  reason?: 'ACCOUNT_SUSPENDED'
 } | {
   type: 'userCheckGameOwnershipFailed'
 } | {
@@ -266,6 +301,9 @@ export type UserExceptions = {
   developerMessage: string
 } | {
   type: 'userAccessTokenExpired'
+} | {
+  type: 'userSetSkinFailed'
+  reason: 'INVALID_IMAGE' | 'REQUEST_REJECTED'
 } | {
   type: 'loginServiceNotSupported'
   authority: string

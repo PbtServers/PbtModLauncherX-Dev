@@ -1,42 +1,57 @@
 <template>
-  <v-list-item
-    :disabled="disabled"
-    @click="!disabled ? emit('input', !value) : undefined"
+  <SettingItem
+    :description="description"
+    class="setting-item-checkbox cursor-pointer"
+    role="checkbox"
+    :aria-checked="model"
+    :aria-label="title"
+    tabindex="0"
+    @click="model = !model"
+    @keydown="onKeydown"
   >
-    <v-list-item-action class="self-center">
+    <template #preaction>
       <v-checkbox
+        v-bind="$attrs"
+        :model-value="model"
+        class="mr-2"
         hide-details
-        :disabled="disabled"
-        :readonly="true"
-        :input-value="value"
-        :value="value"
-        @click.stop.prevent.capture="!disabled ? emit('input', !value) : undefined"
-        @change="emit('input', !value)"
+        readonly
+        tabindex="-1"
+        aria-hidden="true"
+        inert
       />
-    </v-list-item-action>
-    <v-list-item-content>
-      <v-list-item-title>
-        {{ title }}
-        <slot />
-      </v-list-item-title>
-      <v-list-item-subtitle v-if="description">
-        {{ description }}
-      </v-list-item-subtitle>
-    </v-list-item-content>
-  </v-list-item>
+    </template>
+    <template #title>
+      {{ title }}
+      <slot />
+    </template>
+  </SettingItem>
 </template>
 <script setup lang="ts">
-import { useVModel } from '@vueuse/core'
+import SettingItem from './SettingItem.vue'
 
-const props = defineProps<{
-  value: boolean
+defineOptions({ inheritAttrs: false })
+
+const model = defineModel<boolean>({ required: true })
+
+defineProps<{
   title: string
-  disabled?: boolean
   description?: string
 }>()
-const emit = defineEmits<{
-  (event: 'input', value: boolean): void
-}>()
 
-const model = useVModel(props, 'value', emit)
+// The row itself is the checkbox (role="checkbox"), so it must be operable by
+// keyboard — Space/Enter toggle, matching native checkbox behaviour. Gamepad
+// "A" activates it via the same click handler.
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault()
+    model.value = !model.value
+  }
+}
 </script>
+
+<style scoped>
+.setting-item-checkbox:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+</style>

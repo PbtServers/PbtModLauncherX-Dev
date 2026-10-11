@@ -1,15 +1,18 @@
+import { assertIndependentUrl } from '@xmcl/runtime-api'
 import { getPlatform } from '@xmcl/core'
-import { InstalledAppManifest, Platform, createPromiseSignal } from '@xmcl/runtime-api'
+import type { InstallEvent } from '@xmcl/installer'
+import { AgentRunTrace, InstalledAppManifest, Platform, createPromiseSignal } from '@xmcl/runtime-api'
 import { EventEmitter } from 'events'
-import { ensureDir, readFile, writeFile } from 'fs-extra'
+import { ensureDir, readFile } from 'fs-extra'
+import { createInitialSetup, prepareInitialRoot } from './initialSetup'
 import { Server, createServer } from 'http'
 import { join } from 'path'
 import { Readable } from 'stream'
 import { pipeline } from 'stream/promises'
 import { setTimeout } from 'timers/promises'
-import { Logger } from '~/logger'
+import { Logger } from '~/infra'
 import { IS_DEV, LAUNCHER_NAME } from '../constant'
-import { isSystemError } from '../util/error'
+import { isSystemError } from '@xmcl/utils'
 import { handleMigrateRoot } from './migrate'
 import { listen } from '../util/server'
 import { createDummyLogger } from './DummyLogger'
@@ -29,31 +32,63 @@ import { kSettings } from '~/settings'
 
 export const LauncherAppKey: InjectionKey<LauncherApp> = Symbol('LauncherAppKey')
 
+export interface MicrosoftAuthTelemetryEvent {
+  name: 'microsoft-auth-start' | 'microsoft-auth-broker-result' | 'microsoft-auth-webview-result' | 'microsoft-auth-complete'
+  properties: Record<string, string | number | boolean>
+  measurements?: Record<string, number>
+}
+
+export interface DownloadPerformanceTelemetryEvent {
+  properties: Record<string, string | number | boolean>
+  measurements: Record<string, number>
+}
+
+export type ServiceFailureCategory =
+  | 'cancelled'
+  | 'download'
+  | 'disk-full'
+  | 'permission'
+  | 'postprocess'
+  | 'version-parse'
+  | 'unknown'
+
 export interface LauncherApp {
   on(channel: 'app-booted', listener: (manifest: InstalledAppManifest) => void): this
   on(channel: 'window-all-closed', listener: () => void): this
   on(channel: 'root-migrated', listener: (newRoot: string) => void): this
-  on(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean) => void): this
+  on(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean, failureCategory?: ServiceFailureCategory) => void): this
   on(channel: 'service-state-init', listener: (stateKey: string) => void): this
   on(channel: 'download-cdn', listener: (reason: string, file: string) => void): this
+  on(channel: 'download-performance', listener: (payload: DownloadPerformanceTelemetryEvent) => void): this
+  on(channel: 'install-manifest', listener: (event: InstallEvent) => void): this
+  on(channel: 'agent-run-trace', listener: (payload: AgentRunTrace) => void): this
+  on(channel: 'microsoft-auth-telemetry', listener: (payload: MicrosoftAuthTelemetryEvent) => void): this
   on(channel: 'second-instance', listener: (argv: string[]) => void): this
   on(channel: 'direct-launch', listener: (data: any) => void): this
 
   once(channel: 'app-booted', listener: (manifest: InstalledAppManifest) => void): this
   once(channel: 'window-all-closed', listener: () => void): this
   once(channel: 'root-migrated', listener: (newRoot: string) => void): this
-  once(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean) => void): this
+  once(channel: 'service-call-end', listener: (serviceName: string, serviceMethod: string, duration: number, success: boolean, failureCategory?: ServiceFailureCategory) => void): this
   once(channel: 'service-state-init', listener: (stateKey: string) => void): this
   once(channel: 'download-cdn', listener: (reason: string, file: string) => void): this
+  once(channel: 'download-performance', listener: (payload: DownloadPerformanceTelemetryEvent) => void): this
+  once(channel: 'install-manifest', listener: (event: InstallEvent) => void): this
+  once(channel: 'agent-run-trace', listener: (payload: AgentRunTrace) => void): this
+  once(channel: 'microsoft-auth-telemetry', listener: (payload: MicrosoftAuthTelemetryEvent) => void): this
   once(channel: 'second-instance', listener: (argv: string[]) => void): this
   once(channel: 'direct-launch', listener: (data: any) => void): this
 
   emit(channel: 'app-booted', manifest: InstalledAppManifest): this
-  emit(channel: 'service-call-end', serviceName: string, serviceMethod: string, duration: number, success: boolean): this
+  emit(channel: 'service-call-end', serviceName: string, serviceMethod: string, duration: number, success: boolean, failureCategory?: ServiceFailureCategory): this
   emit(channel: 'window-all-closed'): boolean
   emit(channel: 'root-migrated', root: string): this
   emit(channel: 'service-state-init', stateKey: string): this
   emit(channel: 'download-cdn', reason: string, file: string): this
+  emit(channel: 'download-performance', payload: DownloadPerformanceTelemetryEvent): this
+  emit(channel: 'install-manifest', event: InstallEvent): this
+  emit(channel: 'agent-run-trace', payload: AgentRunTrace): this
+  emit(channel: 'microsoft-auth-telemetry', payload: MicrosoftAuthTelemetryEvent): this
   emit(channel: 'second-instance', argv: string[]): this
   emit(channel: 'direct-launch', data: any): this
 }
@@ -98,9 +133,11 @@ export class LauncherApp extends EventEmitter {
    */
   get version() { return this.host.getVersion() }
 
+  get systemLocale() { return this.host.getLocale() }
+
   get userAgent() {
     const version = IS_DEV ? '0.0.0' : this.host.getVersion()
-    return `voxelum/x_minecraft_launcher/${version} (xmcl.app)`
+    return `pbtservers/pbtmodlauncherx/${version}`
   }
 
   #disposed = false
@@ -274,10 +311,15 @@ export class LauncherApp extends EventEmitter {
   // setup code
 
   async start(): Promise<void> {
+    this.logger.log('[startup] launcher initialization started')
     await Promise.all([
       this.setup(),
-      this.host.whenReady().then(() => this.onEngineReady()),
+      this.host.whenReady().then(() => {
+        this.logger.log('[startup] host ready; activating renderer')
+        return this.onEngineReady()
+      }),
     ])
+    this.logger.log('[startup] launcher initialization completed')
   }
 
   /**
@@ -315,15 +357,25 @@ export class LauncherApp extends EventEmitter {
       this.#isBootstrapSignal.resolve(false)
     } catch (e) {
       if (isSystemError(e) && e.code === 'ENOENT') {
-        // first launch
-        this.#isBootstrapSignal.resolve(true)
-        const path = await new Promise<string>((resolve) => {
-          this.controller.handle('bootstrap', (_, path) => {
-            resolve(path)
-          }, true)
+        // Register before revealing the wizard. A retry must wait for the same operation.
+        await new Promise<void>((resolve) => {
+          const complete = createInitialSetup(async (path) => {
+            this.logger.log('[startup] initial setup started')
+            try {
+              await prepareInitialRoot(this.appDataPath, path)
+              await this.#registerGamePath(path)
+              this.logger.log('[startup] initial setup completed')
+              resolve()
+            } catch (error) {
+              this.logger.warn('[startup] initial setup failed; retry available')
+              throw error
+            }
+          })
+          this.controller.handle('bootstrap', (_, path) => complete(path))
+          this.#isBootstrapSignal.resolve(true)
+          this.logger.log('[startup] waiting for initial setup')
         })
-        gameDataPath = (path)
-        await writeFile(join(this.appDataPath, 'root'), path)
+        return
       } else {
         this.#isBootstrapSignal.resolve(false)
         gameDataPath = (this.appDataPath)
@@ -341,18 +393,16 @@ export class LauncherApp extends EventEmitter {
   }
 
   async #registerGamePath(gamePath: string) {
+    await ensureDir(join(gamePath, 'temp'))
     this.#gamePath = gamePath
     validateDirectory(this.platform, gamePath).then((code) => {
       if (code) {
-        this.registry.get(kSettings).then(s => s.invalidGameDataPathSet(code))
+        return this.registry.get(kSettings).then(s => s.invalidGameDataPathSet(code))
       }
-    })
+    }).catch(() => this.logger.warn('[startup] directory diagnostics failed'))
     this.registry.register(kGameDataPath, (...args) => {
       return join(this.#gamePath, ...args)
     })
-
-    const temporaryPath = join(this.#gamePath, 'temp')
-    await ensureDir(temporaryPath)
 
     this.registry.register(kTempDataPath, (...args) => {
       return join(this.#gamePath, 'temp', ...args)
@@ -436,7 +486,10 @@ export class LauncherApp extends EventEmitter {
     this.logger.log('App booted')
   }
 
-  fetch = fetch
+  fetch: typeof fetch = async (input, init) => {
+    assertIndependentUrl(input)
+    return fetch(input, init)
+  }
 
   setProxy(url: string) {}
 }

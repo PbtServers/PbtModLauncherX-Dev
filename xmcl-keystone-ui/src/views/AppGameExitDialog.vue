@@ -1,7 +1,6 @@
 <template>
   <v-dialog
     v-model="data.isShown"
-    :persistent="true"
   >
     <v-card class="visible-scroll flex max-h-[80vh] flex-col overflow-auto">
       <v-toolbar color="error">
@@ -13,9 +12,8 @@
         <v-spacer />
         <v-toolbar-items v-if="!data.launcherError">
           <v-btn
-            text
             @click="openFolder"
-          >
+           variant="text">
             {{ data.isCrash ? t('instance.openCrashReportFolder') : t('instance.openLogFolder') }}
           </v-btn>
         </v-toolbar-items>
@@ -23,35 +21,64 @@
           icon
           @click="data.isShown=false"
         >
-          <v-icon>arrow_drop_down</v-icon>
+          <v-icon>close</v-icon>
         </v-btn>
       </v-toolbar>
-      <v-card-text class="flex flex-col overflow-auto">
-        <div
-          v-if="data.errorLog"
-          style="padding: 10px"
-        >
-          {{ data.launcherError ? t('launchFailed.failedToLaunch') : data.isCrash ? t(`launchFailed.crash`) : t(`launchFailed.description`) }}
+      <v-card-text class="grid grid-cols-12 overflow-auto gap-4">
+        <div class="col-span-9 flex flex-col overflow-auto mt-4">
+          <div
+            v-if="data.elyByWarning"
+            class="surface-rounded-item mb-4 bg-orange-100 dark:bg-orange-900 p-4 border-s-4 border-orange-500"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <v-icon color="orange">
+                warning
+              </v-icon>
+              <span class="font-bold">{{ t('launchFailed.elyByAuthlib.title') }}</span>
+            </div>
+            <div class="text-sm">
+              {{ t('launchFailed.elyByAuthlib.description', { version: data.elyByMinecraftVersion }) }}
+            </div>
+            <div class="text-sm mt-2">
+              {{ t('launchFailed.elyByAuthlib.suggestion') }}
+            </div>
+          </div>
+          <div
+            v-if="data.errorLog"
+          >
+            {{ data.launcherError ? t('launchFailed.failedToLaunch') : data.isCrash ? t(`launchFailed.crash`) : t(`launchFailed.description`) }}
+          </div>
+          <pre
+            v-if="data.errorLog"
+            class="surface-rounded-item overflow-auto min-h-[200px] bg-[rgba(0,0,0,0.1)] p-5 hover:bg-[rgba(0,0,0,0.2)]"
+          >{{ data.errorLog }}</pre>
+          <div
+            v-if="!data.isCrash"
+          >
+            {{ t(`launchFailed.latestLog`) }}
+          </div>
+          <pre class="surface-rounded-item overflow-auto bg-[rgba(0,0,0,0.1)] p-5 hover:bg-[rgba(0,0,0,0.2)]">{{ data.log }}</pre>
         </div>
-        <pre
-          v-if="data.errorLog"
-          class="overflow-auto min-h-[200px] rounded bg-[rgba(0,0,0,0.1)] p-5 hover:bg-[rgba(0,0,0,0.2)]"
-        >{{ data.errorLog }}</pre>
-        <div
-          style="padding: 10px"
-        >
-          {{ t(`launchFailed.latestLog`) }}
-        </div>
-        <pre class="overflow-auto rounded bg-[rgba(0,0,0,0.1)] p-5 hover:bg-[rgba(0,0,0,0.2)]">{{ data.log }}</pre>
+        <AppCrashAIHint
+          class="col-span-3 mt-2"
+          :useCNAI="useCNAI"
+          :getPrompt="getPrompt"
+          :getAgentPrompt="getAgentPrompt"
+          @close="data.isShown = false"
+        />
       </v-card-text>
     </v-card>
   </v-dialog>
 </template>
 
 <script lang=ts setup>
+import AppCrashAIHint from '@/components/AppCrashAIHint.vue'
 import { useService } from '@/composables'
+import { kEnvironment } from '@/composables/environment'
 import { kInstance } from '@/composables/instance'
 import { kInstanceLaunch } from '@/composables/instanceLaunch'
+import { kSettingsState } from '@/composables/setting'
+import { getCrashPrompt, getCrashAgentPrompt, toVirtualInstancePath } from '@/util/crashPrompt'
 import { injection } from '@/util/inject'
 import { BaseServiceKey, InstanceLogServiceKey, LaunchServiceKey } from '@xmcl/runtime-api'
 
@@ -59,22 +86,30 @@ const data = reactive({
   isShown: false,
   log: '',
   isCrash: false,
+  isServer: false,
   launcherError: false,
+  launchId: '',
   crashReportLocation: '',
   errorLog: '',
+  elyByWarning: false,
+  elyByMinecraftVersion: '',
 })
 watch(() => data.isShown, (isShown) => {
   if (!isShown) {
     data.log = ''
     data.isCrash = false
+    data.isServer = false
     data.launcherError = false
+    data.launchId = ''
     data.crashReportLocation = ''
     data.errorLog = ''
+    data.elyByWarning = false
+    data.elyByMinecraftVersion = ''
   }
 })
 const { t } = useI18n()
 const { path } = injection(kInstance)
-const { getLogContent, getCrashReportContent, showLog } = useService(InstanceLogServiceKey)
+const { getLogContent, getCrashReportContent, getServerLogContent, showLog, showServerLog } = useService(InstanceLogServiceKey)
 const { on } = useService(LaunchServiceKey)
 const { showItemInDirectory } = useService(BaseServiceKey)
 const { error } = injection(kInstanceLaunch)
@@ -84,30 +119,37 @@ watch(error, (e) => {
   data.launcherError = true
   data.errorLog = JSON.stringify(e, null, 2)
 })
-function decorate(log: string) {
-  return log
-}
 async function displayLog() {
-  const log = await getLogContent(path.value, 'latest.log')
-  data.log = decorate(log)
+  const log = data.isServer
+    ? await getServerLogContent(path.value, 'latest.log')
+    : await getLogContent(path.value, 'latest.log')
+  data.log = log
   data.isShown = true
 }
-async function displayCrash() {
-  const log = await getCrashReportContent(path.value, data.crashReportLocation)
-  data.log = decorate(log)
+async function displayCrash(crashReport: string | undefined) {
+  const log = await getCrashReportContent(path.value, data.crashReportLocation) || crashReport || ''
+  data.log = log
   data.isShown = true
 }
-on('minecraft-exit', ({ code, signal, crashReport, crashReportLocation, errorLog }) => {
+on('minecraft-exit', ({ code, signal, launchId, crashReport, crashReportLocation, errorLog, stdLog, side, elyByAuthlibReplaced, elyByMinecraftVersion }) => {
   if (!code && signal === 'SIGTERM') {
     return
   }
   if (code !== 0) {
-    console.log(errorLog)
-    data.errorLog = errorLog || crashReport || ''
+    data.isServer = side === 'server'
+    data.launchId = launchId
+    data.errorLog = `${errorLog || ''}\n${stdLog || ''}`.trim()
+    
+    // Check if Ely.by authlib was used
+    if (elyByAuthlibReplaced) {
+      data.elyByWarning = true
+      data.elyByMinecraftVersion = elyByMinecraftVersion || ''
+    }
+    
     if (crashReportLocation) {
       data.crashReportLocation = crashReportLocation
       data.isCrash = true
-      displayCrash()
+      displayCrash(crashReport)
     } else {
       displayLog()
     }
@@ -116,9 +158,29 @@ on('minecraft-exit', ({ code, signal, crashReport, crashReportLocation, errorLog
 function openFolder() {
   if (data.isCrash) {
     showItemInDirectory(data.crashReportLocation)
+  } else if (data.isServer) {
+    showServerLog(path.value, 'latest.log')
   } else {
     showLog(path.value, 'latest.log')
   }
+}
+
+const env = injection(kEnvironment)
+const useCNAI = computed(() => {
+  return env.value?.gfw || env.value?.region === 'zh-CN'
+})
+
+const { state } = injection(kSettingsState)
+function getPrompt(raw?: boolean) {
+  if (raw) {
+    return data.errorLog
+  }
+  return getCrashPrompt(useCNAI.value, data.log, data.errorLog, state.value?.locale || 'en-US')
+}
+function getAgentPrompt() {
+  const crashPath = data.crashReportLocation ? toVirtualInstancePath(data.crashReportLocation, path.value) : undefined
+  const logPath = toVirtualInstancePath(`${path.value}/${data.isServer ? 'server/logs' : 'logs'}/latest.log`, path.value)
+  return getCrashAgentPrompt(data.log, data.errorLog, crashPath, logPath, data.launchId || undefined)
 }
 </script>
 

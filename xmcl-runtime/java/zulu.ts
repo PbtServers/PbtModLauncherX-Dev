@@ -1,146 +1,137 @@
-import { DownloadBaseOptions } from '@xmcl/file-transfer';
-import { DownloadTask, UnzipTask } from '@xmcl/installer';
-import { task } from '@xmcl/task';
-import { open, readAllEntries } from '@xmcl/unzip';
-import { createReadStream, ensureDir, readJson, symlink, unlink, writeFile } from 'fs-extra';
-import { basename, dirname, join } from 'path';
-import { pipeline } from 'stream/promises';
-import { extract } from 'tar-stream';
-import { createGunzip } from 'zlib';
-import { LauncherApp } from '~/app';
-import index from './zulu.json';
-import { createWriteStream, existsSync } from 'fs';
+import { selectZuluJRE, type ZuluJRE } from '@xmcl/installer'
+import { readJson, writeFile } from 'fs-extra'
+import { existsSync } from 'fs'
+import { join } from 'path'
+import { z } from 'zod'
+import { LauncherApp } from '~/app'
+import index from './zulu.json'
 
-export interface ZuluJRE {
-  features: string[];
-  architecture: string;
-  os: string;
-  sha256: string;
-  size: number;
-  url: string;
+export { selectZuluJRE, type ZuluJRE } from '@xmcl/installer'
+
+export type ZuluJavaType =
+  | 'java-runtime-alpha'
+  | 'java-runtime-beta'
+  | 'java-runtime-gamma'
+  | 'java-runtime-gamma-snapshot'
+  | 'java-runtime-delta'
+  | 'java-runtime-epsilon'
+  | 'jre-legacy'
+
+// Required component keys the launcher fetches a Zulu build for.
+// If any of these is missing or empty on the cached/remote payload,
+// the document is considered unhealthy and we fall back to the
+// bundled `index`. See issue #1459 — production hit "No zulu jre
+// found for win32 x64" because a corrupted on-disk zulu.json with
+// missing/empty arrays was being preferred over the bundled one.
+const ZULU_TYPES = [
+  'java-runtime-alpha',
+  'java-runtime-beta',
+  'java-runtime-gamma',
+  'java-runtime-gamma-snapshot',
+  'java-runtime-delta',
+  'java-runtime-epsilon',
+  'jre-legacy',
+] as const satisfies readonly ZuluJavaType[]
+
+const zuluJreSchema = z.object({
+  features: z.array(z.string()),
+  architecture: z.string(),
+  os: z.string(),
+  sha256: z.string(),
+  size: z.number(),
+  url: z.string(),
+})
+
+const zuluCacheSchema = z
+  .object({
+    modified: z.string(),
+  })
+  .catchall(z.array(zuluJreSchema))
+
+type ZuluCache = {
+  modified: string
+  // Component arrays keyed by the launcher's component name
+  // (`java-runtime-alpha` etc.). Other keys may be present; we
+  // only access the ones in ZULU_TYPES.
+  [k: string]: unknown
 }
 
-export function installZuluJavaTask(jre: ZuluJRE, destination: string, version: number, options: DownloadBaseOptions) {
-  return task('installJre', async function () {
-    const packedFile = join(destination, basename(jre.url))
-    await this.yield(new DownloadTask({
-      url: jre.url,
-      destination: packedFile,
-      validator: {
-        algorithm: 'sha256',
-        hash: jre.sha256,
-      },
-      expectedTotal: jre.size,
-    }).setName('download'))
-    if (jre.url.endsWith('.tar.gz')) {
-      const extractStream = extract()
-
-      const allPipe = [
-        pipeline(
-          createReadStream(packedFile),
-          createGunzip(),
-          extractStream,
-        )
-      ] as Promise<void>[]
-
-      let first = ''
-      let substring = 0
-      const links = [] as {
-        path: string
-        linkTo: string
-      }[]
-      for await (const e of extractStream) {
-        if (!first) {
-          first = e.header.name
-          if (first.endsWith('/') && jre.url.endsWith(e.header.name.substring(0, e.header.name.length - 1) + '.tar.gz')) {
-            // ignore first folder
-            substring = first.length
-            continue
-          }
-        }
-        const filePath = join(destination, join(e.header.name.substring(substring)))
-        if (e.header.type === 'directory') {
-          await ensureDir(filePath)
-        } else if (e.header.linkname && e.header.type === 'symlink') {
-          links.push({
-            path: join(destination, e.header.linkname),
-            linkTo: filePath,
-          })
-        } else if (e.header.type === 'file') {
-          await ensureDir(dirname(filePath))
-          allPipe.push(pipeline(
-            e,
-            createWriteStream(filePath)
-          ))
-        }
-      }
-
-      for (const l of links) {
-        await symlink(l.path, l.linkTo)
-      }
-
-      await Promise.all(allPipe)
-    } else {
-      // zip
-      const zipFile = await open(packedFile)
-      try {
-        const prefix = basename(jre.url).slice(0, -4) + '/'
-        const entries = await readAllEntries(zipFile).then(ens => ens.filter(e => e.fileName !== prefix && !e.fileName.endsWith('/')))
-        
-        await this.yield(new UnzipTask(zipFile, entries, destination, (e) => {
-          if (e.fileName.startsWith(prefix)) {
-            return e.fileName.substring(prefix.length)
-          }
-          return e.fileName
-        }).setName('decompress'))
-      } finally {
-        zipFile.close()
-      }
-    }
-    await unlink(packedFile)
-  }, { version })
+/**
+ * Validate a parsed Zulu index against the expected schema and ensure
+ * every component the launcher cares about resolves to at least one
+ * build, otherwise treat it as corrupt and let the caller fall back to
+ * the bundled copy.
+ */
+function isHealthyZuluCache(data: unknown): data is ZuluCache {
+  const parsed = zuluCacheSchema.safeParse(data)
+  if (!parsed.success) return false
+  for (const t of ZULU_TYPES) {
+    const arr = (parsed.data as Record<string, unknown>)[t]
+    if (!Array.isArray(arr) || arr.length === 0) return false
+  }
+  return true
 }
 
+/**
+ * Setup Zulu cache by downloading the latest Zulu JRE index.
+ *
+ * The remote payload is validated before being persisted so a transient
+ * proxy/CDN giving back HTML, an empty body, or a partial JSON can
+ * never overwrite a healthy cache (or the bundled fallback).
+ */
 export async function setupZuluCache(app: LauncherApp) {
   const filePath = join(app.appDataPath, 'zulu.json')
   if (!existsSync(filePath)) {
     await writeFile(filePath, JSON.stringify(index, null, 2))
   }
 
-  const content = await readJson(filePath).catch(() => index) as typeof index
+  const onDisk = await readJson(filePath).catch(() => undefined)
+  const content: ZuluCache = isHealthyZuluCache(onDisk) ? onDisk : index
 
   const response = await app.fetch('https://raw.githubusercontent.com/Voxelum/xmcl-static-resource/refs/heads/main/zulu.json', {
     headers: {
       ['If-Modified-Since']: content.modified,
-    }
+    },
   })
   if (response.ok) {
-    await writeFile(filePath, JSON.stringify(await response.json(), null, 2))
+    const remote = await response.json().catch(() => undefined)
+    if (isHealthyZuluCache(remote)) {
+      await writeFile(filePath, JSON.stringify(remote, null, 2))
+    }
   }
 }
 
-export async function getZuluJRE(app: LauncherApp, type:
-  'java-runtime-alpha' |
-  'java-runtime-beta' |
-  'java-runtime-gamma' |
-  'java-runtime-gamma-snapshot' |
-  'java-runtime-delta' |
-  'jre-legacy'
-) {
+/**
+ * Get the best matching Zulu JRE for the current platform.
+ *
+ * Loads from the on-disk cache first; if the cache is missing,
+ * unparseable, or the platform/arch lookup fails on it, falls back to
+ * the bundled `index` before giving up. That bundled file always ships
+ * with full win32/linux/darwin x64+arm64 coverage so a "No zulu jre
+ * found for win32 x64" should be impossible in practice — if it ever
+ * surfaces again the error message now records exactly which sources
+ * were tried and how many entries each one offered.
+ */
+export async function getZuluJRE(app: LauncherApp, type: ZuluJavaType): Promise<ZuluJRE> {
   const zuluCachePath = join(app.appDataPath, 'zulu.json')
-  const content = await readJson(zuluCachePath).catch(() => index) as typeof index
-  const array = content[type] || []
-  const targets = array.filter(item => item.os === process.platform && item.architecture === process.arch)
-  if (targets.length === 0) {
-    throw new Error(`No zulu jre found for ${process.platform} ${process.arch}`)
+  const onDisk = await readJson(zuluCachePath).catch(() => undefined)
+
+  const sources: Array<{ source: 'cache' | 'bundled'; data: ZuluCache }> = []
+  if (isHealthyZuluCache(onDisk)) {
+    sources.push({ source: 'cache', data: onDisk })
   }
-  const withMusl = targets.find(item => item.features.includes('musl'))
-  if (withMusl) {
-    return withMusl
+  sources.push({ source: 'bundled', data: index as ZuluCache })
+
+  const tried: string[] = []
+  for (const { source, data } of sources) {
+    const array = data[type] as ZuluJRE[] | undefined
+    const count = Array.isArray(array) ? array.length : 0
+    const selected = count > 0 ? selectZuluJRE(array!) : undefined
+    tried.push(`${source}=${count}`)
+    if (selected) return selected
   }
-  const withJfx = targets.find(item => item.features.includes('javafx'))
-  if (withJfx) {
-    return withJfx
-  }
-  return targets[0] as ZuluJRE
+
+  throw new Error(
+    `No zulu jre found for ${process.platform} ${process.arch} (type=${type}; tried ${tried.join(', ')})`,
+  )
 }

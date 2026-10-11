@@ -1,0 +1,33 @@
+{
+  "name": "@xmcl/sqlite",
+  "private": false,
+  "version": "0.0.3",
+  "main": "./index.ts",
+  "author": {
+    "name": "cijhn@hotmail.com"
+  },
+  "description": "Node SQLite (node:sqlite) Kysely dialect helper",
+  "scripts": {
+    "build:type": "tsc",
+    "build:cjs": "esbuild --target=es2020 --platform=node --external:kysely --sourcemap --format=cjs --bundle --outfile=dist/index.js index.ts",
+    "build:esm": "esbuild --target=es2020 --platform=node --external:kysely --sourcemap --format=esm --bundle --outfile=dist/index.mjs index.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Voxelum/x-minecraft-launcher.git"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "kysely": "^0.28.14",
+    "@xmcl/oxlint-config": "workspace:^",
+    "esbuild": "^0.25.12",
+    "oxlint": "^1.63.0",
+    "typescript": "^5.9.3"
+  }
+}

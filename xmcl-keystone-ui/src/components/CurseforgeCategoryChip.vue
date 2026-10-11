@@ -2,18 +2,15 @@
   <v-chip
     filter
     :disabled="disabled"
-    outlined
+    variant="outlined"
     label
     @click="disabled || $emit('click', value)"
   >
-    <v-avatar
-      left
-    >
-      <v-img
-        :src="value.iconUrl"
-      />
-    </v-avatar>
-
+    <template #prepend>
+      <v-avatar size="20" class="mr-2">
+        <v-img :src="value.iconUrl" />
+      </v-avatar>
+    </template>
     {{ tCategory(value.name) }}
   </v-chip>
 </template>

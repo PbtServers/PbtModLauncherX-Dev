@@ -1,24 +1,22 @@
-import { TaskItem } from '@/entities/task'
+import { basename } from '@/util/basename'
 import { clientCurseforgeV1, clientModrinthV2 } from '@/util/clients'
-import { getCurseforgeModLoaderTypeFromRuntime, getInstanceFileFromCurseforgeFile } from '@/util/curseforge'
+import { getCurseforgeModLoaderTypeFromRuntime } from '@/util/curseforge'
 import { injection } from '@/util/inject'
 import { ModFile } from '@/util/mod'
-import { getInstanceFileFromModrinthVersion, getModrinthModLoaders } from '@/util/modrinth'
-import { ProjectEntry } from '@/util/search'
+import { getModrinthModLoaders, getModrinthVersionKey } from '@/util/modrinth'
 import { swrvGet } from '@/util/swrvGet'
-import { File } from '@xmcl/curseforge'
+import { notNullish, useLocalStorage } from '@vueuse/core'
+import { File, FileModLoaderType } from '@xmcl/curseforge'
+import { InstanceFile, RuntimeVersions } from '@xmcl/instance'
 import { ProjectVersion } from '@xmcl/modrinth'
-import { InstanceFile, InstanceFileUpdate, RuntimeVersions, TaskState } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
 import { useDialog } from './dialog'
 import { useErrorHandler } from './exception'
 import { InstanceInstallDialog } from './instanceUpdate'
 import { useRefreshable } from './refreshable'
 import { kSWRVConfig } from './swrvConfig'
-import { useTask } from './task'
-import { notNullish } from '@vueuse/core'
-import { useLocalStorageCacheBool, useLocalStorageCacheStringValue } from './cache'
-import { basename } from '@/util/basename'
+import { buildModUpgradeManifest } from './modUpgradeManifest'
+import { useInstanceInstallOperation } from './instanceInstallOperation'
 
 export type UpgradePlan = {
   /**
@@ -50,19 +48,29 @@ export type UpgradePlan = {
 
 export const kModUpgrade: InjectionKey<ReturnType<typeof useModUpgrade>> = Symbol('kModUpgrade')
 
-export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, instanceMods: Ref<ModFile[]>) {
+export function useModUpgrade(
+  path: Ref<string>,
+  runtime: Ref<RuntimeVersions>,
+  instanceMods: Ref<any[]>,
+  updateMetadata: () => Promise<void>,
+  destinationPrefix: 'mods' | 'resourcepacks' | 'shaderpacks' = 'mods',
+) {
   const { cache, dedupingInterval } = injection(kSWRVConfig)
   const plans = shallowRef({} as Record<string, UpgradePlan>)
-  let operationId = ''
-  let operationPath = ''
   const checked = ref(false)
   const { show } = useDialog(InstanceInstallDialog)
+  const operation = useInstanceInstallOperation(path, () => {
+    plans.value = {}
+  })
 
-  const skipVersion = useLocalStorageCacheBool(computed(() => `modsUpgradeSkipVersion:${path.value}`), false)
-  const upgradePolicy = useLocalStorageCacheStringValue(computed(() => `modsUpgradePolicy:${path.value}`), 'modrinth')
+  const skipVersion = useLocalStorage(computed(() => `${destinationPrefix}UpgradeSkipVersion:${path.value}`), false, { writeDefaults: false })
+  // Default to ignoring alpha/beta versions so mods upgrade to the latest stable release,
+  // keeping clients in sync with launchers that only ship stable updates.
+  const releaseOnly = useLocalStorage(computed(() => `${destinationPrefix}UpgradeIgnoreAlphaBeta:${path.value}`), true, { writeDefaults: false })
+  const upgradePolicy = useLocalStorage<'modrinth' | 'curseforge' | 'curseforgeOnly' | 'modrinthOnly'>(computed(() => `${destinationPrefix}UpgradePolicy:${path.value}`), 'modrinth', { writeDefaults: false })
 
   useErrorHandler((e) => {
-    if (e instanceof Error && 'instanceInstallErrorId' in e && e.instanceInstallErrorId === operationId) {
+    if (e instanceof Error && 'instanceInstallErrorId' in e && e.instanceInstallErrorId === operation.id.value) {
       error.value = e
       return true
     }
@@ -72,12 +80,11 @@ export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, 
   watch([path, runtime], () => {
     checked.value = false
     plans.value = {}
-    operationId = ''
+    operation.reset()
     error.value = null
-    operationPath = path.value
   })
 
-  async function checkCurseforgeUpgrade(mods: ModFile[], runtime: RuntimeVersions, skipVersion: boolean, result: Record<string, UpgradePlan>) {
+  async function checkCurseforgeUpgrade(mods: ModFile[], runtime: RuntimeVersions, skipVersion: boolean, releaseOnly: boolean, result: Record<string, UpgradePlan>) {
     const fileIds = mods.map(m => m.curseforge?.fileId).filter(notNullish)
     if (skipVersion) {
       const minecraft = runtime.minecraft
@@ -96,20 +103,24 @@ export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, 
     for (let i = 0; i < mods.length; i += batch) {
       await Promise.allSettled(mods.slice(i, i + batch).map(async (mod) => {
         const gameVersion = runtime.minecraft
-        const modLoaderType = getCurseforgeModLoaderTypeFromRuntime(runtime)
+        const modLoaderType = destinationPrefix === 'mods' ? getCurseforgeModLoaderTypeFromRuntime(runtime) : FileModLoaderType.Any
         // this is a curseforge project and installed
         const files = await swrvGet(`/curseforge/${mod.curseforge!.projectId}/files?gameVersion=${gameVersion}&modLoaderType=${modLoaderType}&index=0`, () => clientCurseforgeV1.getModFiles({
           modId: mod.curseforge!.projectId!,
           gameVersion,
           modLoaderType,
         }), cache, dedupingInterval)
-        if (files.data.length > 0) {
-          const file = markRaw(files.data[0])
+        // releaseType: 1 = release, 2 = beta, 3 = alpha
+        const candidates = releaseOnly ? files.data.filter(f => f.releaseType === 1) : files.data
+        if (candidates.length > 0) {
+          const file = markRaw(candidates[0])
           const current = mod
           if (file.id !== current.curseforge?.fileId) {
-            // this is the new version
-            if (!result[mod.curseforge!.projectId]) {
-              result[mod.curseforge!.projectId] = {
+            // Key by modrinthId when available so it matches the item.id used by
+            // modSearch (which also prefers modrinthId over curseforgeId).
+            const planKey = mod.modrinth?.projectId ?? mod.curseforge!.projectId.toString()
+            if (!result[planKey]) {
+              result[planKey] = {
                 file,
                 mod,
                 updating: false,
@@ -122,8 +133,12 @@ export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, 
     }
   }
 
-  async function checkModrinthUpgrade(modrinthTarget: ModFile[], runtimes: RuntimeVersions, skipVersion: boolean, result: Record<string, UpgradePlan>) {
-    const hashes = modrinthTarget.map(m => m.hash)
+  async function checkModrinthUpgrade(modrinthTarget: ModFile[], runtimes: RuntimeVersions, skipVersion: boolean, releaseOnly: boolean, result: Record<string, UpgradePlan>) {
+    if (modrinthTarget.length === 0) {
+      return modrinthTarget
+    }
+
+    let hashes = modrinthTarget.map(m => m.hash)
     if (skipVersion) {
       const minecraft = runtimes.minecraft
       const vers = await clientModrinthV2.getProjectVersionsByHash(hashes)
@@ -134,28 +149,46 @@ export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, 
         }
       }
       modrinthTarget = modrinthTarget.filter(m => !shouldIgnored.has(m.modrinth!.projectId))
+      hashes = modrinthTarget.map(m => m.hash)
     }
 
-    const loaders = getModrinthModLoaders(runtimes)
+    if (hashes.length === 0) {
+      return modrinthTarget
+    }
+
+    const loaders = destinationPrefix === 'mods' ? getModrinthModLoaders(runtimes) : undefined
     const gameVersions = [runtimes.minecraft]
+    const modrinthByProjectId = new Map(modrinthTarget.map(m => [m.modrinth!.projectId, m]))
     const updates = await clientModrinthV2.getLatestVersionsFromHashes(hashes, {
       algorithm: 'sha1',
       gameVersions,
       loaders,
     })
-    for (const [_, version] of Object.entries(updates)) {
-      const mod = modrinthTarget.find(m => m.modrinth!.projectId === version.project_id)
-      const current = mod
-      if (mod && current && version.id !== current?.modrinth?.versionId) {
+    // Modrinth's update endpoint returns the single latest version regardless of
+    // its release channel. When releaseOnly is set, fall back to the project's
+    // version list to pick the latest stable (version_type === 'release') version.
+    const resolveReleaseVersion = async (mod: ModFile, candidate: ProjectVersion): Promise<ProjectVersion | undefined> => {
+      if (!releaseOnly || candidate.version_type === 'release') {
+        return candidate
+      }
+      const versions = await swrvGet(getModrinthVersionKey(mod.modrinth!.projectId, undefined, loaders, gameVersions),
+        () => clientModrinthV2.getProjectVersions(mod.modrinth!.projectId, { loaders, gameVersions }), cache, dedupingInterval)
+      return versions.find(v => v.version_type === 'release')
+    }
+    await Promise.allSettled(Object.values(updates).map(async (version) => {
+      const mod = modrinthByProjectId.get(version.project_id)
+      if (!mod) return
+      const resolved = await resolveReleaseVersion(mod, version)
+      if (resolved && resolved.id !== mod.modrinth?.versionId) {
         // this is the new version
         result[mod.modrinth!.projectId] = {
-          version,
+          version: markRaw(resolved),
           mod,
           updating: false,
-          filePath: basename(current.path),
+          filePath: basename(mod.path),
         }
       }
-    }
+    }))
 
     return modrinthTarget
   }
@@ -171,22 +204,29 @@ export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, 
     return result
   }
 
-  const { refresh, refreshing, error } = useRefreshable<{ skipVersion: boolean; policy: 'curseforge' | 'modrinth' | 'curseforgeOnly' | 'modrinthOnly' }>(async ({ skipVersion, policy }) => {
+  const { refresh, refreshing, error } = useRefreshable<{ skipVersion: boolean; releaseOnly?: boolean; policy: 'curseforge' | 'modrinth' | 'curseforgeOnly' | 'modrinthOnly' }>(async ({ skipVersion, releaseOnly: releaseOnlyOpt, policy }) => {
+    // Refresh the mod platform metadata (modrinth/curseforge ids) first so that
+    // mods which haven't been resolved yet can be matched against the providers.
+    // Without this, a click on "check update" finds nothing and returns instantly.
+    await updateMetadata()
+
+    const onlyRelease = releaseOnlyOpt ?? releaseOnly.value
     const result: Record<string, UpgradePlan> = {}
 
-    // check modrinth
-    const mods = new Set(instanceMods.value)
+    // Skip manually disabled mods (.disabled), but include incompatible mods (.incompatible)
+    // so they can be re-enabled if an update becomes available
+    const mods = new Set(instanceMods.value.filter(m => !m.path.endsWith('.disabled')))
     const runtimes = runtime.value
     const _path = path.value
 
     async function doCheckModrinthUpgrade() {
       const modrinthTargets = select(mods, m => !!m.modrinth?.projectId)
-      await checkModrinthUpgrade(modrinthTargets, runtimes, skipVersion, result)
+      await checkModrinthUpgrade(modrinthTargets, runtimes, skipVersion, onlyRelease, result)
     }
 
     async function doCurseforgeUpgrade() {
       const curseforgeTargets = select(mods, m => !!m.curseforge?.projectId)
-      await checkCurseforgeUpgrade(curseforgeTargets, runtimes, skipVersion, result)
+      await checkCurseforgeUpgrade(curseforgeTargets, runtimes, skipVersion, onlyRelease, result)
     }
 
     if (policy === 'curseforge') {
@@ -203,8 +243,7 @@ export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, 
 
     plans.value = result
     checked.value = true
-    operationId = crypto.getRandomValues(new Uint8Array(8)).join('')
-    operationPath = _path
+    operation.begin(_path)
   })
 
   watch(instanceMods, (mods) => {
@@ -217,56 +256,45 @@ export function useModUpgrade(path: Ref<string>, runtime: Ref<RuntimeVersions>, 
   })
 
 
-  function upgrade() {
-    const oldFiles: InstanceFile[] = []
-    const files: InstanceFile[] = []
-    for (const plan of Object.values(plans.value)) {
-      oldFiles.push({
-        path: `mods/${plan.mod.fileName}`,
-        hashes: {
-          sha1: plan.mod.hash,
-        },
-        size: plan.mod.size || 0,
-      })
-      files.push('file' in plan ? getInstanceFileFromCurseforgeFile(plan.file) : getInstanceFileFromModrinthVersion(plan.version))
-    }
+  function prepareUpgradeManifest() {
+    return buildModUpgradeManifest(Object.values(plans.value), destinationPrefix)
+  }
 
+  function upgrade() {
+    const { oldFiles, files } = prepareUpgradeManifest()
     show({
       type: 'updates',
       oldFiles,
       files,
-      id: operationId,
+      id: operation.id.value,
     })
   }
 
-  function isCurrentTask(task: TaskItem) {
-    return task.path === 'installInstance' && task.param.operationId === operationId &&
-      task.param.instance === operationPath
+  /**
+   * Get the list of enabled mod file paths that don't have an available upgrade plan.
+   * Used to disable mods without updates when switching MC versions.
+   */
+  function getModsWithoutUpgrade(): string[] {
+    const plansModPaths = new Set(
+      Object.values(plans.value).map(p => p.mod.path),
+    )
+    return instanceMods.value
+      .filter(m => m.enabled && !plansModPaths.has(m.path))
+      .map(m => m.path)
   }
-
-  const { task } = useTask((i) => {
-    if (isCurrentTask(i)) {
-      return true
-    }
-    return false
-  })
-  watch(task, (newV, oldV) => {
-    if (oldV && isCurrentTask(oldV) && !newV) {
-      if (oldV.state === TaskState.Succeed) {
-        plans.value = {}
-      }
-    }
-  })
 
   return {
     refresh,
     refreshing,
     skipVersion,
+    releaseOnly,
     upgradePolicy,
     error,
     plans,
     checked,
     upgrade,
-    upgrading: computed(() => !!task.value),
+    prepareUpgradeManifest,
+    upgrading: computed(() => !!operation.task.value),
+    getModsWithoutUpgrade,
   }
 }

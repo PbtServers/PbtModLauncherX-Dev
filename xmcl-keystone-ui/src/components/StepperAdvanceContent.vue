@@ -1,24 +1,31 @@
 <template>
-  <v-list
-    two-line
-    subheader
-    style="background: transparent; width: 100%"
-  >
-    <div class="mx-4 grid grid-cols-4 gap-4">
+  <div style="background: transparent; width: 100%">
+    <ModloaderSelector
+      :data="data"
+      :versions="versions"
+      :show-minecraft="showMinecraft"
+      auto-select-latest-on-click
+    />
+    <!-- Advanced Settings -->
+    <v-list-subheader data-testid="add-instance-advanced" class="my-4">
+      {{ t('setting.advancedSettings') }}
+    </v-list-subheader>
+    <div class="grid grid-cols-4 gap-4">
       <v-select
         v-model="data.java"
-        outlined
+        variant="outlined"
         class="java-select col-span-2"
+        item-title="text"
         :label="t('java.location')"
         :placeholder="t('java.allocatedLong')"
         :items="javaItems"
-        :menu-props="{ auto: true, overflowY: true }"
+        :menu-props="{}"
         hide-details
         required
       />
       <v-text-field
         v-model="data.minMemory"
-        outlined
+        variant="outlined"
         hide-details
         type="number"
         :label="t('java.minMemory')"
@@ -27,7 +34,7 @@
       />
       <v-text-field
         v-model="data.maxMemory"
-        outlined
+        variant="outlined"
         hide-details
         type="number"
         :label="t('java.maxMemory')"
@@ -35,79 +42,81 @@
         required
       />
     </div>
-
-    <VersionInputMinecraft
-      v-if="showMinecraft"
-      class="mt-4"
-      :value="data.runtime.minecraft"
-      :versions="versions"
-      @input="onSelectMinecraft"
-    />
-    <VersionInputNeoForged
-      v-if="isNotSelectingLabyMod"
-      :value="data.runtime.neoForged"
-      :minecraft="data.runtime.minecraft"
-      :versions="versions"
-      @input="onSelectNeoForged"
-    />
-    <VersionInputForge
-      v-if="isNotSelectingLabyMod"
-      :value="data.runtime.forge"
-      :minecraft="data.runtime.minecraft"
-      :versions="versions"
-      @input="onSelectForge"
-    />
-    <VersionInputFabric
-      v-if="isNotSelectingLabyMod"
-      :value="data.runtime.fabricLoader"
-      :minecraft="data.runtime.minecraft"
-      :versions="versions"
-      @input="onSelectFabric"
-    />
-    <VersionInputQuilt
-      v-if="isNotSelectingLabyMod"
-      :value="data.runtime.quiltLoader"
-      :minecraft="data.runtime.minecraft"
-      :versions="versions"
-      @input="onSelectQuilt"
-    />
-    <VersionInputOptifine
-      v-if="isNotSelectingLabyMod"
-      :value="data.runtime.optifine"
-      :forge="data.runtime.forge || ''"
-      :minecraft="data.runtime.minecraft"
-      :versions="versions"
-      @input="onSelectOptifine"
-    />
-    <VersionInputLabymod
-      :value="data.runtime.labyMod"
-      :minecraft="data.runtime.minecraft"
-      :versions="versions"
-      @input="onSelectLabyMod"
-    />
-    <VersionInputLocal
-      :value="data.version"
-      :versions="versions"
-      @input="onSelectLocalVersion"
-    />
-  </v-list>
+    <v-list-subheader v-if="isManual" class="mt-4">
+      <div class="flex items-center gap-2">
+        {{ t('instances.linkSharedFolders') }}
+        <v-icon size="tiny" v-shared-tooltip="() => t('instances.linkSharedFoldersHint')">
+          question_mark
+        </v-icon>
+      </div>
+    </v-list-subheader>
+    <v-list-item class="pt-0 pb-4 px-0" v-if="isManual">
+      <div class="flex gap-2 items-center flex-wrap">
+        <v-checkbox
+          data-testid="add-instance-link-saves"
+          v-model="linkPreferences.saves"
+          hide-details
+        >
+          <template #label>
+            <v-icon start>map </v-icon>
+            {{ t('save.name') }}
+          </template>
+        </v-checkbox>
+        <v-checkbox
+          data-testid="add-instance-link-resourcepacks"
+          v-model="linkPreferences.resourcepacks"
+          hide-details
+        >
+          <template #label>
+            <v-icon start>palette </v-icon>
+            {{ t('resourcepack.name') }}
+          </template>
+        </v-checkbox>
+        <v-checkbox
+          data-testid="add-instance-link-shaderpacks"
+          v-model="linkPreferences.shaderpacks"
+          hide-details
+        >
+          <template #label>
+            <v-icon start>gradient </v-icon>
+            {{ t('shaderPack.name') }}
+          </template>
+        </v-checkbox>
+        <v-checkbox
+          data-testid="add-instance-link-options"
+          v-model="linkPreferences.options"
+          hide-details
+        >
+          <template #label>
+            <v-icon start>videogame_asset </v-icon>
+            {{ t('setting.minecraftOptions') }}
+          </template>
+        </v-checkbox>
+        <v-checkbox
+          data-testid="add-instance-link-servers"
+          v-model="linkPreferences.servers"
+          hide-details
+        >
+          <template #label>
+            <v-icon start>dns </v-icon>
+            {{ t('server.serversListTitle') }}
+          </template>
+        </v-checkbox>
+      </div>
+    </v-list-item>
+  </div>
 </template>
 
-<script lang=ts setup>
-import VersionInputFabric from '@/components/VersionInputFabric.vue'
-import VersionInputForge from '@/components/VersionInputForge.vue'
-import VersionInputLocal from '@/components/VersionInputLocal.vue'
-import VersionInputMinecraft from '@/components/VersionInputMinecraft.vue'
-import VersionInputNeoForged from '@/components/VersionInputNeoForged.vue'
-import VersionInputOptifine from '@/components/VersionInputOptifine.vue'
+<script lang="ts" setup>
+import ModloaderSelector from '@/components/ModloaderSelector.vue'
+import SettingItemCheckbox from '@/components/SettingItemCheckbox.vue'
 import { kInstanceCreation } from '../composables/instanceCreation'
 import { kJavaContext } from '../composables/java'
-import VersionInputLabymod from './VersionInputLabymod.vue'
-import VersionInputQuilt from './VersionInputQuilt.vue'
 
-import { useInstanceEditVersions } from '@/composables/instanceEdit'
 import { kLocalVersions } from '@/composables/versionLocal'
 import { injection } from '@/util/inject'
+import { computed } from 'vue'
+import { vSharedTooltip } from '@/directives/sharedTooltip'
 
 defineProps({
   valid: {
@@ -120,30 +129,17 @@ defineProps({
   },
 })
 
-const { data } = injection(kInstanceCreation)
+const { data, linkPreferences, isManual } = injection(kInstanceCreation)
 const { t } = useI18n()
 const { versions } = injection(kLocalVersions)
 
-const {
-  onSelectMinecraft,
-  onSelectNeoForged,
-  onSelectForge,
-  onSelectFabric,
-  onSelectQuilt,
-  onSelectOptifine,
-  onSelectLabyMod,
-  onSelectLocalVersion,
-} = useInstanceEditVersions(data, versions)
-
 const { all: javas } = injection(kJavaContext)
-const javaItems = computed(() => javas.value.map(java => ({
-  text: `Java ${java.majorVersion} (${java.version})`,
-  value: java.path,
-})))
-
-const isNotSelectingLabyMod = computed(() => {
-  return !data.runtime.labyMod
-})
+const javaItems = computed(() =>
+  javas.value.map((java) => ({
+    text: `Java ${java.majorVersion} (${java.version})`,
+    value: java.path,
+  })),
+)
 </script>
 
 <style>
@@ -151,7 +147,10 @@ const isNotSelectingLabyMod = computed(() => {
   white-space: nowrap;
   overflow-x: hidden;
   overflow-y: hidden;
-
   max-width: 240px;
+}
+
+.link-folders--disabled {
+  opacity: 0.5;
 }
 </style>

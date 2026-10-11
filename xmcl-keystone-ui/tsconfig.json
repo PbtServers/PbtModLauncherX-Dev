@@ -5,7 +5,7 @@
     "downlevelIteration": true,
     "resolveJsonModule": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -27,11 +27,12 @@
     ]
   },
   "vueCompilerOptions": {
-    "target": 2.7,
+    "target": 3.5,
     "experimentalSuppressUnknownJsxPropertyErrors": false
   },
   "exclude": [
     "node_modules",
+    "../xmcl",
     "../xmcl-runtime-api"
   ]
 }

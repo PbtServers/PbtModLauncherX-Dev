@@ -6,24 +6,33 @@
       position: 'relative',
       width: '100%',
       marginTop: `${-offsetTop}px`,
+      zIndex: 0,
     }"
   >
+    <v-skeleton-loader
+      v-if="loading"
+      class="mt-1.5"
+      type="list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line, list-item-avatar-two-line"
+    />
     <div
       v-for="virtualRow in virtualRows"
       :key="flattened[virtualRow.index].data.path"
       :ref="measureElement"
       :data-index="virtualRow.index"
       :style="{
+        display: loading ? 'none' : 'block',
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
-        transform: `translateY(${virtualRow.start}px)`
+        transform: `translateY(${virtualRow.start}px)`,
+        zIndex: 0,
       }"
     >
       <InstanceManifestFileItem
         :value="isSelected(flattened[virtualRow.index])"
         :open="isOpen(flattened[virtualRow.index])"
+        :indeterminate="isPartial(flattened[virtualRow.index])"
         :item="flattened[virtualRow.index]"
         :description="getDescription(flattened[virtualRow.index].data)"
         :selectable="selectable"
@@ -49,17 +58,32 @@ import { injection } from '@/util/inject'
 import { useVirtualizer, VirtualItem, VirtualizerOptions } from '@tanstack/vue-virtual'
 import InstanceManifestFileItem from './InstanceManifestFileItem.vue'
 import { flatTree, treeItemKey, TreeItem } from '@/util/tree'
+import { useVModel } from '@vueuse/core'
 
-const props = defineProps<{
-  value: string[]
+enum CheckedState {
+  Unchecked = 0,
+  Checked = 1,
+  Partial = 2
+}
+
+const props = withDefaults(defineProps<{
+  modelValue?: string[]
   selectable?: boolean
   openAll?: boolean
   scrollElement?: HTMLElement | null
+  loading?: boolean
+}>(), {
+  modelValue: () => [],
+})
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string[]): void
 }>()
+const model = useVModel(props, 'modelValue', emit)
 
 const { t } = useI18n()
 
-const containerRef = ref<HTMLElement | null>(null)
+const containerRef = shallowRef<HTMLElement | null>(null)
 const offsetTop = ref(0)
 
 watch(containerRef, container => {
@@ -68,7 +92,7 @@ watch(containerRef, container => {
   }
 })
 
-const opened = ref<string[]>([])
+const opened = shallowRef<string[]>([])
 const isOpen = (item: TreeItem<InstanceFileNode<any>>) => {
   let result = opened.value.includes(treeItemKey(item))
   if (props.openAll) result = !result
@@ -76,10 +100,15 @@ const isOpen = (item: TreeItem<InstanceFileNode<any>>) => {
   return result
 }
 
-const isSelected = (item: TreeItem<InstanceFileNode<any>>|undefined): boolean =>
+const isSelected = (item: TreeItem<InstanceFileNode<any>> | InstanceFileNode<any> | undefined): boolean => {
+  if (!item) return false
+  const data = ('data' in item) ? item.data : item
+  return !!data && checkedStates.value[data.path] === CheckedState.Checked
+}
+
+const isPartial = (item: TreeItem<InstanceFileNode<any>> | undefined): boolean =>
   !!item?.data &&
-  (checkedFolders.value.includes(item.data.path) ||
-    props.value.includes(item.data.path))
+  (checkedStates.value[(item.data.path)] === CheckedState.Partial)
 
 const toggleOpen = (item: TreeItem<InstanceFileNode<any>>) => {
   if (!item.data.children) {
@@ -87,21 +116,20 @@ const toggleOpen = (item: TreeItem<InstanceFileNode<any>>) => {
     return
   }
 
-  const index = opened.value.indexOf(treeItemKey(item))
+  const key = treeItemKey(item)
+  const index = opened.value.indexOf(key)
   if (index >= 0) {
-    opened.value.splice(index, 1)
+    opened.value = opened.value.filter((_, i) => i !== index)
   } else {
-    opened.value.push(treeItemKey(item))
+    opened.value = [...opened.value, key]
   }
 }
 
 const toggleValue = (item: TreeItem<InstanceFileNode<any>>) => {
+  const current = props.modelValue ?? []
   if (item.data.children) {
-    if (checkedFolders.value.includes(item.data.path)) {
-      for (let i = props.value.length - 1; i > 0; i--) {
-        const v = props.value[i]
-        if (v.startsWith(item.data.path + '/')) props.value.splice(i, 1)
-      }
+    if (checkedStates.value[item.data.path] === CheckedState.Checked) {
+      model.value = current.filter(v => !v.startsWith(item.data.path + '/'))
     } else {
       const targets: string[] = []
 
@@ -115,7 +143,7 @@ const toggleValue = (item: TreeItem<InstanceFileNode<any>>) => {
           }
 
           if (!file.path.startsWith(prefix)) continue
-          if (props.value.includes(file.path)) continue
+          if (current.includes(file.path)) continue
 
           targets.push(file.path)
         }
@@ -123,42 +151,40 @@ const toggleValue = (item: TreeItem<InstanceFileNode<any>>) => {
 
       recurse(files.value)
 
-      props.value.push(...targets)
+      model.value = [...current, ...targets]
     }
   } else {
-    const idx = props.value.indexOf(item.data.path)
-    if (idx >= 0) props.value.splice(idx, 1)
-    else props.value.push(item.data.path)
+    const idx = current.indexOf(item.data.path)
+    if (idx >= 0) model.value = current.filter((_, i) => i !== idx)
+    else model.value = [...current, item.data.path]
   }
 }
 
 const files = injection(FileNodesSymbol)
 const flattened = ref<TreeItem<InstanceFileNode<any>>[]>([])
-const checkedFilesSets = computed(() => new Set(props.value))
 
-const checkedFolders = computed(() => {
-  const result: string[] = []
-  const recurse = (items: InstanceFileNode<any>): boolean => {
-    let match = true
-
-    for (const item of items.children!) {
-      if (item.children) {
-        if (recurse(item)) result.push(item.path)
-        else match = false
-        continue
-      }
-
-      if (!checkedFilesSets.value.has(item.path)) {
-        match = false
-        continue
-      }
+const checkedStates = computed(() => {
+  const checkedSet = props.modelValue ?? []
+  const result: Record<string, CheckedState> = {}
+  const getState = (node: InstanceFileNode<any>): CheckedState => {
+    if (!node.children) {
+      return checkedSet.includes(node.path) ? CheckedState.Checked : CheckedState.Unchecked
     }
-    return match
+    let some = 0
+    let all = 1
+    for (const child of node.children) {
+      const state = getState(child)
+      result[child.path] = state
+      some |= state
+      all &= state
+    }
+    if (some === 0) return CheckedState.Unchecked
+    if (all === 1) return CheckedState.Checked
+    return CheckedState.Partial
   }
 
   for (const file of files.value) {
-    if (!file.children) continue
-    if (recurse(file)) result.push(file.path)
+    result[file.path] = getState(file)
   }
 
   return result
@@ -262,6 +288,74 @@ intro:
     user: The user auth info cache
     version: The global cache of Minecraft version metadata
     versions: Same with vanilla. Save multiple versions' JSON & JAR
+</i18n>
+
+<i18n locale="es-ES" lang="yaml">
+intro:
+  struct:
+    assets: Caché de los recursos del juego, igual que en Vanilla
+    config: Carpeta de configuración de la instancia
+    forge-versions: Caché global de metadatos de versiones de Forge
+    java: Caché global de las instalaciones de Java detectadas
+    jre: Caché del JRE descargado por el lanzador (JVM 8)
+    libraries: Bibliotecas, igual que en Vanilla
+    lite-versions: Caché global de metadatos de versiones de LiteLoader
+    logs: Registros de los juegos iniciados
+    mclogs: Registros habituales de Minecraft
+    modJar: Archivo JAR del mod
+    modLite: Archivo del mod de LiteLoader
+    modManaged: Archivo JAR del mod gestionado
+    mods: Carpeta con todos los mods activados de este modpack
+    optionShadersTxt: Archivo de configuración de shaders de OptiFine
+    optionTxt: Archivo de configuración de Minecraft Vanilla
+    options: Configuración habitual de Minecraft
+    profile: Archivo JSON con la configuración del perfil de inicio
+    profileFolder: Carpeta de un perfil de inicio concreto, identificada por su UUID
+    profiles: Carpeta que contiene los perfiles de inicio
+    resourceJson: Metadatos correspondientes a un mod o paquete de recursos
+    resourcepack: Archivo ZIP de un paquete de recursos
+    resourcepacks: Carpeta con todos los paquetes de recursos de este modpack
+    resources: Carpeta con metadatos de los mods y paquetes de recursos gestionados
+    root: Carpeta raíz de los datos de Minecraft
+    saves: Partidas de Minecraft
+    temp: Carpeta temporal del lanzador para las descargas
+    user: Caché de los datos de autenticación del usuario
+    version: Caché global de metadatos de versiones de Minecraft
+    versions: Archivos JSON y JAR de las versiones, igual que en Vanilla
+</i18n>
+
+<i18n locale="ca" lang="yaml">
+intro:
+  struct:
+    assets: Memòria cau dels recursos del joc, igual que a Vanilla
+    config: Carpeta de configuració de la instància
+    forge-versions: Memòria cau global de metadades de versions de Forge
+    java: Memòria cau global de les instal·lacions de Java detectades
+    jre: Memòria cau del JRE descarregat pel llançador (JVM 8)
+    libraries: Biblioteques, igual que a Vanilla
+    lite-versions: Memòria cau global de metadades de versions de LiteLoader
+    logs: Registres dels jocs iniciats
+    mclogs: Registres habituals de Minecraft
+    modJar: Fitxer JAR del mod
+    modLite: Fitxer del mod de LiteLoader
+    modManaged: Fitxer JAR del mod gestionat
+    mods: Carpeta amb tots els mods activats d'aquest modpack
+    optionShadersTxt: Fitxer de configuració dels shaders d'OptiFine
+    optionTxt: Fitxer de configuració de Minecraft Vanilla
+    options: Configuració habitual de Minecraft
+    profile: Fitxer JSON amb la configuració del perfil d'inici
+    profileFolder: Carpeta d'un perfil d'inici concret, identificada pel seu UUID
+    profiles: Carpeta que conté els perfils d'inici
+    resourceJson: Metadades corresponents a un mod o paquet de recursos
+    resourcepack: Fitxer ZIP d'un paquet de recursos
+    resourcepacks: Carpeta amb tots els paquets de recursos d'aquest modpack
+    resources: Carpeta amb metadades dels mods i paquets de recursos gestionats
+    root: Carpeta arrel de les dades de Minecraft
+    saves: Partides de Minecraft
+    temp: Carpeta temporal del llançador per a les descàrregues
+    user: Memòria cau de les dades d'autenticació de l'usuari
+    version: Memòria cau global de metadades de versions de Minecraft
+    versions: Fitxers JSON i JAR de les versions, igual que a Vanilla
 </i18n>
 
 <i18n locale="zh-CN" lang="yaml">

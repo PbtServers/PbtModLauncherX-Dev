@@ -23,12 +23,14 @@
         :disabled="item.disabled"
         :compatibility="compatibility"
         :tags="item.installed[0].tags"
+        @click-dependency="emit('click-dependency', $event)"
       />
     </template>
   </MarketItem>
 </template>
 
 <script lang="ts" setup>
+const emit = defineEmits(['click', 'checked', 'install', 'click-dependency'])
 import MarketItem from '@/components/MarketItem.vue'
 import { useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
@@ -55,22 +57,22 @@ const props = defineProps<{
   install: (p: ProjectEntry) => Promise<void>
 }>()
 
-const emit = defineEmits(['click', 'checked', 'install'])
 
 const { compatibility: compatibilities } = injection(kInstanceModsContext)
 const compatibility = computed(() => props.item.installed[0] ? compatibilities.value[props.item.installed[0].modId] ?? [] : [])
-const { uninstall, disable, enable } = useService(InstanceModsServiceKey)
+const { uninstall } = useService(InstanceModsServiceKey)
+const { disable, enable } = injection(kInstanceModsContext)
 const { path } = injection(kInstance)
 const _getContextMenuItems = useModItemContextMenuItems(computed(() => props.item), () => {
   if (props.item.installed) {
-    uninstall({ path: path.value, mods: props.item.installed.map(i => i.path) })
+    uninstall({ path: path.value, files: props.item.installed.map(i => i.path) })
   }
 }, () => { }, () => {
   if (props.item.installed && props.item.installed.length > 0) {
     if (props.item.installed[0].enabled) {
-      disable({ path: path.value, mods: props.item.installed.map(i => i.path) })
+      disable({ path: path.value, files: props.item.installed.map(i => i.path) })
     } else {
-      enable({ path: path.value, mods: props.item.installed.map(i => i.path) })
+      enable({ path: path.value, files: props.item.installed.map(i => i.path) })
     }
   }
 })

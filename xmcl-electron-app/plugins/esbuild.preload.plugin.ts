@@ -1,6 +1,7 @@
 import { Plugin, build as esbuild } from 'esbuild'
 import { basename, join } from 'path'
 import { cleanUrl } from './util'
+import { writeFile } from 'fs-extra'
 /**
  * Resolve the import of preload and emit it as single chunk of js file in rollup.
  */
@@ -8,12 +9,12 @@ export default function createPreloadPlugin(preloadSrc: string): Plugin {
   return {
     name: 'resolve-preload',
     setup(build) {
-      build.onResolve({ filter: /@preload\/.+/g }, async ({ path }) => ({
+      build.onResolve({ filter: /@preload\/.+/ }, async ({ path }) => ({
         path:
           path.replace('@preload', preloadSrc) +
           '?preload',
       }))
-      build.onLoad({ filter: /^.+\?preload$/g }, async ({ path }) => {
+      build.onLoad({ filter: /^.+\?preload$/ }, async ({ path }) => {
         const absoltePath = cleanUrl(path)
         const result = await esbuild({
           ...build.initialOptions,
@@ -24,6 +25,8 @@ export default function createPreloadPlugin(preloadSrc: string): Plugin {
           treeShaking: true,
           write: true,
         })
+        const name = basename(absoltePath)
+        await writeFile(join(build.initialOptions.outdir!, `${name}-meta.json`), JSON.stringify(result.metafile, null, 2), 'utf-8')
         const resultFile = Object.keys(result.metafile?.outputs || {}).filter(v => v.endsWith('.js'))[0]
         const watching = Object.keys(result.metafile?.inputs || {})
         return {

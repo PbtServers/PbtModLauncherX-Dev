@@ -1,122 +1,70 @@
 <template>
-  <v-list
-    class="base-settings"
-    subheader
-  >
-    <v-subheader>
-      {{ t('version.name', 2) }}
-      <div class="flex-grow" />
+  <SettingCard id="version-card" :title="t('version.name', 2)" icon="layers">
+    <template #header-action>
       <v-btn
-        v-if="!isExpanded"
-        icon
-        @click="showAll = !showAll"
+        :disabled="!versionHeader || isModified"
+        size="small"
+        variant="text"
+        @click="onFix"
       >
-        <v-icon v-if="!showAll">
-          unfold_more
-        </v-icon>
-        <v-icon v-else>
-          unfold_less
-        </v-icon>
+        <v-icon start>build</v-icon>
+        {{ t('version.checkIntegrity') }}
       </v-btn>
-    </v-subheader>
-    <VersionInputMinecraft
-      :value="data.runtime.minecraft"
-      @input="onSelectMinecraft"
-    />
-    <VersionInputNeoForged
-      v-if="showNeoForged"
-      :value="data.runtime.neoForged"
-      :minecraft="data.runtime.minecraft"
-      @input="onSelectNeoForged"
-    />
-    <VersionInputForge
-      v-if="showForge"
-      :value="data.runtime.forge"
-      :minecraft="data.runtime.minecraft"
-      @input="onSelectForge"
-    />
-    <VersionInputFabric
-      v-if="showFabric"
-      :value="data.runtime.fabricLoader"
-      :minecraft="data.runtime.minecraft"
-      @input="onSelectFabric"
-    />
-    <VersionInputQuilt
-      v-if="showQuilt"
-      :value="data.runtime.quiltLoader"
-      :minecraft="data.runtime.minecraft"
-      @input="onSelectQuilt"
-    />
-    <VersionInputOptifine
-      v-if="showOptifine"
-      :value="data.runtime.optifine"
-      :forge="data.runtime.forge || ''"
-      :minecraft="data.runtime.minecraft"
-      @input="onSelectOptifine"
-    />
-    <VersionInputLabymod
-      v-if="showLabyMod"
-      :value="data.runtime.labyMod"
-      :minecraft="data.runtime.minecraft"
-      @input="onSelectLabyMod"
-    />
-    <VersionInputLocal
-      :value="data.version"
+    </template>
+
+    <ModloaderSelector
+      :data="data"
       :versions="versions"
-      @input="onSelectLocalVersion"
+      :local-placeholder="versionHeader ? versionHeader.id : undefined"
     />
-  </v-list>
+
+    <SimpleDialog
+      v-model="reinstallDialogModel"
+      :width="390"
+      :title="t('localVersion.reinstallTitle', { version: reinstallDialog.target.value })"
+      :confirm-icon="'build'"
+      :color="'orange en-1'"
+      :confirm="t('shared.yes')"
+      @cancel="reinstallDialog.cancel"
+      @confirm="reinstallDialog.confirm"
+    >
+      {{ t('localVersion.reinstallDescription') }}
+    </SimpleDialog>
+  </SettingCard>
 </template>
 
-<script lang=ts setup>
-import VersionInputFabric from '@/components/VersionInputFabric.vue'
-import VersionInputForge from '@/components/VersionInputForge.vue'
-import VersionInputLabymod from '@/components/VersionInputLabymod.vue'
-import VersionInputLocal from '@/components/VersionInputLocal.vue'
-import VersionInputMinecraft from '@/components/VersionInputMinecraft.vue'
-import VersionInputNeoForged from '@/components/VersionInputNeoForged.vue'
-import VersionInputOptifine from '@/components/VersionInputOptifine.vue'
-import VersionInputQuilt from '@/components/VersionInputQuilt.vue'
+<script lang="ts" setup>
+import ModloaderSelector from '@/components/ModloaderSelector.vue'
+import SettingCard from '@/components/SettingCard.vue'
+import SimpleDialog from '@/components/SimpleDialog.vue'
+import { useService } from '@/composables'
+import { useSimpleDialog } from '@/composables/dialog'
+import { kInstanceVersion } from '@/composables/instanceVersion'
 import { kLocalVersions } from '@/composables/versionLocal'
 import { injection } from '@/util/inject'
-import { InstanceEditInjectionKey, useInstanceEditVersions } from '../composables/instanceEdit'
+import { VersionInstallServiceKey } from '@xmcl/runtime-api'
+import { InstanceEditInjectionKey } from '../composables/instanceEdit'
 
-const props = defineProps<{
-  isExpanded: boolean
-}>()
-
-const {
-  data,
-} = injection(InstanceEditInjectionKey)
+const { data, isModified } = injection(InstanceEditInjectionKey)
 const { versions } = injection(kLocalVersions)
 
-const showAll = ref(false)
-const showForge = computed(() => props.isExpanded || showAll.value || data.runtime.forge)
-const showNeoForged = computed(() => props.isExpanded || showAll.value || data.runtime.neoForged)
-const showFabric = computed(() => props.isExpanded || showAll.value || data.runtime.fabricLoader)
-const showQuilt = computed(() => props.isExpanded || showAll.value || data.runtime.quiltLoader)
-const showOptifine = computed(() => props.isExpanded || showAll.value || data.runtime.optifine)
-const showLabyMod = computed(() => props.isExpanded || showAll.value || data.runtime.labyMod)
+const { versionHeader } = injection(kInstanceVersion)
+function onFix() {
+  if (versionHeader.value) {
+    reinstallDialog.show(versionHeader.value.id)
+  }
+}
 
-const {
-  onSelectMinecraft,
-  onSelectNeoForged,
-  onSelectForge,
-  onSelectFabric,
-  onSelectQuilt,
-  onSelectOptifine,
-  onSelectLabyMod,
-  onSelectLocalVersion,
-} = useInstanceEditVersions(data, versions)
+const { install } = useService(VersionInstallServiceKey)
+const reinstallDialog = useSimpleDialog<string>((v) => {
+  if (!v) return
+  install({
+    type: 'reinstall',
+    version: v,
+    side: 'client',
+  })
+})
+const reinstallDialogModel = reinstallDialog.model
 
 const { t } = useI18n()
 </script>
-
-<style scoped=true>
-.flex {
-  padding: 6px 8px !important
-}
-.v-btn {
-  margin: 0
-}
-</style>

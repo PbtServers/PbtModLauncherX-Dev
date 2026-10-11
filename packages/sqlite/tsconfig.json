@@ -1,0 +1,13 @@
+{
+  "files": [
+    "index.ts",
+    "helper.ts",
+    "NodeSqliteDialect.ts",
+    "NodeSqliteDialectConfig.ts",
+    "NodeSqliteDriver.ts"
+  ],
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+  },
+}

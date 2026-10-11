@@ -85,6 +85,15 @@ export interface SaveDialogOptions {
 interface WindowControllerEventMap {
   maximize: boolean
   minimize: boolean
+  navigate: string
+}
+
+export interface MonitorInfo {
+  id: string
+  label: string
+  width: number
+  height: number
+  primary: boolean
 }
 
 export interface WindowController extends GenericEventEmitter<WindowControllerEventMap> {
@@ -113,11 +122,18 @@ export interface WindowController extends GenericEventEmitter<WindowControllerEv
    */
   maximize(): void
 
-  openMultiplayerWindow(): void
-
   queryAudioPermission(): Promise<boolean>
 
+  getMonitors(): Promise<MonitorInfo[]>
+
   writeClipboard(text: string): void
+
+  writeClipboardImage(imageUrl: string): void
+
+  /**
+   * Resolve the absolute path of a file dropped into the renderer.
+   */
+  getPathForFile(file: File): string
 
   findInPage(text: string, options?: {
     /**
@@ -134,6 +150,10 @@ export interface WindowController extends GenericEventEmitter<WindowControllerEv
      */
     matchCase?: boolean
   }): void
+
+  startProfiling(): void
+
+  stopProfiling(): void
 
   stopFindInPage(): void
 
@@ -174,4 +194,6 @@ export interface WindowController extends GenericEventEmitter<WindowControllerEv
      */
     bookmark?: string
   }>
+
+  setTranslucent(enable: boolean): void
 }

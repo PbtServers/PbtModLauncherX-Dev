@@ -1,5 +1,7 @@
 <template>
   <MarketItem
+    data-testid="resource-pack-item"
+    :data-resource-pack-id="pack.id"
     :item="pack"
     :selection-mode="selectionMode"
     :disabled="isVirtual"
@@ -9,12 +11,26 @@
     :draggable="draggable"
     :dense="dense"
     :height="itemHeight"
+    :indent="indent"
+    :indent-color="indentColor"
     :get-context-menu-items="isBuiltIn ? undefined : getContextMenuItems"
     :install="install"
     @drop="emit('drop', $event)"
     @click="isVirtual ? undefined : emit('click', $event)"
     @checked="emit('check', $event)"
   >
+    <template v-if="draggable" #prepend>
+      <v-icon
+        data-testid="resource-pack-drag-handle"
+        class="mr-2 cursor-move opacity-60"
+        size="20"
+        draggable="true"
+        aria-hidden="true"
+        @click.stop
+      >
+        drag_indicator
+      </v-icon>
+    </template>
     <template
       v-if="pack.installed.length > 0"
       #labels
@@ -22,26 +38,29 @@
       <v-chip
         v-shared-tooltip="tooltip"
         label
-        outlined
-        small
+        variant="outlined"
+        size="small"
       >
-        <v-avatar left>
-          <v-img
-            :src="BuiltinImages.minecraft"
-            left
-          />
-        </v-avatar>
+        <template #prepend>
+          <v-avatar start>
+            <v-img
+              :src="BuiltinImages.minecraft"
+            />
+          </v-avatar>
+        </template>
         {{ pack.installed[0].acceptingRange }}
-        <v-avatar right>
-          {{ icon }}
-        </v-avatar>
+        <template #append>
+          <v-avatar end>
+            {{ icon }}
+          </v-avatar>
+        </template>
       </v-chip>
       <v-icon
         v-if="pack.modrinth || pack.curseforge || pack.modrinthProjectId || pack.curseforgeProjectId"
         class="mt-1"
-        small
+        size="small"
       >
-        {{ (pack.modrinth || pack.modrinthProjectId) ? '$vuetify.icons.modrinth' : (pack.curseforge || pack.curseforgeProjectId) ? '$vuetify.icons.curseforge' : '' }}
+        {{ (pack.modrinth || pack.modrinthProjectId) ? 'xmcl:modrinth' : (pack.curseforge || pack.curseforgeProjectId) ? 'xmcl:curseforge' : '' }}
       </v-icon>
     </template>
   </MarketItem>
@@ -67,6 +86,9 @@ const props = defineProps<{
   hasUpdate?: boolean
   dense?: boolean
   itemHeight?: number
+  indent?: boolean
+  indentColor?: string
+  getContextMenuItems?: (item: ResourcePackProject) => ContextMenuItem[]
   install: (p: ProjectEntry) => Promise<void>
 }>()
 
@@ -116,14 +138,16 @@ const getContextMenuItems = () => {
         showItemInDirectory(props.pack.installed[0].path)
       },
       icon: 'folder',
+      section: 'action',
     })
     all.push({
       text: t('delete.name', { name: props.pack.title }),
       onClick: () => {
-        uninstall(path.value, props.pack.installed.map(f => f.path).filter(p => !!p))
+        uninstall({ path: path.value, files: props.pack.installed.map(f => f.path).filter(p => !!p) })
       },
       icon: 'delete',
       color: 'error',
+      section: 'danger',
     })
   }
 
@@ -133,7 +157,7 @@ const getContextMenuItems = () => {
   //     onClick: () => {
   //       goCurseforgeProject(props.pack.curseforgeProjectId || props.pack.curseforge?.id || 0, 'texture-packs')
   //     },
-  //     icon: '$vuetify.icons.curseforge',
+  //     icon: 'xmcl:curseforge',
   //   })
   // } else {
   //   all.push({
@@ -151,7 +175,7 @@ const getContextMenuItems = () => {
   //     onClick: () => {
   //       goModrinthProject(props.pack.modrinthProjectId || props.pack.modrinth?.project_id || '')
   //     },
-  //     icon: '$vuetify.icons.modrinth',
+  //     icon: 'xmcl:modrinth',
   //   })
   // } else {
   //   all.push({
@@ -162,7 +186,7 @@ const getContextMenuItems = () => {
   //     icon: 'search',
   //   })
   // }
-  return all
+  return all.concat(props.getContextMenuItems?.(props.pack) ?? [])
 }
 
 </script>

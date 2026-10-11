@@ -9,7 +9,7 @@ import { ProjectFile } from '@/util/search'
 import { Category, Project, ProjectVersion, SearchResultHit } from '@xmcl/modrinth'
 import { ProjectMapping } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
-import { kFlights, useI18nSearchFlights } from './flights'
+import { useI18nSearchFlights } from './flights'
 import { useAutoI18nCommunityContent } from './i18n'
 
 export function useModrinthProjectDetailData(projectId: Ref<string>, project: Ref<Project | undefined>, search: Ref<SearchResultHit | undefined>, mapping: Ref<ProjectMapping | undefined>) {
@@ -152,7 +152,11 @@ export function useModrinthProjectDetailVersions(versions: Ref<ProjectVersion[] 
     const files = [...installed.value]
 
     for (const v of (versions.value || [])) {
-      const installedFileIndex = files.findIndex(f => f.modrinth?.versionId === v.id)
+      const installedFileIndex = files.findIndex(f =>
+        f.modrinth?.versionId === v.id ||
+        ('fileName' in f && v.files?.some(vf => vf.filename.toLowerCase() === (f as any).fileName?.toLowerCase())) ||
+        (f.path && v.files?.some(vf => vf.filename.toLowerCase() === basename(f.path).toLowerCase()))
+      )
       const file = installedFileIndex !== -1 ? files.splice(installedFileIndex, 1)[0] : undefined
 
       all.push({
@@ -164,6 +168,8 @@ export function useModrinthProjectDetailVersions(versions: Ref<ProjectVersion[] 
         downloadCount: v.downloads,
         loaders: v.loaders || [],
         installed: !!file,
+        installedFile: file,
+        files: v.files?.map(f => f.filename) || [],
         minecraftVersion: v.game_versions.join(', '),
         createdDate: v.date_published,
         changelog: v.changelog ? render(v.changelog) : undefined,

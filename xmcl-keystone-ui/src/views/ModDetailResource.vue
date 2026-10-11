@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import MarketProjectDetail, { ExternalResource, Info, ProjectDetail } from '@/components/MarketProjectDetail.vue'
+import MarketProjectDetail, { ExternalResource, Info, ProjectDependent, ProjectDetail } from '@/components/MarketProjectDetail.vue'
 import { ProjectVersion } from '@/components/MarketProjectDetailVersion.vue'
 import { useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
+import { kInstanceModsContext } from '@/composables/instanceMods'
 import { useProjectDetailEnable, useProjectDetailUpdate } from '@/composables/projectDetail'
 import { injection } from '@/util/inject'
 import { useInstanceModLoaderDefault } from '@/composables/instanceModLoaderDefault'
@@ -10,13 +11,19 @@ import { isNoModLoader } from '@/util/isNoModloader'
 import { ModFile, getModMinecraftVersion, isModFile } from '@/util/mod'
 import { ProjectEntry } from '@/util/search'
 import { getExpectedSize } from '@/util/size'
-import { InstanceModsServiceKey, RuntimeVersions } from '@xmcl/runtime-api'
+import { InstanceModsServiceKey } from '@xmcl/runtime-api'
+import { RuntimeVersions } from '@xmcl/instance'
 
 const props = defineProps<{
   mod: ProjectEntry<ModFile>
   files: ModFile[]
   runtime: RuntimeVersions
   installed: ModFile[]
+  dependents?: ProjectDependent[]
+}>()
+
+const emit = defineEmits<{
+  (event: 'open-dependent', dependent: ProjectDependent): void
 }>()
 
 const versions = computed(() => {
@@ -43,7 +50,7 @@ const installedVersions = computed(() => {
   const ver = props.mod.installed.map(v => versions.value.find(f => f.id === v.modId)).filter((v): v is ProjectVersion => !!v)
   return ver
 })
-const selectedVersion = ref(installedVersions.value[0] ?? versions.value[0])
+const selectedVersion = shallowRef(installedVersions.value[0] ?? versions.value[0])
 provide('selectedVersion', selectedVersion)
 watch(installedVersions, (v) => {
   if (v) {
@@ -62,14 +69,14 @@ const model = computed(() => {
     const result: ExternalResource[] = []
     if (file?.links.home) {
       result.push({
-        icon: 'mdi-home',
+        icon: 'home',
         name: 'Home',
         url: file.links.home,
       })
     }
     if (file?.links.issues) {
       result.push({
-        icon: 'mdi-bug',
+        icon: 'bugs',
         name: 'Issues',
         url: file.links.issues,
       })
@@ -132,26 +139,29 @@ const model = computed(() => {
 })
 
 const updating = useProjectDetailUpdate()
-const { install, uninstall, enable, disable } = useService(InstanceModsServiceKey)
+const { install, uninstall } = useService(InstanceModsServiceKey)
+const { enable, disable } = injection(kInstanceModsContext)
 const { enabled, installed, hasInstalledVersion } = useProjectDetailEnable(
   selectedVersion,
   computed(() => props.installed),
   updating,
-  (f) => enable({ path: path.value, mods: [f.path] }),
-  (f) => disable({ path: path.value, mods: [f.path] }),
+  (f) => enable({ path: path.value, files: [f.path] }),
+  (f) => disable({ path: path.value, files: [f.path] }),
 )
 const { path } = injection(kInstance)
 
 const installDefaultModLoader = useInstanceModLoaderDefault()
 const onDelete = async () => {
+  if (updating.value) return
   updating.value = true
   const file = props.files.find(f => f.path === selectedVersion.value.id)
   if (file) {
-    await uninstall({ path: path.value, mods: [file.path] })
+    await uninstall({ path: path.value, files: [file.path] })
   }
 }
 
 const onInstall = async () => {
+  if (updating.value) return
   updating.value = true
 
   const _path = path.value
@@ -163,7 +173,7 @@ const onInstall = async () => {
       await installDefaultModLoader(_path, runtime, file.modLoaders)
     }
 
-    await install({ path: _path, mods: [file.path] })
+    await install({ path: _path, files: [file.path] })
   }
 }
 
@@ -172,6 +182,7 @@ const onInstall = async () => {
   <MarketProjectDetail
     :detail="model"
     :dependencies="[]"
+    :dependents="props.dependents"
     :enabled="enabled"
     :has-installed-version="hasInstalledVersion"
     :selected-installed="installed"
@@ -183,5 +194,6 @@ const onInstall = async () => {
     @install="onInstall"
     @delete="onDelete"
     @enable="enabled = $event"
+    @open-dependent="emit('open-dependent', $event)"
   />
 </template>

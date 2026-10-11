@@ -1,3 +1,4 @@
+import { GenericEventEmitter } from '../events'
 import { Exception } from '../entities/exception'
 import { LauncherProfile } from '../entities/launcherProfile'
 import { Platform } from '../entities/platform'
@@ -30,7 +31,52 @@ export interface Environment extends Platform {
    * The current build number
    */
   build: number
+
+  region: string
+
   gfw: boolean
+
+  gpu: boolean
+
+  steamDeck: boolean
+}
+
+export interface NetworkStatus {
+  pools: Record<string, PoolStats>
+  /**
+   * Byte per second
+   */
+  downloadSpeed: number
+}
+
+export interface SystemInfo {
+  operatingSystem: {
+    name: string
+    platform: Platform['os']
+    release: string
+    arch: string
+  }
+  cpu: {
+    model: string
+    logicalCores: number
+    speedMHz: number
+  }
+  memory: {
+    totalBytes: number
+    freeBytes: number
+  }
+  disk?: {
+    totalBytes: number
+    freeBytes: number
+  }
+  gpus: Array<{
+    active?: boolean
+    vendorId: number
+    deviceId: number
+    name?: string
+    driverVendor?: string
+    driverVersion?: string
+  }>
 }
 
 export interface PoolStats {
@@ -44,8 +90,12 @@ export interface PoolStats {
 
 export type InvalidDirectoryErrorCode = 'bad' | 'invalidchar' | 'nondictionary' | 'noperm' | 'exists' | undefined
 
-export interface BaseService {
-  getNetworkStatus(): Promise<Record<string, PoolStats>>
+export interface BaseServiceEventMap {
+  'network-status-activity': boolean
+}
+
+export interface BaseService extends GenericEventEmitter<BaseServiceEventMap> {
+  getNetworkStatus(): Promise<NetworkStatus>
 
   destroyPool(origin: string): Promise<void>
 
@@ -53,7 +103,13 @@ export interface BaseService {
 
   getSessionId(): Promise<string>
 
+  getDeviceId(): Promise<string>
+
   getSettings(): Promise<SharedState<Settings>>
+
+  makeDesktopShortcut(): Promise<boolean>
+
+  addSteamShortcut(): Promise<boolean>
   /**
    * Get the environment of the launcher
    */
@@ -112,6 +168,8 @@ export interface BaseService {
   migrate(options: MigrateOptions): Promise<void>
 
   getMemoryStatus(): Promise<{ total: number; free: number }>
+
+  getSystemInfo(diskPath?: string): Promise<SystemInfo>
 }
 
 export type MigrationExceptions = {

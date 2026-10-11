@@ -1,28 +1,60 @@
 <template>
-  <div
-    class="non-moveable flex flex-grow-0 cursor-pointer rounded px-2 py-1 transition-all hover:bg-[rgba(255,255,255,0.2)]"
+  <button
+    type="button"
+    class="system-bar-badge non-moveable flex flex-grow-0 cursor-pointer items-center rounded px-2 py-1 transition-all"
+    :aria-label="ariaLabel || text || undefined"
     @click="$emit('click', $event)"
   >
-    <v-icon class="badge-icon">
+    <v-icon
+      v-if="icon"
+      size="22"
+      :start="!!text"
+      class="badge-icon"
+      aria-hidden="true"
+    >
       {{ icon }}
     </v-icon>
+    <template v-else>
+      <slot
+        class="badge-icon"
+      />
+    </template>
     <span
+      v-if="text"
       class="whitespace-nowrap"
       :class="{ 'badge-text': canHideText }"
     >
       {{ text }}
     </span>
-  </div>
+    <slot name="append" />
+  </button>
 </template>
 <script setup lang="ts">
 defineProps<{
-  icon: string
-  text: string
+  icon?: string
+  text?: string
   canHideText?: boolean
+  ariaLabel?: string
 }>()
 
 </script>
 <style scoped>
+.system-bar-badge {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  appearance: none;
+}
+
+.system-bar-badge:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.system-bar-badge:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 1px;
+}
 
 @media (max-width: 880px) {
   .badge-text {

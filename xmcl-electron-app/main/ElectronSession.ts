@@ -1,3 +1,4 @@
+import { isXmclExclusiveUrl } from '@xmcl/runtime-api'
 import { Session, session } from 'electron'
 import { existsSync } from 'fs'
 import { createReadStream } from 'fs-extra'
@@ -40,12 +41,15 @@ export class ElectronSession {
     const ua = this.app.userAgent
     const sess = this.#resolve(url)
 
+    sess.webRequest.onBeforeRequest((details, callback) => {
+      callback({ cancel: isXmclExclusiveUrl(details.url) })
+    })
     sess.setUserAgent(ua)
     sess.setProxy(this.proxy ? { proxyRules: this.proxy } : { mode: 'system' })
 
     if (sess !== session.defaultSession) {
-      for (const e of session.defaultSession.getAllExtensions()) {
-        sess.loadExtension(e.path)
+      for (const e of session.defaultSession.extensions.getAllExtensions()) {
+        sess.extensions.loadExtension(e.path)
       }
     }
 
@@ -89,11 +93,25 @@ export class ElectronSession {
         headers[key] = value
       })
 
+      const adaptRequestBody = () => {
+        if (!request.body) return undefined
+        const readable = Readable.fromWeb(request.body as any)
+        readable.on('error', (err: any) => {
+          if (err && (err.code === 'ERR_INVALID_STATE' || err.message === 'Invalid state: Controller is already closed')) {
+            return
+          }
+          readable.destroy(err)
+        })
+        return readable
+      }
+
       const response = await this.app.protocol.handle({
         url: new URL(url),
         method: request.method,
         headers: headers,
-        body: request.body ? Readable.fromWeb(request.body as any) : request.body as any,
+        body: adaptRequestBody() as any,
+        signal: request.signal,
+        cache: request.cache,
       })
 
       response.headers['access-control-allow-origin'] = ['*']

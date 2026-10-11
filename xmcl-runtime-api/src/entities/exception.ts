@@ -4,15 +4,24 @@ export interface ExceptionBase {
 
 export type SelfContain<T> = T
 
+export type ExceptionConstructor<T> = {
+  new(...args: any[]): T
+  exceptionName?: string
+}
+
+export function getExceptionName(clazz: ExceptionConstructor<unknown>) {
+  return clazz.exceptionName ?? clazz.name
+}
+
 export class Exception<T extends ExceptionBase> extends Error {
   constructor(readonly exception: T, message?: string, options?: ErrorOptions) {
     super(message, options)
-    this.name = Object.getPrototypeOf(this).constructor.name
+    this.name = getExceptionName(Object.getPrototypeOf(this).constructor)
   }
 }
 
-export function isException<T>(clazz: { new(...args: any[]): T }, error: unknown): error is T {
-  if (error && typeof error === 'object' && 'name' in error && (error as any).name === clazz.name && 'exception' in error && typeof ((error as any).exception) === 'object') {
+export function isException<T>(clazz: ExceptionConstructor<T>, error: unknown): error is T {
+  if (error && typeof error === 'object' && 'name' in error && (error as any).name === getExceptionName(clazz) && 'exception' in error && typeof ((error as any).exception) === 'object') {
     return true
   }
   return false
@@ -43,8 +52,11 @@ export const enum NetworkErrorCode {
   CONNECTION_RESET = 'CONNECTION_RESET',
   CONNECTION_TIMED_OUT = 'CONNECTION_TIMED_OUT',
   TIMED_OUT = 'TIMED_OUT',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   DNS_NOTFOUND = 'NAME_NOT_RESOLVED',
+  NAME_NOT_RESOLVED = 'NAME_NOT_RESOLVED',
   SOCKET_NOT_CONNECTED = 'SOCKET_NOT_CONNECTED',
+  ERR_CONNECTION_ABORTED = 'ERR_CONNECTION_ABORTED',
   // all above user can retry
   HTTP_STATUS = 'HTTP_STATUS',
 }

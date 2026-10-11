@@ -1,91 +1,94 @@
 <template>
-  <div
-    class="flex flex-col p-4"
-  >
-    <div class="flex flex-grow-0 items-center gap-4 xl:flex-col">
-      <v-img
-        max-width="150"
-        :src="project.iconUrl"
-      />
-      <div class="flex  gap-4 xl:flex-col">
-        <div class="flex flex-col gap-4">
-          <div class="flex flex-col gap-2">
-            <a
-              class="overflow-hidden text-2xl font-bold"
-              target="browser"
-              :href="project.url"
-            >
-              {{ project.title }}
-            </a>
-
-            <span>{{ project.description }}</span>
-          </div>
-          <span class="flex select-none flex-wrap gap-3 xl:justify-center">
-            <CategoryChip
-              v-for="item of project.categories"
-              :key="item.id"
-              :item="item"
-            />
-          </span>
-        </div>
-
-        <div class="flex flex-grow-0 items-center justify-center gap-2 xl:flex-row">
-          <v-btn
-            color="primary"
-            :loading="installing"
-            @click="$emit('install')"
-          >
-            <v-icon
-              left
-              class="material-icons-outlined"
-            >
-              file_download
-            </v-icon>
-            {{ t('install') }}
-          </v-btn>
-          <v-btn
-            v-if="installed"
-            color="blue"
-            @click="$emit('open')"
-          >
-            <v-icon
-              left
-              class="material-icons-outlined"
-            >
-              play_arrow
-            </v-icon>
-            {{ t('launch.launch') }}
-          </v-btn>
-        </div>
+  <div class="store-project-header flex flex-col gap-4 p-5">
+    <div class="flex items-start gap-4">
+      <v-avatar
+        v-if="project.iconUrl"
+        size="80"
+        rounded="lg"
+        class="flex-shrink-0 bg-transparent"
+      >
+        <v-img :src="project.iconUrl" />
+      </v-avatar>
+      <v-avatar
+        v-else
+        size="80"
+        rounded="lg"
+        color="primary"
+        variant="tonal"
+        class="flex-shrink-0"
+      >
+        <v-icon size="40">extension</v-icon>
+      </v-avatar>
+      <div class="flex flex-col gap-1 min-w-0 flex-1">
+        <a
+          class="text-2xl font-bold leading-tight truncate hover:text-primary transition-colors"
+          target="browser"
+          :href="project.url"
+        >
+          {{ project.localizedTitle || project.title }}
+        </a>
+        <span class="text-sm opacity-80 line-clamp-2">
+          {{ project.localizedDescription || project.description }}
+        </span>
+        <span
+          v-if="project.categories.length"
+          class="flex select-none flex-wrap gap-2 mt-2"
+        >
+          <CategoryChip
+            v-for="item of project.categories"
+            :key="item.id"
+            :item="item"
+            small
+          />
+        </span>
+      </div>
+      <div class="flex flex-shrink-0 flex-col gap-2 items-stretch">
+        <v-btn
+          data-testid="store-install"
+          color="primary"
+          variant="flat"
+          :loading="installing"
+          @click="$emit('install')"
+        >
+          <v-icon start v-if="!isGamepadActive">file_download</v-icon>
+          <span v-else class="gp-btn__key gp-btn__key--primary mr-1" style="transform: scale(0.85); vertical-align: middle;">{{ buttonX }}</span>
+          {{ t('shared.install') }}
+        </v-btn>
+        <v-btn
+          v-if="installed"
+          color="info"
+          variant="tonal"
+          prepend-icon="play_arrow"
+          @click="$emit('open')"
+        >
+          {{ t('launch.launch') }}
+        </v-btn>
       </div>
     </div>
-    <div class="my-2 w-full flex-grow xl:my-0" />
-    <div
-      class="flex select-none items-center gap-6 text-gray-400"
-      style="width: max-content;"
-    >
-      <template
-        v-for="(x, i) of items"
+    <v-divider />
+    <div class="store-project-header__stats grid grid-cols-2 sm:grid-cols-4 gap-2 select-none">
+      <div
+        v-for="x of items"
+        :key="x.name"
+        class="stat-item"
       >
-        <InfoHighlight
-          :key="x.name"
-          :value="x"
-        />
-        <v-divider
-          v-if="i !== items.length - 1"
-          :key="x.name + 'divider'"
-          vertical
-        />
-      </template>
+        <div class="stat-item__value">
+          {{ x.value }}
+        </div>
+        <div class="stat-item__label">
+          <v-icon size="14" class="material-icons-outlined">{{ x.icon }}</v-icon>
+          <span>{{ x.name }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 <script lang="ts" setup>
-import { getExpectedSize } from '@/util/size'
-import { StoreProject } from './StoreProject.vue'
-import CategoryChip from './CategoryChip.vue'
-import InfoHighlight from './InfoHighlight.vue'
 import { useDateString } from '@/composables/date'
+import { getExpectedSize } from '@/util/size'
+import CategoryChip from './CategoryChip.vue'
+import { StoreProject } from './StoreProject.vue'
+import { useGamepad } from '@/composables/gamepad'
 
 const props = defineProps<{
   project: StoreProject
@@ -93,8 +96,9 @@ const props = defineProps<{
   installed?: boolean
 }>()
 
-const emit = defineEmits(['install', 'open'])
+defineEmits(['install', 'open'])
 const { t } = useI18n()
+const { isActive: isGamepadActive, buttonX } = useGamepad()
 
 const { getDateString } = useDateString()
 const items = computed(() => {
@@ -117,3 +121,30 @@ const items = computed(() => {
   }]
 })
 </script>
+
+<style scoped>
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: rgba(var(--v-theme-on-surface), 0.03);
+}
+.stat-item__value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat-item__label {
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+</style>
+

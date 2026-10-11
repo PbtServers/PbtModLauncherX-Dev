@@ -7,6 +7,7 @@ import { BuiltinImages } from '../constant'
 const props = defineProps<{
   minecraft: string
   value?: string
+  autoSelectLatest?: boolean
 }>()
 
 const { versions, isValidating, mutate, error } = useForgeVersions(computed(() => props.minecraft))
@@ -38,6 +39,7 @@ const items = computed(() => {
     })
   return result
 })
+const latestVersion = computed(() => versions.value?.find(v => v.type === 'latest')?.version ?? items.value[0]?.name ?? '')
 
 const emit = defineEmits<{
   (event: 'input', value: string): void
@@ -54,10 +56,11 @@ const emit = defineEmits<{
     :error="error"
     :clear-text="t('forgeVersion.disable')"
     :empty-text="t('forgeVersion.empty', { version: minecraft })"
-    :snapshot.sync="canShowBuggy"
+    v-model:snapshot="canShowBuggy"
     :snapshot-tooltip="t('fabricVersion.showSnapshot')"
     :refreshing="isValidating"
     :placeholder="t('forgeVersion.disable')"
+    :auto-select="autoSelectLatest ? latestVersion : undefined"
     :value="value"
     @input="emit('input', $event)"
     @refresh="mutate()"

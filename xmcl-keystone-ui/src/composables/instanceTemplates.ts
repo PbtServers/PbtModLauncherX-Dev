@@ -1,10 +1,11 @@
+import { renderMinecraftPlayerTextHead } from '@/util/avatarRenderer'
 import { getFTBTemplateAndFile } from '@/util/ftb'
-import { resolveModpackInstanceConfig } from '@/util/modpackFilesResolver'
-import { CachedFTBModpackVersionManifest, InstanceFile, InstanceManifest, JavaRecord, ModpackInstallProfile, ModpackServiceKey, Peer, Resource, waitModpackFiles } from '@xmcl/runtime-api'
+import type { InstanceFile, ModpackInstallProfile } from '@xmcl/instance'
+import { Resource } from '@xmcl/resource'
+import { CachedFTBModpackVersionManifest, InstanceManifest, JavaRecord, ModpackServiceKey, Peer } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
 import { DialogKey } from './dialog'
 import { useService } from './service'
-import { renderMinecraftPlayerTextHead } from '@/util/avatarRenderer'
 
 export type AddInstanceDialogParameter = {
   format: 'ftb'
@@ -15,7 +16,10 @@ export type AddInstanceDialogParameter = {
 } | {
   format: 'modpack'
   path: string
-}
+} | {
+  format: 'url'
+  url: string
+} | string
 
 export const AddInstanceDialogKey: DialogKey<AddInstanceDialogParameter> = 'add-instance-dialog'
 
@@ -32,24 +36,24 @@ export function useInstanceTemplates(javas: Ref<JavaRecord[]>) {
 
   const getTemplates = (modpackResources: Resource[], peers: Peer[], ftb: CachedFTBModpackVersionManifest[]) => {
     const all = [] as Array<Template>
-    for (const resource of modpackResources) {
-      const config = resolveModpackInstanceConfig(resource)
-      if (config) {
-        let promise: Promise<InstanceFile[]> | undefined
-        const result: Template = markRaw({
-          filePath: resource.path,
-          name: config.name,
-          instance: markRaw(config),
-          loadFiles: () => {
-            if (!promise) {
-              promise = openModpack(resource.path).then(state => waitModpackFiles(state))
-            }
-            return promise
-          },
-        } as Template)
-        all.push(result)
-      }
-    }
+    // for (const resource of modpackResources) {
+    //   const config = resolveModpackInstanceConfig(resource)
+    //   if (config) {
+    //     let promise: Promise<InstanceFile[]> | undefined
+    //     const result: Template = markRaw({
+    //       filePath: resource.path,
+    //       name: config.name,
+    //       instance: markRaw(config),
+    //       loadFiles: () => {
+    //         if (!promise) {
+    //           promise = openModpack(resource.path).then(state => waitModpackFiles(state))
+    //         }
+    //         return promise
+    //       },
+    //     } as Template)
+    //     all.push(result)
+    //   }
+    // }
 
     for (const c of peers) {
       if (c.sharing) {

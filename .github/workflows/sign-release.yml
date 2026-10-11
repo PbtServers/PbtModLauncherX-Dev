@@ -1,0 +1,155 @@
+name: Sign Release
+
+# Sign the APPX via SignPath, then upload its signed bytes and checksum
+# before publishing. DeskGap remains an UNSIGNED PREVIEW for manual install.
+#
+# Why a separate workflow?
+#   SignPath signing requires a human to approve the request in the SignPath
+#   web UI. If approval is forgotten while the main `Build` workflow is
+#   waiting, the in-line sign step times out and the appx ends up missing
+#   from the release. Splitting it out lets the release draft be created
+#   immediately (with an unsigned .appx) and signed on demand.
+#
+# Typical flow:
+#   1. Push a `chore(release)` commit. `Build` produces a draft release
+#      containing the unsigned `.appx` and DeskGap `.exe`.
+#   2. When ready, run this workflow with the release tag (e.g. `v0.56.7`).
+#   3. Approve the request in SignPath when prompted.
+#   4. The signed APPX and its `.sha256` replace the unsigned APPX, and the
+#      draft is automatically published. The DeskGap EXE is left untouched.
+#
+# NOTE: The SignPath project trust config must allow this workflow file
+# path (`.github/workflows/sign-release.yml`) in addition to (or instead
+# of) the old build.yml entry, or signing requests will be rejected.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to sign (e.g. v0.56.7). Leave empty to sign the latest draft release.'
+        required: false
+        type: string
+
+permissions:
+  contents: write  # gh release download / upload
+
+jobs:
+  sign:
+    runs-on: windows-latest
+    # SignPath approval can sit in a queue for a while. Give it room.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Resolve release tag
+        id: resolve-tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: pwsh
+        run: |
+          $tag = $env:RELEASE_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            # No tag supplied: pick the most recent draft release. Builds
+            # publish their drafts here, so the newest draft is the target.
+            $tag = gh release list --limit 30 --json tagName,isDraft,createdAt |
+              ConvertFrom-Json |
+              Where-Object { $_.isDraft -and $_.tagName -match '^v\d+\.' } |
+              Sort-Object { [datetime]$_.createdAt } -Descending |
+              Select-Object -First 1 -ExpandProperty tagName
+            if ([string]::IsNullOrWhiteSpace($tag)) {
+              throw "No draft release found to sign. Specify a tag explicitly."
+            }
+            Write-Host "Resolved latest draft release tag: $tag"
+          } else {
+            Write-Host "Using supplied tag: $tag"
+          }
+          if ($tag -notmatch '^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$') { throw 'Use a regular v<version> release tag' }
+          $release = gh release view "$tag" --json isDraft,tagName
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read the release; refusing to sign or publish' }
+          if (!(($release | ConvertFrom-Json).isDraft)) { throw 'Only unsigned drafts may be signed; never replace published binaries' }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Download .appx from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path signing-input | Out-Null
+          gh release download "${{ steps.resolve-tag.outputs.tag }}" --pattern '*.appx' --dir signing-input
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $appx = Get-ChildItem signing-input -Filter *.appx
+          if ($appx.Count -eq 0) {
+            throw "No .appx asset found on release ${{ steps.resolve-tag.outputs.tag }}"
+          }
+          $appx | ForEach-Object { Write-Host "Downloaded $($_.Name) ($([math]::Round($_.Length/1MB,2)) MB)" }
+
+      - name: Upload .appx as workflow artifact
+        id: upload-artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: appx
+          path: signing-input/*.appx
+
+      - name: Submit APPX signing request
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.CODE_SIGN_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
+          artifact-configuration-slug: appx
+          wait-for-completion: true
+          output-artifact-directory: signed/
+
+      # DeskGap signing placeholder — deliberately NOT enabled.
+      # Future configuration: .github/signpath/deskgap-exe.xml in the same
+      # project/policy. Once approved, sign the complete EXE, verify its full
+      # publisher subject, then hash the final signed bytes before uploading.
+      # Until then, never require/download/verify a DeskGap EXE here: even
+      # APPX-only drafts must retain the existing signing and publishing path.
+      # The native updater must continue rejecting unsigned preview EXEs.
+
+      - name: Compute sha256 for signed .appx
+        shell: pwsh
+        run: |
+          $appx = @(Get-ChildItem signed -Filter *.appx)
+          if ($appx.Count -eq 0) { throw 'SignPath did not return a signed APPX' }
+          $appx | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            $shaFile = "$($_.FullName).sha256"
+            [System.IO.File]::WriteAllText($shaFile, $hash)
+            Write-Host "$($_.Name) -> $hash"
+          }
+
+      - name: Upload signed assets to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          # --clobber replaces existing assets with the same name, so the
+          # unsigned APPX is swapped for the final SignPath output.
+          # The unsigned DeskGap preview asset is not touched by this workflow.
+          gh release upload "${{ steps.resolve-tag.outputs.tag }}" (Get-ChildItem signed -Filter *.appx).FullName --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release upload "${{ steps.resolve-tag.outputs.tag }}" (Get-ChildItem signed -Filter *.appx.sha256).FullName --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish release
+        # Signing succeeded and the signed assets are in place, so flip the
+        # draft off. `gh release edit --draft=false` is a no-op if the
+        # release is already published.
+        #
+        # NOTE: must use PAT_GITHUB_TOKEN (not the workflow's GITHUB_TOKEN).
+        # Events caused by GITHUB_TOKEN don't trigger downstream workflows,
+        # so publishing with GITHUB_TOKEN silently skips `Deploy Release`
+        # (which listens for `release: [published]`). The PAT belongs to a
+        # human (ci010) so the publish event cascades normally.
+        # https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
+        env:
+          GH_TOKEN: ${{ secrets.PAT_GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          gh release edit "${{ steps.resolve-tag.outputs.tag }}" --draft=false

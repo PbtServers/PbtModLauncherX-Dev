@@ -1,4 +1,4 @@
-import { computed, InjectionKey, Ref, ref, ShallowRef } from 'vue'
+import { computed, inject, InjectionKey, markRaw, provide, Ref, ref, shallowRef, ShallowRef, toRaw, watch } from 'vue'
 
 import { injection } from '@/util/inject'
 
@@ -39,20 +39,36 @@ export type DialogModel = {
   registered: Record<string, DialogControl>
 }
 
-export function useDialogModel(): DialogModel {
-  const model = shallowRef({ dialog: '', parameter: undefined })
+interface DialogBroadcastChannel {
+  addEventListener(type: 'message', listener: (event: MessageEvent) => void): void
+  postMessage(message: DialogModelData<any>): void
+}
 
-  const channel = new BroadcastChannel('dialog')
+export function useDialogModel(
+  channel: DialogBroadcastChannel = new BroadcastChannel('dialog'),
+): DialogModel {
+  const model = shallowRef({ dialog: '', parameter: undefined })
+  const remoteValues = new WeakSet<object>()
+
   channel.addEventListener('message', (e) => {
-    console.log(e)
-    if (e.data.dialog === model.value.dialog) return
-    model.value = e.data
+    const value = e.data
+    if (!value || typeof value !== 'object' || typeof value.dialog !== 'string') return
+    if (value.dialog === model.value.dialog) return
+    remoteValues.add(value)
+    model.value = value
   })
   watch(model, (value) => {
-    channel.postMessage({
-      dialog: value.dialog,
-      parameter: value.parameter ? JSON.parse(JSON.stringify(value.parameter)) : value.parameter,
-    })
+    if (remoteValues.delete(value)) return
+    try {
+      const rawParam = value.parameter ? toRaw(value.parameter) : undefined
+      const cleanParam = rawParam ? JSON.parse(JSON.stringify(rawParam)) : undefined
+      channel.postMessage({
+        dialog: value.dialog,
+        parameter: cleanParam,
+      })
+    } catch (e) {
+      console.warn('Failed to postMessage for dialog:', e)
+    }
   })
   return {
     current: model,
@@ -114,6 +130,9 @@ export function useDialog<T = any>(dialogName: DialogKey<T> = '', onShown?: (par
   const { parameter, isShown, show, hide } = getOrCreate(model, dialogName)
 
   if (onShown || onHide) {
+    if (isShown.value) {
+      onShown?.(model.current.value.parameter)
+    }
     watch(isShown, (value) => {
       if (value) {
         onShown?.(model.current.value.parameter)

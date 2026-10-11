@@ -1,82 +1,90 @@
 <template>
   <v-snackbar
     v-model="data.show"
-    :multi-line="data.operations.length > 0"
-    :top="true"
-    :right="true"
-    class="select-none"
+    location="top end"
+    :timeout="data.level === 'error' ? -1 : 6000"
+    :color="surfaceColor"
+    rounded="lg"
+    :min-width="320"
+    :max-width="480"
+    elevation="8"
+    class="select-none app-notifier"
   >
-    <v-icon
-      v-if="data.level"
-      :color="colors[data.level]"
-      left
-    >
-      {{ icons[data.level] }}
-    </v-icon>
-
-    <!-- <span v-if="data.level === 'error' || data.level === 'warning'">{{ levelText }}</span> -->
-
-    <span v-if="!data.body && !data.operations">
-      {{ data.title }}
-    </span>
-    <div
-      v-else
-      class="w-full"
-    >
-      <v-card
-        color="transparent"
-        flat
+    <div class="flex items-center gap-3 py-1">
+      <div
+        v-if="data.level"
+        class="level-badge flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
+        :style="{ backgroundColor: `rgba(var(--v-theme-${colors[data.level]}), 0.18)` }"
       >
-        <v-card-title>
-          {{ data.title }}
-        </v-card-title>
-        <v-card-text v-if="data.body">
+        <v-icon
+          :color="colors[data.level]"
+          size="small"
+        >
+          {{ icons[data.level] }}
+        </v-icon>
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <div
+          v-if="data.title"
+          class="flex items-center gap-2 text-sm font-medium leading-snug"
+        >
+          <span class="min-w-0 truncate">{{ data.title }}</span>
+          <span
+            v-if="displayedCount > 1"
+            class="count-badge flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold opacity-80"
+          >
+            × {{ displayedCount }}
+          </span>
+        </div>
+        <div
+          v-if="data.body"
+          class="text-caption mt-1 leading-relaxed opacity-80"
+        >
           {{ data.body }}
-        </v-card-text>
-        <v-card-actions v-if="data.operations.length > 0">
-          <div class="flex-grow" />
+        </div>
+
+        <div
+          v-if="data.operations.length > 0"
+          class="mt-3 flex flex-wrap items-center gap-2"
+        >
           <v-btn
             v-for="op in data.operations"
             :key="op.text"
-            text
-            small
-            :color="op.color"
+            :color="op.color || colors[data.level || 'info']"
+            :prepend-icon="op.icon"
+            size="small"
+            variant="tonal"
             @click="op.handler(); close()"
           >
-            <v-icon
-              v-if="op.icon"
-              left
-            >
-              {{ op.icon }}
-            </v-icon>
             {{ op.text }}
           </v-btn>
-        </v-card-actions>
-      </v-card>
+        </div>
+      </div>
     </div>
-    <template #action>
+
+    <template #actions>
       <v-btn
         v-if="data.more"
-        icon
-        text
+        v-shared-tooltip="() => t('shared.next')"
+        icon="arrow_right"
+        variant="text"
+        size="small"
         @click="more"
-      >
-        <v-icon>arrow_right</v-icon>
-      </v-btn>
+      />
       <v-btn
-        icon
-        color="pink"
-        text
+        icon="close"
+        variant="text"
+        size="small"
         @click="close"
-      >
-        <v-icon>close</v-icon>
-      </v-btn>
+      />
     </template>
   </v-snackbar>
 </template>
 
-<script lang=ts setup>
-import { Level, kNotificationQueue } from '../composables/notifier'
+<script lang="ts" setup>
+import { vSharedTooltip } from '@/directives/sharedTooltip'
+import { Level, LocalNotification, kNotificationQueue } from '../composables/notifier'
 import { injection } from '@/util/inject'
 
 const data = reactive({
@@ -94,22 +102,43 @@ const data = reactive({
 })
 const queue = injection(kNotificationQueue)
 const queueLength = computed(() => queue.value.length)
-const close = () => { data.show = false }
+const close = () => {
+  data.show = false
+  // Drop the currently-shown entry from the queue. Without this the watcher
+  // below would immediately re-show the same notification.
+  if (currentRef.value) {
+    const idx = queue.value.indexOf(currentRef.value)
+    if (idx >= 0) queue.value.splice(idx, 1)
+    currentRef.value = null
+  }
+}
 const more = () => {
   if (data.more) {
     data.more()
     close()
   }
 }
+
+// Reference to the notification object currently being shown. Held so that
+// (a) new duplicates can merge into its `count` while it is still visible and
+// (b) `close()` can remove it from the queue.
+const currentRef = shallowRef<LocalNotification | null>(null)
+// Live count from the underlying queue entry — updates reactively when the
+// notifier merges more duplicates into the same record while the toast is up.
+const displayedCount = computed(() => currentRef.value?.count ?? 1)
+
 function consume() {
-  const not = queue.value.pop()
-  if (not) {
-    data.level = not.level ?? ''
-    data.title = not.title
+  // Show the most recently added notification (LIFO) but keep it in the queue
+  // until the user dismisses it, so further duplicates can merge in.
+  const last = queue.value[queue.value.length - 1]
+  if (last) {
+    currentRef.value = last
+    data.level = last.level ?? ''
+    data.title = last.title
     data.show = true
-    data.more = not.more
-    data.body = not.body ?? ''
-    data.operations = not.operations ?? []
+    data.more = last.more
+    data.body = last.body ?? ''
+    data.operations = last.operations ?? []
   }
 }
 watch(queueLength, (newLength, oldLength) => {
@@ -117,44 +146,56 @@ watch(queueLength, (newLength, oldLength) => {
     consume()
   }
 })
+
+// Pull next item from the queue when the user dismisses the current one
+watch(() => data.show, (shown) => {
+  if (!shown && queue.value.length > 0) {
+    setTimeout(consume, 200)
+  }
+})
+
 const { t } = useI18n()
 
-const levelText = computed(() => data.level === 'info' ? t('logLevel.info') : data.level === 'error' ? t('logLevel.error') : data.level === 'success' ? t('logLevel.success') : t('logLevel.warning'))
-
-// function handleNotification(payload: TaskLifeCyclePayload) {
-//   const handler = registry[payload.type]
-//   if (handler) {
-//     queue.value.push({ level: handler.level, title: handler.title(payload), more: handler.more, full: handler.full })
-//   } else {
-//     console.warn(`Cannot handle the notification ${payload.type}`)
-//   }
-// }
-onMounted(() => {
-  // taskMonitor.on('task-start', handleNotification)
-  // ipc.on('notification', handleNotification)
-})
-onUnmounted(() => {
-  // ipc.removeListener('notification', handleNotification)
-})
+onMounted(() => { })
+onUnmounted(() => { })
 
 const icons = {
   success: 'check_circle',
   info: 'info',
-  warning: 'priority_high',
-  error: 'warning',
+  warning: 'warning',
+  error: 'error',
 }
 const colors = {
-  success: 'green',
-  error: 'red',
-  info: 'white',
-  warning: 'orange',
+  success: 'success',
+  error: 'error',
+  info: 'info',
+  warning: 'warning',
 }
+
+// Subtle surface tint based on level so the snackbar feels themed but not loud
+const surfaceColor = computed(() => 'surface')
 </script>
 
-<style>
-.v-snack__content {
-  display: flex;
-  padding-top: 0;
-  padding-bottom: 4px;
+<style scoped>
+.app-notifier :deep(.v-snackbar__wrapper) {
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  /* Keep title + actions on one row; the inner content already truncates. */
+  flex-wrap: nowrap;
+}
+
+.app-notifier :deep(.v-snackbar__content) {
+  padding: 12px 14px;
+  /* Allow the flex item to shrink below its intrinsic width so the actions
+     column (close button) is never pushed to the next line. */
+  min-width: 0;
+}
+
+.app-notifier :deep(.v-snackbar__actions) {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+
+.count-badge {
+  background: rgba(var(--v-theme-on-surface), 0.08);
 }
 </style>

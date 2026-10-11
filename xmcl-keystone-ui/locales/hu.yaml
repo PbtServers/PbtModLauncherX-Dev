@@ -1,0 +1,2106 @@
+AppAddInstanceDialog:
+  choiceTitle: Több profil észlelve. Válassz egyet az importáláshoz.
+  createTitle: Játék létrehozása
+  serverTitle: Add meg a kiszolgáló címét
+AppShareInstanceDialog:
+  editScopeDescription: Válaszd ki azokat a fájlokat, amelyeket a társak letölthetnek, miután felfedezték ezt a LAN-on futó játékot.
+  editScopeTitle: Megosztási kör szerkesztése
+  instanceToShare: Futó játék
+  alterDownloadDescription: |-
+    Ha nem akarja elrontani az aktuális példányt.
+    Létrehozhat egy új példányt a partner konfigurációjából is.
+    Példány létrehozásához kattintson az alábbi gombra.
+  baseInfo: Alapvető beállítások
+  description: >-
+    Miután megosztottad a profilt, más helyről is letöltheted ezeket a fájlokat az alábbi módon a számítógépeden keresztül.
+  downloadDescription: |-
+    Kérjük, ellenőrizze a társától kapott fájlokat.
+    Válassza ki a letölteni kívánt fájlt.
+    Az aktuális példányba kerül: {name}.
+  downloadNotifyTitle: Példány letöltése {user}-től
+  downloadTitle: Fájlok letöltése más társaidtól
+  filesToDownload: Letölteni kívánt fájlok kiválasztása
+  filesToShare: Megosztani kívánt fájlok kiválasztása
+  share: Megosztás
+  shareTitle: Játék fájlok megosztása másokkal
+BaseSettingGeneral:
+  title: Általános
+HomeJavaIssueDialog:
+  incompatibleJava: Nem kompatibilis Java
+  incompatibleJavaHint: A kiválaszottt Java valószínűleg nem lesz jó a Minecrafthoz!
+  missingJava: Hiányzik a Java
+  missingJavaHint: 'A Launcher nem érzékel semmilyen java-t a számítógépen. Megteheted:'
+  optionSwitch:
+    name: Átállítás {version}-re
+HomeLaunchMultiInstanceDialog:
+  confirm: Igen, indítás
+  description: A Minecraftot többször indítod el. Biztos vagy benne?
+  title: Többszörös indítás
+SettingMigrationDialog:
+  selectRootDirectory: Gyökérkönyvtár kiválasztása
+ago:
+  day: '{duration} napja | {duration} napja'
+  hour: '{duration} órája | {duration} órája'
+  minute: '{duration} perce | {duration} perce'
+  second: '{duration} másodperce | {duration} másodperce'
+askAICrash:
+  copyPrompt: Másolja a felszólítást, hogy megkérdezze az AI -t
+  description: >-
+    Hagyja, hogy az AI segítsen megérteni a játék összeomlását!
+
+    Kövesse az alábbi utasításokat, hogy megkérdezze az AI -t a játék összeomlásáról!
+  selectPlatform: Nyisson meg egy AI platformot, és illessze be az éppen lemásolt promptot.
+authProfileAddedNotification: Belépési profil {name} hozzáadva
+bedrock:
+  installBedrockVersion: 'Downloading Bedrock {version}'
+  versionsTitle: Version manager
+  versionsHint: Download multiple Bedrock versions from Microsoft's servers and switch between them. Windows can register only one version at a time.
+  versionsError: Failed to load the version list. Check your network and try again.
+  channel: Channel
+  channelRelease: Release
+  channelBeta: Beta
+  channelPreview: Preview
+  active: Active
+  play: Play
+  download: Download
+  installedTag: Installed
+  developerModeRequired: Registering a downloaded version requires Windows Developer Mode.
+  enableDeveloperMode: Enable Developer Mode
+  enableDeveloperModeFailed: Failed to enable Developer Mode
+  downloadFailed: 'Failed to download Bedrock {version}'
+  launchFailed: Failed to launch this Bedrock version
+  removeFailed: 'Failed to remove Bedrock {version}'
+baseSetting:
+  title: Alapbeállítások
+browseApp:
+  createShortcut: Parancsikon létrehozása
+  default: ALAPÉRTELMEZETT
+  delete: Törlés
+  launch: Indítás és beállítás alapértelmezettnek
+browseApps: Az indítóprogram felhasználói felületének megtekintése
+color: Szín
+confirm: Indítás
+copyClipboard:
+  success: Másolás vágólapra
+create: Létrehozás
+curseforge:
+  category: Kategória
+  createdDate: Létrehozás dátuma
+  lastUpdate: Legutóbbi frissítés dátuma
+  releasedDate: Kiadás dátuma
+curseforgeCategory:
+  API and Library: API-k és könyvtárak
+  Addons: Kiegészítők
+  Adventure: Kaland
+  Adventure and RPG: Kaland és RPG
+  Animated: Animation
+  Armor, Tools, and Weapons: Páncélok, szerszámok és fegyverek
+  Combat / PvP: Versenyek/PVP
+  Cosmetic: Megjelenés/dekoráció
+  Creation: Kreatív mód
+  Data Packs: Adatcsomag
+  Education: Oktatás
+  Exploration: Felderítés
+  Extra Large: Nagy méret
+  FTB Official Pack: Hivatalos FTB csomag
+  Fabric: Fabric
+  FancyMenu: FancyMenu
+  Font Packs: Betűtípusok
+  Food: Élelmiszer
+  Game Map: Játék kártyák
+  Hardcore: Hardcore
+  MCreator: MCreator
+  Magic: Magic
+  Map Based: A térkép alapján
+  Map and Information: Térképek és információk
+  Medieval: Középkor
+  Mini Game: Mini-játékok
+  Miscellaneous: Vegyes
+  Mod Support: Mod támogatás
+  Modded World: Mod világokhoz
+  Modern: Modern
+  Multiplayer: Többjátékos
+  Parkour: Parkour
+  Photo Realistic: Realisztikus fotó
+  Puzzle: Rejtvények
+  QoL: QoL
+  Quests: Küldetések
+  Redstone: Redstone
+  Sci-Fi: Sci-Fi
+  Server Utility: Szerver eszköz
+  Skyblock: SkyBlock
+  Small / Light: Kis méretű
+  Steampunk: Steampunk
+  Storage: Tárolás
+  Survival: Túlélés
+  Tech: Technológia
+  Technology: Technológia
+  Traditional: Hagyományos
+  Twitch Integration: Twitch integráció
+  Utility & QoL: Segédprogram és QoL
+  Vanilla+: Vanilla+
+  World Gen: Világgenerátor
+dataMigration:
+  apply: Alkalmazás
+  placeholder: Kérlek kattints ide a könyvtár kiválasztásához
+  setRootCause: >-
+    Elveszíted az adataidat (pályák, forráscsomagok, modok), ha bezárod a Launcher-t ebben a folyamatban!
+  setRootDescription: Ez megváltoztatja az minecraft gyökér adatmappáját a Launchernek.
+  setRootTitle: Új tárolási hely beállítása
+  unknownError: Ismeretlen hiba! Kérlek próbáld újra, vagy lépj kapcsolatba a fejlesztővel!
+  waitReload: >-
+    Adatok áthelyezése. Kérlek, ne zárd be a Launcher-t, különben elveszíted az adataidat.
+delete:
+  name: Törlöd {name}
+  'no': Nem
+  'yes': Törlés
+dependencies:
+  dependents: Ettől a modtól függő modok
+  embedded: Beépített
+  incompatible: Inkompatibilis
+  name: Szükségletek
+  optional: Opcionális
+  required: Szükséges
+diagnosis:
+  badInstall:
+    message: Kattints a gombra, hogy megpróbáld újratelepíteni ezt a verziót.
+    name: Rossz telepítés a {version}
+  corruptedAssets:
+    message: A Launcher telepíti az eszközöket a számodra
+    name: 'Sérült elem: {name} | Sérült elem {name} | {count} elem sérült'
+  corruptedAssetsIndex:
+    message: A launcher letölti a fájlok indexeit számodra
+    name: A {version} eszközindexű fájlja sérült.
+  corruptedLibraries:
+    message: A launcher telepíti a könyvtárakat
+    name: 'Sérült könyvtár: {name} | Sérült könyvtár {name} | {count} elem könyvtár'
+  corruptedVersionJar:
+    message: Kattints erre a verzióra a telepítéshez
+    name: A Minecraft %{version} sérült jar verziója.
+  incompatibleJava:
+    name: A java verzió {javaVersion} nem felel meg a {version}-nak!
+  instanceFiles:
+    description: A példány telepítése {counts} fájlt tartalmaz.
+    title: Befejezetlen példány
+  invalidJava:
+    name: Érvénytelen java hely.
+  missingJava:
+    message: Kattints a probléma megoldásához
+    name: Nem található a Java a Minecraft indításához!
+  missingLibraries:
+    message: A Launcher telepíti neked a könyvtárakat
+    name: >-
+      Hiányzó {name} könyvtár | Hiányzó {name} könyvtár | Hiányzó {count} könyvtár | Hiányzó {count} Könyvtár
+  missingVersion:
+    message: Kattints erre a verzióra a telepítéshez
+    name: A {version} verzió nincs telepítve!
+  unresolvedFiles:
+    description: >-
+      {count} fájlt nem sikerült feloldani a telepítés során | {count} fájlt nem
+      sikerült feloldani a telepítés során
+    title: Feloldatlan fájlok
+  unzipFileNotFound:
+    description: Nem található {file}
+    title: A modpack fájl nem található
+difficulty:
+  easy: Könnyű
+  hard: Nehéz
+  normal: Normál
+  peaceful: Békés
+disk:
+  available: Elérhető
+  used: Használva
+downloadCount: '{count} letöltés'
+downloadUpdate:
+  name: 'Frissítés letöltése: {version}'
+duration:
+  day: '{duration} nap | {duration} nap'
+  hour: '{duration} óra | {duration} óra'
+  minute: '{duration} perc | {duration} perc'
+  second: '{duration} másodperc | {duration} másodperc'
+env:
+  select:
+    all: Mindet kiválaszt
+    fit: Válassza az Illesztés lehetőséget
+    none: Válassza a Nincs lehetőséget
+errors:
+  BadForgeInstallerJarError: >-
+    Nem tudja elemezni a forge telepítő jar fájlt. Lehet, hogy a forge új kiterjesztéssel rendelkezik? Lépj kapcsolatba a fejlesztőkkel, ha ez a probléma továbbra is fennáll.
+  BadInstanceType: 'Nem érvényes példány: {type}'
+  BodyTimeoutError: HTTP test időtúllépés
+  ChecksumNotMatchError: Az ellenőrző összeg nem egyezik! Várható {expect}. Tényleges {actual}.
+  ConnectTimeoutError: A szerverhez való kapcsolódás időtúllépése.
+  DNSNotFoundError: DNS keresési hiba
+  DatabaseNotOpened: >-
+    Az adatbázis nincs megnyitva! Az Launcher nem működik megfelelően! Kérlek, válassz egy olyan adatkönyvtárat, amelyhez az Launcher hozzáférhet. Megpróbálhatod visszaállítani az adatgyökeret a beállítások oldalon.
+  DiskIsFull: |-
+    A lemezed tele van!
+    Nem írhat semmit a lemezre!
+    Lehet, hogy minden funkció nem funkcionális!
+  DownloadAggregateError: A fájl letöltése sikertelen.
+  DownloadFileSystemError: >-
+    Hiba a letöltési fájl elérési útvonalának megadásakor. Kérlek, győződj meg róla, hogy az Launchernej van írási jogosultsága.
+  HeadersTimeoutError: HTTP Fejléc időtúllépés
+  NotFoundError: 404 Nem található
+  SocketError: Kiszolgálói foglalathiba
+eula:
+  body: A jelölőnégyzet bejelölésével jelzi, hogy beleegyezik a Minecraft {eula}-be.
+exception:
+  http: >-
+    A {url} HTTP-kérés sikertelen. Állapotkód {statusCode}. {code}. Kérlek, próbáld meg újra, vagy ellenőrizd a hálózatodat. Ha ez a hiba továbbra is fennáll, kérlek küldj jelentést a fejlesztői csapatnak.
+extensions:
+  mrpack: Modrinth modcsomag
+  zip: Zip Fájl
+fabricVersion:
+  disable: Fabric letiltása
+  empty: Nincs Fabric verzió ehhez a Minecraft {version}-hoz
+  showSnapshot: Pillanatkép megjelenítése
+  stable: Stabil
+  unstable: Instabil
+command:
+  instance:
+    launch:
+      title: Példány indítása
+    create:
+      title: Példány létrehozása
+    delete:
+      title: Példány törlése
+  user:
+    login:
+      title: Felhasználó bejelentkezése
+    refresh:
+      title: Felhasználó frissítése
+commandPalette:
+  placeholder: Parancsok, példányok, modok keresése…
+  commands: Parancsok
+  instances: Példányok
+  modrinth: Modrinth
+  recent: Legutóbbi
+  open: Gyors művelet
+  openHint: Parancspaletta megnyitása ({shortcut})
+  empty: Írj a kereséshez.
+  noResults: Nincs találat.
+  searching: Keresés…
+  hintNavigate: navigálás
+  hintInvoke: végrehajtás
+  hintEnter: belépés
+  hintBack: vissza
+  hintClose: bezárás
+feedback:
+  channel: Csatornák
+  description: Találtam egy hibát, vagy szeretnék javasolni valamit
+  discord: Discord
+  discordDescription: Csatlakozz Discordra
+  discordJoin: Csatlakozás
+  generateReport: Jelentés generálása
+  generateSaveAs: Jelentés mentése ide
+  github: Github problémák
+  githubDescription: Nyiss egy Github problémát, hogy elmondd a gondolatodat
+  githubOpenIssue: Github
+  hint: >-
+    Kattints a gombra a jelentés létrehozásához és a fejlesztői csapat eléréséhez. A jelentés tartalmazza az eszközadatokat, beleértve az operációs rendszer típusát, verzióját, felhasználónevedet stb.
+  kook: Kook
+  kookDescription: Kook egy alternatív app a Discordra Kínai felhasználóknak
+  name: Visszajelzés
+  qq: QQ Csoport
+  qqDescription: >-
+    Lépj be a visszajelző QQ-csoportba, és beszélgess közvetlenül a készítőkkel. Csoport száma: {number}
+  qqEnterGroup: Csatlakozás
+fileDetail:
+  fileSize: Fájl méret
+  filesize: Fájl mérete
+  hash: Hash
+filterLocalOnly: Csak a telepített megjelenítés
+forgeVersion:
+  disable: Forge kikapcsolása
+  empty: Nincs Forge verzió ehhez a Minecraft {version}-hoz
+  latest: Legújabb
+  recommended: Ajánlott
+gameType:
+  adventure: Kaland mód
+  creative: Kreatív mód
+  spectator: Szemlélő mód
+  survival: Túlélő mód
+help: Súgó
+home: Kezdőlap
+importModpack:
+  fromFileSubtitle: Válassz egy .zip vagy .mrpack fájlt
+  fromUrl: Hivatkozásból / URL-ből...
+  fromUrlSubtitle: Modcsomag telepítése URL-ről
+  fromUrlDescription: 'Írd be vagy illeszd be a modcsomag URL-jét:'
+  invalidUrl: Adj meg egy érvényes URL-t (http:// vagy https://)
+  selectVersion: Modcsomagverzió kiválasztása
+  selectVersionDescription: 'Válaszd ki a(z) {name} telepítendő verzióját:'
+  pmcProtected: A Planet Minecraftot a Cloudflare védi. Másold ki az oldalról a közvetlen letöltési vagy tükörhivatkozást.
+  netdiskTitle: Letöltés felhőtárhelyről
+  netdiskDescription: Ez a modcsomagverzió külső felhőtárhelyen található. Kattints alább a letöltési oldal böngészőben való megnyitásához, majd húzd a letöltött .zip vagy .mrpack fájlt az PbtModLauncherX-be.
+  openNetdisk: Felhőtárhely megnyitása
+  netdiskOpened: A felhőtárhely hivatkozása megnyílt a böngészőben, és a vágólapra lett másolva.
+  noReleasesFound: Nem található .mrpack vagy .zip modcsomagkiadás ebben a tárolóban.
+  name: Modpack importálása
+installAssets:
+  asset: Telepítsen {count} eszközt
+  assetIndex: Elem indexfájl ellenőrzése
+  name: Elemek telepítése
+installAuthlibInjector: Authlib-injector telepítése
+installCurseforgeFile: Curseforge fájl telepítése
+installFabric:
+  name: Fabric telepítése
+installForge:
+  downloadInstaller: Telepítő letöltése
+  name: Forge telepítése
+  postProcessing: Utófeldolgozás
+installInstance:
+  file: Példányfájl frissítése {file}
+  link: Fájlok másolása vagy összekapcsolása {count}
+  name: Példány frissítése
+  resolve: Példány konfiguráció feloldása
+  unzip: '{count} fájlok kicsomagolása'
+installJre:
+  decompress: JRE fájlok dekompresszálása mappába
+  download: Tömörített JRE fájl letöltése
+  name: Java Runtime Library telepítése
+installLabyMod:
+  name: LabyMod telepítése
+installLibraries:
+  library: Könyvtár telepítése
+  name: Könyvtárak telepítése
+installModrinthFile:
+  name: Modrinth telepítése
+installOptifine:
+  download: Optifine Universal letöltése
+  name: Optifine telepítése
+installVersion:
+  jar: Verzió Jar telepítése
+  json: Verzió Json telepítése
+  name: Minecraft kliens telepítése {version}
+instance:
+  changeIcon: Ikon módosítása
+  contents: Tartalom
+  current: Jelenlegi példány
+  delete: Játék törlése
+  deleteFailed: Nem sikerült törölni a példányt
+  deleteFailedPermission: Más program foglalta el a fájlt
+  deleteFile: Példányfájlok törlése
+  deleteHint: >-
+    A példányadatok örökre lekerülnek a lemezről. Biztos vagy benne, hogy ezt akarod csinálni?
+  duplicate: Duplikált játék
+  duplicatedName: Duplikált név
+  fileApi: A szinkronizáló fájlkiszolgáló API url címe
+  fileApiHint: >-
+    Az url a példányfájlok szinkronizálásához egy távoli konfigurációs kiszolgálóról.
+  fullscreen: Teljes képernyő
+  height: Magasság
+  hideCard: Kártya elrejtése
+  moveToTop: Áthelyezés legfelülre
+  icon: Profil ikon
+  iconHint: Az ikon lehet fájl vagy internetes URL-hivatkozás.
+  iconUrl: Ikon Url
+  installModpack: Frissítse a példányt a ModPack -től
+  lastPlayed: Utoljára játszott
+  launchArguments: Indítási argumentumok Előnézet
+  launchServer: Indítsa el a localhost szervert
+  linkFileDesc: |-
+    Ez felülírja a helyi {file} példányt a globális {file} értékkel.
+    Biztosan linkeled?
+  linkFileTitle: Biztosan linkeli a(z) {file} fájlt?
+  mcOptions: Minecraft beállítások
+  mcOptionsHint: Kiegészítő Minecraft indítási beállítások
+  name: Profil név
+  nameHint: A játék azonosítására használt név
+  nameNoCyrillic: A név nem tartalmazhat cirill karaktereket
+  neverPlayed: Soha nem játszott
+  openCrashReportFolder: Összeomlási jelentések mapppa megnyitása
+  openLogFolder: Napló mappa megnyitása
+  playtime: Játékidő
+  preExecCommand: Indítás előtti parancs
+  preExecCommandHint: A Minecraft elindítása előtt végrehajtandó parancs
+  prependCommand: Parancs elé fűzni
+  prependCommandHint: Ez a parancs az összes indítási parancs elé kerül
+  requireName: A név megadása kötelező
+  resolution: Ablakfelbontás
+  resolutionPreset: Felbontás
+  showHiddenCards: Rejtett kártyák megjelenítése
+  showInstance: Játék mappa megjelenítése
+  updates: Frissítések
+  useSharedOptions: Használja a megosztott játékbeállításokat
+  useSharedOptionsDesc: >-
+    Ezzel összekapcsolja az options.txt fájlt egy több példányban megosztott fájllal
+  useSharedServersList: Használja a megosztott szerverek listáját
+  useSharedServersListDesc: >-
+    Ez összekapcsolja a servers.da fájlt egy megosztott fájllal a példányok között
+  vmOptions: JVM Beállítások
+  vmOptionsHint: Extra argumentumok átadása a JVM-nek
+  vmVar: Környezeti változók
+  vmVarHint: Kattintson a gombra környezeti változók hozzáadásához
+  width: Szélesség
+  envVarKey: Kulcs
+  envVarValue: Érték
+  envVarKeyPlaceholder: MY_VAR
+  envVarValuePlaceholder: érték
+  fileApiPlaceholder: Add meg itt a távoli szinkronizáció URL-jét, ha meg szeretnéd tartani az erőforrás-szinkronizálást
+instanceAge:
+  older: Régebbi
+  threeDay: Három napon belül
+  today: Ma
+instanceDiscover:
+  gameFolder: Fedezzen fel {count} játékmappát
+  instanceFolder: '{count} példányt találtunk'
+instanceFileOperation:
+  add: Új
+  backup-add: Felülírás (Mentés)
+  backup-remove: Törlés (Mentés)
+  keep: Megtartás
+  remove: Eltávolítás
+instanceInstallSkip:
+  ignore: Figyelmen kívül hagyni
+  skip: Kihagyás
+  title: Lehetséges sérült fájlforrás
+  warning: >-
+    Egyes fájlok többször is letöltődnek, ellenőrzőösszeg-egyeztetés nélkül.
+
+    Ennek oka lehet, hogy az eredeti ellenőrző összeg hibás.
+
+    Kérjük, ellenőrizze.
+
+    Ha megerősíti, hogy az aktuális fájlok érvényesek, kihagyhatja az érvényesítési ellenőrzést.
+instanceSetting:
+  disableAuthlibInjector: Az authlib injektor kikapcsolása
+  disableAuthlibInjectorDescription: >-
+    Ha harmadik féltől származó kinézet rendszert használsz. Az authlib injector segíthet a skin megjelenítésében a játékban.
+  disableElyByAuthlib: Az ely.by authlib cseréjének kikapcsolása
+  disableElyByAuthlibDescription: >-
+    Az Ely.by rendelkezik egy egyedi authlib cserével a kinézet univerzális megjelenítéséhez bármilyen szerveren.
+  fastLaunch: Gyors indítás
+  fastLaunchHint: >-
+    Figyelmen kívül hagyja a felhasználói státuszt és a létező, nem javított problémákat
+  hideLauncher: A Launcher elrejtése indítás után
+  icon: Kép kiválasztása
+  showLog: Minecraft napló megnézése
+  showLogHint: >-
+    Felugrik egy ablak a Minecraft naplójának streamelésére a játék elindulása után.
+  syncGameLanguage: Játék nyelvének szinkronizálása
+  syncGameLanguageDescription: Indításkor automatikusan szinkronizálja a Minecraft nyelvét az indító nyelvével
+instanceTemplate:
+  ftb: Ez egy FTB modcsomag
+  preview: Modcsomag előznézet
+instanceUpdate:
+  basic: Beállítás frissítése
+  files: Fájl frissítések
+  loaderChanged: |-
+    Ennek a példánynak a modloadere megváltozott.
+    A régi modloader {modloader}, az új modloader pedig {newModloader}.
+  summary: |-
+    Hozzáadja a {add} fájlokat.
+    Távolítsa el a {remove} fájlokat.
+    Tartsa a {keep} fájlokat.
+  title: Példány frissítése
+  update: Frissítés indítása
+instances:
+  add: Játék létrehozása
+  addCurseForgeDescription: |-
+    Importálás a cursefor adatmappából.
+    Ki kell választania a curseforge gyökéradat-mappáját
+  addDescription: Új példány létrehozása az alapoktól
+  addMMCDescription: |-
+    Importálja a meglévő MultiMC példányt.
+    Ki kell választania az adatmappát a MultiMC-ből.
+  addModrinthDescription: |-
+    Importálja a meglévő Modrinth példányt.
+    Ki kell választania a Modrinth gyökér adatmappát.
+  addVanilla: Létrehozás vanilla-szerű Minecraftból
+  addVanillaDescription: >-
+    Importálás a közös .minecraft mappából. Ez duplikálja az eredeti játékprofilt az PbtModLauncherX-be.
+  fix: Javítás
+  folder: Mappa
+  folderSetting: Mappa beállításai
+  importFolderDescription: Minecraft importálása a Launcherbe
+  loadingFiles: Modcsomag fájlok betöltése
+  edition: Kiadás
+  editionJava: Java kiadás
+  editionBedrock: Bedrock kiadás
+  editionBedrockHint: >-
+    A Bedrock kiadás a Microsoft Store alkalmazáson keresztül indul. Rendelkezned
+    kell Bedrock licenccel. A modok, erőforráscsomagok és egyéb, csak Java alatt
+    elérhető funkciók nem használhatók.
+  editionBedrockWindowsOnly: A Bedrock kiadás csak a Windows-változatban támogatott.
+  linkSharedFolders: Mappák megosztása példányok között
+  linkSharedFoldersHint: >-
+    Hozza létre ezeket a mappákat az indító megosztott mappáira mutató
+    hivatkozásként, hogy ez a példány megossza a tartalmukat az összes többi
+    összekapcsolt példánnyal. Ez nem másolás — az egyik példányban végzett
+    módosítások az összesben megjelennek. A be nem jelölt mappák a példány
+    számára priváttak maradnak.
+  linkFailed: Nem sikerült a(z) {folder} mappát a megosztott mappához kapcsolni
+  addPrismDescription: Meglévő PrismLauncher-példány importálása.
+items:
+  count: '{count} elem'
+  total: '{total} összesen'
+java:
+  allocatedLong: Rendszer alapértelmezett java használata
+  allocatedShort: Automatikusan hozzárendelt
+  importFromFile: Java importálása fájlból
+  invalid: Érvénytelen Java hely
+  location: Java elhelyezkedése
+  maxMemory: Maximum memória
+  memory: Java memória
+  memoryAuto: Automatikus
+  memoryManual: Mannuális
+  memoryUnassigned: Nem használt
+  minMemory: Min Memória
+  name: Java
+  noMemory: Ne korlátozza a memória használatát
+  refresh: Helyi Java frissítése
+  systemMemory: 'Rendszermentes memória: {free} / {total}'
+  allocation: Lefoglalva
+  autoHint: A minimum a telepített modok számával nő; a maximum a rendelkezésre álló rendszermemóriát használja.
+  change: Módosítás
+  locationHint: Nincs Java kiválasztva — a rendszer alapértelmezettjét használja
+  openFolder: Java mappa megnyitása
+  presets: Előbeállítások
+labyMod:
+  disable: LabyMod letiltása
+  empty: A LabyMod nem támogatja a jelenlegi Minecraftot
+unauthenticatedWarning:
+  title: Nincs bejelentkezve
+  description: Egyik fiókba sem vagy bejelentkezve. A játék demó módban indul. A teljes funkcionalitáshoz jelentkezz be.
+  cancel: Mégse
+  login: Bejelentkezés
+  playAnyway: Indítás mindenképp
+launch:
+  cancel: Mégsem
+  createShortcut: Hozzon létre parancsikont
+  kill: Leállítás
+  killServer: Öld meg a Localhost szervert
+  launch: Indítás
+  launchAnyway: Indítsa el egyébként
+  launchAs: Indítás más felhasználóként
+  forceKill: Erőltetett kilépés
+launchBlocked:
+  launchBadVersion:
+    description: A verzió {version} json hibás. Talán telepítsd újra ezt a verziót?
+    title: Hibás JSON Verzió
+  launchGeneralException:
+    description: Néhány hiba miatt az indítás sikertelen volt.
+    title: Sikertelen indítás
+  launchInvalidJavaPath:
+    description: >-
+      A kiválasztott java hiányzik vagy érvénytelen. Kérlek, válassz egy újat. <span class="highlight"> {javaPath} </span>
+    title: Érvénytelen Java elérési útvonal
+  launchJavaNoPermission:
+    description: >-
+      A Launchernek nincs jogosultsága a java indításához<span class="highlight"> {javaPath} </span>. vagy módosítsd az engedélyt a java fájl vagy növeld a Launcher engedélyeit.
+    title: Nincs engedély az indításhoz
+  launchNoProperJava:
+    description: >-
+      A játék indításához nem lehet megfelelő java-t kiválasztani. ({javaPath} ez érvénytelen?)
+    title: Nem található megfelelő java
+  launchNoVersionInstalled:
+    description: >-
+      Nem lehet feloldani a verziót <span class="highlight">{version}</span> az indításhoz.
+    title: Nincs kiválasztott verzió
+  launchSpawnProcessFailed:
+    description: >-
+      Kérlek ellenőrizd a java-t, vagy adj több engedélyt az Launchernek, és próbáld újra. Ha ez még mindig nem működik, kérlek, vedd fel a kapcsolatot a fejlesztőkkel.
+    title: A játékfolyamat nem indul el
+  unexpectedText: >-
+    Ez váratlanul ért. A probléma enyhítése érdekében újraindíthatod a Launchert. Kérlek, vedd fel a kapcsolatot a készítővel, ha ez a probléma ismét előfordul.
+launchFailed:
+  crash: A játék összeomlott!!
+  description: Nincs jelentést az összeomlásról. Ez a hibanapló és a legutóbbi napló.
+  elyByAuthlib:
+    description: >-
+      Az Ely.by Authlib pótlást a Minecraft {version} verzióhoz használtuk, de ez a verzió esetleg nem teljesen kompatibilis.
+    suggestion: >-
+      Az Ely.by Authlib pótlást letilthatod az instance beállításaiban, hogy elkerüld ezt a problémát.
+    title: Ely.by Authlib kompatibilitási probléma
+  failedToLaunch: Az indítás sikertelen volt
+  latestLog: Legújabb napló
+  title: A játék abnormális kóddal lépett ki
+launchPreExecuteCommandFailed:
+  description: >-
+    A végrehajtás előtti parancs hiba miatt sikertelen volt: {error}. Kérjük, ellenőrizze a parancsot, és próbálja meg újra.
+  title: A végrehajtás előtti parancs sikertelen
+launchStatus:
+  assigningMemory: Memória kiosztása
+  elyByWarning: >-
+    Az Ely.by Authlib pótlás engedélyezve van. Néhány Minecraft verzió inkompatibilis lehet és összeomolhat. Ha problémák merülnek fel, tiltsd le az instance beállításaiban.
+  exit: Kilépés?
+  injectingAuthLib: Harmadik fél AuthLib beállítása
+  launching: Indítás...
+  launchingSlow: Még mindig indul... A grafikus motor indítása lassú lehet...
+  refreshingUser: Felhasználói token frissítése
+  spawningProcess: Spawnolási folyamat
+launcherUpdate:
+  alreadyLatest: Naprakész
+  installAndQuit: Újraindítás a telepítéshez
+  noUpdateAvailable: Nincs elérhető frissítés
+  updateToThisVersion: Letöltés és telepítés
+localVersion:
+  auto: Automatikusan számolt
+  empty: Nincs telepített verzió
+  hint: Egy adott helyi verzió közvetlen indítása
+  reinstallDescription: >-
+    Ha úgy gondolod, hogy ennek a verziónak a telepítése problémás, megpróbálhatod újratelepíteni.
+  reinstallTitle: Újratelepítés {version}
+  title: Helyi verzió | Helyi verziók
+logLevel:
+  error: Hiba
+  info: Infó
+  success: Siker
+  warning: Figyelmeztetés
+logView:
+  searchPlaceholder: Naplók keresése...
+login:
+  dropHint: Dobja ide a linket az authcode-mal a kézi bejelentkezéshez
+  forgetPassword: Elfelejtett jelszó?
+  login: Bejelentkezés
+  manualLoginUrl: Ha a böngésző nem jelenik meg, kérjük, kattints erre a linkre a belépéshez!
+  signup: Regisztráció
+  signupDescription: Új köztünk?
+  userRelogin: A felhasználói hozzáférési token lejárt. Kérlek, jelentkezz be újra!
+loginError:
+  acquireMicrosoftTokenFailed: >-
+    Nem sikerült megszerezni a Microsoft tokent. Ez hálózati probléma lehet. Kérlek, próbáld meg újra.
+  badNetworkOrServer: >-
+    Kérlek, ellenőrizd a hálózati kapcsolatodat! Vagy lehet, hogy a hitelesítési szerver nem működik!
+  checkOwnershipFailed: Nem tudtuk leellenőrizni a játék tulajdonjogát. Kérlek próbáld újra.
+  connectionReset: Nem sikerül a bejelentkezés, mivel a szerver visszaállítja a kapcsolatot
+  fetchMinecraftProfileFailed: 'Nem sikerült lekérni a Minecraft-profilt: {reason}'
+  illegalEmail: Az e-mailnek érvényesnek kell lennie
+  invalidCredentials: Érvénytelen hitelesítő adatok. Érvénytelen felhasználónév vagy jelszó.
+  loginMinecraftByXboxFailed: >-
+    Nem sikerült a Minecraft tokent lekérni az Xboxtól. Kérlek ellenőrizd, hogy megvan-e a játék Xboxon és próbáld újra.
+  loginXboxAgeRestricted: >-
+    Nem jelentkezik be az Xbox -ba az életkorkibocsátás miatt.
+
+    Kérjük, ellenőrizze, hogy a Microsoft -fiókhoz be van -e állítva, és az életkor 18 felett van.
+  loginXboxFailed: >-
+    Nem sikerül bejelentkezni az Xboxra Microsoft tokennel. Kérlek, győződj meg róla, hogy az xbox-fiókodat összekapcsoltad a Microsoft-fiókoddal. Kérlek, próbáld meg újra.
+  noProfileForNewUser: >-
+    Nincs játékprofil!
+
+    Ha Ön új Minecraft felhasználó, kérjük, jelentkezzen be legalább egyszer a Minecraft hivatalos indítójába.
+  requestFailed: >-
+    A bejelentkezés sikertelen volt, a pontos okot nem tudjuk. Kérlek, próbáld meg újra.
+  requireEmail: E-mail szükséges
+  requirePassword: Jelszó szükséges
+  requireUsername: Felhasználónév szükséges
+  timeout: >-
+    Bejelentkezési időtúllépés. Próbáld újra vagy ellenőrizd a hálózati kapcsolatot.
+logsCrashes:
+  crashes: Hibanaplók
+  logs: Naplók
+  placeholder: Nem találhatóak fájlok
+  title: Napló vagy összeomlás jelentések
+  failures: Indítási hibák
+me:
+  groupByDate: Dátum szerinti csoportosítás
+  groupByFolder: Mappa szerinti csoportosítás
+  instanceViewMode: Példánynézet mód
+  listView: Listanézet
+  news: Hírek
+  recentPlay: Legutóbbi játék
+migrationWindow:
+  title: Adatáttelepítés
+  preparing: Áttelepítés előkészítése…
+  scanning: Számítás…
+  migrating: Adatok áthelyezése
+  done: Az áttelepítés befejeződött
+  files: fájl
+  warning: Tartsd nyitva az indítót, amíg ez be nem fejeződik, különben elveszhetnek az adataid.
+  error: Az áttelepítés sikertelen
+minecraftVersion:
+  name: Minecraft Verzió
+  all: Összes verzió
+  release: Kiadás
+  showAlpha: Snapshot mutatása
+  snapshot: Snapshot
+mod:
+  acceptVersion: Elfogadás {version}
+  applyGroupRules: Alkalmazza a mentett csoportosítási szabályokat
+  compatible: Kompatibilis mod.
+  createGroup: Csoport létrehozása
+  currentVersion: Jelenlegi {current}
+  denseView: Sűrű kilátás
+  disableAll: Összes letiltása
+  dropHint: A mod .jar/.litemod fájlt húzd ide az importáláshoz.
+  duplicatedDetected: '{count} duplikált mod'
+  duplicatedDetectedDescription: |-
+    Modokat találtam azonos mod azonosítóval, de különböző fájlokkal.
+    Ez a Minecraft összeomlását okozhatja.
+    Kérjük, válassza ki a megtartani kívánt fájlt.
+  enableAll: Összes engedélyezése
+  enabled: '{count} Modok engedélyezve'
+  filter: Modok szűrése
+  group: Csoportosul
+  groupInstalled: Csoportosan telepített modok
+  hideInstalled: Telepített modok elrejtése
+  installedFilterOff: Összes mod megjelenítése
+  groupName: Csoport neve
+  groupNameRequired: A csoport neve kötelező
+  hasUpdate: A modnak új verziója van!
+  incompatible: Inkompatibilis mod.
+  incompatibleHint: Nézze meg a mod kompatibilitási jelentést
+  incompatibleHintDescription: |-
+    Előfordulhat, hogy néhány mod-függőség hiányzik.
+    Vagy egyes függőségi verziók nem egyeznek.
+  maybeCompatible: Talán kompatibilis.
+  modloaderSelectHint: |-
+    A mod támogatja a mod betöltőket.
+    Kérjük, válasszon egyet a telepítéshez.
+  modloaderSelectNotSupported: Nem található {modloader} a Minecraft {minecraft} számára
+  mods: '{count} Mod'
+  name: Mod | Modok
+  newFolder: Új mappa
+  noGroupsFound: Nem található csoport
+  noGroupsYet: Még nincsenek csoportok. Hozz létre egyet!
+  noModLoaderHint: Ne felejtsd el engedélyezni a modloadert a modok használatához!
+  openLink: A mod url {url} megnyitása
+  search: Modok keresése
+  searchGroups: Csoportok keresése...
+  searchOnMcWiki: '{name} keresése a MC enciklopédiában.'
+  selectOrCreateGroup: Csoport kiválasztása vagy létrehozása
+  showDirectory: Modok mappájának megjelenítése
+  showFile: A mod elérési útvonalának megjelenítése {file}
+  showInModrinth: '{name} megjelenítése Modrinth-en'
+  switchDefaultSource: Alapértelmezett mod forrás
+  syncGroupRules: A csoportosítási szabályok mentése
+  toUpdate: '{count} frissítendő'
+  ungroup: Csoportosítás
+  description: Leírás
+modFilter:
+  clear: Átlátszó szűrő
+  dependenciesInstallOnly: Csak az elmulasztott függőségi modokat mutatja be
+  disabledOnly: Csak a fogyatékossággal élő modokat jelenítse meg
+  hasUpdateOnly: Csak a Show -nak van frissítése
+  incompatibleOnly: >-
+    Csak az összeegyeztethetetlen vagy hiányzó függőségek hiányzó modokat mutatnak
+  unusedOnly: Csak a fel nem használt könyvtárak modokat mutatják be
+modInstall:
+  archived: >-
+    {name} archiválva.
+
+    {name} nem kap további frissítéseket, kivéve, ha a szerző úgy dönt, hogy visszavonja a projekt archiválását.
+  autoUpgrade:
+    description: >-
+      Megváltoztattad a Minecraft verziót. Szeretnéd automatikusan frissíteni a kompatibilis modokat a Minecraft {version}-nak megfelelő verziókra?
+    'no': Kihagyás
+    title: Modok frissítése?
+    'yes': Modok frissítése
+  checkDependencies: Ellenőrizze a függőségeket
+  checkedDependencies: Ellenőrzött függőségek
+  currentVersion: Kiválasztott verzió
+  dependencyHint: Egy másik verzió {version} telepítése
+  releaseOnly: Az alfa és béta verziók kihagyása frissítéskor
+  installDependencies: Hiányzó függőségek telepítése
+  installHint: Telepíti a {file} fájlt a {dependencies} függőségekkel együtt
+  noVersionSupported: A Mod csak a Minecraftot támogatja {supported}.
+  recommendation: Fedezze fel a {first} modokat a {modrinth} és a {curseforge} -ben!
+  removeUnusedLibraries: Távolítsa el a fel nem használt könyvtárak modokat
+  search: Keresési találat
+  skipVersion: Hagyd ki a modokat a különböző Minecraft verziókkal
+  source: Mod forrása
+  switch: Verzió váltás
+modSearch:
+  noLocalModsFound: Nem található helyi mod, amely megfelel a keresésnek.
+  noModsFound: Nem található mod.
+  noModsInstalled: Nincs telepített modod.
+  searchInMarket: Keresés {keyword} a piacon
+modUpgradePolicy:
+  curseforge: Curseforge először
+  curseforgeOnly: Csak Curseforge
+  modrinth: Modrinth először
+  modrinthOnly: Csak Modrinth
+  name: Frissítési politika
+modified:
+  reset: Visszaállítás
+  save: Mentés
+  unsaved: A módosításod még nincs mentve!
+modpack:
+  author: Készítő neve
+  authorHint: Ezt lehet használni, hogy aláírd az exportált modcsomagot (Curseforge)
+  description: Leírás
+  descriptionHint: >-
+    A modcsomag általános leírása. Használható a curseforge modcsomag exportálásához.
+  dropHint: Húzd ide a modcsomag zip fájlát az importáláshoz
+  emitCurseforge: Emit Curseforge modcsomag
+  emitModrinth: Emit Modrinth modcsomag
+  emitModrinthStrict: Szigorú Modrinth formátum
+  emitModrinthStrictDescription: Csak a modrinth dokumentumban felsorolt 4 domain URL-je engedélyezett.
+  export: Exportálás modcsomagként
+  exportDirectory: Exportkönyvtár
+  exportDirectoryDescription: >-
+    A modpack alapértelmezés szerint a Modpack -t a letöltési mappába exportálják
+  includeAssets: Tartalmazott elemek
+  includes: Fájlok, amelyek tartalmazzák
+  modpackVersion: Modpcsomag verzió
+  name: Modcsomag | Modcsomagok
+  overrides: Felülírás
+  url: URL
+  urlHint: A modcsomag kezdőlapjának url-je
+modpackImportConfirm:
+  description: |-
+    Detektálja, hogy egy fájlt dobjon be az indítóba.
+    Modpackot próbál importálni?
+  title: Modpackot próbál importálni?
+modpackUpdateOrCreate:
+  createNew: 'Új létrehozása'
+  description: >-
+    Már létezik egy "{name}" nevű példány ehhez a modpackhez. Szeretnéd frissíteni, vagy újat létrehozni?
+  title: 'A példány már létezik'
+  update: 'Meglévő frissítése'
+modrinth:
+  browseUrl: Megnyitás böngészőben {url}
+  categories:
+    128x: 128x
+    16x: 16x
+    256x: 256x
+    32x: 32x
+    48x: 48x
+    512x+: 512x+
+    64x: 64x
+    8x-: 8x-
+    adventure: Kaland
+    atmosphere: Hangulat
+    audio: Hang
+    blocks: Blokkok
+    bloom: Bloom
+    bukkit: Bukkit
+    bungeecord: Bungeecord
+    canvas: Vászon
+    cartoon: Rajzfilm
+    categories: Kategóriák
+    challenging: Kihívás
+    colored-lighting: Színes világítás
+    combat: Harc
+    core-shaders: Core-shaderek
+    cursed: Elátkozott
+    datapack: Adatcsomag
+    decoration: Dekoráció
+    economy: Gazdaság
+    entities: Entitások
+    environment: Környezet
+    equipment: Felszerelés
+    fabric: Fabric
+    fantasy: Fantázia
+    features: Funkciók
+    folia: Folia
+    foliage: Foliage
+    fonts: Betűtípusok
+    food: Étel
+    forge: Forge
+    game-mechanics: Játékmechanikák
+    gui: Gui
+    high: Magas
+    iris: Iris
+    items: Tárgyak
+    kitchen-sink: Mosogató
+    library: Könyvtár
+    lightweight: Pehelysúlyú
+    liteloader: Liteloader
+    locale: Nyelv
+    low: Alacsony
+    magic: Varázslatos
+    management: Kezelés
+    medium: Közepes
+    minecraft: Minecraft
+    minigame: Mini játékok
+    misc: Különféle
+    mobs: Ellenségek
+    modded: Modolt
+    models: Modellek
+    modloader: Mod betöltő
+    multiplayer: Többjátékos
+    name: Kategóriák
+    neoforge: NeoForge
+    optifine: Optifine
+    optimization: Optimalizálás
+    paper: Paper
+    path-tracing: Útvonal követés
+    pbr: PBR
+    performance impact: Teljesítmény hatás
+    potato: Krumpli
+    purpur: Purpur
+    quests: Küldetések
+    quilt: Quilt
+    realistic: Valósághű
+    reflections: Visszatükröződések
+    resolutions: Felbontások
+    rift: Rift
+    screenshot: Képernyőkép
+    semi-realistic: Félig valósághű
+    shadows: Árnyékok
+    simplistic: Egyszerű
+    social: Közösségi
+    spigot: Spigot
+    sponge: Sponge
+    storage: Tárolás
+    technology: Technológia
+    themed: Tematikus
+    transportation: Közlekedés
+    tweaks: Módosítások
+    utility: Segédprogram
+    vanilla: Vanilla
+    vanilla-like: Vanilla-like
+    velocity: Velocity
+    waterfall: Waterfall
+    worldgen: Világ generálás
+  clientSide: Kliens oldali
+  copyTitle: '{title} címe másolása vágólapra'
+  createAt: Létrehozva
+  createCollection: Készítsen gyűjteményt
+  description: Leírás
+  downloads: Letöltések
+  environments:
+    all: Mind
+    default: Alapértelmezett
+    name: Környezet
+    optional: Opcionális
+    required: Szükséges
+    unsupported: Nem támogatott
+  externalResources: Külső források
+  featuredVersions: Kiemelt verziók
+  followedProjects: Követett projektek
+  followers: Követők
+  gallery: Galéria
+  gameVersions:
+    name: Játék verziók
+  headers:
+    status: Statisztika
+    support: Támogatás
+    version: Verziók
+  issueUrl: Problémák
+  license: Licenc
+  licenses:
+    name: Licencek
+  loginHint: |-
+    A művelethez a modrint elvégzéséhez szükséges.
+    Az indító megnyitja a böngészőablakot a Modrinth bejelentkezéséhez.
+  loginTitle: Jelentkezzen be a Modrinthbe
+  modLoaders:
+    name: Mod betöltők
+  modpackSource:
+    source: Forrás
+  projectId: Projekt Id
+  projectMembers: Projekt tagok
+  projectType:
+    mod: Mod
+    modpack: Modcsomag
+    resourcepack: Forráscsomag
+    shader: Shader
+    datapack: Adatcsomag
+    plugin: Plugin
+  projects: '{count} projektek'
+  serverSide: Szerver oldali
+  sort:
+    downloads: Letöltések
+    follows: Követések
+    newest: Nemrégiben létrehozva
+    relevance: Releváns
+    title: Rendezés
+    updated: Nemrég frissítve
+  sourceUrl: Forrás
+  technicalInformation: Technikai információk
+  updateAt: Frissítve
+  versions: Verziók
+  wikiUrl: Wiki
+modrinthCard:
+  currentVersion: Jelenlegi verzió
+multiplayer:
+  joinDiscord: Csatlakozás a Discordhoz
+  openConsumerPortal: Ügyfélportál megnyitása
+  refundHint: Visszatérítést szeretnél? Rendeléseid és előfizetéseid kezeléséhez keresd fel a Waffo ügyfélportálját.
+  togetherSupportHint: Ha a többjátékos mód nem működik, csatlakozz a Discordunkhoz, és lépj kapcsolatba a fejlesztőcsapattal. Segítünk megoldani a problémát.
+  autoShareAmbiguous: Több játék is fut. Válaszd ki a LAN-világot futtató példányt, hogy az PbtModLauncherX megoszthassa.
+  editSharingScope: Megosztási kör szerkesztése
+  gameAvailable: LAN-játék érhető el
+  joinGame: Csatlakozás a játékhoz
+  noRunningInstanceToShare: A megosztási kör szerkesztése előtt indíts el egy játékot
+  updateSharedInstanceConfirm: Frissítés és indítás
+  updateSharedInstanceDescription: A megosztott modok eltérnek a(z) {instance} modjaitól. Frissíted ezt a példányt, hogy indítás előtt megegyezzen a gazdagépével? A meglévő módosított fájlokról biztonsági másolat készül.
+  updateSharedInstanceTitle: Megosztott példány frissítése?
+  addFunds: "Egyenleg feltöltése"
+  availableBalance: "Elérhető egyenleg"
+  balanceHint: "XMCL Together-szolgáltatásokhoz használható"
+  billing: "Számlázás"
+  billingDescription: "Kezeld a relay-hozzáférést, a Together Home-csomagodat és a fizetéseidet."
+  billingError: "A Together számlázása nem tölthető be. Próbáld újra egy pillanat múlva."
+  buyTogether: "Together megvásárlása"
+  cancelTogether: "Csomag lemondása"
+  checkout: "Waffo fizetés megnyitása"
+  connectionTogetherWarning: "Egy szobatag egy ideje nem tud kapcsolódni hozzád. Próbáld ki az XMCL Together szolgáltatást, hogy mindenki számára javuljon a kapcsolat a szobában. Csak a szobamesternek van szüksége Togetherre."
+  masterPurchaseHint: "Csak a szobamesternek van szüksége Together Home-ra, hogy mindenki számára javuljon a kapcsolat a szobában."
+  natTogetherWarning: "Lehet, hogy az útválasztód nehezen tud kapcsolódni a szobamesterhez. Ha a kapcsolatok sikertelenek, próbáld ki az XMCL Togethert, hogy javuljon a kapcsolat közted és a barátaid között. A szobához csak a szobamesternek kell megvásárolnia a Togethert."
+  togetherName: "Minecraft Together"
+  trialDescription: "Egy 7 napos próbaidőszak 1 GB relay-forgalommal."
+  trialTitle: "Kapcsolati próbaidőszak"
+  tryTogether: "Together kipróbálása"
+  month: "hónap"
+  orderStatus: "Waffo-rendelés: {status}"
+  planDescription: "Havonta 20 GB kezelt relay-forgalom, valamint AI-alapú hibaelhárítás a modcsomagodhoz."
+  waffoHint: "A fizetések biztonságosan a Waffo Pancake-en keresztül zajlanak. Az XMCL soha nem kapja meg a kártyaszámodat."
+  subscription:
+    active: "Aktív"
+    cancelled: "Lemondva"
+    payment_due: "Fizetés esedékes"
+  trial:
+    active: "A próbaidőszak aktív"
+    available: "Ingyenes próbaidőszak érhető el"
+    expired: "A próbaidőszak felhasználva"
+    unavailable: "A próbaidőszak nem érhető el"
+  loginRequiredDescription: A P2P többjátékos mód az XMCL online szolgáltatásait használja. A folytatáshoz jelentkezzen be egy XMCL-fiókba.
+  loginRequiredTitle: Bejelentkezés a P2P többjátékos módhoz
+  complete: Kész
+  confirm: Megerősítés
+  connections: Kapcsolatok
+  copied: Másolva!
+  copy: Másolás
+  copyGroupToFriendHint: >-
+    Engedd meg barátaidnak, hogy csatlakozzanak a csoporthoz ezzel az azonosítóval
+  copyLocalHint: >
+    "Kérjük, másolja a helyi SDP szövegét, és küldje el az objektumának, hogy az objektum ezt a szöveget adja meg a csatlakozási kapcsolatba <span>Egy token csak <span style="color: red; font-weight: bold;">egy partner</span> számára használható!   Ugyanazt a tokent nem küldheti el több peer-nek!</span> <br> <span class="hint-text" style="font-style: italic;">Ha több peerhez kell csatlakoznia, akkor a létrehozni <span style="font-weight: bold; color: rgba(245, 158, 11)"> több</span> kapcsolatot.</span>"
+  createLocalToken: Helyi token létrehozása
+  currentIpTitle: Nyilvános IP érzékelése
+  currentNatTitle: 'Jelenlegi hálózat (NAT):'
+  difficultyLevelHint: A nehézségi szint, hogy létrehozzanak egy peer kapcsolatot más
+  disconnect: Lecsatlakozás
+  disconnectDescription: >-
+    Biztos, hogy a {user}({id}) felhasználóval akarod megszakítani a kapcsolatot?
+  disconnected: lecsatlakozva
+  enterRemoteToken: Távoli token megadása
+  enterRemoteTokenHint: >-
+    Miután a társad beírta a jelszavadat, neked is be kell írnod a jelszavát az alábbi szöveges területre. Kattints a megerősítésre a csatlakozáshoz.
+  exposedPortDescription: A port, amelyet a többi társnak tettél közzé
+  exposedPorts: Továbbított portok
+  gatheringIce: >
+    "Kérjük, várjon, amíg az ICE-kiszolgáló elegendő információt gyűjt az Ön a hálózatáról. Ha türelmetlen, és van elég információ, akkor adjon az aktuális SDP-t a másik félnek előre, és kattintson a Next Please send the <span class="v-chip v-chip--label v-size--small" style="text-font: bold"> Local Token</span> a partnerének, a partner megadja a tokenjét a <span class="v-chip v-chip--label v-size--small" style="text-font: bold"> Join Kapcsolat </span> szakaszban. <br> Az ICE-kiszolgálónak időre lehet szüksége ahhoz, hogy összegyűjti az adatait, hogy létrehozza a <span class="v-chip v-chip--label v-size--small" style="text-font: bold">Lokális token</span>. <br> Nem kell várnia. amíg az ICE státusz befejeződik. Ha az alábbi token változatlanul marad, akkor a másolja le és küldje el a partnerének."
+  groupId: Csoport Id
+  illegalTokenDescription: >-
+    Hibás token, kérlek győződj meg róla, hogy a partneredtől kapott token helyes-e
+  initiateConnection: Kapcsolat kezdeményezése
+  joinConnection: >-
+    Ha a társad már kezdeményezett kapcsolatot, akkor a Csatlakozáshoz csatlakozni kell.
+  joinManual: Csatlakozás
+  joinOrCreateGroup: Csatlakozás/Csoport létrehozása
+  joinOrCreateGroupHint: Csoport azonosító kérése barátaidtól vagy csoport létrehozása
+  kernel: P2P kernel
+  kernelDescription: >-
+    Használjon natív WebRTC-t vagy node-datachannel-t.
+
+    Csak akkor váltsa ezt, ha a p2p kapcsolata valamikor összeomlik az indítóablakban.
+  leaveGroup: Csoport elhagyása
+  localToken: Helyi token
+  manualConnect: Manuális csatlakozás
+  name: Többjátékos LAN-on
+  networkInfo: Hálózati információk
+  next: Következő
+  otherExposedPortDescription: 'A port előszava: {user}'
+  placeholder: Csatlakozz más felhasználókhoz, hogy Minecraftot játszhass LAN-on!
+  previous: Előző
+  receiveHint: >-
+    Miután a másik fél megadja a jelszavát, a kapcsolat automatikusan létrejön. Most már bezárhatod a párbeszédpanelt.
+  receiveRemoteTokenHint: Kérlek, add meg itt a partneredtől kapott tokent.
+  remoteToken: Távoli token
+  routerInfo: Router információ
+  sendTokenToRemote: Token küldése a távolra
+  share: Példány konfigurációjánask megosztása
+  sharing: Fájlok megosztása...
+  start: Indítás
+  startNewP2PConnection: Kattints az Indítás gombra egy új kapcsolat létrehozásához.
+  connectionError: Kapcsolódási hiba
+  connectionFailedHint: >-
+    Nem sikerült kapcsolatot létesíteni. Ellenőrizze, hogy mindkét fél kompatibilis NAT-típussal rendelkezik-e.
+myStuff: Dolgaid
+natType:
+  blocked: Blokkolva
+  fullCone: Teljes cone
+  openInternet: Nyílt internet
+  restrictNat: NAT korlátozása
+  restrictPortNat: NAT-port korlátozása
+  symmetricNat: Szimmetrikus NAT
+  symmetricUDPFirewall: Szimmetrikus UDP tűzfal
+  unknown: Ismeretlen
+neoForgedVersion:
+  disable: NeoForged letiltása
+  empty: NeoForged nem támogatja a {version} verziót
+news:
+  name: Hírek
+  readMore: Bővebben
+optifineVersion:
+  disable: Optifine letiltása
+  empty: Optifine nem támogatja a {version} verziót
+optional: Opcionális
+peerConnectionState:
+  closed: Zárt
+  connected: Csatlakozva
+  connecting: Csatlakozás
+  disconnected: Lecsatlakozva
+  failed: Sikertelen
+  name: Csatlakozás állapota
+  new: Új
+peerGroupState:
+  closed: Nem a csoportban
+  closing: Zárt
+  connected: Csoport csatlakozott
+  connecting: Csatlakozás
+peerIceGatheringState:
+  gathering: Ice Szerver gyűjtése
+peerSignalingState:
+  have-local-offer: Várakozó peer leírása
+presence:
+  instance: Tétlen a példányban {instance}
+  instanceSetting: 'Példa beállításainak szerkesztése: {instance}'
+  mod: Modok megtekintése a {instance}-ban
+  modrinthProject: '{name} megtekintése Modrinth-ban'
+  resourcePack: Forráscsomagok megtekintése a {instance}-ben
+  save: Mentés megtekintése a {instance}-ben
+  setting: Beállítások megtekintése
+  shaderPack: Shader csomagok megtekintése {instance}-ben
+proxy:
+  host: Hoszt
+  port: Port
+quiltVersion:
+  disable: Quilt letiltása
+  empty: Quilt nem támogatja a {version} verziót
+resourcepack:
+  linkShared: Erőforráscsomagok megosztása példányok között
+  linkSharedHint: >-
+    Kösse össze ennek a példánynak a resourcepacks mappáját a globális megosztott
+    mappával, hogy minden példány ugyanazokat az erőforráscsomagokat használja. A
+    meglévő csomagok a megosztott mappába kerülnek.
+  compatible: Kompatibilis formátum {format} a {version}-vel
+  defaultDescription: A Minecraft alapértelmezett megjelenése
+  delete:
+    content: >-
+      Ez eltávolítja az forráscsomag-fájlt a meghajtóról, és nem tudod visszacsinálni. Biztos vagy benne, hogy ezt akarod csinálni?
+    title: Forráscsomag törlése
+  dropHint: Húzd ide a forráscsomag zip-jét/mappá-ját az importáláshoz
+  enable: '{count} forráscsomag engedélyezve'
+  incompatible: >-
+    Nem kompatibilis forráscsomag formátum({format}). Elfogadott {accept}. Jelenlegi {actual}.
+  name: Forráscsomag | Forráscsomagok
+  searchHint: Keresés az erőforráscsomagokban
+  selected: Kiválasztott forráscsomagok
+  showDirectory: Nyissa meg az erőforrás csomagokat tartalmazó mappát
+  showFile: '{file} megjelenítése fájlkezelőben'
+  unselected: Nem kiválasztott forráscsomagok
+  noPacks: Nem található erőforráscsomag
+  search: Erőforráscsomagok keresése...
+save:
+  resetView: Nézet visszaállítása
+  mapHintPan: Húzással mozgathatod a nézetet
+  map:
+    tabTitle: "Világtérkép"
+  progress:
+    zoomIn: Nagyítás
+    zoomOut: Kicsinyítés
+    loading: "Előrehaladás betöltése…"
+    noData: "Nincs előrehaladás"
+    noDataHint: "Játssz ebben a világban az előrelépések, statisztikák és küldetések állapotának rögzítéséhez."
+    quests: "Küldetések"
+    advancements: "Előrelépések"
+    done: "Kész"
+    inProgress: "Folyamatban"
+    all: "Összes"
+    treeView: "Fa nézet"
+    filterPlaceholder: "Szűrés név alapján…"
+    root: "Kezdőpont"
+    exitFullscreen: "Kilépés a teljes képernyőből"
+    locked: "Zárolva"
+  linkShared: Mentések megosztása példányok között
+  linkSharedHint: >-
+    Kösse össze ennek a példánynak a saves mappáját a globális megosztott
+    mappával, hogy minden példány ugyanazokat a világokat használja. A meglévő
+    mentések a megosztott mappába kerülnek.
+  allowCheats: Csalások engedélyezése
+  copy:
+    name: Mentés másolása
+  createNew: Új világ létrehozása
+  createdWorlds: '{count} db világod van'
+  deleteHint: >-
+    Ezt a műveletet nem lehet visszaállítani. A mentett adatokat örökre elveszted. Biztos, hogy törölni szeretnéd ezt a mentést?
+  deleteTitle: Mentés törlése
+  difficulty: Nehézség
+  dropHint: Húzz ide egy zipet az importáláshoz
+  export: Mentés exportálása
+  exportMessage: Mentés exportálása zip-ként
+  exportTitle: Mentés exportálása
+  gameMode: játék mód
+  independent: Példány használjon független mentési mappát
+  levelName: Szint neve
+  loadMap: Térkép betöltése
+  mapError: Térkép hiba
+  mapInfo: 'Interaktív 3D világ előnézet:'
+  mapLoaded: Térkép betöltve
+  mapPreview: Térkép előnézet
+  name: Mentés | Mentések
+  properties: Világ tulajdonságai
+  search: Keresés Mentés
+  seed: Seed
+  selected: helyi archívum
+  shared: Példány megosztott mentési mappa használata
+  showDirectory: Mentés könyvtár megjelenítése
+  unselected: megosztott archívum
+  useCurrent: Használja a jelenlegi világot
+  useMouseRotate: Egér használata a nézet forgatásához
+  useScrollZoom: Görgetés a nagyításhoz
+  openFolder: Mentések mappájának megnyitása
+  searchHint: Világok keresése a CurseForge-on
+  searchSaves: Mentések keresése
+screenshots:
+  empty: Nincsenek képernyőképeid
+  playRandom: Játék véletlenszerűen
+  playSequence: Játék sorrendben
+  gallery: Képernyőkép-galéria
+  hint: A játékban nyomd meg az F2-t képernyőképhez
+  openFolder: Képernyőképek mappájának megnyitása
+search:
+  favorate: Gyűjtemény
+  local: Telepített
+  market: Piac
+  emptyInstalled: Még nincs semmi telepítve
+  browseMarket: Piac böngészése
+  noResults: Nincs találat
+  pageSize: Találatok oldalanként
+server:
+  launch: Szerver indítása
+  stop: Szerver leállítása
+  acceptingMinecraftVersion: Minecraft verzió elfogadása
+  addServer: Szerver hozzáadása
+  address: Szerver címe
+  addressHint: pl. mc.hypixel.net
+  bindUpstream: Összekapcsolás forrásként (upstream)
+  boundUpstream: Forrásszerver összekapcsolva
+  boundUpstreamHint: Ez a példány a csatlakoztatott szerver Minecraft verzióját követi.
+  creationHint: Kérlek, töltsd ki a szerver címét és pingeld a szervert
+  editServer: Szerver szerkesztése
+  emptyHint: Még nincsenek szerverek a példány servers.dat fájljában. Adj hozzá egyet a kezdéshez.
+  entryCount: '{count} szerver'
+  expectedVersions: Támogatott verziók
+  export: Exportáló szerver
+  exportNoFilesHint: Nincs kiszolgáló fájl. Egyszerre futtathatja a kiszolgálót a Local -on, hogy néhány fájlt generáljon.
+  exportOption: Szerver exportálási beállítások
+  exportSSHAuthenticationFailed: Az összes hitelesítési módszer sikertelen. Kérjük, ellenőrizze a felhasználónevet/jelszót vagy a privát kulcsot.
+  exportSSHOptions: SSH opciók
+  exportSSHPrivateKeyPath: SSH privát kulcs elérési útja
+  exportSSHRemotePath: Távoli kiszolgáló elérési útja
+  exportToFolder: Exportálás a mappába
+  filterVersion: Szűrő szerver válaszolt Minecraft verzió
+  host: Kiszolgáló
+  hostHint: A kiszolgáló állomáshelye (porttal együtt)
+  hostRequired: Kérjük, írja be a szerver IP -címét
+  ipAddress: IP cím
+  launchClient: Kliens indítása helyette
+  launchPinned: Rögzítve
+  launchTargetHint: Ez a példány közvetlenül a rögzített szerverhez csatlakozik. Visszaváltasz a kliensre?
+  maxPlayers: Maximális játékosokg
+  motd: Szerver MOTD
+  nameHint: A többjátékos listában megjelenő név
+  nogui: Nincs Server Gui
+  onlineMode: Online mód
+  pin: Szerver rögzítése
+  pinAfterSave: Mentés után rögzítés alapértelmezett indítási célként
+  ping: Ping
+  pings: Pingek
+  pinnedHeader: 'Rögzítve: {name}'
+  players: Játékosok
+  port: Port
+  clearLog: Napló törlése
+  log: Szervernapló
+  logWaiting: A szerver kimenete az indítás után itt jelenik meg.
+  remoteActionSuccess: Done.
+  remoteAdmin: Távoli szerver adminisztráció
+  remoteAuthMethod: Hitelesítés
+  remoteAuthPassword: Jelszó
+  remoteAuthPrivateKey: Privát kulcs
+  remoteBuildOfflinePackage: Offline csomag összeállítása
+  remoteConnected: Csatlakozva
+  remoteConnection: Kapcsolat
+  remoteDeployment: Telepítés
+  remoteDeploy: Telepítés
+  remoteDisk: Lemez
+  remoteConfigFiles: Konfigurációs fájlok
+  remoteExtraFiles: További fájlok
+  remoteForgetCredentials: Mentett adatok elfelejtése
+  remoteInstallService: Szolgáltatás telepítése
+  remoteLoad: Átlagos terhelés
+  remoteLog: Távoli napló
+  remoteMemory: Memória
+  remoteMods: Modok
+  remoteNoWorldSelected: Nincs kiválasztva példányvilág
+  remoteJavaRequired: A Java nem érhető el a távoli Linux gépen.
+  remoteLinuxRequired: Csak Linux SSH célpontok támogatottak.
+  remoteNotConfiguredHint: Töltsd ki a fenti kapcsolat adatait az állapot, vezérlés és naplózás engedélyezéséhez.
+  remotePathNotWritable: A távoli szerverkönyvtár nem írható.
+  remotePathWritable: A könyvtár írható
+  remotePolicyInitialize: Egyszeri inicializálás
+  remotePolicyMirror: Tükrözés (Mirror)
+  remotePolicyOverlay: Ráhelyezés (Overlay)
+  remotePolicyPreserve: Megőrzés
+  remotePreview: Módosítások előnézete
+  remotePhase:
+    connect: Connecting
+    error: Reconciliation failed
+    idle: Ready to reconcile
+    inspect: Inspecting target
+    install: Installing server
+    logs: Attaching console
+    ready: Desired state applied
+    service: Ensuring systemd service
+    start: Starting server
+    sync: Syncing desired state
+    world: Applying world policy
+  remoteRememberCredentials: Adatok megjegyzése (OS kulcstartó)
+  remoteReconcileReady: A célpont megegyezik a példánnyal, a konzol csatlakoztatva.
+  remoteRestartService: Újraindítás
+  remoteSavedCredentialsHint: Mentett adatok érvényben — hagyd üresen a megtartáshoz, vagy írd át a módosításhoz.
+  remoteService: systemd szolgáltatás
+  remoteServiceActive: Fut
+  remoteServerInstalled: Szerverfájlok telepítve
+  remoteServiceName: Szolgáltatás neve
+  remoteServiceNameHint: systemd --user egységnév, pl. mc-server
+  remoteSelectedFiles: '{count} szerverfájl kiválasztva'
+  remoteSelectFiles: Fájlok kiválasztása
+  remoteStartCommand: Indítási parancs
+  remoteStartCommandHint: pl. java -jar server.jar nogui
+  remoteStartService: Indítás
+  remoteStatus: Állapot
+  remoteSystemdRequired: A systemd felhasználói szolgáltatások nem érhetők el a távoli gépen.
+  remoteTargetName: Célpont neve
+  remoteStopService: Leállítás
+  remoteStopWatchLog: Követés leállítása
+  remoteTestConnection: Kapcsolat tesztelése
+  remoteTestConnectionSuccess: Sikeres kapcsolat.
+  remoteUninstallConfirmMessage: Ez letiltja és eltávolítja a systemd egységet a távoli gépen. A szerverfájlok megmaradnak.
+  remoteUninstallService: Szolgáltatás eltávolítása
+  remoteRunInstall: Telepítés vagy javítás
+  remoteWatchLog: Élő napló megtekintése
+  remoteWorldAlways: Csere minden szinkronizáláskor
+  remoteWorldDeployment: Példányvilág telepítése
+  remoteWorldDeploymentHint: A rutinszerű szinkronizálás soha nem tölt fel világot, hac穎k ez a szabály megengedi.
+  remoteWorldFirstInstall: Csak akkor inicializáljon, ha a célon nincs még világ
+  remoteWorldNever: Soha ne töltsön fel világot
+  remoteWorldPresent: Célállomás világa
+  remoteWorld: Világ
+  remoteWorldWillDeploy: A kiválasztott világ feltöltésre kerül ebben a szinkronizálásban.
+  serverName: Szerver neve
+  serviceInstall: Szolgáltatás telepítése
+  serviceManagedLaunch: Használja az OS szolgáltatást az indításhoz és leállításhoz
+  serviceManager: Rendszerszolgáltatás
+  serviceName: Szolgáltatás neve
+  serviceNameHint: Azonosító betűkkel, számokkal, pontokkal vagy kötőjelekkel
+  serviceNotInstalled: Nincs telepítve
+  serviceStartCommand: Indítási parancs
+  serviceSystemd: systemd --user
+  serviceWindows: Windows szolgáltatás
+  serviceWindowsCommandHint: A Java parancs ebből a példányból generálódik.
+  serversListTitle: Szerverlista
+  target: Szerver cél
+  targetLocal: localhost
+  targetLocalHint: Telepítse és futtassa a szervert ezen a számítógépen.
+  targetRemote: SSH cél
+  targetRemoteHint: Csatlakozás, telepítés, indítás és figyelés SSH-n keresztül.
+  unbindUpstream: Szétkapcsolás
+  unknown: Ismeretlen szerver
+  unknownDescription: Ismeretlen szerver. Frissítsd újra
+  unpin: Unpin
+  upload: Feltöltő szerver
+  upstreamUpToDate: A példányod verziója megegyezik a szerverével ({version}).
+  upstreamUpToDateHint: Nincs szükség frissítésre. Kattints az újraellenőrzéshez.
+  upstreamUpdateAvailable: A szerveren már a Minecraft {version} fut. Kattints az alkalmazáshoz.
+  upstreamUpdateHint: A szerver Minecraft verziójának beállítása erre a példányra.
+  useAsUpstreamHint: A példány a szerver által jelentett verziót fogja követni.
+  version: A szerver verzióigénye
+  versionHint: A Minecraft verzió a Pinghez
+  worldPreserve: Célvilág megőrzése
+serverStatus:
+  nohost: §4Nem található a kiszolgáló!
+  ping: Pingelés...
+  refuse: §4A szerver elutasítot!
+  timeout: §4Szerver csatlakozási időtúllépés!
+agent:
+  accessRequiredHint: Fizess elő az XMCL-re a beépített ügynök használatához, vagy állítsd be a saját AI-szolgáltatódat a beállításokban.
+  subscribeXmcl: Előfizetés az XMCL-re
+  notConfiguredHint: Állítson be egy API-kulcsot, modellt és OpenAI-kompatibilis végpontot a Beállítások → Általános → AI ügynök alatt. Használhat például OpenAI-t vagy Claude-kompatibilis átjárót.
+setting:
+  aiAgentApiKeyDescription: Állítson be OpenAI-kompatibilis szolgáltatót, például OpenAI-t vagy Claude-hoz használható átjárót. A kulcs helyileg, ezen az eszközön lesz tárolva.
+  aiAgentApiKeyPlaceholder: OpenAI- vagy Claude-szolgáltató API-kulcsa
+  aiAgentEndpointPlaceholder: https://api.openai.com/v1/chat/completions
+  aiAgentModelPlaceholder: gpt-5.6 vagy claude-sonnet-4-5
+  themeStore:
+    name: Téma tár
+    description: Globális témák mentése és kezelése
+    savedThemes: Mentett témák
+    noSavedThemes: Még nincs mentett téma
+    saveToStore: Mentés a tárba
+    saveDialogTitle: Téma mentése
+    themeName: Téma neve
+    themeNameHint: A téma mentéséhez használt név
+    loadConfirmTitle: Lecseréled az aktuális témát?
+    loadConfirmMessage: A mentett téma betöltése lecseréli az aktuális témát. Készíts biztonsági mentést.
+    loadTheme: Téma betöltése
+  about: Körülbelül
+  aboutBmclDescription: >-
+    A BMCL API kényelmes letöltéseket biztosít a Kínai Kontinensen lévő felhasználók számára
+  aboutContributors: 🧑‍💻 Közreműködők 🧑‍💻
+  aboutDenoDescription: >-
+    Az PbtModLauncherX a Deno Deploy egyszerű platformját használja kiszolgáló nélküli JavaScript alkalmazásokhoz
+  aboutLicense: MIT LICENSE
+  aboutLicenseInfo: >-
+    Ingyenes kódaláírás Windows alatt a SignPath.io által biztosított, SignPath Foundation által tanúsított
+  aboutSponsors: 😇 Szponzorok 😇
+  advancedJavaOptions: Haladó Java beállítások
+  advancedSettings: Speciális beállítások
+  advancedSettingsHint: Veszélyes zóna - indító adatok visszaállítása vagy kezelése
+  apiSets:
+    auto: Automatikus (hálózat által meghatározott)
+    official: Eredeti (Mojang)
+  appearance: Megjelenés
+  appearanceDescription: Az indító megjelenésének testreszabása
+  appxUpdateHint: >-
+    A Launcher letölti és futtatja a telepítőt. Ha a felugró telepítő nem sikerült, kérlek futtasd manuálisan.
+  authenticationSettings: Hitelesítés
+  backdropBlur: Háttérkép elmosódás
+  backgroundColorAbove: Háttérszín megjelenítése fedvényként
+  backgroundColorAboveDescription: Ezzel a háttérszín jelenik meg a háttérkép vagy a videó felett.
+  backgroundImage: Háttérkép
+  backgroundImageClear: törlés
+  backgroundImageDescription: Válassz ki egy képet háttérként vagy töröld
+  backgroundImageFit:
+    contain: Tartalmazza
+    cover: Elfedje
+    name: Illeszkedjen
+  backgroundImageUrl: Kép URL-je
+  backgroundImageUrlPlaceholder: Adja meg a kép HTTP/HTTPS URL-jét
+  backgroundMusic: Téma Háttérzene
+  backgroundMusicUrl: Zenei URL
+  backgroundMusicUrlPlaceholder: Írja be a zenéhez tartozó HTTP/HTTPS URL-t
+  backgroundType: Háttérkép típusa
+  backgroundTypeDescription: >-
+    Speciális hatás megjelenítése a háttérben (Ez befolyásolhatja a teljesítményt)
+  backgroundTypes:
+    halo: Halo
+    image: Kép
+    none: Nincs
+    particle: Részecskék
+    video: Videó
+  backgroundVideo: Háttér videó
+  backgroundVideoDescription: válassz vagy törölj videót
+  backgroundVideoUrl: Videó URL-je
+  backgroundVideoUrlPlaceholder: Adja meg a videó HTTP/HTTPS URL-címét
+  backgroundVideoVolume: hangerő
+  backgroundVideoVolumeDescription: húzd a hangerő beállításához
+  browseRoot: Böngészés
+  checkUpdate: Frissítés keresése
+  colorTheme:
+    appBarColor: Alkalmazás sáv
+    backgroundColor: Háttér színe
+    cardColor: Lap színe
+    description: A téma színeinek módosítása
+    errorColor: Hiba színe
+    name: Téma színe és elmosódása
+    primaryColor: Elsődleges szín
+    sideBarColor: Oldalsáv
+    warningColor: Figyelmeztetés színe
+  darkTheme: Téma
+  darkThemeDescription: Válaszd a sötét vagy világos témát
+  developerMode: Fejlesztői mód
+  developerModeDescription: Fejlesztői mód a saját írt mod tesztelésére irányul
+  disableTelemetry: Telemetria kikapcsolása
+  disableTelemetryDescription: >-
+    Az PbtModLauncherX összegyűjti a játékindítási és a felhasználói bejelentkezési eseményeket.
+  enableDedicatedGPUOptimization: Dedikált GPU hozzárendelése
+  enableDedicatedGPUOptimizationDescription: Ez az opció dedikált GPU-t rendel a Minecraft folyamathoz.
+  enableDiscord: Discord státusz engedélyezése
+  enableDiscordDescription: Ez folyamatosan frissíti az launcher állapotát a discordra.
+  enterUrl: Írja be az URL-t
+  exportSettings: Beállítások exportálása
+  exportSettingsHint: Jelenlegi beállítások mentése fájlba
+  general: Általános
+  githubRelease: Github kiadás
+  globalJava: Előnyben részesített Java
+  globalJavaHint: "Automatikus módban először ezt a Java-t próbálja meg, és csak akkor tér vissza az automatikus felismeréshez, ha az nem kompatibilis a játékverzióval."
+  globalSetting: Globális példány beállítás
+  globalSettingHint: Az példány alapértelmezés szerint ezeket a beállításokat fogja használni.
+  importSettings: Beállítások importálása
+  importSettingsHint: Beállítások betöltése korábban exportált fájlból
+  instanceTheme:
+    activeDescription: |-
+      Ez a példány egyéni témát használ.
+      A globális téma használatához törölheti.
+    description: |-
+      Egyéni téma engedélyezése ehhez a példányhoz.
+      Ezzel létrejön az aktuális globális téma másolata.
+    name: Példány téma
+  language: Nyelv
+  languageDescription: A megjelenített nyelv
+  latestVersion: Legújabb verzió
+  layout:
+    default: Alap elrendezés
+    focus: Fókusz elrendezés
+  layoutDescription: A különböző UI logikát reprezentáló launcher elrendezés
+  layoutTitle: Elrendezés
+  linuxEnableDedicatedGPUOptimization: Dedikált grafikus processzor hozzárendelése
+  linuxEnableDedicatedGPUOptimizationDescription: Ez az opció dedikált GPU-t rendel a Minecraft-folyamathoz.
+  linuxTitlebar: Saját címsáv
+  linuxTitlebarDescription: A natív linuxos címsor használata az launcherhez
+  location: Áruház helye
+  manualUpdateHint: >-
+    A verzió nem frissíthető automatikusan. Kérjük, töltse le újra az indítóprogramot a hivatalos honlapról!
+  maunalUpdateHint: >-
+    A verzió nem frissíthető automatikusan. Kérlek, töltsd le újra az launchert a weboldalról!
+  maxSockets: Kiszolgálónként
+  maxSocketsDescription: >-
+    Korlátozza a maximálisan engedélyezhető foglalatok számát állomásonként vagy az összes állomáson összesen. A 0 azt jelenti, hogy nincs korlátozás.
+  maxSocketsTitle: Max HTTP foglalatok
+  memoryAssignment: Memória hozzárendelés
+  migrateFromOther: Importálás másik indítóból
+  minecraftOptions: Minecraft beállítások
+  name: Globális beállítás | Globális beállítások
+  network: Hálózati beállítások
+  newsPosition: Hírek szekció áthelyezése
+  officialWebsite: Hivatalos weboldal
+  particleMode:
+    bubble: Buborék
+    name: Részecske mód
+    push: Tolás
+    remove: Eltávolítás
+    repulse: Visszaverődés
+  particleModeDescription: Jelöld ki a részecske kattintási viselkedését
+  quickLaunchSettings: Gyors indítás
+  replaceNative: Natív könyvtárak helyettesítése
+  replaceNativeDescription: Cserélje ki a natív könyvtárakat a számítógép archívumának megfelelően.
+  replaceNatives:
+    all: Összes
+    legacy: Csak a Legacy verzió
+  resetAllSettings: Összes beállítás visszaállítása
+  resetAllSettingsConfirmMessage: >-
+    Ez véglegesen törli az összes beállítást, fiókot, példányt, csoportot és gyorsítótárazott adatot. Ez a művelet nem vonható vissza. Biztos vagy benne?
+  resetAllSettingsConfirmTitle: Visszaállítja az összes beállítást?
+  resetAllSettingsHint: Az indító visszaállítása gyári alapértelmezésre (mindent töröl)
+  resetAllSettingsSuccess: Az összes beállítás vissza lett állítva. Az indító újraindul.
+  resetSettingsError: 'Hiba a beállítások visszaállítása közben: {error}'
+  resetToDefault: Visszaállítás alapértelmezettre
+  select: kiválasztás
+  settingsExported: Beállítások sikeresen exportálva
+  settingsImportError: >-
+    Nem sikerült importálni a beállításokat. Kérjük, ellenőrizze a fájlformátumot.
+  settingsImported: Beállítások sikeresen importálva
+  settingsReloadHint: Az indító újraindul az összes beállítás alkalmazásához.
+  showNewsHeader: Hírek kirakatának megjelenítése
+  showRoot: Megjelenítés
+  sidebarAlign: Oldalsáv igazítása
+  sidebarAutoHide: Oldalsáv automatikus elrejtése
+  sidebarAutoHideHint: Az oldalsáv automatikus elrejtése, amikor az egér eltávozik
+  sidebarClassic: Klasszikus
+  sidebarNotch: Bevágás
+  sidebarPosition: Oldalsáv pozíciója
+  sidebarScale: Oldalsáv méretezése
+  sidebarShowOnlyPinned: Csak rögzítettek megjelenítése
+  sidebarShowOnlyPinnedHint: Csak a rögzített példányok megjelenítése az oldalsávon
+  sidebarStyle: Oldalsáv stílusa
+  sidebarStyleHint: Válassza ki az oldalsáv megjelenési stílusát
+  streamerMode: Közvetítés mód
+  streamerModeDescription: Ez elrejti a személyes adatait, például az e-mail címét az launcherben.
+  theme:
+    dark: Sötét téma
+    light: Világos téma
+    system: Rendszer téma használata
+  themeExport: Téma exportálása
+  themeBorderRadius: Lekerekített sarkok
+  themeBorderRadiusDescription: A kártyák, párbeszédablakok, menük és panelek lekerekített sarkainak be- vagy kikapcsolása.
+  themeFont: Betűtípus
+  themeFontDescription: Módosítsa az indító betűtípusát.
+  themeFontUrl: Betűtípus URL-je
+  themeFontUrlPlaceholder: Írja be a HTTP/HTTPS URL-t a betűtípushoz
+  themeImport: Téma importálása
+  themeResetFont: Betűtípus visszaállítása
+  themeSelectFont: Válassza a Betűtípus lehetőséget
+  themeSettings: Téma
+  themeShare: Téma megosztása
+  themeShareDescription: Megoszthatja a témát a barátjával.
+  update: Frissítés
+  useBmclAPI: BMCL API használata
+  useBmclAPIDescription: >-
+    Használd a BMCLAPI-t a Minecraft letöltéséhez, ha a kínai kontinensen tartózkodsz. (Ez nem befolyásolja, ha nem a kínai kontinensen tartózkodik.)
+  useProxy: HTTP Proxy
+  useProxyDescription: A http-kérés proxy-kiszolgálójának címe
+  viewBackgroundMusic: Zenék megtekintése
+  setAsBackground:
+    global: Beállítás indító háttereként
+    instance: Beállítás példány háttereként
+    successGlobal: Háttérkép frissítve.
+    successInstance: Példány háttérképe frissítve.
+    failed: Nem sikerült beállítani a háttérképet
+settingLabel:
+  global: Globális
+  globalHint: Ez a beállítás követi a globális beállítást
+  local: Helyi
+  localHint: Ezt a beállítást az aktuális példány módosítja
+setup:
+  account:
+    description: Jelentkezz be a játékfiókodba. Ha nincs, most kihagyhatod.
+    name: Játékfiók hozzáadása
+    skip: Most kihagyom
+  appearance:
+    name: '@:setting.appearance'
+  dataRoot:
+    description: >-
+      Az adatgyökér nem egy közös .minecraft könyvtár. Mivel az PbtModLauncherX adatok könyvtárszerkezet különbözik a vanilla könyvtárszerkezettől, nem javasoljuk, hogy a a közös .minecraft könyvtárat adatgyökérként használni.
+    drives: Ajánlott helyek
+    name: Adatmappa beállítása
+  defaultLayoutDescription: >-
+    Az alapértelmezett elrendezés a játék "példány" koncepcióját próbálja erősíteni. Úgy néz ki, mint az olyan alkalmazások, mint a Discord. Más játékindító alkalmazások, mint a Steam stb. is inspirálták.
+  defaultPath: Alapértelmezett útvonal
+  error:
+    badDataRoot: >-
+      Érvénytelen könyvtár az indítóadatokhoz! Kérjük, próbálkozzon más könyvtárral!
+    exists: >-
+      A kiválasztott könyvtár nem üres. Ez rendben van, de kérjük, készítsen biztonsági mentést az adatokról.
+    invalidChar: |-
+      Az elérési út érvénytelen karaktereket tartalmaz!
+      Ez okozhatja, hogy a Minecraft nem kezdődik!
+      A plakán csak angol karaktereket és szimbólumot használ!
+    noPermission: >-
+      Az launchernek nincs jogosultsága a kiválasztott könyvtárhoz! Kérlek, próbálj meg egy másikat.
+    nonDictionary: A kiválasztott útvonal egy fájl! Kérlek válasszon ki egy könyvtárat!
+  focusLayoutDescription: >-
+    A fókusz elrendezés a Minecraft Launcher régi elrendezése. Ezt úgy tervezték egyetlen példány vagy néhány példány használatára tervezték.
+  game:
+    name: Létező játék beimportálása
+  locale:
+    description: >-
+      Válaszd ki a kívánt nyelvet, ha van! Ha nem látod az anyanyelvedet, és segíteni szeretnél, akkor látogass el a Githubra, hogy pull requesteket küldj a fordításhoz!
+    language: Nyelv
+    name: Nyelv beállítása
+  path: Jelenlegi útvonal
+shaderPack:
+  linkShared: Árnyékolócsomagok megosztása példányok között
+  linkSharedHint: >-
+    Kösse össze ennek a példánynak a shaderpacks mappáját a globális megosztott
+    mappával, hogy minden példány ugyanazokat az árnyékolócsomagokat használja. A
+    meglévő csomagok a megosztott mappába kerülnek.
+  disabled: Shader pack kikapcsolása
+  dropHint: Shader pack importálása
+  empty: Nincs kijelölt shader csomag
+  enable: '{name} shader pack használata'
+  enabled: Engedélyezett Shader Pack
+  manage: Shader packek kezelése
+  name: Shader Pack
+  noShaderMod: Nincs telepítve Shader Mod
+  noShaderModHint: A shader nem használható shader mod nélkül
+  noShaderModInstallHint: A shader csomag betöltéséhez telepítenie kell a következő modok egyikét.
+  searchHint: Shader Pack keresése
+  selectSearchHint: Keresés és Shader Pack kiválasztása
+  showDirectory: Shader pack könyvtár megjelenítése
+  showFile: Shader pack megjelenítése a mappában
+  market: Shaderpiac
+  noPacks: Nincs shadercsomag telepítve
+  search: Shadercsomagok keresése...
+shared:
+  close: Bezárás
+  pressKeyCombination: Nyomjon meg egy billentyűkombinációt...
+  add: Új
+  author: Készítő
+  back: Vissza
+  browse: Böngészés
+  cancel: Mégsem
+  checkUpgrade: Frissítések ellenőrzése
+  client: Kliens
+  description: Leírás
+  disable: Letiltás
+  download: Letöltés
+  edit: Szerkesztés
+  enable: Engedélyezés
+  filter: Szűrő
+  install: Telepítés
+  installed: Telepítve
+  keepSelected: Tartsa kiválasztva
+  manage: Modok kezelése
+  name: Név
+  next: Következő
+  'no': Nem
+  ok: Oké
+  previous: Előző
+  refresh: Frissítés
+  remove: Eltávolítás
+  search: Keresés
+  server: Szerver
+  skipForNow: Most hagyd ki
+  upgrade: Frissítés
+  'yes': Igen
+  delete: Törlés
+sidebar:
+  pin: Rögzít
+  unpin: Rögzítés feloldása
+sortBy:
+  alphabetAsc: Rendezés ábécé szerint (emelkedő)
+  alphabetDesc: Rendezés ábécé szerint (csökkenő)
+  timeAsc: Rendezés módosítási idő szerint (növekvő)
+  timeDesc: Rendezés módosítási idő szerint (csökkenő)
+  name: Rendezés
+store:
+  popularity: Népszerűség / követések
+  discover: Fedezze fel
+  latestMinecraft: Legfrissebb Minecraft verzió
+  name: Modcsomag piac
+  searchResult: Keresés eredménye
+  trending: Felkapott
+  empty: Nem található modpack
+  emptyHint: Próbáld módosítani a szűrőket vagy a keresést.
+  searchHint: Modpackok keresése...
+tag:
+  create: Címke létrehozása
+  createSelected: Címke létrehozása a kiválasztotthoz
+task:
+  running: Folyamatban...
+  succeed: Befejezve
+  eta: kb. {time} van hátra
+  remaining: '{size} van hátra'
+  totalRemaining: '{size} maradt'
+  op:
+    update: Frissítés
+    export: Exportálás
+    duplicate: Kettőzés
+  cancelled: Törölt
+  clear: Befejezett folyamatok törlése
+  connection:
+    connected: csatlakoztatva
+    free: Ingyenes
+    pending: Függőben levő
+    queued: Sorban
+    running: Futó kapcsolat
+    size: teljes számlálás
+  connections: Hálózati kapcsolatok
+  empty: Nincs futó folyamat
+  failed: Sikertelen
+  manager: Folyamatkezelő
+  nTaskRunning: '{count} folyamat fut'
+  name: Folyamat | Folyamatok
+  pause: Szüneteltetés
+theme:
+  selectImage: Válassza a Kép lehetőséget
+  selectMusic: Válassza a Zene lehetőséget
+  selectVideo: Válassza a Videó lehetőséget
+  title: PbtModLauncherX
+title: PbtModLauncherX
+transportType:
+  host: Kiszolgáló jelölt
+  prflx: Peer Reflexív jelölt
+  relay: Relay jelölt
+  srflx: Kiszolgáló Reflexív jelölt
+turnRegion:
+  fr: Franciaország
+  guangzhou: Guangzhou, Kína
+  hk: Hong Kong
+  liaoning: Liaoning, Kína
+  po: Lengyelország
+tutorial:
+  feedbackDescription: Ha bármilyen probléma merül fel, kérlek, kattints erre a gombra, hogy visszajelzést küldj!
+  hideNewsHeaderDescription: |-
+    Bal oldalon a Hírek bemutatója látható.
+    Erre a gombra kattintva elrejtheti ezt a kirakatot.
+  instance:
+    appearanceThemeDescription: Egyéni háttérkép, színek és vizuális stílus beállítása ehhez a példányhoz.
+    appearanceThemeTitle: Példány megjelenése
+    iconDescription: Kattints az ikon megváltoztatásához.
+    iconTitle: Példány ikonja
+    javaDescription: Válassz vagy válts Java verziót.
+    javaImportDescription: Importálj Java futtatókörnyezetet helyi tárhelyről.
+    javaImportTitle: Java importálása
+    javaTitle: Java lista
+    modpackExportDescription: Építsd fel és csomagold be a konfigurált példányt megosztható modpackké.
+    modpackExportTitle: Modpack exportálása
+    modpackFilesDescription: Válaszd ki a klienshez és szerverhez csomagolandó konfigurációkat, modokat és erőforrásokat.
+    modpackFilesTitle: Mellékelt fájlok
+    modpackMetaDescription: Add meg a modpack verzióját, készítőjét, leírását és weboldalát.
+    modpackMetaTitle: Modpack részletei
+    modpackOptionsDescription: Válaszd ki a célmappát és a formátumot (pl. Modrinth vagy CurseForge modpack).
+    modpackOptionsTitle: Exportálási beállítások
+    serverLaunchDescription: Indítsd el vagy állítsd le a példány dedikált szerverét közvetlenül a fejlécre kattintva.
+    serverLaunchTitle: Szerver indítása / leállítása
+    serverPropertiesDescription: Állítsd be a portot, nehézséget, MOTD-t, játékoskorlátot és játékszabályokat.
+    serverPropertiesTitle: Szerver konfigurációja
+    serverServiceDescription: Kezeld a szervert háttérben futó rendszerszolgáltatásként (systemd vagy Windows szolgáltatás).
+    serverServiceTitle: Rendszerszolgáltatás
+    serverTargetDescription: Válassz a helyi futtatás vagy a távoli Linux szerver SSH-n keresztüli kezelése között.
+    serverTargetTitle: Szerver célpontja
+    versionDescription: Válassz Minecraft verziót és Forge, Fabric, Quilt vagy NeoForge betöltőt.
+    versionTitle: Minecraft és Betöltő verzió
+  instanceAddDescription: Erre a gombra kattintva importálhatsz létező Minecraftot vagy hozhatsz létre egy újat a vagy modcsomagot.
+  instanceSelectDescription: Erre a gombra kattintva a játék kiválasztásához és a hírek olvasásához szükséges oldalra navigál.
+  launchDescription: Kattints erre a gombra a játék telepítéséhez vagy elindításához.
+  mod:
+    defaultSourceDescription: Itt kiválaszthatja a modok forrását. Vannak a Modrinth és a Curseforge által közzétett modok. Ha váltani akarsz e két tartalomszolgáltató között. Itt módosíthatod az értéket.
+    defaultSourceTitle: Mod tartalom forrásának kiválasztása
+    detailDescription: Amikor kiválaszt egy elemet a bal oldalon. Látni fogja a mod részleteit. A tartalom származhat Modrinth, Curseforge vagy elemzett mod tartalmából.
+    detailTitle: Mod részletek
+    listDescription: Megjelenítjük a telepített modokat, ha nincs inputja. A keresett modokat akkor fogja látni, ha a kulcsszó vagy a kategória kiválasztása megtörtént.
+    listTitle: Installed or Searched Mod
+    searchDescription: A Modrinth, Curseforge vagy a helyi gyorsítótár modjait keresheted ezzel a keresőmezővel.
+    searchTitle: Modok keresése
+  recentPlayDescription: |-
+    A létrehozott játékok itt lesznek felsorolva.
+    Itt váltogathatja a nézeteket, hogy megtekinthesse a telepített verziókat és a letöltött modpackokat is.
+  storePoupularModpackDescription: Ebben a részben láthatja a Curseforge és Modrinth legnépszerűbb modpackjait.
+  storeSearchCategoryDescription: Itt is válthat a kategóriák és a szűrők között.
+  storeSearchDescription: |-
+    Ebbe a szövegmezőbe beírva kereshet a Modpack között.
+    Nyomja meg az Entert a kereséshez.
+  storeSearchResultDescription: Itt látni fogja az összes keresési eredményt.
+  userAccountDescription: Erre az ikonra kattintva adhatod hozzá vagy kezelheted Minecraft-fiókodat.
+  tooltip: Súgó és Vezetés
+  done: Értem!
+  helpDescription: Interaktív útmutató az indítóhoz és az aktuális oldalhoz.
+  blueprint:
+    searchTitle: Tervrajzok keresése
+    searchDescription: Keress helyi és közösségi tervrajzokat név vagy címke alapján.
+    listTitle: Tervrajzok listája
+    listDescription: Tekintsd meg és kezeld a mentett példány-tervrajzokat és sablonokat.
+    detailTitle: Tervrajz részletei
+    detailDescription: Ellenőrizd a tervrajz tartalmát, a modokat, és hozz létre új példányokat.
+  me:
+    instancesTitle: Példányok kezelése
+    instancesDescription: Tekintsd meg az összes telepített példányt, rendezd mappa vagy dátum szerint, és indítsd el.
+    profileTitle: Fiók és Profil
+    profileDescription: Válts fiókjaid között és kezeld a bejelentkezési adatokat.
+    skinTitle: Kinézet és Köpeny testreszabása
+    skinDescription: Tekintsd meg karaktered 3D-ben, válts kinézetet és ölts köpenyt.
+  multiplayer:
+    railTitle: Hálózat és Navigáció
+    railDescription: Ellenőrizd a NAT típust, hálózati állapotot, és válts kapcsolatok és beállítások között.
+    groupTitle: Csatlakozás vagy Szoba létrehozása
+    groupDescription: Adj meg egy szobakódot a csatlakozáshoz, vagy hagyd üresen saját szoba nyitásához.
+    joinDescription: Kattints meglévő szobához csatlakozáshoz vagy új készítéséhez.
+    contentTitle: Csatlakozott tagok és Tartalom
+    contentDescription: Kezeld a tagokat, figyeld a késleltetést és oszd meg a futó játékot.
+    manualDescription: Közvetlen kézi P2P kapcsolat ismerősökkel SDP adatcsere révén.
+  resourcepack:
+    searchTitle: Erőforráscsomagok keresése
+    searchDescription: Keress erőforráscsomagokat a Modrinth-en, CurseForge-on vagy helyi fájlokban.
+    listTitle: Erőforráscsomagok listája
+    listDescription: Böngészd a telepített csomagokat, kapcsold be/ki őket és állítsd be a prioritást.
+    detailTitle: Csomag részletei
+    detailDescription: Képernyőképek, leírások, kompatibilis Minecraft verziók és fájlok megtekintése.
+  save:
+    searchTitle: Világok keresése
+    searchDescription: Szűrd és keresd a jelenlegi példány világait név szerint.
+    listTitle: Világok listája
+    listDescription: Minden mentett világ játékmóddal, utolsó játékidővel és fájlmérettel.
+    detailTitle: Világ részletei és Műveletek
+    detailDescription: Készíts biztonsági mentést, exportáld, vizsgáld a level.dat-ot vagy módosítsd a beállításokat.
+  settings:
+    navDescription: Váltás az Általános, Megjelenés, Globális játékbeállítások és Hálózat között.
+    generalDescription: Nyelv, adatmappa, frissítési csatornák és indítási beállítások konfigurálása.
+    appearanceDescription: Téma, háttérképek, kiemelő színek és felületi elrendezés testreszabása.
+    globalDescription: Alapértelmezett Java verzió, memóriakiosztás és JVM argumentumok megadása.
+    networkDescription: Letöltési tükrök, proxy beállítások és párhuzamos feladatok határértékei.
+  shaderpack:
+    searchTitle: Shader csomagok keresése
+    searchDescription: Keress shadereket a Modrinth-en, CurseForge-on vagy a helyi gyorsítótárban.
+    listTitle: Shader csomagok listája
+    listDescription: Böngészd a telepített shadereket és válts közöttük gyorsan.
+    detailTitle: Shader részletei
+    detailDescription: Tekintsd meg a készítőt, felbontási követelményeket, profilokat és opciókat.
+universalDrop:
+  unknownResource: Ismeretlen
+unresolvedFiles:
+  description: >-
+    Ezeket a fájlokat nem sikerült letölteni a telepítés során. Keress
+    megfelelő forrást, telepítsd a találatokat, vagy hagyj figyelmen kívül
+    fájlokat az indításhoz.
+  empty: Minden fájl feloldva.
+  ignoreSelected: '{count} mellőzése'
+  install: '{count} találat telepítése'
+  matched: Találat
+  noMatch: Nem található
+  search: Források keresése
+  source:
+    curseforge-name: CurseForge
+    dependency: Függőség
+    modrinth-hash: Modrinth hash
+    modrinth-name: Modrinth
+  title: Feloldatlan fájlok
+  via: '{source} révén'
+upstream:
+  downgrade: Visszaváltás
+  onlyShowCurrentVersion: Csak az aktuális Minecraft verzió megjelenítése
+  update: Frissítés
+user:
+  accessToken: Hozzáférési token
+  authMode: Auth szolgáltatás
+  authService: Szolgáltatás engedélyezése
+  email: Email Cím
+  id: Felhasználó Id
+  name: Felhasználónév
+  nameHint: A játékban megjelenő név
+  profile: Profil
+  tokenExpired: Lejárt
+  tokenValidUntil: Token Érvényes addig
+userAccount:
+  add: Fiók hozzáadása
+  removeDescription: Ez törli a fiók összes adatát. Biztos vagy benne?
+  removeTitle: Fiók eltávolítása
+userCape:
+  changeTitle: Köpeny változtatása
+  description: >-
+    A köpenyek különleges jutalmak, amelyeket a játékosok különböző eseményeken keresztül oldhatnak fel, kampányok és más vidám események során. Itt választhatsz a köpenyek közül amelyek jelenleg a tulajdonodban vannak:
+  noCape: Nincs köpeny
+userService:
+  add: További szolgáltatás hozzáadása
+  authlibInjectorMetadata: Authlib-Injector metaadatok
+  baseUrlHint: Az egyéni szolgáltatás alap URL címe
+  homepage: Kezdőlap
+  implementation: Implementáció
+  manageServices: Szolgáltatások kezelése
+  register: Regisztráció
+  server: Szerver
+  skinDomains: Skin domainek
+  title: Harmadik fél felhasználói szolgáltatásai
+  version: Verzió
+userServices:
+  microsoft:
+    account: Microsoft Fiók
+    deviceCode: Eszközkód
+    deviceCodeHint: Az eszközkód a bejelentkezés gombra kattintás után generálódik
+    name: Microsoft
+    password: Jelszó megadása a böngészőben
+    useDeviceCode: Bejelentkezés eszközkóddal
+  mojang:
+    account: Email cím
+    name: Mojang
+    password: Jelszó
+  offline:
+    account: Felhasználónév
+    name: Offline
+    password: Nincs jelszó
+    uuid: Felhasználó UUID (Opcionális)
+userSkin:
+  import: Kinézet importálása
+  importFile: Megnyitás fájlból
+  importLink: Megnyitás linkről
+  placeUrlHere: Rakj ide egy kinézet URL-t az importáláshoz
+  reset: Törlés
+  save: Mentés
+  saveTitle: Kinézet letöltése
+  skinType: Kinézet típusa
+  upload: Kinézet feltöltése
+  urlNotEmpty: Kinézet URL nem lehet üres
+  urlNotValid: Kinézet URL érvénytelen
+  useSlim: Vékony modell használata
+  classic: Klasszikus
+  slim: Vékony
+  saveSuccess: A kinézet lemezre mentve!
+  saveFailed: Nem sikerült lemezre menteni a kinézetet
+  uploadFailed: Nem sikerült feltölteni a kinézetet
+  libraryTitle: Helyi ruhatár
+  librarySubtitle: Válaszd ki, kezeld és mentsd helyben a kinézeteidet
+  manage: Kezelés
+  all: Mind
+  currentSkin: Jelenlegi kinézet
+  savedCount: mentett kinézet
+  newSkin: Új kinézet
+  addNewSkin: Új kinézet hozzáadása
+  editSkin: Kinézet szerkesztése
+  skinName: Kinézet neve
+  skinNamePlaceholder: 'pl. A kedvenc kinézetem'
+  localFile: Helyi fájl
+  urlOrPlayer: URL / Játékosnév
+  urlOrPlayerPlaceholder: Add meg a kép URL-jét vagy a Minecraft-felhasználónevet
+  urlOrPlayerHint: Adj meg egy közvetlen PNG-kép URL-t vagy játékosnevet a kinézet Mojangtól való lekéréséhez
+  dropFileHere: Húzd ide a kinézet PNG-fájlját, vagy kattints a tallózáshoz
+  supportedFormats: 'Támogatott formátum: 64x64 vagy 64x32 méretű PNG-kép'
+  preview: Kinézet előnézete
+  previewPlaceholder: Nem érhető el előnézet
+  saveToLibrary: Mentés a ruhatárba
+  saveAndEquip: Mentés és használat
+  equip: Használat
+  equipToAccount: Használat a Minecraft-fiókban
+  equipped: Használatban
+  noSkinSelected: Nincs kiválasztott kinézet
+  saveCurrent: Jelenlegi mentése
+  officialPreset: Hivatalos készlet
+  mySkins: Saját kinézetek
+  presets: Készletek
+  noSkinsFound: Nem találhatók kinézetek
+  tryAddingOne: Adj hozzá egy új kinézetet a fenti gombbal!
+  skinUpdated: A kinézet frissítve!
+  skinDeleteFailed: Nem sikerült eltávolítani a kinézetet a ruhatárból
+  edit: Szerkesztés
+  fetch: Betöltés
+version:
+  checkIntegrity: Ellenőrizze az integritást
+  name: Verzió | Verzió
+  notInstalled: Verzió nincs telepítve
+versionType:
+  alpha: Alfa
+  beta: Béta
+  name: Státusz
+  release: Kiadás
+downloadModMetadataDb:
+  name: Mod metaadat-adatbázis letöltése
+duplicateInstance:
+  name: Példány duplikálása
+exportModpack:
+  name: Modpack exportálása
+installProfile:
+  name: 'Profil telepítése: {version}'
+installQuilt:
+  name: 'Quilt telepítése: {version}'
+instanceLauncher:
+  search: Példányok keresése...
+  showAll: Összes példány megjelenítése
+  title: Összes példány
+migrateMinecraft:
+  name: Minecraft-fájlok migrálása
+reinstall:
+  name: 'Újratelepítés: {version}'
+
+blueprint:
+  name: Tervrajz | Tervrajzok
+  count: '{count} tervrajz'
+  searchLocal: Tervrajzok keresése...
+  searchOnline: Keresés online...
+  market: Piac
+  provider: Forrás
+  import: Importálás
+  openFolder: Mappa megnyitása
+  refresh: Frissítés
+  empty: Nem találhatók tervrajzok. Importálj .litematic / .schem / .nbt fájlt, vagy böngéssz a piacon.
+  dropHint: Húzd ide a tervrajzfájlokat (.litematic / .schem / .nbt) az importáláshoz.
+  selectHint: Válassz ki egy tervrajzot az előnézethez.
+  blocks: '{count} blokk'
+  materials: Anyagok
+  findMod: Mod keresése ehhez a névtérhez
+  compatible: Kompatibilis
+  incompatible: Hiányzó modok
+  missingNamespaces: 'Hiányzó modok ehhez: {namespaces}'
+  install: Telepítés
+  goTo: Webhely
+  byAuthor: 'szerző: {author}'
+  noDescription: Nincs leírás.
+  mixedSources: Az eredmények minden forrásból származnak. Néhány csak böngészhető — letöltéshez nyisd meg a webhelyét.
+  preview:
+    loading: Előnézet betöltése...
+    empty: Ez a tervrajz nem tartalmaz megjeleníthető blokkokat.
+    hint: '{count} blokk · {x}×{y}×{z}'
+    controls: 'WASD: mozgás · Szóköz/Shift: fel/le · Húzás: nézés · Görgetés: zoom'
+  convert:
+    title: Formátum átalakítása
+    hint: Alakítsd át ezt a tervrajzot más formátumra. Új fájl jön létre.
+    target: Célformátum
+    action: Átalakítás
+  replace:
+    title: Blokkok cseréje
+    simple: Egyszerű csere
+    precise: Pontos csere
+    simpleHint: Egy típus minden blokkjának cseréje.
+    preciseHint: Csak a megadott tulajdonságoknak megfelelő blokkok cseréje.
+    from: Erről
+    to: Erre
+    addRule: Szabály hozzáadása
+    newFile: Új fájl
+    action: Csere
+  formats:
+    structure: Vanilla struktúra

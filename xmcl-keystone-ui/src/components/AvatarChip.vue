@@ -1,15 +1,17 @@
 <template>
   <v-chip
     label
-    outlined
-    :small="small"
+    variant="outlined"
+    :size="small ? 'small' : undefined"
     @click="emit('click')"
   >
-    <v-avatar :left="true">
-      <img
-        :src="avatar"
-      >
-    </v-avatar>
+    <template #prepend>
+      <v-avatar start>
+        <img
+          :src="avatar"
+        >
+      </v-avatar>
+    </template>
     <div v-if="text">
       {{ text }}
     </div>

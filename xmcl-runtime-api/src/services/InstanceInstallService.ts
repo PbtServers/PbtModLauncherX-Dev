@@ -1,7 +1,30 @@
-import { SharedState } from '../util/SharedState'
-import { InstanceUpstream } from '../entities/instance.schema'
-import { InstanceFile } from '../entities/instanceManifest.schema'
-import { ServiceKey } from './Service'
+import type { InstanceFile, InstanceInstallManifest, InstanceUpstream } from '@xmcl/instance'
+import type { WithDownload, WithProgress } from '@xmcl/installer'
+import type { SharedState } from '../util/SharedState'
+import type { Task, SubState } from '../task'
+import type { ServiceKey } from './Service'
+
+export interface InstallInstanceTrackerEvents {
+  'install-instance.resolve': {}
+  'install-instance.download': WithDownload<{ count: number }>
+  'install-instance.unzip': WithProgress<{ count: number }>
+  'install-instance.link': WithProgress<{ count: number }>
+}
+
+export interface InstallInstanceTask extends Task {
+  type: 'installInstance'
+  instancePath: string
+  instanceName?: string
+  fileName?: string
+  icon?: string
+  isUpdate?: boolean
+  taskId?: string
+  substate:
+    | SubState<InstallInstanceTrackerEvents, 'install-instance.resolve'>
+    | SubState<InstallInstanceTrackerEvents, 'install-instance.download'>
+    | SubState<InstallInstanceTrackerEvents, 'install-instance.unzip'>
+    | SubState<InstallInstanceTrackerEvents, 'install-instance.link'>
+}
 
 export type InstanceFileUpdate = {
   file: InstanceFile
@@ -80,6 +103,16 @@ export type InstallFileError = {
  * Provide the abilities to import/export instance from/to modpack
  */
 export interface InstanceInstallService {
+  /** Add file changes to the pending instance install manifest. */
+  stageInstanceFiles(options: Extract<InstallInstanceOptions, { oldFiles: InstanceFile[] }>): Promise<InstanceInstallManifest>
+  /** Replace the pending manifest with an exact set of selected file changes. */
+  setInstanceInstallManifest(options: Extract<InstallInstanceOptions, { oldFiles: InstanceFile[] }>): Promise<InstanceInstallManifest | undefined>
+  /** Read the pending instance install manifest. */
+  getInstanceInstallManifest(path: string): Promise<InstanceInstallManifest | undefined>
+  /** Apply and clear the pending instance install manifest. */
+  applyInstanceInstallManifest(path: string, id?: string): Promise<void>
+  /** Discard the pending instance install manifest without applying it. */
+  discardInstanceInstallManifest(path: string): Promise<void>
   /**
    * Install the instance files.
    *
@@ -121,8 +154,12 @@ export interface InstanceInstallService {
    * Dismiss the unresolved files in the instance.
    * 
    * This method is used to remove the unresolved files as user is already handled them.
+   *
+   * @param path The instance path
+   * @param files The relative paths of the unresolved files to dismiss. If not
+   * provided, all unresolved files will be dismissed.
    */
-  dismissUnresolvedFiles(path: string): Promise<void>
+  dismissUnresolvedFiles(path: string, files?: string[]): Promise<void>
 }
 
 export const InstanceInstallServiceKey: ServiceKey<InstanceInstallService> = 'InstanceInstallService'

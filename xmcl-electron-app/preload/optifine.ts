@@ -1,4 +1,7 @@
 import { ipcRenderer } from 'electron'
+import { parseOfficialOptifineName } from '../main/controllers/optifineSource'
+
+const OPTIFINE_HOST = 'https://optifine.net'
 
 function iterateTable(table: HTMLTableElement) {
   return Array.from(table.querySelectorAll('tr')).map(row => {
@@ -105,14 +108,7 @@ function handleDownloadsPage() {
   }
 
   function parseOptifineVersion(v: string) {
-    v = v.replace('OptiFine ', '')
-    const [hd, u, ...others] = v.split(' ')
-    const type = `${hd}_${u}`
-    const patch = others.join('_')
-    return {
-      type,
-      patch,
-    }
+    return parseOfficialOptifineName(v)
   }
 
   const mapped = allResults.flatMap(v => v.downloads.map(d => ({
@@ -128,13 +124,16 @@ function handleDownloadsPage() {
 }
 
 function handleDownloadPage() {
-  const href = document.querySelector('.downloadButton a')?.getAttribute('href')
-  const realUrl = new URL(href ?? '', 'https://optifine.net')
+  const href = document.querySelector<HTMLAnchorElement>(
+    '.downloadButton a, a[href^="downloadx.php?f="], a[href^="/downloadx.php?f="]',
+  )?.getAttribute('href')
+  if (!href) return
+  const realUrl = new URL(href, OPTIFINE_HOST)
   ipcRenderer.send('optifine-download', realUrl.toString())
 }
 
 window.addEventListener('load', () => {
-  if (window.location.href === 'https://optifine.net/downloads') {
+  if (window.location.href === `${OPTIFINE_HOST}/downloads`) {
     handleDownloadsPage()
   } else if (window.location.href.indexOf('adloadx') !== -1) {
     handleDownloadPage()

@@ -1,0 +1,408 @@
+import { z } from 'zod'
+
+/**
+ * Runtime versions for a Minecraft instance
+ */
+export const RuntimeVersionsSchema = z
+  .object({
+    /** Minecraft version of this version. e.g. 1.7.10 */
+    minecraft: z.string().catch('').default(''),
+    /** Forge version of this version. e.g. 14.23.5.2838 */
+    forge: z.string().catch('').default(''),
+    /** NeoForged version of this version. e.g. 14.23.5.2838 */
+    neoForged: z.string().catch('').default(''),
+    /** Fabric loader version, e.g. 0.7.2+build.175 */
+    fabricLoader: z.string().catch('').default(''),
+    quiltLoader: z.string().catch('').default(''),
+    /** Optifine version e.g. HD_U_F1_pre6 or HD_U_E6 */
+    optifine: z.string().catch('').default(''),
+    /** The labyMod version */
+    labyMod: z.string().catch('').default(''),
+  })
+
+export type RuntimeVersions = z.infer<typeof RuntimeVersionsSchema>
+export type PartialRuntimeVersions = Partial<RuntimeVersions> & { minecraft: string }
+
+/**
+ * The edition of Minecraft an instance targets.
+ *
+ * - `java`: the classic Java Edition launched through a JVM (the default).
+ * - `bedrock`: the Bedrock Edition launched through the Microsoft Store UWP
+ *   package. Bedrock is only supported on the Windows build.
+ */
+export const InstanceEditionSchema = z.enum(['java', 'bedrock'])
+
+export type InstanceEdition = z.infer<typeof InstanceEditionSchema>
+
+export const DEFAULT_INSTANCE_EDITION: InstanceEdition = 'java'
+
+/**
+ * Modrinth modpack upstream configuration
+ */
+export const ModrinthUpstreamSchema = z.object({
+  type: z.literal('modrinth-modpack'),
+  projectId: z.string(),
+  versionId: z.string(),
+  sha1: z.string().optional(),
+})
+
+export type ModrinthUpstream = z.infer<typeof ModrinthUpstreamSchema>
+
+/**
+ * Curseforge modpack upstream configuration
+ */
+export const CurseforgeUpstreamSchema = z.object({
+  type: z.literal('curseforge-modpack'),
+  modId: z.coerce.number(),
+  fileId: z.coerce.number(),
+  sha1: z.coerce.string().optional(),
+})
+
+export type CurseforgeUpstream = z.infer<typeof CurseforgeUpstreamSchema>
+
+/**
+ * FTB modpack upstream configuration
+ */
+export const FTBUpstreamSchema = z.object({
+  type: z.literal('ftb-modpack'),
+  id: z.coerce.number(),
+  versionId: z.coerce.number(),
+})
+
+export type FTBUpstream = z.infer<typeof FTBUpstreamSchema>
+
+/**
+ * Peer upstream configuration (for local sharing)
+ */
+export const PeerUpstreamSchema = z.object({
+  type: z.literal('peer'),
+  /** Legacy peer/session identifier retained for existing instance data. */
+  id: z.string(),
+  /** Stable XMCL account that shared this instance through a room. */
+  accountId: z.string().optional(),
+  /** Content hint only; callers must verify the current instance manifest. */
+  fingerprint: z.string().optional(),
+})
+
+export type PeerUpstream = z.infer<typeof PeerUpstreamSchema>
+
+/**
+ * Server upstream configuration. The instance is bound to a remote Minecraft
+ * server; the launcher follows the server's reported protocol version.
+ */
+export const ServerUpstreamSchema = z.object({
+  type: z.literal('server'),
+  host: z.string(),
+  port: z.number().positive().optional(),
+  /** Display name carried alongside the server in `servers.dat`. */
+  name: z.string().optional(),
+})
+
+export type ServerUpstream = z.infer<typeof ServerUpstreamSchema>
+
+/**
+ * Union type for all possible upstream configurations
+ */
+export const InstanceUpstreamSchema = z.discriminatedUnion('type', [
+  CurseforgeUpstreamSchema,
+  ModrinthUpstreamSchema,
+  FTBUpstreamSchema,
+  PeerUpstreamSchema,
+  ServerUpstreamSchema,
+])
+
+export type InstanceUpstream = z.infer<typeof InstanceUpstreamSchema>
+
+/** Desired dedicated-server state owned by the instance, independent of its execution target. */
+export const ServerDeploymentPolicySchema = z.enum(['mirror', 'overlay', 'initialize', 'preserve'])
+
+export type ServerDeploymentPolicy = z.infer<typeof ServerDeploymentPolicySchema>
+
+export const InstanceServerConfigSchema = z.object({
+  eula: z.boolean().catch(false).default(false),
+  motd: z.string().catch('A Minecraft Server').default('A Minecraft Server'),
+  port: z.number().int().positive().max(65535).catch(25565).default(25565),
+  maxPlayers: z.number().int().positive().catch(20).default(20),
+  onlineMode: z.boolean().catch(false).default(false),
+  nogui: z.boolean().catch(true).default(true),
+  world: z.object({
+    mode: z.enum(['create', 'instance', 'preserve']).catch('create').default('create'),
+    saveName: z.string().optional().catch(undefined),
+  }).catch({ mode: 'create' }).default({ mode: 'create' }),
+  mods: z.array(z.string()).optional().catch(undefined),
+  deployment: z.object({
+    config: z.object({
+      policy: ServerDeploymentPolicySchema.catch('mirror').default('mirror'),
+      /** Paths relative to `<instance>/server`; undefined until first discovery. */
+      files: z.array(z.string()).optional().catch(undefined),
+    }).catch({ policy: 'mirror' }).default({ policy: 'mirror' }),
+    mods: z.object({
+      policy: ServerDeploymentPolicySchema.catch('mirror').default('mirror'),
+    }).catch({ policy: 'mirror' }).default({ policy: 'mirror' }),
+    world: z.object({
+      policy: ServerDeploymentPolicySchema.catch('initialize').default('initialize'),
+    }).catch({ policy: 'initialize' }).default({ policy: 'initialize' }),
+    extra: z.object({
+      policy: ServerDeploymentPolicySchema.catch('overlay').default('overlay'),
+      /** Explicitly selected paths not owned by config, mods, or world. */
+      files: z.array(z.string()).optional().catch(undefined),
+    }).catch({ policy: 'overlay' }).default({ policy: 'overlay' }),
+  }).catch({
+    config: { policy: 'mirror' },
+    mods: { policy: 'mirror' },
+    world: { policy: 'initialize' },
+    extra: { policy: 'overlay' },
+  }).default({
+    config: { policy: 'mirror' },
+    mods: { policy: 'mirror' },
+    world: { policy: 'initialize' },
+    extra: { policy: 'overlay' },
+  }),
+  /** Optional OS service registration shared by local and remote targets. */
+  service: z.object({
+    enabled: z.boolean().catch(false).default(false),
+    name: z.string().catch('').default(''),
+    startCommand: z.string().optional().catch(undefined),
+  }).catch({ enabled: false, name: '' }).default({ enabled: false, name: '' }),
+})
+
+export type InstanceServerConfig = z.infer<typeof InstanceServerConfigSchema>
+
+/**
+ * Remote SSH server admin connection profile. Describes where the dedicated
+ * server lives on a remote host and (optionally) how the launcher should
+ * manage its process lifecycle via a `systemd --user` unit.
+ *
+ * Secrets (password / private key passphrase) are deliberately NOT part of
+ * this schema — they are stored separately via the OS keychain
+ * (`SecretStorage`), keyed by instance path, so `instance.json` never holds
+ * plaintext credentials.
+ */
+export const RemoteServerConnectionSchema = z.object({
+  /** User-facing label for this Linux target. */
+  name: z.string().catch('SSH Target').default('SSH Target'),
+  host: z.string(),
+  port: z.number().positive().catch(22).default(22),
+  username: z.string(),
+  /** Absolute path to the server directory on the remote host. */
+  remotePath: z.string(),
+  authMethod: z.union([z.literal('password'), z.literal('privateKey')]),
+  /** Path to the private key file on the local machine, when using `privateKey` auth. */
+  privateKeyPath: z.string().optional().catch(undefined),
+  /** Legacy target-specific service name. New profiles use `serverConfig.service.name`. */
+  serviceName: z.string().optional().catch(undefined),
+  /** Legacy target-specific start command. New profiles use `serverConfig.service.startCommand`. */
+  startCommand: z.string().optional().catch(undefined),
+  /** Desired-state revision applied by the last successful reconciliation. */
+  lastSyncedRevision: z.string().optional().catch(undefined),
+  lastSyncedAt: z.number().optional().catch(undefined),
+})
+
+export type RemoteServerConnection = z.infer<typeof RemoteServerConnectionSchema>
+
+/**
+ * Core instance data structure
+ */
+export const InstanceDataSchema = z.object({
+  /** The display name of the profile. It will also be the modpack display name */
+  name: z.coerce
+    .string()
+    .transform((v) => v.trim())
+    .catch('')
+    .default(''),
+  /** The author of this instance */
+  author: z.coerce.string().catch('').default(''),
+  /** The description of this instance */
+  description: z.coerce.string().catch('').default(''),
+  /** The target version id to launch. It will be computed from "runtime" */
+  version: z.coerce.string().catch('').default(''),
+  /**
+   * The Minecraft edition this instance targets. Defaults to `java`.
+   * `bedrock` instances are launched through the Microsoft Store UWP package
+   * and are only supported on the Windows build.
+   */
+  edition: InstanceEditionSchema.catch(DEFAULT_INSTANCE_EDITION).default(DEFAULT_INSTANCE_EDITION),
+  /** The runtime version requirement of the profile */
+  runtime: RuntimeVersionsSchema.catch({
+    minecraft: '',
+    forge: '',
+    fabricLoader: '',
+    optifine: '',
+    quiltLoader: '',
+    neoForged: '',
+    labyMod: '',
+  }).default({
+    minecraft: '',
+    forge: '',
+    fabricLoader: '',
+    optifine: '',
+    quiltLoader: '',
+    neoForged: '',
+    labyMod: '',
+  }),
+  /** The java path on the disk */
+  java: z
+    .string()
+    .optional(),
+  /** The resolution of the game */
+  resolution: z
+    .object({
+      width: z.number().positive().optional(),
+      height: z.number().positive().optional(),
+      fullscreen: z.boolean().optional(),
+      monitor: z.string().optional(),
+    })
+    .optional()
+    .catch(undefined),
+  /** Can be override by global setting */
+  minMemory: z.number().nonnegative().optional().catch(undefined),
+  /** Can be override by global setting */
+  maxMemory: z.number().positive().optional().catch(undefined),
+  /** Can be override by global setting */
+  assignMemory: z
+    .union([z.literal(true), z.literal('auto'), z.literal(false)])
+    .optional()
+    .catch(undefined),
+  /** JVM options */
+  vmOptions: z.array(z.coerce.string()).optional().catch(undefined),
+  /** Minecraft options */
+  mcOptions: z.array(z.coerce.string()).optional().catch(undefined),
+  /** The launch environment variables */
+  env: z.record(z.string(), z.coerce.string()).optional().catch(undefined),
+  /** Command to prepend before launch */
+  prependCommand: z.string().optional().catch(undefined),
+  /** Command to execute before launch */
+  preExecuteCommand: z.string().optional().catch(undefined),
+  url: z.string().catch('').default(''),
+  icon: z.string().catch('').default(''),
+  fileApi: z.string().catch('').default(''),
+  /**
+   * The default launch target server. When set, launching this instance joins
+   * the given server directly instead of opening the client title screen.
+   * `name` is the matching entry's display name in `servers.dat`, which
+   * disambiguates pins when two rows share the same host/port.
+   */
+  server: z
+    .object({
+      host: z.string(),
+      port: z.number().positive().optional(),
+      name: z.string().optional(),
+    })
+    .nullable()
+    .optional()
+    .catch(undefined),
+  /** Various boolean flags */
+  showLog: z.boolean().optional().catch(undefined),
+  hideLauncher: z.boolean().optional().catch(undefined),
+  fastLaunch: z.boolean().optional().catch(undefined),
+  disableElybyAuthlib: z.boolean().optional().catch(undefined),
+  disableAuthlibInjector: z.boolean().optional().catch(undefined),
+  syncGameLanguage: z.boolean().optional().catch(undefined),
+  /** Use latest version settings */
+  useLatest: z
+    .union([z.literal(false), z.literal('release'), z.literal('alpha')])
+    .optional()
+    .catch(undefined),
+  /** The upstream data source for this instance */
+  upstream: InstanceUpstreamSchema.optional().catch(undefined),
+  /**
+   * Remote SSH server admin connection profile for this instance's dedicated
+   * server. Absent when the instance has no remote target configured.
+   */
+  remoteServer: RemoteServerConnectionSchema.optional().catch(undefined),
+  /** Target-independent desired dedicated-server configuration. */
+  serverConfig: InstanceServerConfigSchema.optional().catch(undefined),
+})
+
+export type InstanceData = z.infer<typeof InstanceDataSchema>
+
+/**
+ * Full instance schema with timestamps
+ */
+export const InstanceSchema = InstanceDataSchema.extend({
+  path: z.string().optional(),
+  lastAccessDate: z.coerce.number().catch(0).default(0),
+  lastPlayedDate: z.coerce.number().catch(0).default(0),
+  playtime: z.coerce.number().nonnegative().catch(0).default(0),
+  creationDate: z.coerce.number().catch(0).default(0),
+})
+
+export const InstanceSchemaPartial = InstanceSchema.partial()
+
+export type InstanceDataWithTime = z.infer<typeof InstanceSchema>
+
+export type Instance = InstanceDataWithTime & {
+  path: string
+}
+
+/**
+ * Whether the given instance (or instance data) targets Minecraft Bedrock Edition.
+ *
+ * Instances created before the `edition` field existed have no `edition`
+ * property and are treated as Java Edition.
+ */
+export function isBedrockInstance(instance: Pick<Partial<InstanceData>, 'edition'>): boolean {
+  return instance.edition === 'bedrock'
+}
+
+/**
+ * Check if two upstream sources are from the same origin
+ */
+export function isUpstreamSameOrigin(a: InstanceUpstream, b: InstanceUpstream): boolean {
+  const aType = a.type
+  const bType = b.type
+  if (aType !== bType) return false
+  if (a.type === 'curseforge-modpack') return a.modId === (b as any).modId
+  if (a.type === 'modrinth-modpack') return a.projectId === (b as any).projectId
+  if (a.type === 'ftb-modpack') return a.id === (b as any).id
+  if (a.type === 'peer') {
+    const peer = b as PeerUpstream
+    return (a.accountId || a.id) === (peer.accountId || peer.id)
+  }
+  if (a.type === 'server') {
+    const bs = b as ServerUpstream
+    return a.host === bs.host && (a.port ?? 25565) === (bs.port ?? 25565)
+  }
+  return false
+}
+
+/**
+ * The minimal instance shape required to detect whether an instance already
+ * corresponds to a given modpack.
+ */
+export type InstanceModpackMatchTarget = Pick<Instance, 'path' | 'name'> & {
+  upstream?: InstanceUpstream
+}
+
+/**
+ * Find an existing instance that corresponds to the modpack being imported.
+ *
+ * Detection order:
+ * 1. If the modpack has an `upstream` (e.g. CurseForge/Modrinth), match an
+ *    instance whose upstream is from the same origin via {@link isUpstreamSameOrigin}.
+ *    This is robust against the user renaming the instance.
+ * 2. Otherwise (custom modpacks without upstream), fall back to a
+ *    case-insensitive match on the instance name.
+ *
+ * @param instances The existing instances to search.
+ * @param options The modpack identity (`upstream` and/or `name`).
+ * @returns The matched instance, or `undefined` if none matches.
+ */
+export function findInstanceForModpack<T extends InstanceModpackMatchTarget>(
+  instances: readonly T[],
+  options: { upstream?: InstanceUpstream; name?: string },
+): T | undefined {
+  const { upstream, name } = options
+  if (upstream) {
+    const matched = instances.find(
+      (i) => !!i.upstream && isUpstreamSameOrigin(upstream, i.upstream),
+    )
+    if (matched) return matched
+  }
+  if (name) {
+    const lowered = name.toLowerCase()
+    const matched = instances.find((i) => i.name.toLowerCase() === lowered)
+    if (matched) return matched
+  }
+  return undefined
+}

@@ -1,6 +1,6 @@
 import { join } from 'path'
 import { LauncherApp } from '~/app'
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import { existsSync, writeFile } from 'fs-extra'
 // @ts-ignore
 import javaProxy from './JavaProxy.class'
@@ -18,7 +18,7 @@ export async function getJavaArch(serv: JavaService, javaPath: string) {
       await writeFile(dest, javaProxy)
     }
     const stdout = await new Promise<string>((resolve, reject) => {
-      exec(`"${javaPath}" JavaProxy -jvm_info`, { cwd: serv.app.appDataPath }, (err, stdout, stderr) => {
+      execFile(javaPath, ['JavaProxy', '-jvm_info'], { cwd: serv.app.appDataPath }, (err, stdout) => {
         if (err) reject(err)
         else resolve(stdout)
       })
@@ -29,9 +29,15 @@ export async function getJavaArch(serv: JavaService, javaPath: string) {
     if (arch === '64') return 'x64'
     return arch
   } catch (e) {
+    // The JavaProxy invocation fails for environments whose JRE is
+    // already broken (Oracle java that can't find `lib/amd64/jvm.cfg`,
+    // SystemPath shim launched with the wrong working dir, etc.) and
+    // also when the JRE itself throws InvocationTargetException. None
+    // of these are launcher defects, so demote from `error` (→
+    // trackException storm in telemetry) to `warn` and skip the JRE.
     if (e instanceof Error) {
       if (!e.stack) e.stack = new Error().stack
-      serv.error(e)
+      serv.warn(`Failed to detect java arch for ${javaPath}: ${e.message}`)
     }
     return undefined
   }

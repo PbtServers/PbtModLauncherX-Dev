@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useLocalStorageCacheBool } from '@/composables/cache'
+import { useLocalStorage } from '@vueuse/core'
 import { useDateString } from '@/composables/date'
 import { useDialog } from '@/composables/dialog'
 import { getFeedTheBeastProjectModel, getFeedTheBeastVersionChangelogModel, getFeedTheBeastVersionModel } from '@/composables/ftb'
@@ -11,12 +11,13 @@ import { kSWRVConfig } from '@/composables/swrvConfig'
 import { injection } from '@/util/inject'
 import { getExpectedSize } from '@/util/size'
 import { getSWRV } from '@/util/swrvGet'
-import { CachedFTBModpackVersionManifest, FTBModpackVersionManifest, FTBUpstream } from '@xmcl/runtime-api'
+import { CachedFTBModpackVersionManifest, FTBModpackVersionManifest } from '@xmcl/runtime-api'
 import useSWRV from 'swrv'
 import HomeUpstreamBase from './HomeUpstreamBase.vue'
 import { UpstreamHeaderProps } from './HomeUpstreamHeader.vue'
 import { ProjectVersionProps } from './HomeUpstreamVersion.vue'
 import { useMarkdown } from '@/composables/markdown'
+import { FTBUpstream } from '@xmcl/instance'
 
 const props = defineProps<{
   id: number
@@ -93,7 +94,7 @@ const currentVersion = computed(() => {
   return result
 })
 const limit = ref(10)
-const onlyCurrentVersion = useLocalStorageCacheBool(computed(() => `instanceUpstreamOnlyShowCurrentVersion/${instance.value.path}`), false)
+const onlyCurrentVersion = useLocalStorage(computed(() => `instanceUpstreamOnlyShowCurrentVersion/${instance.value.path}`), false, { writeDefaults: false })
 const items = computed(() => {
   const result = {} as Record<string, ProjectVersionProps[]>
 
@@ -205,7 +206,7 @@ function onChangelog(version: ProjectVersionProps) {
     :current-version="currentVersion"
     :header="headerData"
     :duplicating="duplicating"
-    :only-current-version.sync="onlyCurrentVersion"
+    v-model:only-current-version="onlyCurrentVersion"
     @duplicate="onDuplicate"
     @update="onUpdate"
     @changelog="onChangelog"

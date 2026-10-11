@@ -9,6 +9,11 @@
 /* ----------------------------------------------- */
 
 var pJS = function (tag_id, params) {
+  var cleanups = [];
+  function listen(target, type, listener) {
+    target.addEventListener(type, listener);
+    cleanups.push(function () { target.removeEventListener(type, listener); });
+  }
 
   var canvas_el = document.querySelector('#' + tag_id + ' > .particles-js-canvas-el');
 
@@ -196,7 +201,7 @@ var pJS = function (tag_id, params) {
 
     if (pJS && pJS.interactivity.events.resize) {
 
-      window.addEventListener('resize', function () {
+      listen(window, 'resize', function () {
 
         pJS.canvas.w = pJS.canvas.el.offsetWidth;
         pJS.canvas.h = pJS.canvas.el.offsetHeight;
@@ -1074,7 +1079,7 @@ var pJS = function (tag_id, params) {
     if (pJS.interactivity.events.onhover.enable || pJS.interactivity.events.onclick.enable) {
 
       /* el on mousemove */
-      pJS.interactivity.el.addEventListener('mousemove', function (e) {
+      listen(pJS.interactivity.el, 'mousemove', function (e) {
 
         if (pJS.interactivity.el == window) {
           var pos_x = e.clientX,
@@ -1098,7 +1103,7 @@ var pJS = function (tag_id, params) {
       });
 
       /* el on onmouseleave */
-      pJS.interactivity.el.addEventListener('mouseleave', function (e) {
+      listen(pJS.interactivity.el, 'mouseleave', function (e) {
 
         pJS.interactivity.mouse.pos_x = null;
         pJS.interactivity.mouse.pos_y = null;
@@ -1111,7 +1116,7 @@ var pJS = function (tag_id, params) {
     /* on click event */
     if (pJS.interactivity.events.onclick.enable) {
 
-      pJS.interactivity.el.addEventListener('click', function () {
+      listen(pJS.interactivity.el, 'click', function () {
 
         pJS.interactivity.mouse.click_pos_x = pJS.interactivity.mouse.pos_x;
         pJS.interactivity.mouse.click_pos_y = pJS.interactivity.mouse.pos_y;
@@ -1236,8 +1241,10 @@ var pJS = function (tag_id, params) {
 
   pJS.fn.vendors.destroypJS = function () {
     cancelAnimationFrame(pJS.fn.drawAnimFrame);
+    cancelAnimationFrame(pJS.tmp.checkAnimFrame);
+    cleanups.splice(0).forEach(function (cleanup) { cleanup(); });
     canvas_el.remove();
-    pJSDom = null;
+    window.pJSDom = (window.pJSDom || []).filter(function (entry) { return entry.pJS !== pJS; });
   };
 
 

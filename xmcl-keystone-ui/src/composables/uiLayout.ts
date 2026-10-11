@@ -1,16 +1,10 @@
 import { injection } from '@/util/inject'
 import { InjectionKey } from 'vue'
-import { useLocalStorageCacheStringValue } from './cache'
-
-export function useUILayout() {
-  const layout = useLocalStorageCacheStringValue('ui_layout', 'default' as 'default' | 'focus')
-  return layout
-}
 
 export function useInFocusMode() {
   return injection(kInFocusMode)
 }
-
+/**
+ * Represent whether the UI is in focus mode
+ */
 export const kInFocusMode: InjectionKey<Ref<boolean>> = Symbol('InFocusMode')
-
-export const kUILayout: InjectionKey<ReturnType<typeof useUILayout>> = Symbol('UILayout')

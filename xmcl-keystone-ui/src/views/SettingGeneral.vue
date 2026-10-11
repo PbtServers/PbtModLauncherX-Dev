@@ -1,107 +1,232 @@
 <template>
-  <div>
-    <SettingHeader>
-      ⚙️ {{ t("setting.general") }}
-    </SettingHeader>
+  <SettingCard>
+    <!-- Language Selection -->
     <SettingItemSelect
-      :select.sync="selectedLocale"
+      v-model="selectedLocale"
+      icon="language"
       :title="t('setting.language')"
       :description="t('setting.languageDescription')"
       :items="locales"
     />
-    <v-list-item>
-      <v-list-item-content>
-        <v-list-item-title :color="errorText ? 'red' : ''">
-          {{
-            t("setting.location")
-          }}
-        </v-list-item-title>
-        <v-list-item-subtitle class="text-red!" v-if="errorText">{{ errorText }}</v-list-item-subtitle>
-        <v-list-item-subtitle v-else>{{ root }}</v-list-item-subtitle>
-      </v-list-item-content>
-      <v-list-item-action class="self-center mr-1">
-        <v-btn
-          outlined
-          text
-          style="margin-right: 10px"
-          @click="onMigrateFromOther"
-        >
-          <v-icon left>
-            local_shipping
-          </v-icon>
-          {{ t("setting.migrateFromOther") }}
-        </v-btn>
-      </v-list-item-action>
-      <v-list-item-action class="self-center">
-        <v-btn
-          outlined
-          text
-          @click="browseRootDir"
-        >
-          <v-icon left>
-            edit
-          </v-icon>
-          {{ t("setting.browseRoot") }}
-        </v-btn>
-      </v-list-item-action>
-      <v-list-item-action class="self-center">
-        <v-btn
-          outlined
-          text
-          @click="showGameDirectory()"
-        >
-          <v-icon left>
-            folder
-          </v-icon>
-          {{ t("setting.showRoot") }}
-        </v-btn>
-      </v-list-item-action>
-    </v-list-item>
-    <SettingItemCheckbox
+
+    <v-divider class="my-3" />
+
+    <!-- Data Directory -->
+    <SettingItem :description="errorText || root" :title-class="`${errorText ? 'error--text' : ''}`" long-action>
+      <template #title>
+        <v-icon start size="small" :color="errorText ? 'error' : 'primary'">folder</v-icon>
+        {{ t("setting.location") }}
+      </template>
+      <template #action>
+        <div class="flex gap-2 justify-end">
+          <v-btn color="primary" @click="onMigrateFromOther">
+            <v-icon start size="small">local_shipping</v-icon>
+            {{ t("setting.migrateFromOther") }}
+          </v-btn>
+          <v-btn color="primary" @click="browseRootDir">
+            <v-icon start size="small">edit</v-icon>
+            {{ t("setting.browseRoot") }}
+          </v-btn>
+          <v-btn color="primary" @click="showGameDirectory()">
+            <v-icon start size="small">folder_open</v-icon>
+            {{ t("setting.showRoot") }}
+          </v-btn>
+        </div>
+      </template>
+    </SettingItem>
+
+    <v-divider class="my-3" />
+
+    <!-- Privacy & Telemetry -->
+    <SettingItemSwitcher
       v-model="disableTelemetry"
       :title="t('setting.disableTelemetry')"
       :description="t('setting.disableTelemetryDescription')"
+      icon="privacy_tip"
     />
-    <SettingItemCheckbox
-      v-if="env?.os === 'linux' || env?.os === 'windows'"
-      v-model="enableDedicatedGPUOptimization"
-      :title="t('setting.enableDedicatedGPUOptimization')"
-      :description="t('setting.enableDedicatedGPUOptimizationDescription')"
-    />
-    <SettingItemCheckbox
+
+    <!-- GPU Optimization (Windows/Linux only) -->
+    <template v-if="env?.os === 'linux' || env?.os === 'windows'">
+      <v-divider class="my-3" />
+      <SettingItemSwitcher
+        v-model="enableDedicatedGPUOptimization"
+        :title="t('setting.enableDedicatedGPUOptimization')"
+        :description="t('setting.enableDedicatedGPUOptimizationDescription')"
+        icon="memory"
+      />
+    </template>
+
+    <!-- Discord Presence -->
+    <v-divider class="my-3" />
+    <SettingItemSwitcher
       v-model="enableDiscord"
       :title="t('setting.enableDiscord')"
       :description="t('setting.enableDiscordDescription')"
+      icon="discord"
     />
-    <SettingItemCheckbox
+
+    <!-- Developer Mode -->
+    <v-divider class="my-3" />
+    <SettingItemSwitcher
       v-model="developerMode"
+      data-testid="developer-mode"
       :title="t('setting.developerMode')"
       :description="t('setting.developerModeDescription')"
-    />
-    <SettingItemCheckbox
+      icon="code"
+    >
+      <v-chip v-if="developerMode" size="x-small" color="warning" class="ml-2">{{ t('setting.devModeLabel') }}</v-chip>
+    </SettingItemSwitcher>
+
+    <!-- Streamer Mode -->
+    <v-divider class="my-3" />
+    <SettingItemSwitcher
       v-model="streamerMode"
       :title="t('setting.streamerMode')"
       :description="t('setting.streamerModeDescription')"
+      icon="videocam"
     />
+
+    <!-- Quick Action Shortcut -->
+    <v-divider class="my-3" />
+    <SettingItemHotkey
+      v-model="quickActionShortcut"
+      :title="t('commandPalette.open')"
+      :description="quickActionShortcutHint"
+      icon="search"
+    />
+
+    <v-divider class="my-3" />
+
     <SettingItemSelect
-      :select="replaceNative === false ? '' : replaceNative"
+      :model-value="replaceNative === false ? '' : replaceNative"
+      icon="swap_horiz"
       :title="t('setting.replaceNative')"
       :description="t('setting.replaceNativeDescription')"
       :items="replaceNativeItems"
-      @update:select="replaceNative = !$event ? false : $event"
+      @update:model-value="replaceNative = !$event ? false : $event"
     />
-  </div>
+
+    <v-divider class="my-3" />
+
+    <LocalAiSetup id="agent-settings" />
+
+    <SettingItem v-if="agentResolvedEndpoint !== OLLAMA_ENDPOINT" :title="t('setting.aiAgentApiKey')" :description="t('setting.aiAgentApiKeyDescription')">
+        <template #title>
+          <v-icon start size="small" color="primary">key</v-icon>
+          {{ t('setting.aiAgentApiKey') }}
+          <v-chip v-if="agentProviderMode === 'builtin'" size="x-small" class="ml-2">
+            {{ t('setting.aiAgentBuiltin') }}
+          </v-chip>
+          <v-chip v-else-if="agentConfigured" size="x-small" color="success" class="ml-2">
+            <v-icon start size="x-small">check_circle</v-icon>
+            {{ t('setting.aiAgentApiKeySaved') }}
+          </v-chip>
+        </template>
+        <template #action>
+          <v-text-field
+            data-testid="agent-api-key"
+            :model-value="agentApiKey"
+            :type="showAgentApiKey ? 'text' : 'password'"
+            variant="outlined"
+            density="compact"
+            class="setting-item-input"
+            hide-details="auto"
+            :disabled="agentProviderMode === 'builtin'"
+            :error-messages="agentSettingsError"
+            :placeholder="agentConfigured ? t('setting.aiAgentApiKeyStored') : t('setting.aiAgentApiKeyEmpty')"
+            :loading="clearingAgentKey"
+            @update:model-value="updateAgentApiKey($event ?? '')"
+          >
+            <template #append-inner>
+              <!-- The stored key is never read back, so the toggle only has
+                   something to reveal while the user is typing a new one. -->
+              <v-btn v-if="agentApiKey" icon variant="text" size="small" @click="showAgentApiKey = !showAgentApiKey">
+                <v-icon>{{ showAgentApiKey ? 'visibility_off' : 'visibility' }}</v-icon>
+              </v-btn>
+              <!-- Stands in for the built-in `clearable` affordance, which only
+                   appears while the field holds text and so could never reach a
+                   saved key (the field is empty once the key is stored). -->
+              <v-btn
+                v-if="agentProviderMode === 'custom' && (agentApiKey || agentConfigured)"
+                data-testid="agent-api-key-clear"
+                icon
+                variant="text"
+                size="small"
+                :disabled="clearingAgentKey"
+                :title="t('setting.aiAgentApiKeyClear')"
+                @click="onClearAgentApiKey"
+              >
+                <v-icon>close</v-icon>
+              </v-btn>
+            </template>
+          </v-text-field>
+        </template>
+    </SettingItem>
+
+    <v-divider class="my-3" />
+
+    <SettingItem :title="t('setting.aiAgentModel')" :description="t('setting.aiAgentModelDescription')">
+        <template #title>
+          <v-icon start size="small" color="primary">tune</v-icon>
+          {{ t('setting.aiAgentModel') }}
+        </template>
+        <template #action>
+          <v-text-field
+            :model-value="agentModel"
+            :readonly="agentLocal"
+            @update:model-value="value => { if (!agentLocal) agentModel = value }"
+            variant="outlined"
+            density="compact"
+            class="setting-item-input"
+            hide-details
+            :placeholder="agentLocal ? '—' : t('setting.aiAgentModelPlaceholder')"
+          />
+        </template>
+    </SettingItem>
+
+    <v-divider class="my-3" />
+
+    <SettingItem :title="t('setting.aiAgentEndpoint')" :description="t('setting.aiAgentEndpointDescription')">
+        <template #title>
+          <v-icon start size="small" color="primary">link</v-icon>
+          {{ t('setting.aiAgentEndpoint') }}
+        </template>
+        <template #action>
+          <v-text-field
+            :model-value="agentLocal ? agentDetectedEndpoint : agentEndpoint"
+            :readonly="agentLocal"
+            @update:model-value="value => { if (!agentLocal) agentEndpoint = value }"
+            variant="outlined"
+            density="compact"
+            class="setting-item-input"
+            hide-details
+            :placeholder="agentLocal ? '—' : t('setting.aiAgentEndpointPlaceholder')"
+          />
+        </template>
+    </SettingItem>
+    <div v-if="agentLocal" class="px-4 py-3 agent-runtime-status" role="status" aria-live="polite">
+      {{ t(agentStatusKey) }}
+      <div v-if="agentRuntimeError" class="text-error">{{ t('ollamaRuntime.diagnostic', { code: agentRuntimeError }) }}</div>
+      <v-btn :loading="agentChecking" @click="checkAgentConnection">{{ t('pbtadmin.detect') }}</v-btn>
+    </div>
+  </SettingCard>
 </template>
+
 <script lang="ts" setup>
-import SettingHeader from '@/components/SettingHeader.vue'
-import SettingItemCheckbox from '@/components/SettingItemCheckbox.vue'
+import SettingCard from '@/components/SettingCard.vue'
+import SettingItem from '@/components/SettingItem.vue'
 import SettingItemSelect from '@/components/SettingItemSelect.vue'
-import { kEnvironment } from '@/composables/environment'
-import { injection } from '@/util/inject'
-import { useDialog } from '../composables/dialog'
-import { useGameDirectory, useSettings } from '../composables/setting'
+import SettingItemSwitcher from '@/components/SettingItemSwitcher.vue'
+import SettingItemHotkey from '@/components/SettingItemHotkey.vue'
 import { kCriticalStatus } from '@/composables/criticalStatus'
 import { useGetDataDirErrorText } from '@/composables/dataRootErrors'
+import { kEnvironment } from '@/composables/environment'
+import { injection } from '@/util/inject'
+import { formatShortcutDisplay } from '@/util/shortcut'
+import { useDialog } from '../composables/dialog'
+import { useAgentSettings } from '../composables/agent/settings'
+import { OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtime-api'
+import { useGameDirectory, useSettings } from '../composables/setting'
 
 const { isNoEmptySpace, invalidGameDataPath } = injection(kCriticalStatus)
 const getDirErroText = useGetDataDirErrorText()
@@ -114,14 +239,16 @@ const {
   replaceNative,
   disableTelemetry,
   enableDiscord,
+  quickActionShortcut,
   locales: rawLocales,
   enableDedicatedGPUOptimization,
 } = useSettings()
 const { t } = useI18n()
+const quickActionShortcutHint = computed(() => t('commandPalette.openHint', { shortcut: formatShortcutDisplay(quickActionShortcut.value || '') }))
 const locales = computed(() => rawLocales.value.map(({ locale, name }) => ({ text: name, value: locale })))
 const replaceNativeItems = computed(() => [
   {
-    text: t('disable'),
+    text: t('shared.disable'),
     value: '',
   },
   {
@@ -133,6 +260,48 @@ const replaceNativeItems = computed(() => [
     value: 'all',
   },
 ])
+const {
+  apiKey: agentApiKey,
+  endpoint: agentEndpoint,
+  model: agentModel,
+  configured: agentConfigured,
+  mode: agentProviderMode,
+  error: agentSettingsError,
+  resolvedEndpoint: agentResolvedEndpoint,
+  detectedEndpoint: agentDetectedEndpoint,
+  runtimeError: agentRuntimeError,
+  statusKey: agentStatusKey,
+  refreshStatus: refreshAgentConnection,
+  resolvedModel: agentResolvedModel,
+  updateApiKey: updateAgentApiKey,
+  clearApiKey: clearAgentApiKey,
+} = useAgentSettings()
+const agentChecking = ref(false)
+onMounted(() => { void checkAgentConnection() })
+async function checkAgentConnection() {
+  if (agentChecking.value) return
+  agentChecking.value = true
+  try { await refreshAgentConnection() } catch { agentSettingsError.value = 'pbtadmin.detectFailed' }
+  finally { agentChecking.value = false }
+}
+const agentLocal = computed(() => isOllamaEndpoint(agentEndpoint.value || OLLAMA_ENDPOINT))
+const showAgentApiKey = ref(false)
+// Re-hide the key when the field empties (provider switch, or the user cleared it)
+// so the next key typed does not start out visible.
+watch(agentApiKey, value => {
+  if (!value) showAgentApiKey.value = false
+})
+
+const clearingAgentKey = ref(false)
+/** Clear the field and forget whatever key is stored for the current provider. */
+async function onClearAgentApiKey() {
+  clearingAgentKey.value = true
+  try {
+    await clearAgentApiKey()
+  } finally {
+    clearingAgentKey.value = false
+  }
+}
 
 const { show } = useDialog('migration')
 const { root, showGameDirectory } = useGameDirectory()
@@ -143,3 +312,24 @@ async function browseRootDir() {
 const { show: onMigrateFromOther } = useDialog('migrate-wizard')
 
 </script>
+
+<style scoped>
+:deep(.transparent-list) {
+  background: transparent !important;
+}
+
+.v-list-item {
+  min-height: 64px;
+}
+
+.v-list-item__action {
+  align-self: center;
+}
+
+.setting-item-input {
+  min-width: 0;
+  width: 100%;
+  max-width: 460px;
+}
+.agent-runtime-status { overflow-wrap: anywhere; white-space: normal; }
+</style>

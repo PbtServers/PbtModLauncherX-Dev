@@ -1,0 +1,28 @@
+{
+  "name": "@xmcl/e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "End-to-end tests for XMCL. Each spec is also a tutorial source: shots + captions are emitted into a manifest that scripts/build-tutorial.ts compiles into docs/tutorial/*.md.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test specs/ci",
+    "test:ci": "playwright test specs/ci",
+    "test:showcase": "playwright test specs/showcase",
+    "test:release": "playwright test specs/release",
+    "test:all": "playwright test specs/ci specs/showcase",
+    "test:smoke": "playwright test specs/ci/00-smoke-boot.spec.ts",
+    "test:scratch": "playwright test specs/scratch",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:update": "playwright test --update-snapshots",
+    "tutorial": "tsx ../scripts/build-tutorial.ts",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^24.13.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

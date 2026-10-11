@@ -15,8 +15,8 @@
     >
       <v-icon
         class="material-icons-outlined"
-        left
-        small
+        start
+        size="small"
       >
         {{ value.icon }}
       </v-icon>

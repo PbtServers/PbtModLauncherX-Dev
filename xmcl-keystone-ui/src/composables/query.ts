@@ -1,6 +1,8 @@
-import { MaybeRef, get } from '@vueuse/core'
+import { get } from '@vueuse/core'
+import type { MaybeRef } from 'vue'
 import { Ref } from 'vue'
-import type { Dictionary } from 'vue-router/types/router'
+
+type Dictionary<T> = Record<string, T>
 
 export function useQuery(key: string, onQuery?: (query: Dictionary<string | (string | null)[] | null | undefined>) => void) {
   const route = useRoute()

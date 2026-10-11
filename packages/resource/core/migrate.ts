@@ -1,0 +1,282 @@
+import { Kysely, Migration, MigrationProvider, Migrator, sql } from 'kysely'
+import { Database } from '../schema'
+import { ResourceType } from '../ResourceType'
+
+export class ResourceMigrateProvider implements MigrationProvider {
+  getMigrations(): Promise<Record<string, Migration>> {
+    return Promise.resolve({
+      1: v1,
+      2: v2,
+      2.1: v21,
+      2.2: v22,
+      2.3: v23,
+      2.4: v24,
+      2.5: v25,
+      2.6: v26,
+      2.7: v27,
+    })
+  }
+}
+
+async function fixSnapshotTable(db: Kysely<Database>) {
+  let columns = await sql`PRAGMA table_info(snapshots)`.execute(db)
+  // Self-heal: if the `snapshots` table is missing entirely (e.g. an
+  // earlier corruption recovery dropped it but kysely's migration log
+  // still claims v1 ran), recreate it from the v1 schema before any
+  // service query touches it. Production telemetry has shown
+  // `SqliteError: no such table: snapshots` retry-storming for a small
+  // population (3 users × ~2k events in 0.56.7, issue #1429); plain
+  // `migrateToLatest()` won't re-run v1 because the migration log row
+  // is still present, so heal here instead.
+  if (columns.rows.length === 0) {
+    await v1.up(db)
+    return
+  }
+  if (columns.rows.some((c: any) => c.name === 'ctime')) {
+    await v21.up(db)
+  }
+  // Ensure the parseError column exists — older DBs that completed the
+  // initial migration before v2.3 was introduced may be missing it. Run
+  // v23.up defensively (it is a no-op when the column is already present).
+  if (!columns.rows.some((c: any) => c.name === 'parseError')) {
+    await v23.up(db)
+  }
+  columns = await sql`PRAGMA table_info(snapshots)`.execute(db)
+  if (columns.rows.some((c: any) => c.name === 'ctime')) {
+    // force recreate the table
+    await db.schema
+      .createTable('snapshots_temp')
+      .addColumn('domainedPath', 'varchar', (col) => col.primaryKey())
+      .addColumn('ino', 'integer', (col) => col.notNull())
+      .addColumn('mtime', 'integer', (col) => col.notNull())
+      .addColumn('fileType', 'varchar', (col) => col.notNull())
+      .addColumn('sha1', 'char(40)', (col) => col.notNull())
+      .addColumn('parseError', 'varchar')
+      .execute()
+    // copy data
+    await sql`insert into snapshots_temp select domainedPath, ino, mtime, fileType, sha1, parseError from snapshots`.execute(
+      db,
+    )
+    // drop old table
+    await db.schema.dropTable('snapshots').execute()
+    // rename new table
+    await db.schema.alterTable('snapshots_temp').renameTo('snapshots').execute()
+    await db.schema.createIndex('snapshots_ino_index').on('snapshots').column('ino').execute()
+
+    await db.schema.createIndex('snapshots_sha1_index').on('snapshots').column('sha1').execute()
+  }
+}
+
+async function fixResourceTable(db: Kysely<Database>) {
+  let columns = await sql`PRAGMA table_info(resources)`.execute(db)
+  // check neoforge column
+  if (!columns.rows.some((c: any) => c.name === ResourceType.Neoforge)) {
+    await v22.up(db)
+  }
+  // check blueprint column — older DBs created before v2.6 are missing it.
+  columns = await sql`PRAGMA table_info(resources)`.execute(db)
+  if (!columns.rows.some((c: any) => c.name === ResourceType.Blueprint)) {
+    await v26.up(db)
+  }
+}
+
+/**
+ * Migrate the database to latest version
+ * @param db The sqldatabase
+ */
+export async function migrate(db: Kysely<Database>) {
+  const migrator = new Migrator({
+    db,
+    provider: new ResourceMigrateProvider(),
+  })
+
+  const { error, results } = await migrator.migrateToLatest()
+  if (error) {
+    throw error
+  }
+  await fixSnapshotTable(db)
+  await fixResourceTable(db)
+  return results
+}
+
+const v1: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    await db.schema
+      .createTable('resources')
+      .addColumn('sha1', 'char(40)', (col) => col.primaryKey())
+      .addColumn('sha256', 'char(64)', (col) => col.unique())
+      .addColumn('name', 'varchar', (col) => col.notNull())
+      .addColumn(ResourceType.Forge, 'json')
+      .addColumn(ResourceType.Fabric, 'json')
+      .addColumn(ResourceType.Liteloader, 'json')
+      .addColumn(ResourceType.Quilt, 'json')
+      .addColumn(ResourceType.ResourcePack, 'json')
+      .addColumn('save', 'json')
+      .addColumn(ResourceType.ShaderPack, 'json')
+      .addColumn(ResourceType.Neoforge, 'json')
+      .addColumn('instance', 'json')
+      .addColumn('github', 'json')
+      .addColumn('curseforge', 'json')
+      .addColumn('modrinth', 'json')
+      .addColumn('gitlab', 'json')
+      .execute()
+
+    await db.schema
+      .createTable('tags')
+      .addColumn(
+        'sha1',
+        'char(40)',
+        (col) => col.notNull() /* .references('resources.sha1').onDelete('cascade') */,
+      )
+      .addColumn('tag', 'varchar', (col) => col.notNull())
+      .addUniqueConstraint('sha1_uri_unique', ['sha1', 'tag'])
+      .execute()
+
+    await db.schema
+      .createTable('uris')
+      .addColumn(
+        'sha1',
+        'char(40)',
+        (col) => col.notNull() /* .references('resources.sha1').onDelete('cascade') */,
+      )
+      .addColumn('uri', 'varchar', (col) => col.notNull())
+      .addUniqueConstraint('sha1_uri_unique', ['sha1', 'uri'])
+      .execute()
+
+    await db.schema
+      .createTable('icons')
+      .addColumn(
+        'sha1',
+        'char(40)',
+        (col) => col.notNull() /* .references('resources.sha1').onDelete('cascade') */,
+      )
+      .addColumn('icon', 'varchar', (col) => col.notNull())
+      .addUniqueConstraint('sha1_uri_unique', ['sha1', 'icon'])
+      .execute()
+
+    await db.schema
+      .createTable('snapshots')
+      .addColumn('domainedPath', 'varchar', (col) => col.primaryKey())
+      .addColumn('ino', 'integer', (col) => col.notNull())
+      .addColumn('mtime', 'integer', (col) => col.notNull())
+      .addColumn('fileType', 'varchar', (col) => col.notNull())
+      .addColumn('sha1', 'char(40)', (col) => col.notNull())
+      .execute()
+
+    await db.schema.createIndex('snapshots_ino_index').on('snapshots').column('ino').execute()
+
+    await db.schema.createIndex('snapshots_sha1_index').on('snapshots').column('sha1').execute()
+  },
+}
+
+const v2: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    // check if the resource table has ResourceType.MMCModpack column
+    const columns = await sql`PRAGMA table_info(resources)`.execute(db)
+    if (columns.rows.some((c: any) => c.name === 'MMCModpack')) {
+      return
+    }
+    await db.schema.alterTable('resources').addColumn('MMCModpack', 'json').execute()
+  },
+}
+
+const v21: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    await db.schema
+      .alterTable('snapshots')
+      .dropColumn('ctime')
+      .execute()
+      .catch(() => {})
+    await db.schema
+      .alterTable('snapshots')
+      .dropColumn('size')
+      .execute()
+      .catch(() => {})
+  },
+}
+
+const v22: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    await sql`update icons set icon = REPLACE(icon, 'image://', 'http://launcher/image/') where "icon" like 'image:%';`.execute(
+      db,
+    )
+    const columns = await sql`PRAGMA table_info(resources)`.execute(db)
+    if (columns.rows.some((c: any) => c.name === ResourceType.Neoforge)) {
+      return
+    }
+    await db.schema.alterTable('resources').addColumn(ResourceType.Neoforge, 'json').execute()
+  },
+}
+
+// Add nullable `parseError` column on snapshots so the resource manager
+// can remember which files were already scanned and known to be
+// unparseable. Used to suppress repeated parse errors when the renderer
+// reconnects and triggers revalidate(). See issue #1453.
+const v23: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    const columns = await sql`PRAGMA table_info(snapshots)`.execute(db)
+    if (columns.rows.some((c: any) => c.name === 'parseError')) {
+      return
+    }
+    await db.schema.alterTable('snapshots').addColumn('parseError', 'varchar').execute()
+  },
+}
+
+// Wipe cached `parseError` values once so files that the previous
+// (upstream) yauzl rejected — e.g. ZIP64 single-disk packs from
+// PackSquash, lenient-EOCD packs, paid Chinese resource packs that
+// trip "end of central directory record signature not found" — get
+// re-parsed by the new `@xmcl/yauzl` fork. Without this, the snapshot
+// row keeps the stale `InvalidZipFileError` code forever and the UI
+// surfaces the file as broken even though the new parser can read it.
+const v24: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    const columns = await sql`PRAGMA table_info(snapshots)`.execute(db)
+    if (!columns.rows.some((c: any) => c.name === 'parseError')) {
+      return
+    }
+    await sql`UPDATE snapshots SET parseError = NULL WHERE parseError IS NOT NULL`.execute(db)
+  },
+}
+
+// Clean up snapshots.parseError rows that were poisoned with the literal
+// text 'null' by the @xmcl/sqlite JSONPlugin bug — `typeof null ===
+// 'object'` made `JSON.stringify(null)` ("null") leak into every
+// nullable column whenever takeSnapshot wrote `parseError: null`. The
+// plugin is fixed in this release; v25 wipes the rows that v24 cannot
+// (they were re-introduced after v24 ran) so the worker re-parses them
+// with the lenient yauzl fork instead of permanently caching a bogus
+// `code: 'null'` and surfacing it to the UI.
+const v25: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    const columns = await sql`PRAGMA table_info(snapshots)`.execute(db)
+    if (!columns.rows.some((c: any) => c.name === 'parseError')) {
+      return
+    }
+    await sql`UPDATE snapshots SET parseError = NULL WHERE parseError = 'null'`.execute(db)
+  },
+}
+
+// Add the `blueprint` metadata column for the schematic/blueprint resource
+// domain (litematic / schem / structure nbt / building gadget).
+const v26: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    const columns = await sql`PRAGMA table_info(resources)`.execute(db)
+    if (columns.rows.some((c: any) => c.name === ResourceType.Blueprint)) {
+      return
+    }
+    await db.schema.alterTable('resources').addColumn(ResourceType.Blueprint, 'json').execute()
+  },
+}
+
+// Preview geometry is loaded on demand. Keeping it in every resource row makes
+// large blueprint libraries expensive to hydrate and synchronize.
+const v27: Migration = {
+  async up(db: Kysely<Database>): Promise<void> {
+    const columns = await sql`PRAGMA table_info(resources)`.execute(db)
+    if (!columns.rows.some((c: any) => c.name === ResourceType.Blueprint)) {
+      return
+    }
+    await sql`UPDATE resources SET blueprint = json_remove(blueprint, '$.palette', '$.voxels') WHERE blueprint IS NOT NULL`.execute(db)
+  },
+}

@@ -1,8 +1,8 @@
-import { InstanceFile } from '../entities/instanceManifest.schema'
 import { Exception, InstanceNotFoundException } from '../entities/exception'
-import { CreateInstanceOption } from './InstanceService'
 import { ServiceKey } from './Service'
 import { LaunchOptions } from './LaunchService'
+import type { CreateInstanceOptions, InstanceFile } from '@xmcl/instance'
+import type { ServerExportAnalysisOptions, ServerExportPlan, ServerExportRequest, ServerExportResult, ServerExportMod, ServerModOverride } from '../entities/serverExport'
 
 export interface ExportInstanceOptions {
   /**
@@ -43,7 +43,7 @@ export interface ExportInstanceOptions {
 export interface ThirdPartyLauncherManifest {
   instances: {
     path: string
-    options: CreateInstanceOption
+    options: CreateInstanceOptions
   }[]
 
   folder: {
@@ -55,12 +55,12 @@ export interface ThirdPartyLauncherManifest {
 }
 
 export interface CreateInstanceManifest {
-  options: CreateInstanceOption
+  options: CreateInstanceOptions
   isIsolated: boolean
   path: string
 }
 
-export type InstanceType = 'mmc' | 'vanilla' | 'modrinth' | 'curseforge'
+export type InstanceType = 'mmc' | 'vanilla' | 'modrinth' | 'curseforge' | 'prism'
 
 
 export type SSHCredentials = {
@@ -100,12 +100,11 @@ export interface ExportInstanceAsServerOptions {
  * Provide the abilities to import/export instance from/to modpack
  */
 export interface InstanceIOService {
-  /**
-   * Export current instance as a modpack. Can be either curseforge or normal full Minecraft
-   * @param options The export instance options
-   */
-  exportInstance(options: ExportInstanceOptions): Promise<void>
-
+  getInstanceServerModClassifications(instancePath: string, onlineMetadata?: boolean): Promise<ServerExportMod[]>
+  setServerModOverride(instancePath: string, sha256: string, override: ServerModOverride): Promise<void>
+  analyzeServerExport(options: ServerExportAnalysisOptions): Promise<ServerExportPlan>
+  exportServerZip(request: ServerExportRequest): Promise<ServerExportResult>
+  cancelServerExport(planId: string): Promise<void>
   getGameDefaultPath(type?: 'modrinth' | 'modrinth-instances' | 'curseforge' | 'vanilla'): Promise<string>
   /**
    * Parse other launcher data folder to get the instances

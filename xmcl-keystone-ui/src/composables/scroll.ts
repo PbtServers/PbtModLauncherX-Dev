@@ -1,6 +1,6 @@
-import { Ref, onMounted } from 'vue'
+import { Ref, onMounted, ComponentPublicInstance } from 'vue'
 
-export function useScrollToOnMount(elem: Ref<null | import('vue').default | HTMLElement>, computeOffset: () => number) {
+export function useScrollToOnMount(elem: Ref<null | ComponentPublicInstance | HTMLElement>, computeOffset: () => number) {
   onMounted(() => {
     const yOffset = computeOffset()
     const elemValue = elem.value

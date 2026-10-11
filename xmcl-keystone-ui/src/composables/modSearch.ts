@@ -3,11 +3,10 @@ import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
 import { ModFile, getModFileFromResource } from '@/util/mod'
 import { ProjectEntry } from '@/util/search'
-import { getDiceCoefficient } from '@/util/sort'
-import { notNullish } from '@vueuse/core'
-import { InstanceData, InstanceModsServiceKey, ProjectMapping, ProjectMappingServiceKey, Resource, RuntimeVersions, Settings } from '@xmcl/runtime-api'
-import { InjectionKey, Ref } from 'vue'
-import { useLocalStorageCacheBool, useLocalStorageCacheStringValue } from './cache'
+import { getDiceCoefficient, mergeSorted } from '@/util/sort'
+import { notNullish, useLocalStorage } from '@vueuse/core'
+import { InstanceModsServiceKey, ProjectMapping, ProjectMappingServiceKey, Settings } from '@xmcl/runtime-api'
+import { Ref } from 'vue'
 import { CurseforgeBuiltinClassId } from './curseforge'
 import { useCurseforgeSearch } from './curseforgeSearch'
 import { useI18nSearch } from './i18nSearch'
@@ -16,9 +15,9 @@ import { kModrinthAuthenticatedAPI } from './modrinthAuthenticatedAPI'
 import { useModrinthSearch } from './modrinthSearch'
 import { ModLoaderFilter, SearchModel } from './search'
 import { useService } from './service'
-import { useMergedProjects, useProjectsSort } from './useAggregateProjects'
-
-export const kModsSearch: InjectionKey<ReturnType<typeof useModsSearch>> = Symbol('ModsSearch')
+import { useMergedProjects, useProjectsSort } from './useMergedProjects'
+import { InstanceData, RuntimeVersions } from '@xmcl/instance'
+import { Resource } from '@xmcl/resource'
 
 const kCached = Symbol('cached')
 
@@ -133,8 +132,12 @@ function useLocalModsSearch(path: Ref<string>, runtime: Ref<InstanceData['runtim
       }
     }
 
+    _all.forEach(markRaw)
+    _installed.forEach(markRaw)
+    _installedAll.forEach(markRaw)
+
     // all cached, installed filtered by keywords, installedAll is all installed mods
-    return markRaw([_all, _installed, _installedAll] as const)
+    return ([_all, _installed, _installedAll] as const)
   })
 
   const all = computed(() => result.value[0])
@@ -211,10 +214,12 @@ export function useModsSearch(path: Ref<string>, runtime: Ref<InstanceData['runt
   const {
     keyword,
     currentView,
+    isModrinthDisabled,
+    isCurseforgeDisabled,
   } = searchModel
 
-  const { loadMoreModrinth, loadingModrinth, modrinth, modrinthError, effect: onModrinthEffect } = useModrinthSearch('mod', searchModel)
-  const { loadMoreCurseforge, loadingCurseforge, curseforge, curseforgeError, effect: onCurseforgeEffect } = useCurseforgeSearch<ProjectEntry<ModFile>>(
+  const { loadMoreModrinth, loadingModrinth, modrinth, modrinthError, modrinthTotal, effect: onModrinthEffect } = useModrinthSearch('mod', searchModel)
+  const { loadMoreCurseforge, loadingCurseforge, curseforge, curseforgeError, curseforgeTotal, effect: onCurseforgeEffect } = useCurseforgeSearch<ProjectEntry<ModFile>>(
     CurseforgeBuiltinClassId.mod, searchModel)
   const { projects: i18nProjects, effect: onI18nEffect } = useI18nSearch(searchModel)
   const { cached: cachedMods, instances, instancesAll, loadingCached, effect: onLocalEffect } = useLocalModsSearch(path, runtime, instanceMods, searchModel)
@@ -233,8 +238,7 @@ export function useModsSearch(path: Ref<string>, runtime: Ref<InstanceData['runt
         return [collectionItems.value, [...cachedMods.value, ...instancesAll.value]]
       }
       return [[
-        ...modrinth.value,
-        ...curseforge.value,
+        ...mergeSorted(modrinth.value, curseforge.value),
         ...i18nProjects.value,
         ...cachedMods.value,
       ], [...instancesAll.value, ...instances.value]
@@ -245,6 +249,7 @@ export function useModsSearch(path: Ref<string>, runtime: Ref<InstanceData['runt
   const items = useProjectsSort(
     keyword,
     all,
+    currentView,
   )
 
   const { lookupBatch } = useService(ProjectMappingServiceKey)
@@ -326,10 +331,21 @@ export function useModsSearch(path: Ref<string>, runtime: Ref<InstanceData['runt
     loadMoreCurseforge()
   }
 
-  const localFilter = ref('' as '' | 'disabledOnly' | 'incompatibleOnly' | 'hasUpdateOnly' | 'unusedOnly' | 'dependenciesInstallOnly')
-  const sortBy = useLocalStorageCacheStringValue('modSort', '' as '' | 'alpha_asc' | 'alpha_desc' | 'time_asc' | 'time_desc')
-  const denseView = useLocalStorageCacheBool('mod-dense-view', false)
-  const groupInstalled = useLocalStorageCacheBool('mod-group-installed', true)
+  const localFilter = ref('' as '' | 'disabledOnly' | 'incompatibleOnly' | 'hasUpdateOnly' | 'unusedOnly' | 'dependenciesInstallOnly' | 'forgeOnly' | 'fabricOnly' | 'quiltOnly' | 'neoforgeOnly')
+  const sortBy = useLocalStorage<'' | 'alpha_asc' | 'alpha_desc' | 'time_asc' | 'time_desc'>('modSort', '', { writeDefaults: false })
+  const denseView = useLocalStorage('mod-dense-view', false, { writeDefaults: false })
+  const groupInstalled = useLocalStorage<'off' | 'group' | 'hide'>('mod-installed-filter', 'group', { writeDefaults: false })
+
+  const totalAvailable = computed(() => {
+    let total = 0
+    if (!isModrinthDisabled.value) {
+      total += modrinthTotal.value
+    }
+    if (!isCurseforgeDisabled.value) {
+      total += curseforgeTotal.value
+    }
+    return total
+  })
 
   return {
     localFilter,
@@ -341,6 +357,8 @@ export function useModsSearch(path: Ref<string>, runtime: Ref<InstanceData['runt
     error,
     loading,
     items: localizedItems,
+    collectionItems,
+    totalAvailable,
     effect,
   }
 }

@@ -1,8 +1,8 @@
 import { Platform } from '@xmcl/runtime-api'
+import { isSystemError } from '@xmcl/utils'
 import { randomBytes } from 'crypto'
 import { existsSync, mkdir, readdir, rmdir, stat, unlink, writeFile } from 'fs-extra'
 import { dirname, join, resolve } from 'path'
-import { isSystemError } from '../util/error'
 
 async function isExistedXMCLDir(path: string) {
   const versions = join(path, 'versions')
@@ -19,7 +19,8 @@ async function isExistedXMCLDir(path: string) {
 }
 
 export function isValidPathName(pathName: string) {
-  const allowedChars = /^[a-zA-Z0-9\-_\.\s\/\\:\(\)\,\[\]\{\}'"!@#\$%\^&\+=;~`]+$/
+  // eslint-disable-next-line no-useless-escape
+  const allowedChars = /^[\p{L}\p{M}\p{N}_\.\s/\\:(),\[\]{}'"!@#$%\^&+=;~`-]+$/u
   if (!allowedChars.test(pathName)) {
     return false
   }
@@ -39,7 +40,7 @@ export async function validateDirectory(platform: Platform, path: string, skipCh
   }
 
   if (platform.os === 'windows') {
-    if ((/^[a-zA-Z]:\\$/.test(path))) {
+    if (/^[a-zA-Z]:\\$/.test(path)) {
       return 'bad'
     }
     const sysRoot = process.env.SystemRoot

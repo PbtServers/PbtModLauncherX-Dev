@@ -1,4 +1,4 @@
-import { Instance } from '../entities/instance'
+import type { Instance } from '@xmcl/instance'
 import { UserProfile } from '../entities/user.schema'
 import { LaunchException, LaunchOptions } from '../services/LaunchService'
 import { AUTHORITY_DEV } from './authority'
@@ -30,11 +30,17 @@ export interface GenerateLaunchOptions {
   globalFastLaunch?: boolean
   globalDisableAuthlibInjector?: boolean
   globalDisableElyByAuthlib?: boolean
+  globalSyncGameLanguage?: boolean
   globalPreExecuteCommand?: string
-  globalResolution?: { width?: number; height?: number; fullscreen?: boolean }
+  globalResolution?: { width?: number; height?: number; fullscreen?: boolean; monitor?: string }
   modCount: number
   getOrInstallAuthlibInjector: () => Promise<string>
-  track: <T, S = string>(token: string, p: Promise<T>, name: S, id: string) => Promise<T>
+  track: <T, S = string>(
+    token: string,
+    operation: () => Promise<T>,
+    name: S,
+    id: string,
+  ) => Promise<T>
 }
 
 export async function generateLaunchOptionsWithGlobal(
@@ -60,6 +66,7 @@ export async function generateLaunchOptionsWithGlobal(
     globalFastLaunch,
     globalDisableAuthlibInjector,
     globalDisableElyByAuthlib,
+    globalSyncGameLanguage,
     globalPreExecuteCommand,
     globalResolution,
     modCount,
@@ -91,7 +98,7 @@ export async function generateLaunchOptionsWithGlobal(
   ) {
     try {
       yggdrasilAgent = {
-        jar: await track(token, getOrInstallAuthlibInjector(), 'preparing-authlib', operationId),
+        jar: await track(token, getOrInstallAuthlibInjector, 'preparing-authlib', operationId),
         server: userProfile.authority,
       }
     } catch {

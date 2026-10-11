@@ -1,5 +1,5 @@
-import { LaunchOption as ResolvedLaunchOptions, ResolvedVersion, ServerOptions } from '@xmcl/core'
-import { LaunchOptions, ResolvedServerVersion } from '@xmcl/runtime-api'
+import { LaunchOption as ResolvedLaunchOptions, ResolvedVersion, ServerOptions, ResolvedServerVersion } from '@xmcl/core'
+import { LaunchOptions } from '@xmcl/runtime-api'
 
 export interface ServerRunContext {
   side: 'server'
@@ -11,6 +11,21 @@ export interface ClientRunContext {
   side: 'client'
   version: ResolvedVersion
   options: ResolvedLaunchOptions
+}
+
+export interface LaunchMetadata {
+  /**
+   * Whether Ely.by authlib was replaced
+   */
+  elyByAuthlibReplaced?: boolean
+  /**
+   * Whether the Ely.by authlib version is an exact match for the Minecraft version
+   */
+  elyByAuthlibExact?: boolean
+  /**
+   * The Minecraft version when Ely.by authlib was used
+   */
+  elyByMinecraftVersion?: string
 }
 
 export interface LaunchMiddleware {
@@ -33,5 +48,9 @@ export interface LaunchMiddleware {
      * The location of the crash report
      */
     crashReportLocation: string
-  }, payload: ServerRunContext | ClientRunContext, context: Record<string, any>): void
+    /**
+     * The error log content
+     */
+    errorLog: string
+  }, input: LaunchOptions, payload: ServerRunContext | ClientRunContext, context: Record<string, any>): void
 }

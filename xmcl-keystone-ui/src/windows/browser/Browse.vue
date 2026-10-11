@@ -11,10 +11,9 @@
           <v-btn
             class="non-moveable mx-2 mt-1.5"
             :loading="refreshing"
-            text
             icon
             @click="refresh"
-          >
+           variant="text">
             <v-icon>refresh</v-icon>
           </v-btn>
           <v-text-field
@@ -24,18 +23,16 @@
             :error="!!error"
             :disabled="loading"
             class="non-moveable rounded-2xl"
-            solo
-            text
+            variant="solo"
             append-icon="arrow_right"
             @keypress.enter="onEnter"
           />
           <v-btn
             class="non-moveable mx-2 mt-1.5"
             :loading="refreshing"
-            text
             icon
             @click="onEnter"
-          >
+           variant="text">
             <v-icon>get_app</v-icon>
           </v-btn>
         </span>
@@ -43,13 +40,13 @@
           <v-icon
             v-ripple
             class="xy-0 non-moveable flex cursor-pointer select-none items-center px-2 py-1 hover:bg-[rgba(255,255,255,0.5)]"
-            small
+            size="small"
             @click="minimize"
           >minimize</v-icon>
           <v-icon
             v-ripple
             class="non-moveable top-0 flex cursor-pointer select-none items-center px-2 py-1 hover:bg-[rgb(209,12,12)]"
-            small
+            size="small"
             @click="close"
           >close</v-icon>
         </span>

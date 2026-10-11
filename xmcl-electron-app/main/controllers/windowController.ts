@@ -1,7 +1,10 @@
 import { ElectronController } from '@/ElectronController'
-import { app, BrowserWindow, clipboard, dialog, FindInPageOptions, ipcMain, systemPreferences } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, FindInPageOptions, ipcMain, nativeImage, screen, systemPreferences } from 'electron'
 import { ControllerPlugin } from './plugin'
 import { platform } from 'os'
+import { writeFile } from 'fs-extra'
+import { isNiri } from '@/utils/niri'
+import { isMonitorSelectionSupported } from '@/utils/moveWindowToMonitor'
 
 export enum Operation {
   Minimize = 0,
@@ -15,17 +18,31 @@ export const windowController: ControllerPlugin = function (this: ElectronContro
   const currentPlatform = platform()
 
   app.on('browser-window-created', (_, win: BrowserWindow) => {
+    // Wrap webContents.send with destroyed-guards. Without these, fullscreen /
+    // maximize events fired after the window starts closing throw
+    // "Object has been destroyed" (telemetry: BrowserWindow.<anonymous>
+    // / WebContents._.send buckets on 0.56.7).
+    const safeSend = (channel: string, ...args: unknown[]) => {
+      if (win.isDestroyed()) return
+      const wc = win.webContents
+      if (!wc || wc.isDestroyed()) return
+      try {
+        wc.send(channel, ...args)
+      } catch {
+        // window torn down mid-send — drop quietly
+      }
+    }
     win.on('maximize', () => {
-      win.webContents.send('maximize', win.isMaximized())
+      safeSend('maximize', win.isDestroyed() ? false : win.isMaximized())
     })
     win.on('enter-full-screen', () => {
-      win.webContents.send('maximize', win.fullScreen)
+      safeSend('maximize', win.isDestroyed() ? false : win.fullScreen)
     })
     win.on('leave-full-screen', () => {
-      win.webContents.send('maximize', win.fullScreen)
+      safeSend('maximize', win.isDestroyed() ? false : win.fullScreen)
     })
     win.on('minimize', () => {
-      win.webContents.send('minimize', win.isMaximized())
+      safeSend('minimize', win.isDestroyed() ? false : win.isMaximized())
     })
   })
   ipcMain.handle('focus', (event) => {
@@ -49,6 +66,26 @@ export const windowController: ControllerPlugin = function (this: ElectronContro
   ipcMain.handle('stop-find-in-page', (event) => {
     event.sender.stopFindInPage('clearSelection')
   })
+  ipcMain.handle('start-profiling', (event) => {
+    event.sender.debugger.sendCommand('Profiler.enable')
+    event.sender.debugger.sendCommand('Network.enable')
+  })
+  ipcMain.handle('stop-profiling', async (event) => {
+    const data = await event.sender.debugger.sendCommand('Profiler.stop').then(r => r.profile).catch(() => null)
+
+    if (data) {
+      const fileName = `profile-${Date.now()}.cpuprofile`
+      dialog.showSaveDialog(BrowserWindow.fromWebContents(event.sender)!, {
+        defaultPath: fileName,
+      }).then(({ filePath: path }) => {
+        if (path && data) {
+          writeFile(path, JSON.stringify(data)).catch((e) => {
+            this.logger.error(e)
+          })
+        }
+      })
+    }
+  })
   ipcMain.handle('isMaximized', (event) => {
     const window = BrowserWindow.fromWebContents(event.sender)
     return window?.isMaximized()
@@ -62,12 +99,35 @@ export const windowController: ControllerPlugin = function (this: ElectronContro
       })
     }
   })
+  ipcMain.handle('write-clipboard-image', async (event, imageUrl: string) => {
+    const img = await event.sender.session.fetch(imageUrl).then(res => res.arrayBuffer())
+    const url = new URL(imageUrl)
+    let fileName = ''
+    if (url.host === 'launcher' && url.pathname.startsWith('/media/')) {
+      fileName = url.pathname.replace('/media/', '')
+    }
+    clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(img)))
+  })
   ipcMain.handle('query-audio-permission', async () => {
     if (currentPlatform === 'darwin') {
       await app.whenReady()
       return systemPreferences.askForMediaAccess('microphone')
     }
     return true
+  })
+  ipcMain.handle('get-monitors', () => {
+    if (!isMonitorSelectionSupported(currentPlatform)) return []
+    const primary = screen.getPrimaryDisplay()
+    return screen.getAllDisplays().map(display => ({
+      id: String(display.id),
+      label: display.label,
+      width: display.size.width,
+      height: display.size.height,
+      primary: display.id === primary.id,
+    }))
+  })
+  ipcMain.handle('set-translucent', (_, enable: boolean) => {
+    this.setWindowTranslucent(enable)
   })
   ipcMain.handle('control', (event, operation: Operation) => {
     const window = BrowserWindow.fromWebContents(event.sender)
@@ -89,6 +149,11 @@ export const windowController: ControllerPlugin = function (this: ElectronContro
           return false
         case Operation.Minimize:
           if (window.minimizable) {
+            // On Niri compositor, minimize can cause freezes/crashes.
+            // Skip the minimize action in this case.
+            if (isNiri) {
+              return false
+            }
             window.minimize()
             return true
           }

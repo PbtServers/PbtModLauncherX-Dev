@@ -9,11 +9,11 @@ export default function createWorkerPlugin(): Plugin {
   return {
     name: 'resolve-worker',
     setup(build) {
-      build.onResolve({ filter: /^.+\?worker$/g }, async ({ path, resolveDir }) => ({
+      build.onResolve({ filter: /^.+\?worker$/ }, async ({ path, resolveDir }) => ({
         path: resolve(resolveDir, path),
         namespace: 'worker',
       }))
-      build.onLoad({ filter: /^.+\?worker$/g, namespace: 'worker' }, async ({ path }) => {
+      build.onLoad({ filter: /^.+\?worker$/, namespace: 'worker' }, async ({ path }) => {
         let absoltePath = cleanUrl(path)
         absoltePath = !absoltePath.endsWith('.ts') ? absoltePath + '.ts' : absoltePath
         const outDir = build.initialOptions.outdir
@@ -36,20 +36,27 @@ export default function createWorkerPlugin(): Plugin {
           minifySyntax: build.initialOptions.minifySyntax,
           keepNames: true,
           platform: 'node',
+          format: build.initialOptions.format,
+          target: build.initialOptions.target,
+          outExtension: build.initialOptions.outExtension,
           plugins: build.initialOptions.plugins,
         })
-        const fileName = basename((Object.keys(result.metafile?.outputs || {}).filter(v => v.endsWith('.js')))[0])
+        const entryOutput = Object.entries(result.metafile?.outputs ?? {}).find(([, output]) => output.entryPoint)
+        if (!entryOutput) throw new Error(`Worker build produced no entry output for ${absoltePath}`)
+        const fileName = basename(entryOutput[0])
+        const functionName = basename(absoltePath).replace(/\W+/g, '_').replace(/^(\d)/, '_$1')
+        console.log(functionName)
         return {
           errors: result.errors,
           warnings: result.warnings,
           contents: build.initialOptions.plugins!.find(v => v.name === 'dev')
             ? `import { Worker } from 'worker_threads';
 export const path = ${JSON.stringify(join(outDir, fileName))};
-export default function (options) { return new Worker(path, options); }`
+export default function ${functionName} (options) { return new Worker(path, options); }`
             : `import { join, dirname } from 'path';
 import { Worker } from 'worker_threads';
 export const path = join(__dirname.replace("app.asar", "app.asar"), ${JSON.stringify(fileName)});
-export default function (options) { return new Worker(path, options); }`,
+export default function ${functionName} (options) { return new Worker(path, options); }`,
           resolveDir: outDir,
         }
       })

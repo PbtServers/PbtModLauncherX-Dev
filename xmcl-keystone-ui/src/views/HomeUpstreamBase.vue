@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-2 grid grid-cols-9 gap-6 pb-4">
+  <div class="upstream-base mx-2 grid grid-cols-9 gap-6 pb-4">
     <div
       ref="containerRef"
       class="col-span-9 lg:col-span-6"
@@ -13,44 +13,53 @@
       <template
         v-for="row of virtualizer.getVirtualItems()"
       >
-        <v-subheader
+        <div
           v-if="row.index === 0"
           :key="'currentVersion' + row.index"
           :ref="measureElement"
-          class="flex"
+          class="upstream-base__section-header"
           :data-index="row.index"
           :style="{
             position: 'absolute',
             top: 0,
             left: 0,
             width: '100%',
-            transform: `translateY(${row.start}px)`
+            transform: `translateY(${row.start}px)`,
           }"
         >
-          {{ t('modrinthCard.currentVersion') }}
+          <span class="upstream-base__section-title">
+            {{ t('modrinthCard.currentVersion') }}
+          </span>
           <div class="flex-grow" />
           <v-switch
             v-model="_only"
-            dense
+            density="compact"
+            color="primary"
+            hide-details
             :label="t('upstream.onlyShowCurrentVersion')"
+            class="upstream-base__filter-switch"
           />
-        </v-subheader>
-        <v-subheader
+        </div>
+        <div
           v-else-if="isHeader(row.index)"
           :ref="measureElement"
           :key="getHeader(row.index)"
-          class="text-md"
+          class="upstream-base__section-header upstream-base__section-header--date"
           :data-index="row.index"
           :style="{
             position: 'absolute',
             top: 0,
             left: 0,
             width: '100%',
-            transform: `translateY(${row.start}px)`
+            transform: `translateY(${row.start}px)`,
           }"
         >
-          {{ getHeader(row.index) }}
-        </v-subheader>
+          <v-icon size="14" class="material-icons-outlined opacity-60">event</v-icon>
+          <span class="upstream-base__section-title">
+            {{ getHeader(row.index) }}
+          </span>
+          <div class="upstream-base__section-rule" />
+        </div>
         <div
           v-else
           :ref="measureElement"
@@ -89,12 +98,11 @@
       v-if="header"
       class="lg:(col-span-3 row-start-auto) col-span-9 row-start-1"
     >
-      <v-subheader class="px-1">
-        {{ header?.type === 'modrinth' ? 'Modrinth' : header?.type === 'curseforge' ? 'Curseforge' : 'FTB' }}
-      </v-subheader>
-      <HomeUpstreamHeader
-        :value="header"
-      />
+      <div class="upstream-base__sidebar">
+        <HomeUpstreamHeader
+          :value="header"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -104,8 +112,6 @@ import HomeUpstreamHeader, { UpstreamHeaderProps } from './HomeUpstreamHeader.vu
 import HomeUpstreamVersion, { ProjectVersionProps } from './HomeUpstreamVersion.vue'
 import { useVirtualizer, VirtualizerOptions } from '@tanstack/vue-virtual'
 import { getEl } from '@/util/el'
-import { injection } from '@/util/inject'
-import { kTheme } from '@/composables/theme'
 
 const props = defineProps<{
   duplicating?: boolean
@@ -223,3 +229,57 @@ watch(_only, () => {
   offsetTop.value = 0
 })
 </script>
+
+<style scoped>
+.upstream-base__sidebar {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upstream-base__section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 4px;
+}
+
+.upstream-base__section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.upstream-base__section-header--date {
+  margin-top: 8px;
+}
+
+.upstream-base__section-header--date .upstream-base__section-title {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.upstream-base__section-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(128, 128, 128, 0.25),
+    rgba(128, 128, 128, 0)
+  );
+}
+
+.upstream-base__filter-switch :deep(.v-label) {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+</style>

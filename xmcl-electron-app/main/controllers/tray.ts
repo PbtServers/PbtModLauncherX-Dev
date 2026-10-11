@@ -1,12 +1,37 @@
 import { ElectronController } from '@/ElectronController'
 import { darkIcon, darkTray, lightIcon, lightTray } from '@/utils/icons'
 import { BaseService } from '@xmcl/runtime/app'
-import { app, Menu, Tray, nativeTheme, nativeImage, MenuItemConstructorOptions } from 'electron'
+import { app, contentTracing, dialog, Menu, Tray, nativeTheme, nativeImage, MenuItemConstructorOptions, shell } from 'electron'
+import { join } from 'path'
 import { ControllerPlugin } from './plugin'
 import { kSettings } from '@xmcl/runtime/settings'
 
 export const trayPlugin: ControllerPlugin = function (this: ElectronController) {
   const { t } = this.i18n
+  let isTracing = false
+  const toggleTracing = async () => {
+    if (!isTracing) {
+      try {
+        await contentTracing.startRecording({
+          included_categories: ['*'],
+        })
+        isTracing = true
+      } catch (e) {
+        dialog.showErrorBox('Content tracing', `Failed to start recording: ${(e as Error).message}`)
+      }
+    } else {
+      const out = join(app.getPath('logs'), `trace-${Date.now()}.json`)
+      try {
+        const file = await contentTracing.stopRecording(out)
+        isTracing = false
+        shell.showItemInFolder(file)
+      } catch (e) {
+        isTracing = false
+        dialog.showErrorBox('Content tracing', `Failed to stop recording: ${(e as Error).message}`)
+      }
+    }
+    this.tray?.setContextMenu(createMenu())
+  }
   // nativeTheme.addListener('updated', () => {
   //   if (nativeTheme.shouldUseDarkColors) {
 
@@ -43,7 +68,14 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
         label: t('multiplayer'),
         type: 'normal',
         click: () => {
-          this.openMultiplayerWindow()
+          this.openMultiplayer()
+        },
+      },
+      {
+        label: t('makeDesktopShortcut'),
+        type: 'normal',
+        click: () => {
+          this.app.registry.get(BaseService).then(service => service.makeDesktopShortcut())
         },
       },
       // {
@@ -66,6 +98,13 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
         role: 'toggleDevTools',
       },
       {
+        label: isTracing ? 'Stop CPU trace' : 'Start CPU trace',
+        type: 'normal',
+        click: () => {
+          toggleTracing()
+        },
+      },
+      {
         label: t('relaunch'),
         type: 'normal',
         click() {
@@ -86,6 +125,9 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
         this.activate(this.activatedManifest)
       } else {
         window?.show()
+        if (this.maximized) {
+          window?.maximize()
+        }
       }
     }
     options.unshift({
@@ -128,8 +170,13 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
         const window = this.mainWin
         if (window) {
           if (window.isVisible()) {
-            window.hide()
-          } else window.show()
+            window.focus()
+          } else {
+            window.show()
+            if (this.maximized) {
+              window.maximize()
+            }
+          }
         }
       })
     }
@@ -138,7 +185,6 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
     tray.setContextMenu(createMenu())
 
     if (app.dock) {
-      app.dock.setIcon(nativeTheme.shouldUseDarkColors ? darkIcon : lightIcon)
       app.on('activate', () => {
         if (this.mainWin && !this.mainWin.isDestroyed()) {
           this.mainWin?.show()
@@ -154,9 +200,6 @@ export const trayPlugin: ControllerPlugin = function (this: ElectronController) 
   })
 
   this.app.on('app-booted', (man) => {
-    if (app.dock) {
-      app.dock.setIcon(nativeTheme.shouldUseDarkColors ? man.iconSets.darkDockIcon : man.iconSets.dockIcon)
-    }
     this.tray?.setImage(getTrayImage(man.iconSets.darkTrayIcon, man.iconSets.trayIcon))
   })
 }

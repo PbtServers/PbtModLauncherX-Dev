@@ -2,10 +2,11 @@ import { Category, GameVersion, License, Project } from '@xmcl/modrinth'
 import { InjectionKey, Ref, computed, reactive, toRefs, watch } from 'vue'
 
 import { clientModrinthV2 } from '@/util/clients'
-import debounce from 'lodash.debounce'
+import { useDebounceFn } from '@vueuse/core'
 import useSWRV from 'swrv'
 import { kSWRVConfig, useOverrideSWRVConfig } from './swrvConfig'
-import { MaybeRef, get, notNullish } from '@vueuse/core'
+import { get, notNullish } from '@vueuse/core'
+import type { MaybeRef } from 'vue'
 import { formatKey } from '@/util/swrvGet'
 import { UpstreamHeaderProps } from '@/views/HomeUpstreamHeader.vue'
 import { useDateString } from './date'
@@ -125,7 +126,7 @@ export function useModrinthSearchFunc(
   projectType: MaybeRef<string>,
   pageSize: MaybeRef<number>,
 ) {
-  async function search(index: number) {
+  async function search(index: number, signal?: AbortSignal) {
     const facets = getFacatsText(get(gameVersion), get(license), get(category), get(modLoader), get(projectType), get(environment))
     return clientModrinthV2.searchProjects({
       query: get(query),
@@ -133,7 +134,7 @@ export function useModrinthSearchFunc(
       offset: index,
       index: get(sortBy),
       facets,
-    }).then(markRaw)
+    }, signal).then(markRaw)
   }
 
   return search
@@ -178,10 +179,10 @@ export function useModrinth(
     })),
     () => search((get(page) - 1) * get(pageSize)), useOverrideSWRVConfig({ ttl: 30 * 1000 }))
 
-  const pages = computed(() => searchData.value ? Math.floor(searchData.value.total_hits / get(pageSize)) + 1 : 0)
+  const pages = computed(() => searchData.value ? Math.ceil(searchData.value.total_hits / get(pageSize)) : 0)
 
   const projects = computed(() => searchData.value?.hits || [])
-  const debouncedRefresh = debounce(() => mutate(), 1000)
+  const debouncedRefresh = useDebounceFn(() => mutate(), 1000)
   const refresh = () => {
     refreshing.value = true
     return debouncedRefresh()

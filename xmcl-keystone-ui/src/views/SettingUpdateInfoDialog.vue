@@ -4,6 +4,9 @@
     width="800"
     @input="$emit('input', $event)"
   >
+    <v-alert v-if="updateError" type="error" role="alert">
+      {{ t(`releaseSafety.${updateError}Error`) }}
+    </v-alert>
     <v-card
       v-if="updateInfo"
       outlined
@@ -11,75 +14,78 @@
     >
       <v-alert
         v-if="isAppX"
-        text
+        variant="tonal"
         type="warning"
       >
         {{ t('setting.appxUpdateHint') }}
       </v-alert>
-      <v-card-title>
-        {{ updateInfo.name }}
-      </v-card-title>
-      <v-card-subtitle>
-        {{ getLocalDateString(updateInfo.date) }}
-      </v-card-subtitle>
+      <v-card-item>
+        <v-card-title>
+          {{ updateInfo.newUpdate ? updateInfo.name : t('launcherUpdate.alreadyLatest') }}
+        </v-card-title>
+        <v-card-subtitle>
+          {{ getLocalDateString(updateInfo.date, undefined, locale) }}
+        </v-card-subtitle>
+      </v-card-item>
       <v-card-text class="markdown-body flex flex-col overflow-auto">
+        <p>{{ t('releaseSafety.versions', { installed: env?.version ?? '—', available: updateInfo.newUpdate ? updateInfo.name : env?.version ?? '—' }) }}</p>
+        <v-alert v-if="updateInfo.newUpdate" type="info" variant="tonal">
+          {{ t(hintRedownload ? 'releaseSafety.manual' : 'releaseSafety.verified') }}
+        </v-alert>
         <div v-html="body" />
       </v-card-text>
       <v-alert
         v-if="hintRedownload"
-        text
+        variant="tonal"
         type="warning"
       >
         {{ t('setting.maunalUpdateHint') }}
       </v-alert>
       <v-card-actions>
         <v-btn
-          text
           @click="openOfficialWebsite()"
-        >
+         variant="text">
           <v-icon
-            left
+            start
           >
             web
           </v-icon>
           {{ t('setting.officialWebsite') }}
         </v-btn>
         <v-btn
-          text
           @click="openGithub()"
-        >
+         variant="text">
           <v-icon
-            left
+            start
           >
             signpost
           </v-icon>
           {{ t('setting.githubRelease') }}
         </v-btn>
         <v-spacer />
-        <template v-if="!hintRedownload">
+        <template v-if="updateInfo.newUpdate && !hintRedownload">
           <v-btn
             v-if="updateStatus === 'pending'"
             color="primary"
-            text
             :loading="downloadingUpdate"
             :disabled="downloadingUpdate"
             @click="downloadUpdate()"
-          >
+           variant="text">
             <v-icon
-              left
+              start
             >
               cloud_download
             </v-icon>
             {{ t('launcherUpdate.updateToThisVersion') }}
           </v-btn>
           <v-btn
-            v-else
+            v-else-if="updateStatus === 'ready'"
             color="primary"
             :loading="installing"
             @click="quitAndInstall()"
           >
             <v-icon
-              left
+              start
             >
               refresh
             </v-icon>
@@ -93,7 +99,7 @@
       hover
 
       style="width: 100%"
-      to="https://github.com/voxelum/x-minecraft-launcher/releases"
+      to="https://github.com/PbtServers/PbtModLauncherX-Dev/releases"
       target="browser"
       push
     >
@@ -119,11 +125,11 @@ import { injection } from '@/util/inject'
 import { useDialog } from '../composables/dialog'
 
 const { isShown } = useDialog('update-info')
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { render } = useMarkdown()
 const { state } = injection(kSettingsState)
 const {
-  installing, downloadingUpdate, checkingUpdate, updateInfo, updateStatus,
+  installing, downloadingUpdate, checkingUpdate, updateInfo, updateStatus, updateError,
   downloadUpdate, quitAndInstall,
 } = injection(kUpdateSettings)
 
@@ -141,10 +147,10 @@ const hintRedownload = computed(() =>
 )
 
 const openOfficialWebsite = () => {
-  window.open('https://xmcl.app', 'browser')
+  window.open('https://pbtservers.com', 'browser')
 }
 const openGithub = () => {
-  window.open('https://github.com/voxelum/x-minecraft-launcher/releases', 'browser')
+  window.open('https://github.com/PbtServers/PbtModLauncherX-Dev/releases', 'browser')
 }
 </script>
 

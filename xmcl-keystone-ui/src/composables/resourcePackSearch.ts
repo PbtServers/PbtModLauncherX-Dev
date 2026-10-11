@@ -1,7 +1,7 @@
 import { injection } from '@/util/inject'
 import { ProjectEntry } from '@/util/search'
 import { TextComponent } from '@xmcl/text-component'
-import { InjectionKey, Ref } from 'vue'
+import { Ref } from 'vue'
 import { CurseforgeBuiltinClassId } from './curseforge'
 import { useCurseforgeSearch } from './curseforgeSearch'
 import { InstanceResourcePack } from './instanceResourcePack'
@@ -9,11 +9,10 @@ import { useMarketCollectionSearch } from './marketCollectionSearch'
 import { kModrinthAuthenticatedAPI } from './modrinthAuthenticatedAPI'
 import { useModrinthSearch } from './modrinthSearch'
 import { SearchModel } from './search'
-import { useMergedProjects, useProjectsSort } from './useAggregateProjects'
-import { useLocalStorageCacheStringValue } from './cache'
+import { useMergedProjects, useProjectsSort } from './useMergedProjects'
+import { useLocalStorage } from '@vueuse/core'
 import { LocalSort } from './sortBy'
-
-export const kResourcePackSearch: InjectionKey<ReturnType<typeof useResourcePackSearch>> = Symbol('ResourcePackSearch')
+import { mergeSorted } from '@/util/sort'
 
 /**
  * Represent a mod project
@@ -31,7 +30,7 @@ function useLocalSearch(enabled: Ref<InstanceResourcePack[]>, disabled: Ref<Inst
       const curseforgeId = m.curseforge?.projectId
       const modrinthId = m.modrinth?.projectId
       const name = m.name.startsWith('file/') ? m.name.slice(5) : m.name
-      const obj = indices[name] || (modrinthId && indices[modrinthId]) || (curseforgeId && indices[curseforgeId])
+      const obj = indices[name] || (m.fileName && indices[m.fileName]) || (modrinthId && indices[modrinthId]) || (curseforgeId && indices[curseforgeId])
       if (obj) {
         obj.files?.push(m)
         obj.installed?.push(m)
@@ -52,6 +51,9 @@ function useLocalSearch(enabled: Ref<InstanceResourcePack[]>, disabled: Ref<Inst
           files: [m],
         } as ResourcePackProject)
         indices[name] = proj
+        if (m.fileName) {
+          indices[m.fileName] = proj
+        }
         if (modrinthId) {
           indices[modrinthId] = proj
         }
@@ -101,7 +103,7 @@ export function useResourcePackSearch(_enabled: Ref<InstanceResourcePack[]>, _di
   const loading = computed(() => loadingModrinth.value || loadingCached.value || loadingCurseforge.value)
   const { items: collectionItems, effect: onCollectionsEffect } = useMarketCollectionSearch('resourcepack', searchModel, collections, follows)
   const { currentView } = searchModel
-  const sortBy = useLocalStorageCacheStringValue('resourcePackSort', '' as LocalSort)
+  const sortBy = useLocalStorage<LocalSort>('resourcePackSort', '' as LocalSort, { writeDefaults: false })
 
   const merged = useMergedProjects<ResourcePackProject>(
     computed(() => {
@@ -113,10 +115,10 @@ export function useResourcePackSearch(_enabled: Ref<InstanceResourcePack[]>, _di
         return [collectionItems.value, all.value]
       }
       return [
-        [
-          ...modrinth.value,
-          ...curseforge.value,
-        ],
+        mergeSorted(
+          modrinth.value,
+          curseforge.value,
+        ),
         all.value,
       ]
     }),
@@ -125,6 +127,7 @@ export function useResourcePackSearch(_enabled: Ref<InstanceResourcePack[]>, _di
   const items = useProjectsSort(
     searchModel.keyword,
     merged,
+    currentView,
   )
 
   const error = computed(() => curseforgeError.value || modrinthError.value)
@@ -147,6 +150,7 @@ export function useResourcePackSearch(_enabled: Ref<InstanceResourcePack[]>, _di
     loadMore,
     error,
     items,
+    collectionItems,
     loading,
     effect,
   }

@@ -6,7 +6,7 @@
       <img
         width="45px"
         height="45px"
-        style="min-width: 45px; min-height: 45px;"
+        class="min-w-[45px] min-h-[45px]"
         contain
         :src="icon"
       >
@@ -33,11 +33,11 @@
         {{ t('browseApp.default') }}
       </v-chip>
       <v-tooltip top>
-        <template #activator="{ on }">
+        <template #activator="{ props }">
           <v-btn
             icon
+            variant="text"
             class="v-10"
-            v-on="on"
             @click.stop.prevent="$emit('shortcut')"
           >
             <v-icon>shortcut</v-icon>
@@ -46,11 +46,11 @@
         {{ t('browseApp.createShortcut') }}
       </v-tooltip>
       <v-tooltip top>
-        <template #activator="{ on }">
+        <template #activator="{ props }">
           <v-btn
             icon
+            variant="text"
             class="v-10"
-            v-on="on"
             @click.stop.prevent="$emit('boot')"
           >
             <v-icon>play_arrow</v-icon>
@@ -59,14 +59,12 @@
         {{ t('browseApp.launch') }}
       </v-tooltip>
       <v-tooltip top>
-        <template #activator="{ on }">
+        <template #activator="{ props }">
           <v-btn
             icon
-            text
             color="error"
-            v-on="on"
             @click.stop.prevent="$emit('uninstall')"
-          >
+           variant="text">
             <v-icon>delete_outline</v-icon>
           </v-btn>
         </template>
@@ -78,7 +76,7 @@
 <script lang="ts" setup>
 import { InstalledAppManifest } from '@xmcl/runtime-api'
 
-import favicon from '@/assets/favicon.svg'
+import favicon from '@/assets/pbtmodlauncherx.png'
 
 const props = defineProps<{
   manifest: InstalledAppManifest

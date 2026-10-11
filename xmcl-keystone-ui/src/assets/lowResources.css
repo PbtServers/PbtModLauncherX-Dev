@@ -1,0 +1,23 @@
+/* Runtime preference: no Minecraft settings or persistent theme values changed. */
+html.pbt-reduced-motion *, html.pbt-reduced-motion *::before, html.pbt-reduced-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+html.pbt-low-resources *, html.pbt-low-resources *::before, html.pbt-low-resources *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+html.pbt-low-resources .v-application,
+html.pbt-low-resources .v-card,
+html.pbt-low-resources .v-overlay__content,
+html.pbt-low-resources .agent-surface,
+html.pbt-low-resources .omni-surface {
+  background: rgb(var(--v-theme-surface)) !important;
+}
+html.pbt-low-resources .header-overlay { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

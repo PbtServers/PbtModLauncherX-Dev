@@ -1,6 +1,6 @@
 import { Authority, ClientAuthErrorCodes, createClientAuthError } from '@azure/msal-common';
 import { LauncherAppPlugin } from '~/app';
-import { kClientToken } from '~/clientToken';
+import { kClientToken } from '~/infra';
 import { UserService } from './UserService';
 import { YggdrasilSeriveRegistry, kYggdrasilSeriveRegistry } from './YggdrasilSeriveRegistry';
 import { YggdrasilAccountSystem, kYggdrasilAccountSystem } from './accountSystems/YggdrasilAccountSystem';
@@ -28,7 +28,8 @@ export const pluginYggdrasilApi: LauncherAppPlugin = async (app) => {
         );
       } else {
         throw createClientAuthError(
-          ClientAuthErrorCodes.endpointResolutionError
+          ClientAuthErrorCodes.endpointResolutionError,
+          'xmcl-yggdrasil-device-code',
         );
       }
     }

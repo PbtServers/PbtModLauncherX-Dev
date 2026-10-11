@@ -1,14 +1,10 @@
 import { injection } from '@/util/inject'
-import { get, MaybeRef, useEventBus, useLocalStorage } from '@vueuse/core'
+import { get } from '@vueuse/core'
+import { InstanceGroupData, InstanceGroupDataOrString } from '@xmcl/runtime-api'
+import type { MaybeRef } from 'vue'
+import { onMounted, ref } from 'vue'
 import { kInstances } from './instances'
 import { kTheme } from './theme'
-
-export interface InstanceGroupData {
-  color: string
-  name: string
-  id: string
-  instances: string[]
-}
 
 export enum OverState {
   TopQuad, // top 1/4
@@ -16,7 +12,15 @@ export enum OverState {
   BottomQuad, // bottom 1/4
 }
 
-export type InstanceOrGroupData = string | InstanceGroupData
+export type InstanceOrGroupData = InstanceGroupDataOrString
+
+/**
+ * Global flag indicating whether an instance (or instance-group) is currently
+ * being dragged. Used by the sidebar scroll container to enable mouse-wheel
+ * scrolling while a drag is in progress (native HTML5 drag-and-drop does not
+ * scroll containers automatically). See gh #1396.
+ */
+export const isDraggingInstance = ref(false)
 
 export function useGroupDragDropState(emit: (event: 'arrange' | 'group' | 'drop-save', data: any) => void, inside?: MaybeRef<boolean | undefined>) {
   const dragging = ref(false)
@@ -51,6 +55,7 @@ export function useGroupDragDropState(emit: (event: 'arrange' | 'group' | 'drop-
   const onDragEnd = (e: DragEvent) => {
     dragging.value = false
     overState.value = undefined
+    isDraggingInstance.value = false
   }
 
   const onDragEnter = (e: DragEvent) => {
@@ -94,6 +99,7 @@ export function useGroupDragDropState(emit: (event: 'arrange' | 'group' | 'drop-
     dragging.value = false
     dragover.value = 0
     overState.value = undefined
+    isDraggingInstance.value = false
   }
   return {
     onDragEnd,
@@ -115,51 +121,13 @@ export function useInstanceGroupDefaultColor() {
   })
 }
 
-export function useInstanceGroup() {
-  const { instances, ready } = injection(kInstances)
-  const groupsData = useLocalStorage('instanceGroup', () => [] as InstanceOrGroupData[])
-
-  const migrationBus = useEventBus<{ oldRoot: string; newRoot: string }>('migration')
-
-  migrationBus.once((e) => {
-    groupsData.value = groupsData.value.map((v) => {
-      if (typeof v === 'string') {
-        return v.replace(e.oldRoot, e.newRoot)
-      }
-      return { ...v, instances: v.instances.map(v => v.replace(e.oldRoot, e.newRoot)) }
-    })
-  })
-
-  watch(instances, (instances) => {
-    if (!ready.value) { return }
-    const groups = groupsData.value
-    const newGroupData = [] as InstanceOrGroupData[]
-    const existed = new Set<string>(instances.map(v => v.path))
-    for (const item of groups) {
-      if (typeof item === 'string') {
-        if (existed.has(item)) {
-          newGroupData.push(item)
-          existed.delete(item)
-        }
-      } else {
-        const newInstances = [] as string[]
-        for (const inst of item.instances) {
-          if (existed.has(inst)) {
-            newInstances.push(inst)
-            existed.delete(inst)
-          }
-        }
-        if (newInstances.length > 0) {
-          newGroupData.push({ ...item, instances: newInstances })
-        }
-      }
-    }
-    for (const i of existed) {
-      newGroupData.push(i)
-    }
-
-    groupsData.value = newGroupData
-  }, { immediate: true })
+/**
+ * The pure grouping mutation operations. Does not install the reconciliation
+ * watcher / migration hooks, so it is safe to call from multiple places (e.g.
+ * the sidebar item context menu) without duplicating side effects.
+ */
+export function useInstanceGroupOps() {
+  const { groups: groupsData, groupsSet } = injection(kInstances)
 
   const isEqualGroup = (a: InstanceOrGroupData, b: InstanceOrGroupData) => {
     if (typeof a === 'string') {
@@ -203,7 +171,7 @@ export function useInstanceGroup() {
       }
     }
 
-    groupsData.value = newOrders
+    groupsSet(newOrders)
   }
 
   const move = (from: InstanceOrGroupData, to: InstanceOrGroupData, previous?: boolean) => {
@@ -268,12 +236,113 @@ export function useInstanceGroup() {
       }
     }
 
-    groupsData.value = newOrders
+    groupsSet(newOrders)
+  }
+
+  const edit = (id: string, changes: Partial<Omit<InstanceGroupData, 'id' | 'instances'>>) => {
+    const data = groupsData.value
+    const newOrders = data.map(item => {
+      if (typeof item !== 'string' && item.id === id) {
+        return { ...item, ...changes }
+      }
+      return item
+    })
+    groupsSet(newOrders)
+  }
+
+  /**
+   * Create a brand new group that contains only the given instance. The
+   * instance is removed from wherever it currently lives (top-level or another
+   * group) and a new named group is placed where it used to be.
+   */
+  const createGroup = (from: string, name: string, color = '') => {
+    const data = groupsData.value
+    const newGroup: InstanceGroupData = {
+      id: crypto.getRandomValues(new Uint32Array(2))[0].toString(16),
+      name,
+      color,
+      instances: [from],
+    }
+    const newOrders = [] as InstanceOrGroupData[]
+    let inserted = false
+    for (const current of data) {
+      if (typeof current === 'string') {
+        if (current === from) {
+          newOrders.push(newGroup)
+          inserted = true
+        } else {
+          newOrders.push(current)
+        }
+      } else {
+        const newInstances = current.instances.filter(i => i !== from)
+        if (newInstances.length > 0) {
+          newOrders.push({ ...current, instances: newInstances })
+        }
+      }
+    }
+    if (!inserted) {
+      newOrders.push(newGroup)
+    }
+    groupsSet(newOrders)
   }
 
   return {
     groups: groupsData,
+    groupsSet,
     move,
     group,
+    edit,
+    createGroup,
   }
 }
+
+export function useInstanceGroup() {
+  const { instances, allInstances, ready, groups: groupsData, groupsSet } = injection(kInstances)
+  const ops = useInstanceGroupOps()
+
+  onMounted(() => {
+    try {
+      const v: InstanceOrGroupData[] = JSON.parse(localStorage.getItem('instanceGroup')!)
+      if (Array.isArray(v)) {
+        groupsSet(v)
+        localStorage.removeItem('instanceGroup')
+      }
+    } catch {
+
+    }
+  })
+
+  watch(allInstances ?? instances, (instances) => {
+    if (!ready.value) { return }
+    const groups = groupsData.value
+    const newGroupData = [] as InstanceOrGroupData[]
+    const existed = new Set<string>(instances.map(v => v.path))
+    for (const item of groups) {
+      if (typeof item === 'string') {
+        if (existed.has(item)) {
+          newGroupData.push(item)
+          existed.delete(item)
+        }
+      } else {
+        const newInstances = [] as string[]
+        for (const inst of item.instances) {
+          if (existed.has(inst)) {
+            newInstances.push(inst)
+            existed.delete(inst)
+          }
+        }
+        if (newInstances.length > 0) {
+          newGroupData.push({ ...item, instances: newInstances })
+        }
+      }
+    }
+    for (const i of existed) {
+      newGroupData.push(i)
+    }
+
+    groupsSet(newGroupData)
+  }, { immediate: true })
+
+  return ops
+}
+

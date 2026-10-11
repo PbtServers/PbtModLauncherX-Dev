@@ -1,11 +1,11 @@
 import { injection } from '@/util/inject'
 import { getExpectedSize } from '@/util/size'
-import { ImportServiceKey, Resource, UserServiceKey } from '@xmcl/runtime-api'
+import { Resource } from '@xmcl/resource'
 import { useDialog } from './dialog'
 import { kDropHandler } from './dropHandler'
 import { kInstance } from './instance'
 import { AddInstanceDialogKey } from './instanceTemplates'
-import { useService } from './service'
+import { isModpackUrl, ImportUrlDialogKey } from './modpackPaste'
 
 export interface DropItem {
   id: string
@@ -35,6 +35,7 @@ export function useAppDropHandler() {
   const { registerHandler, dragover } = injection(kDropHandler)
   const { path } = injection(kInstance)
   const { show } = useDialog(AddInstanceDialogKey)
+  const { show: showImportUrl } = useDialog(ImportUrlDialogKey)
 
   registerHandler({
     onEnter: () => {
@@ -49,6 +50,8 @@ export function useAppDropHandler() {
             const content = await new Promise<string>((resolve) => item.getAsString(resolve))
             if (content.startsWith('authlib-injector:yggdrasil-server:')) {
               promises.push(onAuthServiceDropped(content))
+            } else if (isModpackUrl(content)) {
+              showImportUrl({ url: content })
             } else if (content.startsWith('https://github.com/') || content.startsWith('https://gitlab.com')) {
               promises.push(onGitURLDropped(content))
             }
@@ -59,7 +62,8 @@ export function useAppDropHandler() {
       if (dataTransfer.files.length > 0) {
         for (let i = 0; i < dataTransfer.files.length; i++) {
           const file = dataTransfer.files.item(i)!
-          if (items.value.every(p => p.id !== file.path)) {
+          const filePath = windowController.getPathForFile(file)
+          if (filePath && items.value.every(p => p.id !== filePath)) {
             promises.push(onFileDropped(file))
           }
         }
@@ -75,16 +79,14 @@ export function useAppDropHandler() {
       if (items.value.length === 0) cancel()
     },
   })
-  const { addYggdrasilService } = useService(UserServiceKey)
-  const { previewUrl } = useService(ImportServiceKey)
 
   const iconMap: Record<string, string> = {
-    mods: '$vuetify.icons.package',
+    mods: 'xmcl:package',
     unclassified: 'question_mark',
-    resourcepacks: '$vuetify.icons.zip',
-    shaderpacks: '$vuetify.icons.zip',
-    modpacks: '$vuetify.icons.package',
-    saves: '$vuetify.icons.zip',
+    resourcepacks: 'xmcl:zip',
+    shaderpacks: 'xmcl:zip',
+    modpacks: 'xmcl:package',
+    saves: 'xmcl:zip',
   }
 
   function getDescription(rsize: number | undefined, url: string) {
@@ -136,20 +138,20 @@ export function useAppDropHandler() {
   }
 
   function getIcon(resource: Resource | undefined) {
-    if (resource?.metadata['curseforge-modpack']) {
-      return '$vuetify.icons.curseforge'
-    }
-    if (resource?.metadata['modrinth-modpack']) {
-      return '$vuetify.icons.modrinth'
-    }
-    if (resource?.metadata['mcbbs-modpack']) {
-      return '$vuetify.icons.package'
-    }
+    // if (resource?.metadata['curseforge-modpack']) {
+    //   return 'xmcl:curseforge'
+    // }
+    // if (resource?.metadata['modrinth-modpack']) {
+    //   return 'xmcl:modrinth'
+    // }
+    // if (resource?.metadata['mcbbs-modpack']) {
+    //   return 'xmcl:package'
+    // }
     if (resource?.metadata.forge) {
-      return '$vuetify.icons.forge'
+      return 'xmcl:forge'
     }
     if (resource?.metadata.fabric) {
-      return '$vuetify.icons.fabric'
+      return 'xmcl:fabric'
     }
     return 'question_mark'
   }

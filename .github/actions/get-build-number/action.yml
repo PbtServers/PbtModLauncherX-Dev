@@ -1,9 +1,9 @@
-name: TEST
-description: Prepare Pull Request for the current change
+name: Get build number
+description: Get build number
 outputs:
   build_number:
     description: The release body
 runs:
-  using: 'node12'
+  using: 'node20'
   main: index.js
   

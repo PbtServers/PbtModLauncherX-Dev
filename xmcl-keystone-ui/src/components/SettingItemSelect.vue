@@ -1,44 +1,49 @@
 <template>
-  <v-list-item>
-    <v-list-item-content>
-      <v-list-item-title>
-        <slot
-          v-if="slots.title"
-          name="title"
-        />
-        <template v-else>
-          {{ title }}
-        </template>
-      </v-list-item-title>
-      <v-list-item-subtitle class="break-words whitespace-pre">
-        {{ description }}
-      </v-list-item-subtitle>
-    </v-list-item-content>
-    <v-list-item-action>
+  <SettingItem :description="description">
+    <template #title>
+      <slot v-if="slots.title" name="title" />
+      <template v-else>
+        <v-icon v-if="icon" start size="small" color="primary">{{ icon }}</v-icon>
+        {{ title }}
+      </template>
+    </template>
+    <template #action="{ titleId, descriptionId }">
       <v-select
         v-model="model"
-        filled
-        style="max-width: 185px"
+        v-bind="$attrs"
+        variant="outlined"
+        density="compact"
+        item-title="text"
+        item-value="value"
+        class="setting-item-select font-weight-medium"
         hide-details
         :items="items"
+        :aria-labelledby="titleId"
+        :aria-describedby="description ? descriptionId : undefined"
       />
-    </v-list-item-action>
-  </v-list-item>
+    </template>
+  </SettingItem>
 </template>
 <script setup lang="ts">
-import { useVModel } from '@vueuse/core'
+import SettingItem from './SettingItem.vue'
 
-const props = defineProps<{
+defineOptions({ inheritAttrs: false })
+
+const model = defineModel<string>({ required: true })
+
+defineProps<{
   title: string
   description?: string
-  select: string
+  icon?: string
   items: Array<{ text: string; value: string }>
-}>()
-const emit = defineEmits<{
-  (event: 'update:select', value: string): void
 }>()
 
 const slots = useSlots()
-
-const model = useVModel(props, 'select', emit)
 </script>
+
+<style scoped>
+.setting-item-select {
+  min-width: 200px;
+  max-width: 300px;
+}
+</style>

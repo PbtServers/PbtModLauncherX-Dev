@@ -9,7 +9,7 @@
       >
         <v-toolbar-title>
           <template v-if="sharing">
-            {{ t('AppShareInstanceDialog.shareTitle') }}
+            {{ t('AppShareInstanceDialog.editScopeTitle') }}
           </template>
           <template v-else>
             {{ t('AppShareInstanceDialog.downloadTitle') }}
@@ -25,97 +25,40 @@
       >
         <v-card-text>
           <template v-if="sharing">
-            {{ t('AppShareInstanceDialog.description') }}
+            {{ t('AppShareInstanceDialog.editScopeDescription') }}
           </template>
           <template v-else>
             {{ t('AppShareInstanceDialog.downloadDescription', { name }) }}
           </template>
         </v-card-text>
+        <v-select
+          v-if="sharing && runningInstanceItems.length > 1"
+          v-model="sharingPath"
+          class="mx-4"
+          density="comfortable"
+          :items="runningInstanceItems"
+          item-title="title"
+          item-value="value"
+          :label="t('AppShareInstanceDialog.instanceToShare')"
+        />
         <v-card-text v-if="!sharing">
           {{ t('AppShareInstanceDialog.alterDownloadDescription') }}
         </v-card-text>
-        <v-subheader>{{ t('AppShareInstanceDialog.baseInfo') }}</v-subheader>
+        <v-list-subheader>{{ t('AppShareInstanceDialog.baseInfo') }}</v-list-subheader>
         <div class="flex flex-col p-5 ">
           <div class="flex gap-5">
-            <v-text-field
-              flat
-              :value="minecraft"
-              label="Minecraft"
-              dense
-              readonly
-            >
-              <template #prepend-inner>
-                <img
-                  :src="BuiltinImages.minecraft"
-                  width="32"
-                >
-              </template>
-            </v-text-field>
-            <v-text-field
-              v-if="forge"
-              flat
-              dense
-              label="Forge"
-              :value="forge"
-              readonly
-            >
-              <template #prepend-inner>
-                <img
-                  :src="BuiltinImages.forge"
-                  width="32"
-                >
-              </template>
-            </v-text-field>
-            <v-text-field
-              v-if="fabricLoader"
-              flat
-              dense
-              label="Fabric"
-              :value="fabricLoader"
-              readonly
-            >
-              <template #prepend-inner>
-                <img
-                  :src="BuiltinImages.fabric"
-                  width="32"
-                >
-              </template>
-            </v-text-field>
-            <v-text-field
-              v-if="quiltLoader"
-              flat
-              dense
-              label="Fabric"
-              :value="quiltLoader"
-              readonly
-            >
-              <template #prepend-inner>
-                <img
-                  :src="BuiltinImages.quilt"
-                  width="32"
-                >
-              </template>
-            </v-text-field>
-            <v-text-field
-              v-if="neoForged"
-              flat
-              dense
-              label="Fabric"
-              :value="neoForged"
-              readonly
-            >
-              <template #prepend-inner>
-                <img
-                  :src="BuiltinImages.neoForged"
-                  width="32"
-                >
-              </template>
-            </v-text-field>
+            <InstanceVersionField
+              v-for="field in versionFields"
+              :key="field.label"
+              :label="field.label"
+              :value="field.value"
+              :image="field.image"
+            />
           </div>
           <div class="flex gap-5">
             <v-text-field
               v-if="vmOptions.length > 0"
-              :value="vmOptions"
+              :model-value="vmOptions"
               readonly
               :label="t('instance.vmOptions')"
             />
@@ -123,20 +66,20 @@
           <div class="flex gap-5">
             <v-text-field
               v-if="mcOptions.length > 0"
-              :value="mcOptions"
+              :model-value="mcOptions"
               readonly
               :label="t('instance.mcOptions')"
             />
           </div>
         </div>
-        <v-subheader>
+        <v-list-subheader>
           <template v-if="sharing">
             {{ t('AppShareInstanceDialog.filesToShare') }}
           </template>
           <template v-else>
             {{ t('AppShareInstanceDialog.filesToDownload') }}
           </template>
-        </v-subheader>
+        </v-list-subheader>
 
         <div v-if="loading">
           <v-skeleton-loader
@@ -154,53 +97,47 @@
       </v-container>
       <v-card-actions v-if="sharing">
         <v-btn
-          text
-          color="error"
-          @click="onCancelShare"
+          @click="isShown = false"
+          variant="text"
         >
-          <v-icon left>
-            delete
-          </v-icon>
-          {{ t('AppShareInstanceDialog.cancelShare') }}
+          {{ t('shared.cancel') }}
         </v-btn>
         <v-spacer />
         <v-btn
-          text
           color="primary"
-          @click="onShareInstance"
-        >
-          <v-icon left>
-            share
+          :loading="saving"
+          :disabled="!manifest || !sharingPath"
+          @click="onSaveSharingScope"
+         variant="text">
+          <v-icon start>
+            save
           </v-icon>
-          {{ t('AppShareInstanceDialog.share') }}
+          {{ t('shared.save') }}
         </v-btn>
       </v-card-actions>
       <v-card-actions v-else>
         <v-btn
-          text
           @click="isShown = false"
-        >
-          {{ t('cancel') }}
+         variant="text">
+          {{ t('shared.cancel') }}
         </v-btn>
         <v-spacer />
         <v-btn
-          text
           @click="onCreateInstance"
-        >
-          <v-icon left>
+         variant="text">
+          <v-icon start>
             add
           </v-icon>
           {{ t('instances.add') }}
         </v-btn>
         <v-btn
-          text
           color="primary"
           @click="onDownloadInstance"
-        >
-          <v-icon left>
+         variant="text">
+          <v-icon start>
             download
           </v-icon>
-          {{ t('download') }}
+          {{ t('shared.download') }}
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -210,11 +147,15 @@
 import { useService } from '@/composables'
 import { kInstance } from '@/composables/instance'
 import { provideFileNodes, useInstanceFileNodesFromLocal } from '@/composables/instanceFileNodeData'
+import { createScopedInstanceManifest, resolveInstanceSharingPath, useInstanceSharingPreferences } from '@/composables/instanceSharing'
 import { AddInstanceDialogKey } from '@/composables/instanceTemplates'
+import { kInstances } from '@/composables/instances'
+import { kPeerState } from '@/composables/peers'
 import { injection } from '@/util/inject'
 import { InstanceInstallServiceKey, InstanceManifest, InstanceManifestServiceKey, PeerServiceKey } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
 import InstanceManifestFileTree from '../components/InstanceManifestFileTree.vue'
+import InstanceVersionField from '../components/InstanceVersionField.vue'
 import { useDialog } from '../composables/dialog'
 import { useNotifier } from '../composables/notifier'
 import { BuiltinImages } from '../constant'
@@ -225,8 +166,11 @@ const { installInstanceFiles } = useService(InstanceInstallServiceKey)
 const { getInstanceManifest } = useService(InstanceManifestServiceKey)
 const { shareInstance } = useService(PeerServiceKey)
 const { path, name } = injection(kInstance)
+const { instances } = injection(kInstances)
+const { runningClientInstances } = injection(kPeerState)
 const { t } = useI18n()
 const { subscribeTask } = useNotifier()
+const sharingPreferences = useInstanceSharingPreferences()
 
 const sharing = computed(() => isShown.value && !parameter.value)
 /**
@@ -235,6 +179,12 @@ const sharing = computed(() => isShown.value && !parameter.value)
 const currentUser = ref('')
 const manifest: Ref<InstanceManifest | undefined> = shallowRef(undefined)
 const selected = ref([] as string[])
+const sharingPath = ref('')
+const saving = ref(false)
+const runningInstanceItems = computed(() => runningClientInstances.value.map((instancePath) => ({
+  value: instancePath,
+  title: instances.value.find((instance) => instance.path === instancePath)?.name || instancePath,
+})))
 
 provideFileNodes(useInstanceFileNodesFromLocal(computed(() => manifest.value?.files || [])))
 
@@ -244,29 +194,34 @@ const fabricLoader = computed(() => manifest.value?.runtime.fabricLoader)
 const quiltLoader = computed(() => manifest.value?.runtime.quiltLoader)
 const neoForged = computed(() => manifest.value?.runtime.neoForged)
 const optifine = computed(() => manifest.value?.runtime.optifine)
+const versionFields = computed(() => [
+  { label: 'Minecraft', value: minecraft.value, image: BuiltinImages.minecraft },
+  { label: 'Forge', value: forge.value, image: BuiltinImages.forge },
+  { label: 'Fabric', value: fabricLoader.value, image: BuiltinImages.fabric },
+  { label: 'Quilt', value: quiltLoader.value, image: BuiltinImages.quilt },
+  { label: 'NeoForged', value: neoForged.value, image: BuiltinImages.neoForged },
+].filter((f): f is { label: string; value: string; image: string } => !!f.value))
 const mcOptions = computed(() => manifest.value?.mcOptions || [])
 const vmOptions = computed(() => manifest.value?.vmOptions || [])
 const loading = ref(false)
 
 const scrollElement = ref<HTMLElement | null>(null)
 
-const onCancelShare = () => {
-  shareInstance({ manifest: undefined, instancePath: path.value })
-  isShown.value = false
-}
-
-const onShareInstance = () => {
-  if (manifest.value) {
-    const man = { ...manifest.value }
-    const allow = new Set(selected.value)
-    man.files = man.files.filter(f => allow.has(f.path))
-    subscribeTask(shareInstance({ manifest: man, instancePath: path.value }), t('AppShareInstanceDialog.shareNotifyTitle'))
+const onSaveSharingScope = async () => {
+  if (!manifest.value || !sharingPath.value || saving.value) return
+  saving.value = true
+  try {
+    sharingPreferences.setFiles(sharingPath.value, selected.value)
+    const scoped = await createScopedInstanceManifest(manifest.value, selected.value)
+    await shareInstance({ manifest: scoped, instancePath: sharingPath.value })
     isShown.value = false
+  } finally {
+    saving.value = false
   }
 }
 
 const isNoUpstreamOrSameUpstream = computed(() => {
-  
+
 })
 
 const onDownloadInstance = () => {
@@ -299,15 +254,53 @@ const onCreateInstance = () => {
   }
 }
 
-watch(isShown, async (shown) => {
-  if (shown) {
-    windowController.focus()
-    if (parameter.value) {
-      manifest.value = parameter.value as any
-    } else {
-      loading.value = true
-      manifest.value = await getInstanceManifest({ path: path.value }).finally(() => { loading.value = false })
-    }
+let loadRevision = 0
+async function loadSharingManifest(instancePath: string) {
+  const revision = ++loadRevision
+  loading.value = true
+  try {
+    const value = await getInstanceManifest({ path: instancePath })
+    if (revision !== loadRevision) return
+    manifest.value = value
+    selected.value = sharingPreferences.getFiles(instancePath, value.files)
+  } finally {
+    if (revision === loadRevision) loading.value = false
+  }
+}
+
+watch(sharingPath, (instancePath) => {
+  if (isShown.value && sharing.value && instancePath) void loadSharingManifest(instancePath)
+})
+
+watch(runningClientInstances, (running) => {
+  if (!isShown.value || !sharing.value) return
+  const target = resolveInstanceSharingPath(running, path.value)
+  if (sharingPath.value !== target) {
+    sharingPath.value = target
+  } else if (target && !manifest.value && !loading.value) {
+    void loadSharingManifest(target)
   }
 })
+
+watch(isShown, async (shown) => {
+  if (!shown) {
+    loadRevision++
+    loading.value = false
+    manifest.value = undefined
+    selected.value = []
+    return
+  }
+  windowController.focus()
+  if (parameter.value) {
+    loadRevision++
+    loading.value = false
+    manifest.value = parameter.value as any
+    selected.value = manifest.value?.files.map((file) => file.path) ?? []
+  } else {
+    const running = runningClientInstances.value
+    const target = resolveInstanceSharingPath(running, path.value)
+    if (sharingPath.value === target && target) void loadSharingManifest(target)
+    else sharingPath.value = target
+  }
+}, { immediate: true })
 </script>

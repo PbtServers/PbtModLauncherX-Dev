@@ -9,20 +9,18 @@
         <AvatarItemList :items="extensionItems" />
       </div>
       <div class="flex-grow" />
-      <MarketTextFieldWithMenu
-        :keyword.sync="keyword"
+      <MarketTextField
+        :clearable="!!curseforgeCategory || modrinthCategories.length > 0 || !!keyword"
+        :value="keyword"
         :placeholder="t('resourcepack.searchHint')"
-        :modrinth-categories.sync="modrinthCategories"
-        modrinth-category-filter="resourcepack"
-        :local-sort.sync="sortBy"
-        :curseforge-category.sync="curseforgeCategory"
-        curseforge-category-filter="texture-packs"
-        :enable-curseforge.sync="isCurseforgeActive"
-        :enable-modrinth.sync="isModrinthActive"
-        :sort.sync="sort"
-        :game-version.sync="gameVersion"
-        :mode.sync="filterMode"
-        :collection.sync="selectedCollection"
+        :game-version="gameVersion !== runtime.minecraft ? gameVersion : undefined"
+        :category="!!curseforgeCategory || modrinthCategories.length > 0"
+        :icon="filterMode === 'remote' ? 'storefront' : filterMode === 'local' ? 'inventory_2' : 'favorite'"
+        @clear="onClear"
+        @clear-version="gameVersion = runtime.minecraft"
+        @input="keyword = $event ?? ''"
+        @clear-category="onClear"
+        @blur="focused = false"
       />
     </div>
     <MarketExtensions
@@ -33,38 +31,35 @@
 <script lang=ts setup>
 import AvatarItemList from '@/components/AvatarItemList.vue'
 import MarketExtensions from '@/components/MarketExtensions.vue'
-import MarketTextFieldWithMenu from '@/components/MarketTextFieldWithMenu.vue'
-import { useService } from '@/composables'
+import MarketTextField from '@/components/MarketTextField.vue'
 import { kInstance } from '@/composables/instance'
 import { kInstanceResourcePacks } from '@/composables/instanceResourcePack'
-import { kResourcePackSearch } from '@/composables/resourcePackSearch'
 import { kSearchModel } from '@/composables/search'
 import { getExtensionItemsFromRuntime } from '@/util/extensionItems'
 import { injection } from '@/util/inject'
-import { InstanceResourcePacksServiceKey } from '@xmcl/runtime-api'
-import useSWRV from 'swrv'
+import { useQuery } from '@/composables/query'
 
-const { path, runtime } = injection(kInstance)
+const { runtime } = injection(kInstance)
 const { enabled } = injection(kInstanceResourcePacks)
 const extensionItems = computed(() => {
   return [...getExtensionItemsFromRuntime({ minecraft: runtime.value.minecraft }), {
     icon: 'palette',
     title: t('resourcepack.name', 2),
     text: t('resourcepack.enable', { count: enabled.value.length }),
-  }, {
-    icon: isInstanceLinked.value ? 'account_tree' : 'looks_one',
-    title: t('resourcepack.name', 2) + ' ',
-    text: isInstanceLinked.value ? t('resourcepack.shared') : t('resourcepack.independent'),
   }]
 })
-const { isLinked } = useService(InstanceResourcePacksServiceKey)
-const { data: isInstanceLinked } = useSWRV(computed(() => path.value), isLinked)
 const {
   keyword, modrinthCategories, curseforgeCategory,
-  isCurseforgeActive, isModrinthActive, source: filterMode, selectedCollection,
-  sort, gameVersion,
+  source: filterMode,
+  gameVersion,
 } = injection(kSearchModel)
-const { sortBy } = injection(kResourcePackSearch)
-
+const focused = ref(false)
+provide('focused', focused)
+const selectedId = useQuery('id')
+watch(focused, (v) => { if (v) selectedId.value = '' })
+const onClear = () => {
+  curseforgeCategory.value = undefined
+  modrinthCategories.value = []
+}
 const { t } = useI18n()
 </script>

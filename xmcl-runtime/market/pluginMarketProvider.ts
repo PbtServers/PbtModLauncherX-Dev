@@ -1,49 +1,89 @@
 import { isNotNull } from '@xmcl/core/utils'
-import { File as CurseforgeFile, CurseforgeV1Client, HashAlgo } from '@xmcl/curseforge'
+import {
+  File as CurseforgeFile,
+  CurseforgeV1Client,
+  HashAlgo,
+  getCurseforgeFileDownloadUrls,
+} from '@xmcl/curseforge'
 import { DownloadBaseOptions } from '@xmcl/file-transfer'
-import { DownloadTask } from '@xmcl/installer'
+import { diagnoseFile, onDownloadSingle, Tracker } from '@xmcl/installer'
+import { InstanceFile as _InstanceFile } from '@xmcl/instance'
 import { ModrinthV2Client, ProjectVersion } from '@xmcl/modrinth'
-import { File, InstanceFile as _InstanceFile, getCurseforgeFileUri, getModrinthPrimaryFile, getModrinthVersionFileUri } from '@xmcl/runtime-api'
+import { File, isValidCurseforgeRef, isValidModrinthRef } from '@xmcl/resource'
+import {
+  InstallCurseforgeFileTask,
+  InstallCurseforgeFileTrackerEvents,
+  InstallModrinthFileTask,
+  InstallModrinthFileTrackerEvents,
+  getCurseforgeFileUri,
+  getModrinthPrimaryFile,
+  getModrinthVersionFileUri,
+} from '@xmcl/runtime-api'
 import { basename, dirname, join } from 'path'
 import { LauncherAppPlugin } from '~/app'
+import { kTasks } from '~/infra'
 import { InstanceInstallService } from '~/instanceIO'
 import { kDownloadOptions } from '~/network'
-import { ResourceManager } from '~/resource'
-import { getFile } from '~/resource/core/files'
-import { kTaskExecutor } from '~/task'
-import { guessCurseforgeFileUrl } from '~/util/curseforge'
+import { kResourceManager, kResourceWorker } from '~/resource'
 import { hardLinkFiles } from '~/util/fs'
-import { InstallMarketDirectoryOptions, InstallMarketInstanceOptions, InstallResult, kMarketProvider } from './marketProvider'
+import { getTracker } from '~/util/taskHelper'
+import { createModrinthAuthenticatedFetch } from '~/user/utils/loginModrinth'
+import { downloadStaged } from './downloadStaged'
+import {
+  InstallMarketDirectoryOptions,
+  InstallMarketInstanceOptions,
+  InstallResult,
+  kMarketProvider,
+} from './marketProvider'
+import { getMarketFilePath } from './marketFilePath'
 
 type InstanceFile = _InstanceFile & { downloads: string[]; icon?: string }
 
 export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
-  const modrinth = new ModrinthV2Client({ fetch: (...args) => app.fetch(...args) })
+  const modrinth = new ModrinthV2Client({ fetch: createModrinthAuthenticatedFetch(app) })
   app.registry.register(ModrinthV2Client, modrinth)
-  const curseforge = new CurseforgeV1Client(process.env.CURSEFORGE_API_KEY || '', { fetch: (...args) => app.fetch(...args) })
+  const curseforge = new CurseforgeV1Client(process.env.CURSEFORGE_API_KEY || '', {
+    fetch: (...args) => app.fetch(...args),
+  })
   app.registry.register(CurseforgeV1Client, curseforge)
 
   const installService = await app.registry.get(InstanceInstallService)
 
-  const resourceManager = await app.registry.get(ResourceManager)
-  const submit = await app.registry.get(kTaskExecutor)
+  const resourceManager = await app.registry.get(kResourceManager)
+  const tasks = await app.registry.get(kTasks)
+  const hashWorker = await app.registry.get(kResourceWorker)
 
   async function getSnapshotByUris(file: InstanceFile, preferDir: string) {
-    const uris = file.curseforge ? [getCurseforgeFileUri({ modId: file.curseforge.projectId, id: file.curseforge.fileId })] : [getModrinthVersionFileUri({ project_id: file.modrinth!.projectId, id: file.modrinth!.versionId, filename: basename(file.path) })]
-    uris.push(...file.downloads)
+    const sha1 = file.hashes.sha1
+      ? file.hashes.sha1
+      : await resourceManager.getHashByUri(
+          file.downloads[0] ??
+            (file.curseforge
+              ? getCurseforgeFileUri({
+                  modId: file.curseforge.projectId,
+                  id: file.curseforge.fileId,
+                })
+              : getModrinthVersionFileUri({
+                  project_id: file.modrinth!.projectId,
+                  id: file.modrinth!.versionId,
+                  filename: basename(file.path),
+                })),
+        )
 
-    const hashes = await resourceManager.getHashesByUris(uris)
-
-    if (hashes.length > 0) {
-      const snapshots = await resourceManager.getSnapshotsByHash(hashes)
-
-      const all = await Promise.all(snapshots.map(async (snapshot) => {
-        const file = await resourceManager.validateSnapshotFile(snapshot)
-        if (!file) {
-          return undefined
-        }
-        return [file, snapshot] as const
-      }))
+    if (sha1) {
+      const snapshots = await resourceManager.getSnapshotsByHash([sha1])
+      const all = await Promise.all(
+        snapshots.map(async (snapshot) => {
+          const cachedFile = await resourceManager.validateSnapshotFile(snapshot)
+          if (!cachedFile) {
+            return undefined
+          }
+          if ((await hashWorker.hash(cachedFile.path, cachedFile.size)) !== sha1) {
+            return undefined
+          }
+          return [cachedFile, snapshot] as const
+        }),
+      )
 
       const existed = all.filter(isNotNull)
 
@@ -53,11 +93,10 @@ export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
         return undefined
       }
 
-      const [file, snapshot] = matched
-
-      const metadata = await resourceManager.getMetadataByHash(snapshot.sha1)
-      return [file, snapshot, metadata || {}] as const
+      const metadata = await resourceManager.getMetadataByHash(sha1)
+      return [...matched, metadata || {}] as const
     }
+
     return undefined
   }
 
@@ -72,7 +111,18 @@ export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
     file.path = await hardLinkFiles(file.path, destination)
   }
 
-  async function downloadFile(instFile: InstanceFile, domainDir: string, downloadOptions: DownloadBaseOptions) {
+  async function downloadFile(
+    instFile: InstanceFile,
+    domainDir: string,
+    downloadOptions: DownloadBaseOptions,
+  ) {
+    // Defend against corrupted refs (paths leaked into versionId etc.).
+    if (instFile.modrinth && !isValidModrinthRef(instFile.modrinth)) {
+      instFile.modrinth = undefined
+    }
+    if (instFile.curseforge && !isValidCurseforgeRef(instFile.curseforge)) {
+      instFile.curseforge = undefined
+    }
     const snapshoted = await getSnapshotByUris(instFile, domainDir)
     const filePath = join(domainDir, instFile.path)
     const uris = instFile.downloads
@@ -94,35 +144,90 @@ export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
       }
     }
 
-    const task = new DownloadTask({
-      ...downloadOptions,
-      url: instFile.downloads,
-      destination: filePath,
-      validator: instFile.hashes.sha1 ? {
-        algorithm: 'sha1',
-        hash: instFile.hashes.sha1,
-      } : instFile.hashes.md5 ? {
-        algorithm: 'md5',
-        hash: instFile.hashes.md5,
-      } : undefined,
-      pendingFile: filePath + '.pending',
-    }).setName(instFile.modrinth ? 'installModrinthFile' : 'installCurseforgeFile',
-      instFile.modrinth ? {
+    const expectedHash = instFile.hashes.sha1 || instFile.hashes.md5
+    const algorithm = instFile.hashes.sha1 ? 'sha1' : instFile.hashes.md5 ? 'md5' : undefined
+
+    // Check if file already exists and is valid
+    if (expectedHash && algorithm) {
+      const issue = await diagnoseFile(
+        {
+          file: filePath,
+          expectedChecksum: expectedHash,
+          algorithm,
+          role: 'marketFile',
+          hint: `Market file ${basename(instFile.path)}`,
+        },
+        { checksum: (file, algo) => hashWorker.checksum(file, algo) },
+      )
+      if (!issue) {
+        // File exists and is valid, no need to download
+        return {
+          uris,
+          path: filePath,
+          metadata: {
+            modrinth: instFile.modrinth,
+            curseforge: instFile.curseforge,
+          },
+        }
+      }
+    }
+
+    if (instFile.modrinth) {
+      const task = tasks.create<InstallModrinthFileTask>({
+        type: 'installModrinthFile',
+        key: `installModrinthFile-${instFile.modrinth.projectId}-${instFile.modrinth.versionId}`,
         projectId: instFile.modrinth.projectId,
         versionId: instFile.modrinth.versionId,
         filename: basename(instFile.path),
-      } : {
+        icon: instFile.icon,
+      })
+
+      const tracker = getTracker<InstallModrinthFileTrackerEvents>(task)
+
+      try {
+        await downloadStaged({
+          url: instFile.downloads,
+          destination: filePath,
+          tracker: onDownloadSingle(tracker, 'download', {}),
+          ...downloadOptions,
+        })
+        task.complete()
+      } catch (error) {
+        task.fail(error)
+        throw error
+      }
+    } else {
+      const task = tasks.create<InstallCurseforgeFileTask>({
+        type: 'installCurseforgeFile',
+        key: `installCurseforgeFile-${instFile.curseforge!.projectId}-${instFile.curseforge!.fileId}`,
         projectId: instFile.curseforge!.projectId,
         fileId: instFile.curseforge!.fileId,
+        filename: basename(instFile.path),
+        icon: instFile.icon,
       })
-    await submit(task)
+
+      const tracker: Tracker<InstallCurseforgeFileTrackerEvents> = getTracker(task)
+
+      try {
+        await downloadStaged({
+          url: instFile.downloads,
+          destination: filePath,
+          tracker: onDownloadSingle(tracker, 'download', {}),
+          ...downloadOptions,
+        })
+        task.complete()
+      } catch (error) {
+        task.fail(error)
+        throw error
+      }
+    }
 
     return {
       uris,
       path: filePath,
       metadata: {
         modrinth: instFile.modrinth,
-        curseforge: instFile.curseforge
+        curseforge: instFile.curseforge,
       },
     }
   }
@@ -137,28 +242,31 @@ export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
         icons: icon ? [icon] : undefined,
       })
     } else {
-      const file = await getFile(result.path)
-      if (file) {
-        const snapshot = await resourceManager.getSnapshot(file)
-        if (snapshot) {
-          await resourceManager.updateMetadata([{
+      const snapshot = await resourceManager.getSnapshot(result.path)
+      if (snapshot) {
+        await resourceManager.updateMetadata([
+          {
             hash: snapshot.sha1,
             metadata: result.metadata,
             uris: result.uris,
             icons: icon ? [icon] : undefined,
-          }])
-        }
+          },
+        ])
       }
     }
   }
 
-  function getModrinthFile(domain: string, version: ProjectVersion, filename?: string, icon?: string): InstanceFile {
+  function getModrinthFile(
+    domain: string,
+    version: ProjectVersion,
+    filename?: string,
+    icon?: string,
+  ): InstanceFile {
     const file = version.files.find((f) => f.filename === filename)
     const modrinthFile = file || getModrinthPrimaryFile(version)
-    const filePath = [domain, modrinthFile.filename].filter(v => !!v).join('/')
+    const filePath = getMarketFilePath(domain, modrinthFile.filename)
 
     const uris = [modrinthFile.url] as string[]
-
 
     return {
       path: filePath,
@@ -173,18 +281,20 @@ export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
     }
   }
 
-  function getCurseforgeFile(domain: string, curseforgeFile: CurseforgeFile, icon?: string): InstanceFile {
-    const filePath = [domain, curseforgeFile.fileName].filter(v => !!v).join('/')
+  function getCurseforgeFile(
+    domain: string,
+    curseforgeFile: CurseforgeFile,
+    icon?: string,
+  ): InstanceFile {
+    const filePath = getMarketFilePath(domain, curseforgeFile.fileName)
 
     const uris = [] as string[]
 
-    const downloadUrls = [] as string[]
-    if (curseforgeFile.downloadUrl) {
-      downloadUrls.push(curseforgeFile.downloadUrl)
-    } else {
-      // Guess the download url if the file url is not provided by curseforge
-      downloadUrls.push(...guessCurseforgeFileUrl(curseforgeFile.id, curseforgeFile.fileName))
-    }
+    const downloadUrls = getCurseforgeFileDownloadUrls(
+      curseforgeFile.id,
+      curseforgeFile.fileName,
+      curseforgeFile.downloadUrl,
+    )
 
     uris.push(...downloadUrls)
 
@@ -210,34 +320,48 @@ export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
     }
   }
 
-  async function getFiles(options: InstallMarketDirectoryOptions | InstallMarketInstanceOptions): Promise<InstanceFile[]> {
+  async function getFiles(
+    options: InstallMarketDirectoryOptions | InstallMarketInstanceOptions,
+  ): Promise<InstanceFile[]> {
     const domain = 'domain' in options ? options.domain : ''
     if (options.market === 0) {
       const versions = Array.isArray(options.version) ? options.version : [options.version]
-      const versionsDict = Object.fromEntries(versions.map(v => [v.versionId, v]))
-      const modrinthVersions = await modrinth.getProjectVersionsById(versions.map(v => v.versionId))
-      const result = (modrinthVersions.map((version) => getModrinthFile(domain, version, versionsDict[version.id].filename, versionsDict[version.id].icon)))
+      const versionsDict = Object.fromEntries(versions.map((v) => [v.versionId, v]))
+      const modrinthVersions = await modrinth.getProjectVersionsById(
+        versions.map((v) => v.versionId),
+      )
+      const result = modrinthVersions.map((version) =>
+        getModrinthFile(
+          domain,
+          version,
+          versionsDict[version.id].filename,
+          versionsDict[version.id].icon,
+        ),
+      )
       return result
     } else {
       const curseforgeFiles = Array.isArray(options.file) ? options.file : [options.file]
-      const files = await curseforge.getFiles(curseforgeFiles.map(f => f.fileId))
-      const fileDict = Object.fromEntries(curseforgeFiles.map(f => [f.fileId, f]))
+      const files = await curseforge.getFiles(curseforgeFiles.map((f) => f.fileId))
+      const fileDict = Object.fromEntries(curseforgeFiles.map((f) => [f.fileId, f]))
       const result = files.map((file) => getCurseforgeFile(domain, file, fileDict[file.id].icon))
       return result
     }
   }
 
   app.registry.register(kMarketProvider, {
+    resolveInstanceFiles: getFiles,
     installFile: async (options) => {
       const downloadOptions = await app.registry.get(kDownloadOptions)
 
       const files = await getFiles(options)
 
-      const result = await Promise.all(files.map(async (file) => {
-        const result = await downloadFile(file, options.directory, downloadOptions)
-        await postprocess(result, options.directory, file.icon)
-        return result
-      }))
+      const result = await Promise.all(
+        files.map(async (file) => {
+          const result = await downloadFile(file, options.directory, downloadOptions)
+          await postprocess(result, options.directory, file.icon)
+          return result
+        }),
+      )
       return result
     },
     installInstanceFile: async (options: InstallMarketInstanceOptions) => {
@@ -259,6 +383,6 @@ export const pluginMarketProvider: LauncherAppPlugin = async (app) => {
       }))
 
       return result
-    }
+    },
   })
 }

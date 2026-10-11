@@ -2,7 +2,6 @@ import { getCursforgeFileModLoaders, getCursforgeModLoadersFromString, getModLoa
 import { injection } from '@/util/inject'
 import { ProjectEntry, ProjectFile } from '@/util/search'
 import { getSWRV } from '@/util/swrvGet'
-import { RuntimeVersions } from '@xmcl/runtime-api'
 import { Ref } from 'vue'
 import { getCurseforgeProjectFilesModel, getCurseforgeProjectModel } from './curseforge'
 import { getCurseforgeDependenciesModel } from './curseforgeDependencies'
@@ -13,6 +12,7 @@ import { getModrinthProjectModel } from './modrinthProject'
 import { getModrinthVersionModel } from './modrinthVersions'
 import { kSWRVConfig } from './swrvConfig'
 import { useNotifier } from './notifier'
+import { RuntimeVersions } from '@xmcl/instance'
 
 /**
  * Provide default install for the project
@@ -48,7 +48,8 @@ export function useProjectInstall(runtime: Ref<RuntimeVersions>,
       }
       const version = versions?.[0]
       const deps = await getSWRV(getModrinthDependenciesModel(ref(version), loader, config), config)
-      await modrinthInstaller.installWithDependencies(version.id, version.loaders, proj.icon_url, item.installed, deps || [])
+      const artifactUrl = (version.files.find(file => file.primary) ?? version.files[0])?.url
+      await modrinthInstaller.installWithDependencies(version.id, version.loaders, proj.icon_url, item.installed, deps || [], artifactUrl)
     } else if (curseforgeId) {
       const proj = await getSWRV(getCurseforgeProjectModel(ref(curseforgeId)), config)
       if (!proj) {
@@ -68,9 +69,17 @@ export function useProjectInstall(runtime: Ref<RuntimeVersions>,
         return
       }
       const file = files.data[0]
+      if (!file) {
+        notify({
+          level: 'error',
+          title: 'Failed to get curseforge files',
+        })
+        // TODO: log this case
+        return
+      }
       const loaderType = getModLoaderTypesForFile(file)
       const deps = await getSWRV(getCurseforgeDependenciesModel(ref(file), ref(runtime.value.minecraft), ref([...loaderType][0]), config), config)
-      await curseforgeInstaller.installWithDependencies(file.id, getCursforgeFileModLoaders(file), proj.logo.url, item.installed, deps || [])
+      await curseforgeInstaller.installWithDependencies(file.id, getCursforgeFileModLoaders(file), proj.logo.url, item.installed, deps || [], file.downloadUrl)
     } else if (item.files) {
       const file = item.files[0]
       if (!file) {

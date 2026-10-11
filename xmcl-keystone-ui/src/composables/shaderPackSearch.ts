@@ -2,7 +2,7 @@ import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
 import { ModFile } from '@/util/mod'
 import { ProjectEntry } from '@/util/search'
-import { InjectionKey, Ref } from 'vue'
+import { Ref } from 'vue'
 import { CurseforgeBuiltinClassId } from './curseforge'
 import { useCurseforgeSearch } from './curseforgeSearch'
 import { InstanceShaderFile } from './instanceShaderPack'
@@ -10,11 +10,10 @@ import { useMarketCollectionSearch } from './marketCollectionSearch'
 import { kModrinthAuthenticatedAPI } from './modrinthAuthenticatedAPI'
 import { useModrinthSearch } from './modrinthSearch'
 import { SearchModel } from './search'
-import { useMergedProjects, useProjectsSort } from './useAggregateProjects'
-import { useLocalStorageCacheStringValue } from './cache'
+import { useMergedProjects, useProjectsSort } from './useMergedProjects'
+import { useLocalStorage } from '@vueuse/core'
 import { LocalSort } from './sortBy'
-
-export const kShaderPackSearch: InjectionKey<ReturnType<typeof useShaderPackSearch>> = Symbol('ShaderPackSearch')
+import { mergeSorted } from '@/util/sort'
 
 export enum ShaderLoaderFilter {
   optifine = 'optifine',
@@ -35,7 +34,7 @@ function useLocalSearch(shaderProjectFiles: Ref<InstanceShaderFile[]>, { keyword
       const curseforgeId = m.curseforge?.projectId
       const modrinthId = m.modrinth?.projectId
       const name = basename(m.path)
-      const obj = indices[name] || (modrinthId && indices[modrinthId]) || (curseforgeId && indices[curseforgeId])
+      const obj = indices[name] || (m.fileName && indices[m.fileName]) || (modrinthId && indices[modrinthId]) || (curseforgeId && indices[curseforgeId])
       if (obj) {
         obj.installed?.push(m)
         obj.files?.push(m)
@@ -56,6 +55,9 @@ function useLocalSearch(shaderProjectFiles: Ref<InstanceShaderFile[]>, { keyword
           files: [m],
         })
         indices[name] = proj
+        if (m.fileName) {
+          indices[m.fileName] = proj
+        }
         if (modrinthId) {
           indices[modrinthId] = proj
         }
@@ -101,7 +103,7 @@ export function useShaderPackSearch(shaderPacks: Ref<InstanceShaderFile[]>,
   const loading = computed(() => loadingModrinth.value || loadingCached.value || loadingCurseforge.value)
   const { currentView } = searchModel
   const { items: collectionItems, effect: onCollectionsEffect } = useMarketCollectionSearch('shader', searchModel, collections, follows)
-  const sortBy = useLocalStorageCacheStringValue('shaderPackSort', '' as LocalSort)
+  const sortBy = useLocalStorage<LocalSort>('shaderPackSort', '' as LocalSort, { writeDefaults: false })
 
   const error = computed(() => curseforgeError.value || modrinthError.value)
 
@@ -123,10 +125,10 @@ export function useShaderPackSearch(shaderPacks: Ref<InstanceShaderFile[]>,
         return [collectionItems.value, all.value]
       }
       return [
-        [
-          ...modrinth.value,
-          ...curseforge.value,
-        ],
+        mergeSorted(
+          modrinth.value,
+          curseforge.value,
+        ),
         all.value,
       ]
     }),
@@ -135,6 +137,7 @@ export function useShaderPackSearch(shaderPacks: Ref<InstanceShaderFile[]>,
   const items = useProjectsSort(
     searchModel.keyword,
     merged,
+    currentView,
   )
 
   function loadMore() {
@@ -146,6 +149,7 @@ export function useShaderPackSearch(shaderPacks: Ref<InstanceShaderFile[]>,
     sortBy,
     error,
     items,
+    collectionItems,
     loadMore,
     loading,
     effect,

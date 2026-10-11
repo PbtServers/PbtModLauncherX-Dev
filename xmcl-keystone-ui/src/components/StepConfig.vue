@@ -1,62 +1,65 @@
 <template>
   <div
     ref="scrollElement"
-    style="overflow: auto; max-height: 70vh; padding: 24px 24px 16px"
+    class="overflow-auto max-h-[70vh] px-[24px] pt-[24px] pb-[16px]"
   >
     <v-form
       lazy-validation
       style="height: 100%;"
       :value="valid"
+      class="z-1 relative"
       @input="onUpdate"
     >
-      <v-list
-        three-line
-        subheader
-        color="transparent"
-        style="width: 100%"
-      >
-        <v-list-item>
-          <div class="mt-4 grid grid-cols-4 gap-4">
-            <v-text-field
-              v-model="content.name"
-              outlined
-              autofocus
-              :loading="loading"
-              :disabled="loading"
-              persistent-hint
-              :hint="t('instance.nameHint')"
-              :label="t('name')"
-              :rules="nameRules"
-              required
-            />
-            <v-text-field
-              v-model="content.author"
-              :loading="loading"
-              :disabled="loading"
-              outlined
-              persistent-hint
-              :hint="t('modpack.authorHint')"
-              :label="t('author')"
-              required
-            />
-            <v-text-field
-              v-model="content.description"
-              :loading="loading"
-              :disabled="loading"
-              class="col-span-2"
-              outlined
-              persistent-hint
-              :hint="t('modpack.descriptionHint')"
-              :label="t('description')"
-            />
-          </div>
-        </v-list-item>
-      </v-list>
+      <div class="grid grid-cols-4 gap-4 mb-4">
+        <v-text-field
+          v-model="content.name"
+          data-testid="add-instance-name"
+          variant="outlined"
+          autofocus
+          :class="content.edition === 'bedrock' ? 'col-span-4' : 'col-span-2'"
+          :loading="loading"
+          :disabled="loading"
+          persistent-hint
+          persistent-placeholder
+          :hint="t('instance.nameHint')"
+          :placeholder="placeHolderName"
+          :label="t('shared.name')"
+          :rules="nameRules"
+          required
+        />
+        <v-text-field
+          v-if="content.edition !== 'bedrock'"
+          v-model="content.author"
+          :loading="loading"
+          :disabled="loading"
+          variant="outlined"
+          class="col-span-2"
+          persistent-hint
+          :hint="t('modpack.authorHint')"
+          :label="t('shared.author')"
+        />
+        <v-text-field
+          v-model="content.description"
+          :loading="loading"
+          :disabled="loading"
+          class="col-span-4"
+          variant="outlined"
+          persistent-hint
+          :hint="t('modpack.descriptionHint')"
+          :label="t('shared.description')"
+        />
+      </div>
     </v-form>
-    <StepperAdvanceContent :valid.sync="valid" />
-    <v-subheader v-if="loading || error || files.length > 0">
+    <StepperAdvanceContent
+      v-if="content.edition !== 'bedrock'"
+      :valid="valid"
+      class="z-1 relative"
+      @update:valid="onUpdate"
+    />
+    <slot name="collection" />
+    <v-list-subheader v-if="loading || error || files.length > 0">
       {{ t('instanceTemplate.preview') }}
-    </v-subheader>
+    </v-list-subheader>
     <v-skeleton-loader
       v-if="loading"
       type="list-item-avatar-two-line,list-item-avatar-two-line,list-item-avatar-two-line,list-item-avatar-two-line,list-item-avatar-two-line"
@@ -69,7 +72,7 @@
     />
     <InstanceManifestFileTree
       v-else
-      :value="[]"
+      :model-value="[]"
       :scroll-element="scrollElement"
     />
   </div>
@@ -82,6 +85,7 @@ import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
 import { required } from '@/util/props'
 import { kInstanceCreation } from '../composables/instanceCreation'
+import { getEffectiveInstanceName, validateInstanceName } from '@/util/instanceName'
 import ErrorView from './ErrorView.vue'
 import InstanceManifestFileTree from './InstanceManifestFileTree.vue'
 import StepperAdvanceContent from './StepperAdvanceContent.vue'
@@ -91,11 +95,29 @@ defineProps({
 })
 const emit = defineEmits(['update:valid'])
 const { t } = useI18n()
-const { data: content, files, loading, error } = injection(kInstanceCreation)
+const { data: content, files, loading, error, placeHolderName } = injection(kInstanceCreation)
 const { instances } = injection(kInstances)
+
+const nameValidationErrors: Record<string, string> = {
+  invalidChars: 'instance.nameInvalidChars',
+  reservedName: 'instance.nameReservedName',
+  pathTraversal: 'instance.namePathTraversal',
+  whitespaceOnly: 'instance.nameWhitespaceOnly',
+  trailingDotOrSpace: 'instance.nameTrailingDotOrSpace',
+}
 const nameRules = computed(() => [
-  (v: any) => !!v || t('instance.requireName'),
-  (v: any) => !instances.value.some(i => i.name === v.trim()) || t('instance.duplicatedName'),
+  (v: any) => {
+    const effectiveName = getEffectiveInstanceName(v, placeHolderName.value)
+    if (!effectiveName) return t('instance.nameWhitespaceOnly')
+    return !instances.value.some(i => i.name === effectiveName) || t('instance.duplicatedName')
+  },
+  (v: any) => {
+    if (!v) return true // empty is allowed, will use placeholder
+    const result = validateInstanceName(v)
+    if (result === true) return true
+    return t(nameValidationErrors[result] ?? 'instance.nameInvalidChars')
+  },
+  (v: any) => !/\p{Script=Cyrillic}/u.test(v) || t('instance.nameNoCyrillic'),
 ])
 
 const scrollElement = ref<HTMLElement | null>(null)

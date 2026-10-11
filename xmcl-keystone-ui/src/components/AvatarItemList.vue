@@ -1,35 +1,30 @@
 <template>
   <div
-    class="flex flex-grow-0 flex-row items-center justify-center gap-1"
+    class="flex flex-grow-0 flex-row items-center justify-center"
   >
     <template
-      v-for="(i) of items"
+      v-for="(i, idx) of items"
+      :key="i.title"
     >
       <AvatarItem
-        :key="i.title"
         :icon="i.icon"
         :title="i.title"
         :text="i.text"
         :color="i.color"
         :avatar="i.avatar"
+        :responsive="i.responsive"
+        :onclick="i.onclick"
       />
       <v-divider
-        v-if="i !== items[items.length - 1]"
-        :key="i.title + 'divider'"
+        v-if="idx < items.length - 1"
         vertical
+        class="mx-1 opacity-30"
       />
     </template>
   </div>
 </template>
 <script lang="ts" setup>
-import AvatarItem from './AvatarItem.vue'
+import AvatarItem, { AvatarItemProps } from './AvatarItem.vue'
 
-defineProps<{ items: {
-  small?: boolean
-  color?: string
-  avatar?: string
-  icon?: string
-  title?: string
-  text?: string
-}[] }>()
+defineProps<{ items: AvatarItemProps[] }>()
 </script>

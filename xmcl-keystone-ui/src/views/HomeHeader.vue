@@ -2,10 +2,9 @@
   <div
     class="header sticky max-w-full select-none transition-all px-2"
     :style="{
-      'backdrop-filter': !compact ? 'none' : `blur(${blurAppBar}px)`,
+      '--app-bar-blur': blurAppBar + 'px',
     }"
     :class="{
-      'backdrop-filter': !isInFocusMode,
       compact,
     }"
     @transitionstart="onTransitionStart"
@@ -21,52 +20,40 @@
       }"
     >
       <div
-        class="align-center flex max-h-20 flex-1 flex-grow-0 items-baseline pl-6 pr-2"
+        class="header-primary-row align-center flex max-h-20 flex-1 flex-grow-0 items-baseline pl-6 pr-2 gap-1"
       >
         <span
           :style="{
             fontSize: headerFontSize
           }"
-          class="overflow-hidden overflow-ellipsis whitespace-nowrap transition-all"
+          class="home-title overflow-hidden overflow-ellipsis whitespace-nowrap transition-all"
         >{{ name || `Minecraft ${version.minecraft}` }}</span>
         <router-view name="route" />
-        <AvatarItem
-          v-if="versionId"
-          icon="fact_check"
-          class="ml-2 p-1"
-          :title="t('version.name', 2)"
-          :text="currentVersion"
-          @click="onShowLocalVersion"
-        />
-        <AvatarItem
-          v-else
-          color="warning"
-          icon="fact_check"
-          class="ml-2"
-          :title="t('version.name', 2)"
-          :text="currentVersion"
-        />
         <div class="flex-grow" />
+        <router-view name="actions" v-slot="{ Component }">
+          <transition
+            name="slide-x-transition"
+            mode="out-in"
+          >
+            <component :is="Component" class="flex-shrink-0" />
+          </transition>
+        </router-view>
+      </div>
+      <router-view name="extensions" v-slot="{ Component }">
         <transition
-          name="slide-x-transition"
+          name="slide-y-reverse-transition"
           mode="out-in"
         >
-          <router-view name="actions" />
+          <component
+            :is="Component"
+            class="header-extension px-4"
+            :class="{
+              'mt-5': !compact,
+              'mt-1': compact,
+            }"
+          />
         </transition>
-      </div>
-      <transition
-        name="slide-y-reverse-transition"
-        mode="out-in"
-      >
-        <router-view
-          name="extensions"
-          class="px-4"
-          :class="{
-            'mt-5': !compact,
-            'mt-3': compact,
-          }"
-        />
-      </transition>
+      </router-view>
     </div>
     <div
       v-if="dragover"
@@ -94,26 +81,18 @@
 </template>
 
 <script lang=ts setup>
-import AvatarItem from '@/components/AvatarItem.vue'
 import Hint from '@/components/Hint.vue'
-import { useService } from '@/composables'
 import { useDialog } from '@/composables/dialog'
 import { kDropHandler } from '@/composables/dropHandler'
 import { kInstance } from '@/composables/instance'
 import { AddInstanceDialogKey } from '@/composables/instanceTemplates'
-import { kInstanceVersion } from '@/composables/instanceVersion'
 import { kCompact } from '@/composables/scrollTop'
 import { kTheme } from '@/composables/theme'
-import { useInFocusMode } from '@/composables/uiLayout'
 import { injection } from '@/util/inject'
-import { VersionServiceKey } from '@xmcl/runtime-api'
 
 const { name, runtime: version } = injection(kInstance)
-const { versionId } = injection(kInstanceVersion)
-const isInFocusMode = useInFocusMode()
 const { blurAppBar } = injection(kTheme)
 const { t } = useI18n()
-const { showVersionDirectory } = useService(VersionServiceKey)
 
 const transitioning = ref(false)
 provide('transitioning', transitioning)
@@ -127,11 +106,10 @@ const onTransitionEnd = (e: TransitionEvent) => {
   transitioning.value = false
 }
 
-const currentVersion = computed(() => !versionId.value ? t('version.notInstalled') : versionId.value)
 const compact = injection(kCompact)
 const headerFontSize = computed(() => {
   if (compact.value) {
-    return '1.8rem'
+    return '1.35rem'
   }
   if (name.value && name.value.length > 30) {
     return '2rem'
@@ -139,21 +117,17 @@ const headerFontSize = computed(() => {
   return '2.425rem'
 })
 
-const onShowLocalVersion = () => {
-  if (versionId.value) {
-    showVersionDirectory(versionId.value)
-  }
-}
-
 const { dragover } = injection(kDropHandler)
 const { show } = useDialog(AddInstanceDialogKey)
 const onDropModpack = (e: DragEvent) => {
   e.preventDefault()
   const file = e.dataTransfer?.files.item(0)
   if (file) {
+    const filePath = windowController.getPathForFile(file)
+    if (!filePath) return
     show({
       format: 'modpack',
-      path: file.path,
+      path: filePath,
     })
   }
 }
@@ -166,18 +140,66 @@ const overcount = ref(0)
   padding-top: 2.5rem;
 }
 
+/*
+ * Faded backdrop so content scrolling underneath the sticky header is masked
+ * instead of bleeding through the (otherwise transparent) header. The gradient
+ * matches the global app-bar overlay color and lives in the header's own
+ * stacking context (z-20), so it sits above the scrolling page content while
+ * staying behind the header text (z-index: -1). The backdrop blur is masked
+ * with the same gradient so it fades out smoothly instead of cutting off.
+ */
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  bottom: -70px;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(var(--app-bar-color, transparent), transparent);
+  -webkit-backdrop-filter: blur(var(--app-bar-blur, 0));
+  backdrop-filter: blur(var(--app-bar-blur, 0));
+  -webkit-mask-image: linear-gradient(black 40%, transparent);
+  mask-image: linear-gradient(black 40%, transparent);
+}
+
+.header.compact::before {
+  bottom: -20px;
+}
+
 .header.compact {
-  padding-top: 1.25rem;
-  padding-bottom: 1.25rem;
+  padding-top: 0.2rem;
+  padding-bottom: 0.5rem;
 }
 
-.compact {
-  /* background: rgba(255, 255, 255, 0.6); */
-  /* backdrop-filter: blur(10px); */
+.header-primary-row,
+.home-title {
+  min-width: 0;
 }
 
-.dark .compact {
-  /* background: rgba(56, 56, 56, 0.4); */
+.header.compact .header-primary-row {
+  min-height: 36px;
+  align-items: center;
+  padding-left: 1rem;
+}
+
+@media (max-width: 900px) {
+  .header {
+    padding-right: 0.25rem !important;
+    padding-left: 0.25rem !important;
+  }
+
+  .header-primary-row {
+    padding-left: 0.75rem !important;
+  }
+
+  .header.compact .home-title {
+    max-width: 40vw;
+  }
+
+  .header-extension {
+    padding-right: 0.75rem !important;
+    padding-left: 0.75rem !important;
+  }
 }
 
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative flex h-full select-none flex-col overflow-auto pb-0 market-base"
+    class="relative flex h-full select-none flex-col overflow-auto pb-0 market-base modern"
     style="box-sizing: border-box"
     @wheel.stop
   >
@@ -12,72 +12,87 @@
     />
     <SplitPane
       flex-left
-      :min-percent="30"
+      :min-percent="minPercentage ?? 30"
       :default-percent="30"
       class="flex h-full w-full overflow-auto py-0"
     >
       <template #left>
-        <div>
-          <slot
-            name="actions"
-          />
-          <v-alert
-            v-if="error"
-            v-shared-tooltip="error.message"
-            type="error"
-            dense
-            class="overflow-hidden text-ellipsis whitespace-nowrap"
-          >
-            {{ error }}
-          </v-alert>
-        </div>
-        <slot v-if="$slots.options" name="options" />
-        <v-virtual-scroll
-          v-else-if="items.length > 0"
-          key="market-left"
-          id="left-pane"
-          :bench="16"
-          class="visible-scroll h-full max-h-full w-full overflow-auto pl-1 pt-2"
-          :items="items"
-          :item-height="itemHeight"
-          @scroll="onScroll"
-        >
-          <template #default="{ item, index }">
+        <div class="flex flex-col h-full overflow-hidden">
+          <div v-roving-tabindex role="toolbar">
             <slot
-              name="item"
-              :item="item"
-              :index="index"
-              :has-update="typeof item === 'string' ? false : !!plans[item.id]"
-              :checked="typeof item === 'string' ? false : (selections[item.id] || false)"
-              :selection-mode="typeof item === 'string' ? false : (selectionMode && item.installed && item.installed.length > 0)"
-              :selected="typeof item === 'string' ? false : ((selectedItem && (selectedItem.id === item.id) || selections[item.id]) || false)"
-              :on="{
-                // @ts-ignore
-                click: (event) => onSelect(event, item)
-              }"
+              name="actions"
             />
-          </template>
-        </v-virtual-scroll>
-        <slot
-          v-else
-          class="responsive-container"
-          name="placeholder"
-        />
+            <v-alert
+              v-if="error"
+              v-shared-tooltip="error.message"
+              type="error"
+              dense
+              class="overflow-hidden text-ellipsis whitespace-nowrap"
+            >
+              {{ error }}
+            </v-alert>
+          </div>
+          <slot v-if="$slots.options" name="options" />
+          <v-virtual-scroll
+            v-else-if="items.length > 0"
+            v-roving-tabindex
+            key="market-left"
+            id="left-pane"
+            role="listbox"
+            :bench="16"
+            class="visible-scroll h-full max-h-full w-full overflow-auto pl-1 pt-2"
+            :items="items"
+            @scroll="onScroll"
+          >
+            <template #default="{ item, index }">
+              <slot
+                name="item"
+                :item="item"
+                :index="index"
+                :has-update="typeof item !== 'object' || !('id' in item) ? false : !!plans[item.id]"
+                :checked="typeof item !== 'object' || !('id' in item) ? false : (selections[item.id] || false)"
+                :selection-mode="typeof item !== 'object' || !('id' in item) ? false : (selectionMode && item.installed && item.installed.length > 0)"
+                :selected="typeof item !== 'object' || !('id' in item) ? false : ((selectedItem && (selectedItem.id === item.id) || selections[item.id]) || false)"
+                :on="{
+                  // @ts-ignore
+                  click: (event) => onSelect(event, item)
+                }"
+              />
+            </template>
+          </v-virtual-scroll>
+          <div v-else class="flex-1 min-h-0 h-full">
+            <slot
+              name="placeholder"
+            />
+          </div>
+        </div>
       </template>
       <template #right>
         <div
           key="market-right"
           id="right-pane"
-          class="flex flex-col h-full flex-grow-0 overflow-y-auto overflow-x-hidden market-right"
+          class="relative flex flex-col h-full flex-grow-0 overflow-y-auto overflow-x-hidden market-right"
         >
-          <slot
-            name="content"
-            :selected-item="selectedItem"
-            :selected-id="selectedId"
-            :selected-modrinth-id="selectedModrinthId"
-            :selected-curseforge-id="selectedCurseforgeId"
-            :updating="plans[selectedItem?.id ?? '']?.updating"
-          />
+          <Transition name="market-pane-fade">
+            <div
+              v-show="!hasSelectedContent && $slots.filter"
+              class="market-filter-cache absolute inset-0"
+            >
+              <slot name="filter" />
+            </div>
+          </Transition>
+          <Transition name="market-pane-fade" mode="out-in">
+            <slot
+              v-if="hasSelectedContent || !$slots.filter"
+              name="content"
+              :key="selectedId || 'market-content'"
+              :selected-item="selectedItem"
+              :selected-id="selectedId"
+              :selected-modrinth-id="selectedModrinthId"
+              :selected-curseforge-id="selectedCurseforgeId"
+              :updating="plans[selectedItem?.id ?? '']?.updating"
+            />
+          </Transition>
         </div>
       </template>
     </SplitPane>
@@ -91,8 +106,10 @@ import { kDialogModel } from '@/composables/dialog'
 import { ProjectGroup } from '@/composables/modGroup'
 import { UpgradePlan } from '@/composables/modUpgrade'
 import { useQuery } from '@/composables/query'
+import { vRovingTabindex } from '@/directives/rovingTabindex'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { injection } from '@/util/inject'
+import { hasMarketSelectionContent, isMarketMultiSelectionClick, updateMarketSelection } from '@/util/marketSelection'
 import { ProjectEntry } from '@/util/search'
 
 const props = defineProps<{
@@ -100,8 +117,10 @@ const props = defineProps<{
   items: (ProjectEntry | ProjectGroup | string)[]
   itemHeight: number
   selectionMode?: boolean
+  autoSelectionMode?: boolean
   loading?: boolean
   error?: any
+  minPercentage?: number
 }>()
 const emit = defineEmits<{
   (event: 'load'): void
@@ -114,17 +133,7 @@ const selectedItem = computed(() => {
   if (!selectedId.value) return undefined
   return props.items.find((i) => typeof i === 'object' && 'id' in i && i.id === selectedId.value) as ProjectEntry | undefined
 })
-
-watch(() => props.items, (i, old) => {
-  if (!old || old.length === 0) {
-    if (i.length > 0) {
-      const first = i[0]
-      if (typeof first === 'object' && 'id' in first) {
-        selectedId.value = first.id
-      }
-    }
-  }
-})
+const hasSelectedContent = computed(() => hasMarketSelectionContent(selectedId.value, selectedItem.value))
 
 const selectedModrinthId = computed(() => {
   const id = selectedId.value
@@ -144,38 +153,38 @@ const selectedCurseforgeId = computed(() => {
   return selectedItem.value?.curseforgeProjectId || selectedItem.value?.curseforge?.id || undefined
 })
 
-const onSelect = (event: MouseEvent, i: ProjectEntry) => {
-  if (props.selectionMode && i.installed.length > 0) {
-    // if ctrl is pressed
-    if (event.ctrlKey) {
-      selections.value = {
-        ...selections.value,
-        [i.id]: !selections.value[i.id],
-      }
-    } else if (event.shiftKey) {
-      // Select all items between the last selected item and this item
-      const list = props.items
-      const lastIndex = list.findIndex((item) => typeof item === 'object' && 'id' in item && item.id === selectedId.value)
-      const currentIndex = list.findIndex((item) => typeof item === 'object' && 'id' in item && item.id === i.id)
-      const start = Math.min(lastIndex, currentIndex)
-      const end = Math.max(lastIndex, currentIndex)
-      const _selections: Record<string, boolean> = {}
-      for (let i = start; i <= end; i++) {
-        const item = list[i]
-        if (typeof item === 'object' && 'id' in item) {
-          _selections[item.id] = true
-        }
-      }
-      selections.value = _selections
-    } else {
-      selectedId.value = i.id
-      selections.value = {
-        [i.id]: true,
-      }
-    }
+// Anchor item for shift-click range selection. Unlike `selectedId` (which only
+// reflects the item selected outside of selection mode), this is updated on
+// every click while in selection mode so range-selecting a new chunk doesn't
+// require leaving and re-entering selection mode.
+const anchorId = ref<string | undefined>()
+
+watch(() => props.selectionMode, (v) => {
+  anchorId.value = v ? (selectedId.value || undefined) : undefined
+})
+
+const onSelect = (event: MouseEvent, i: any) => {
+  const modifiers = {
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+    shiftKey: event.shiftKey,
+  }
+  if (i.installed && i.installed.length > 0 && isMarketMultiSelectionClick(!!props.selectionMode, !!props.autoSelectionMode, modifiers)) {
+    if (!props.selectionMode) emit('update:selectionMode', true)
+    const next = updateMarketSelection(
+      props.items,
+      i.id,
+      selectedId.value || undefined,
+      anchorId.value,
+      selections.value,
+      modifiers,
+    )
+    selections.value = next.selections
+    anchorId.value = next.anchorId
   } else {
-    selectedId.value = i.id
+    selectedId.value = selectedId.value === i.id ? '' : i.id
     selections.value = {}
+    anchorId.value = selectedId.value || undefined
   }
 }
 
@@ -192,7 +201,7 @@ const { current } = injection(kDialogModel)
 const onKeyPress = (e: KeyboardEvent) => {
   if (current.value.dialog) return
   // ctrl+a
-  if (e.ctrlKey && e.key === 'a') {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyA') {
     e.preventDefault()
     e.stopPropagation()
     emit('update:selectionMode', true)
@@ -200,7 +209,7 @@ const onKeyPress = (e: KeyboardEvent) => {
     const _selections: Record<string, boolean> = {}
     for (const item of props.items) {
       if (typeof item === 'string' || !('id' in item)) continue
-      if (item.installed.length > 0) {
+      if ('installed' in item && Array.isArray((item as any).installed) && (item as any).installed.length > 0) {
         _selections[item.id] = true
       }
     }
@@ -242,6 +251,21 @@ onUnmounted(() => {
 .dark.v-application .market-base .info {
   background-color: rgba(33, 150, 243, 0.5) !important;
   border-color: rgba(33, 150, 243, 0.5) !important;
+}
+
+.market-pane-fade-enter-active,
+.market-pane-fade-leave-active {
+  transition: opacity 100ms ease;
+}
+
+.market-pane-fade-enter-from,
+.market-pane-fade-leave-to {
+  opacity: 0;
+}
+
+.market-filter-cache {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .dark.v-application .market-base .error {

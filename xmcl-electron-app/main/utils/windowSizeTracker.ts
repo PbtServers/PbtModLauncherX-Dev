@@ -5,13 +5,6 @@ import debounce from 'lodash.debounce'
 import { join } from 'path'
 import { LauncherApp } from '~/app'
 
-export interface WindowsTransform {
-  width: number
-  height: number
-  x: number | null
-  y: number | null
-}
-
 export function createWindowTracker(app: LauncherApp, role: string, man: InstalledAppManifest) {
   const appDir = app.launcherAppManager.getAppRoot(man.url)
   const basename = `${role}-window-config.json`

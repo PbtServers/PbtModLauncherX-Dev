@@ -1,21 +1,53 @@
 {
-    "version": "1.0.5",
+    "version": "1.0.7",
     "private": true,
     "license": "MIT",
-    "packageManager": "pnpm@9.3.0",
+    "packageManager": "pnpm@11.10.0",
     "engines": {
-        "node": ">=20"
+        "node": ">=22.16.0"
     },
     "scripts": {
         "compile": "pnpm -r compile",
+        "test": "vitest",
+        "build:schema": "pnpm run --prefix=xmcl-runtime-api build:schema",
         "build": "pnpm run --prefix=xmcl-electron-app build",
         "build:all": "pnpm run --prefix=xmcl-electron-app build:all",
+        "build:deskgap": "pnpm run --prefix=deskgap-app build",
         "build:renderer": "pnpm --prefix=xmcl-keystone-ui build",
+        "build:docs": "tsx scripts/docs.ts",
         "postsign": "pnpm run --prefix=xmcl-electron-app postsign",
         "check": "pnpm run --prefix=xmcl-runtime-api check && pnpm run --prefix=xmcl-runtime check && pnpm run --prefix=xmcl-electron-app check && pnpm run --prefix=xmcl-keystone-ui check",
         "dev:main": "pnpm run --prefix=xmcl-electron-app dev",
+        "dev:deskgap": "pnpm run --prefix=deskgap-app dev",
         "dev:renderer": "pnpm run --prefix=xmcl-keystone-ui dev",
-        "lint": "pnpm run --prefix=xmcl-keystone-ui lint && pnpm run --prefix=xmcl-runtime lint && pnpm run --prefix=xmcl-runtime-api lint && pnpm run --prefix=xmcl-electron-app lint",
-        "lint:fix": "pnpm run --prefix=xmcl-runtime-api lint:fix && pnpm run --prefix=xmcl-runtime lint:fix && pnpm run --prefix=xmcl-electron-app lint:fix && pnpm run --prefix=xmcl-keystone-ui lint:fix"
+        "lint": "oxlint -c ./.oxlintrc.json packages && pnpm run --prefix=xmcl-keystone-ui lint && pnpm run --prefix=xmcl-runtime lint && pnpm run --prefix=xmcl-runtime-api lint && pnpm run --prefix=xmcl-electron-app lint",
+        "i18n": "pnpm run --prefix=xmcl-keystone-ui i18n",
+        "lint:i18n": "pnpm run --prefix=xmcl-keystone-ui lint:i18n",
+        "i18n:remove": "pnpm run --prefix=xmcl-keystone-ui i18n:remove",
+        "i18n:rename": "pnpm run --prefix=xmcl-keystone-ui i18n:rename",
+        "i18n:daemon": "pnpm run --prefix=xmcl-keystone-ui i18n:daemon",
+        "lint:fix": "oxlint -c ./.oxlintrc.json packages --fix && pnpm run --prefix=xmcl-runtime-api lint:fix && pnpm run --prefix=xmcl-runtime lint:fix && pnpm run --prefix=xmcl-electron-app lint:fix && pnpm run --prefix=xmcl-keystone-ui lint:fix",
+        "format": "oxfmt -c ./.oxfmtrc.json packages --write",
+        "coverage": "vitest run --coverage",
+        "test:e2e": "pnpm --prefix=e2e test",
+        "test:e2e:ci": "pnpm --prefix=e2e test:ci",
+        "test:e2e:showcase": "pnpm --prefix=e2e test:showcase",
+        "test:e2e:release": "pnpm --prefix=e2e test:release",
+        "test:e2e:smoke": "pnpm --prefix=e2e test:smoke",
+        "test:e2e:ui": "pnpm --prefix=e2e test:ui",
+        "test:e2e:scratch": "pnpm --prefix=e2e test:scratch",
+        "e2e:install": "pnpm --dir=e2e install",
+        "build:tutorial": "pnpm --prefix=e2e tutorial",
+        "gen:testids": "tsx scripts/gen-testids.ts"
+    },
+    "devDependencies": {
+        "@types/node": "^24.13.3",
+        "@vitest/coverage-v8": "^4.1.11",
+        "oxfmt": "^0.48.0",
+        "oxlint": "^1.63.0",
+        "tsx": "^4.21.0",
+        "typedoc": "^0.28.15",
+        "typescript": "^5.9.3",
+        "vitest": "^4.1.11"
     }
 }

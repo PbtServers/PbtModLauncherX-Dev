@@ -5,56 +5,20 @@
         <AvatarItemList :items="extensionItems" />
       </div>
       <div class="flex-grow" />
-      <div class="invisible-scroll flex justify-end gap-4 overflow-x-auto">
-        <MarketTextFieldWithMenu
-          :placeholder="t('mod.search')"
-          :keyword.sync="keywordBuffer"
-          :curseforge-category.sync="curseforgeCategory"
-          :modrinth-categories.sync="modrinthCategories"
-          :local-sort.sync="sortBy"
-          curseforge-category-filter="mc-mods"
-          modrinth-category-filter="mod"
-          :collection.sync="selectedCollection"
-          :enable-curseforge.sync="isCurseforgeActive"
-          :enable-modrinth.sync="isModrinthActive"
-          :sort.sync="sort"
-          :mode.sync="source"
-          :game-version.sync="gameVersion"
-          :modloader.sync="modLoader"
-          :mod-loaders="[ModLoaderFilter.forge, ModLoaderFilter.neoforge, ModLoaderFilter.fabric, ModLoaderFilter.quilt]"
-        >
-          <template #local>
-            <v-subheader class="flex">
-              {{ t('mod.filter') }}
-            </v-subheader>
-            <v-btn-toggle
-              background-color="transparent"
-              :value="localFilter === 'disabledOnly' ? 0 : localFilter === 'incompatibleOnly' ? 1 : undefined"
-              class="bg-transparent px-1"
-              @change="onUpdateLocalFilter(filterItems[$event]?.value)"
-            >
-              <v-btn
-                v-for="tag in filterItems"
-                :key="tag.value"
-                v-shared-tooltip="_ => tag.text"
-                :disabled="tag.disabled"
-                small
-                outlined
-              >
-                <v-icon
-                  class="material-icons-outlined"
-                  small
-                >
-                  {{ tag.icon }}
-                </v-icon>
-              </v-btn>
-            </v-btn-toggle>
-            <ModOptionsPage
-              :denseView.sync="denseView"
-              :groupInstalled.sync="groupInstalled"
-            />
-          </template>
-        </MarketTextFieldWithMenu>
+      <div class="invisible-scroll flex flex-grow justify-end gap-4 overflow-x-auto">
+        <MarketTextField
+          :clearable="!!curseforgeCategory || modrinthCategories.length > 0 || !!keywordBuffer"
+          :value="keywordBuffer"
+          :placeholder="t('mod.search') + ' / ' + (source === 'remote' ? t('search.market') : source === 'local' ? t('search.local') : t('search.favorate')) "
+          :game-version="gameVersion !== version.minecraft ? gameVersion : undefined"
+          :category="!!curseforgeCategory || modrinthCategories.length > 0"
+          :icon="source === 'remote' ? 'storefront' : source === 'local' ? 'inventory_2' : 'favorite'"
+          @clear="onClear"
+          @clear-version="gameVersion = version.minecraft"
+          @input="keywordBuffer = $event ?? ''"
+          @clear-category="onClear"
+          @blur="focused = false"
+        />
       </div>
     </div>
     <MarketExtensions />
@@ -64,71 +28,34 @@
 <script lang=ts setup>
 import AvatarItemList from '@/components/AvatarItemList.vue'
 import MarketExtensions from '@/components/MarketExtensions.vue'
-import MarketTextFieldWithMenu from '@/components/MarketTextFieldWithMenu.vue'
+import MarketTextField from '@/components/MarketTextField.vue'
 import { kInstance } from '@/composables/instance'
 import { kInstanceModsContext } from '@/composables/instanceMods'
-import { kModsSearch } from '@/composables/modSearch'
 import { getExtensionItemsFromRuntime } from '@/util/extensionItems'
 import { injection } from '@/util/inject'
-import debounce from 'lodash.debounce'
-import ModOptionsPage from './ModOptionsPage.vue'
-import { vSharedTooltip } from '@/directives/sharedTooltip'
-import { kModUpgrade } from '@/composables/modUpgrade'
-import { kModDependenciesCheck } from '@/composables/modDependenciesCheck'
-import { kModLibCleaner } from '@/composables/modLibCleaner'
-import { ModLoaderFilter, kSearchModel } from '@/composables/search'
+import { useDebounceFn } from '@vueuse/core'
+import { kSearchModel } from '@/composables/search'
+import { useQuery } from '@/composables/query'
 
 const { runtime: version } = injection(kInstance)
-const { plans } = injection(kModUpgrade)
-const { curseforgeCategory, modrinthCategories, isCurseforgeActive, isModrinthActive, sort, modLoader, selectedCollection, gameVersion, source } = injection(kSearchModel)
-const { denseView, groupInstalled, sortBy, localFilter } = injection(kModsSearch)
+const { curseforgeCategory, modrinthCategories, gameVersion, source } = injection(kSearchModel)
 const { mods: modFiles } = injection(kInstanceModsContext)
 const { t } = useI18n()
-const { installation } = injection(kModDependenciesCheck)
-const { unusedMods } = injection(kModLibCleaner)
 
+// Focusing the search field deselects the current item so the filter panel
+// (the default "nothing selected" right-pane content) is shown.
+const focused = ref(false)
+provide('focused', focused)
+const selectedId = useQuery('id')
+watch(focused, (v) => { if (v) selectedId.value = '' })
 
-const filterItems = computed(() => {
-  const hasUpdate = Object.keys(plans.value).length > 0
-  const hasDependenciesInstall = Object.keys(installation.value).length > 0
-  const hasUnusedMods = Object.keys(unusedMods.value).length > 0
-  const result = [{
-    icon: 'flash_off',
-    text: t('modFilter.disabledOnly'),
-    disabled: false,
-    value: 'disabledOnly',
-  }, {
-    icon: 'info',
-    text: t('modFilter.incompatibleOnly'),
-    value: 'incompatibleOnly',
-  }]
-  result.push({
-    icon: 'recycling',
-    disabled: !hasUnusedMods,
-    text: t('modFilter.unusedOnly'),
-    value: 'unusedOnly',
-  })
-  result.push({
-    icon: 'merge',
-    disabled: !hasDependenciesInstall,
-    text: t('modFilter.dependenciesInstallOnly'),
-    value: 'dependenciesInstallOnly',
-  })
-  result.push({
-    icon: 'update',
-    disabled: !hasUpdate,
-    text: t('modFilter.hasUpdateOnly'),
-    value: 'hasUpdateOnly',
-  })
-  return result
-})
-
-function onUpdateLocalFilter(filter: string) {
-  localFilter.value = filter as any
+const onClear = () => {
+  curseforgeCategory.value = undefined
+  modrinthCategories.value = []
 }
 
 const route = useRoute()
-const updateSearch = debounce(() => {
+const updateSearch = useDebounceFn(() => {
   const buffer = keywordBuffer.value
   if (buffer) {
     const isSuperQuery = buffer.startsWith('@')
@@ -160,6 +87,10 @@ const keywordBuffer = ref(route.query.keyword as string)
 
 onMounted(() => {
   keywordBuffer.value = route.query.keyword as string ?? ''
+})
+
+watch(() => route.query.keyword, (v) => {
+  keywordBuffer.value = v as string ?? ''
 })
 
 watch(keywordBuffer, (v, old) => {

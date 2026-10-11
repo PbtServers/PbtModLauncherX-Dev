@@ -1,12 +1,35 @@
-import { EditInstanceOptions, Instance, InstanceData, VersionHeader, RuntimeVersions, isFileNoFound } from '@xmcl/runtime-api'
-import { InjectionKey, Ref, set } from 'vue'
+import { VersionHeader } from '@xmcl/runtime-api'
+import { InjectionKey, Ref } from 'vue'
+import type { EditInstanceOptions, Instance, InstanceData, RuntimeVersions } from '@xmcl/instance'
 import { useGlobalSettings } from './setting'
-import debounce from 'lodash.debounce'
+import { useDebounceFn } from '@vueuse/core'
 import { injection } from '@/util/inject'
 import { kLaunchButton } from './launchButton'
 import { AnyError } from '@/util/error'
+import { useNotifier } from './notifier'
 
-export const InstanceEditInjectionKey: InjectionKey<ReturnType<typeof useInstanceEdit>> = Symbol('InstanceEdit')
+export const InstanceEditInjectionKey: InjectionKey<ReturnType<typeof useInstanceEdit>> =
+  Symbol('InstanceEdit')
+
+/**
+ * Convert `undefined` properties to `null` so a "reset to global" edit survives
+ * Electron's IPC boundary.
+ *
+ * Electron serializes IPC payloads with the structured clone algorithm, which
+ * silently drops object properties whose value is `undefined`. The settings UI
+ * resets an instance override to the global default by setting the field to
+ * `undefined`; without this conversion that key would never reach the main
+ * process and the override would stay in `instance.json`. `null` is preserved
+ * by IPC and is treated as an explicit reset by `computeInstanceEditChanges`.
+ */
+function nullifyUndefined<T extends Record<string, any>>(payload: T): T {
+  const result: Record<string, any> = {}
+  for (const key of Object.keys(payload)) {
+    const value = payload[key]
+    result[key] = value === undefined ? null : value
+  }
+  return result as T
+}
 
 /**
  * Edit the instance data model.
@@ -14,13 +37,28 @@ export const InstanceEditInjectionKey: InjectionKey<ReturnType<typeof useInstanc
  * @param instance The instance to edit
  * @returns The instance edit data
  */
-export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditInstanceOptions & { instancePath: string }) => Promise<void>) {
+export function useInstanceEdit(
+  instance: Ref<Instance>,
+  edit: (instance: EditInstanceOptions & { instancePath: string }) => Promise<void>,
+) {
+  const { notify } = useNotifier()
+  const { t } = useI18n()
   const {
-    globalAssignMemory, globalFastLaunch, globalHideLauncher, globalMaxMemory,
-    globalMcOptions, globalMinMemory, globalShowLog, globalVmOptions,
-    globalDisableAuthlibInjector, globalDisableElyByAuthlib,
-    globalPrependCommand, globalPreExecuteCommand,
-    globalEnv, globalResolution,
+    globalAssignMemory,
+    globalFastLaunch,
+    globalHideLauncher,
+    globalMaxMemory,
+    globalMcOptions,
+    globalMinMemory,
+    globalShowLog,
+    globalVmOptions,
+    globalDisableAuthlibInjector,
+    globalDisableElyByAuthlib,
+    globalSyncGameLanguage,
+    globalPrependCommand,
+    globalPreExecuteCommand,
+    globalEnv,
+    globalResolution,
   } = useGlobalSettings()
 
   const data = reactive({
@@ -49,7 +87,6 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       fabricLoader: instance.value?.runtime.fabricLoader ?? '',
       quiltLoader: instance.value?.runtime.quiltLoader ?? '',
       optifine: instance.value?.runtime.optifine ?? '',
-      liteloader: instance.value?.runtime.liteloader ?? '',
       neoForged: instance.value?.runtime.neoForged ?? '',
       labyMod: instance.value?.runtime.labyMod ?? '',
     } as RuntimeVersions,
@@ -60,6 +97,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     showLog: instance.value?.showLog,
     disableElyByAuthlib: instance.value?.disableElybyAuthlib,
     disableAuthlibInjector: instance.value?.disableAuthlibInjector,
+    syncGameLanguage: instance.value?.syncGameLanguage,
 
     assignMemory: instance.value?.assignMemory,
 
@@ -82,39 +120,40 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
   const isGlobalShowLog = computed(() => data.showLog === undefined)
   const isGlobalDisableElyByAuthlib = computed(() => data.disableElyByAuthlib === undefined)
   const isGlobalDisableAuthlibInjector = computed(() => data.disableAuthlibInjector === undefined)
+  const isGlobalSyncGameLanguage = computed(() => data.syncGameLanguage === undefined)
   const isGlobalPrependCommand = computed(() => data.prependCommand === undefined)
   const isGlobalPreExecuteCommand = computed(() => data.preExecuteCommand === undefined)
   const isGlobalResolution = computed(() => data.resolution === undefined)
 
   const resetAssignMemory = () => {
-    set(data, 'assignMemory', undefined)
-    set(data, 'minMemory', undefined)
-    set(data, 'maxMemory', undefined)
+    data['assignMemory'] = undefined
+    data['minMemory'] = undefined
+    data['maxMemory'] = undefined
     saveJIT()
   }
   const resetVmOptions = () => {
-    set(data, 'vmOptions', undefined)
+    data['vmOptions'] = undefined
     saveJIT()
   }
   const resetPrependCommand = () => {
-    set(data, 'prependCommand', undefined)
+    data['prependCommand'] = undefined
     saveJIT()
   }
   const resetPreExecuteCommand = () => {
-    set(data, 'preExecuteCommand', undefined)
+    data['preExecuteCommand'] = undefined
     saveJIT()
   }
 
   const resetResolution = () => {
-    set(data, 'resolution', undefined)
+    data['resolution'] = undefined
     saveJIT()
   }
   const resetMcOptions = () => {
-    set(data, 'mcOptions', undefined)
+    data['mcOptions'] = undefined
     saveJIT()
   }
   const resetFastLaunch = () => {
-    set(data, 'fastLaunch', undefined)
+    data['fastLaunch'] = undefined
     saveJIT()
   }
   const resetHideLauncher = () => {
@@ -133,18 +172,25 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     data.disableElyByAuthlib = undefined
     saveJIT()
   }
+  const resetSyncGameLanguage = () => {
+    data.syncGameLanguage = undefined
+    saveJIT()
+  }
 
   const assignMemory = computed({
     get: () => data.assignMemory ?? globalAssignMemory.value,
-    set: (v) => { set(data, 'assignMemory', v); saveJIT() },
+    set: (v) => {
+      data['assignMemory'] = v
+      saveJIT()
+    },
   })
   const minMemory = computed({
     get: () => data.minMemory ?? globalMinMemory.value,
     set: (v) => {
       if (data.assignMemory !== true) {
-        set(data, 'assignMemory', true)
+        data['assignMemory'] = true
       }
-      set(data, 'minMemory', v)
+      data['minMemory'] = v
       saveJIT()
     },
   })
@@ -152,59 +198,102 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     get: () => data.maxMemory ?? globalMaxMemory.value,
     set: (v) => {
       if (data.assignMemory !== true) {
-        set(data, 'assignMemory', true)
+        data['assignMemory'] = true
       }
-      set(data, 'maxMemory', v)
+      data['maxMemory'] = v
       saveJIT()
     },
   })
   const vmOptions = computed({
     get: () => data.vmOptions ?? globalVmOptions.value.join(' '),
-    set: (v) => { set(data, 'vmOptions', v); saveJIT() },
+    set: (v) => {
+      data['vmOptions'] = v
+      saveJIT()
+    },
   })
   const mcOptions = computed({
     get: () => data.mcOptions ?? globalMcOptions.value.join(' '),
-    set: (v) => { set(data, 'mcOptions', v); saveJIT() },
+    set: (v) => {
+      data['mcOptions'] = v
+      saveJIT()
+    },
   })
   const prependCommand = computed({
     get: () => data.prependCommand ?? globalPrependCommand.value,
-    set: (v) => { set(data, 'prependCommand', v); saveJIT() },
+    set: (v) => {
+      data['prependCommand'] = v
+      saveJIT()
+    },
   })
   const preExecuteCommand = computed({
     get: () => data.preExecuteCommand ?? globalPreExecuteCommand.value,
-    set: (v) => { set(data, 'preExecuteCommand', v); saveJIT() },
+    set: (v) => {
+      data['preExecuteCommand'] = v
+      saveJIT()
+    },
   })
   const fastLaunch = computed({
     get: () => data.fastLaunch ?? globalFastLaunch.value,
-    set: (v) => { set(data, 'fastLaunch', v); saveJIT() },
+    set: (v) => {
+      data['fastLaunch'] = v
+      saveJIT()
+    },
   })
   const hideLauncher = computed({
     get: () => data.hideLauncher ?? globalHideLauncher.value,
-    set: (v) => { set(data, 'hideLauncher', v); saveJIT() },
+    set: (v) => {
+      data['hideLauncher'] = v
+      saveJIT()
+    },
   })
   const showLog = computed({
     get: () => data.showLog ?? globalShowLog.value,
-    set: (v) => { set(data, 'showLog', v); saveJIT() },
+    set: (v) => {
+      data['showLog'] = v
+      saveJIT()
+    },
   })
   const disableAuthlibInjector = computed({
     get: () => data.disableAuthlibInjector ?? globalDisableAuthlibInjector.value,
-    set: (v) => { set(data, 'disableAuthlibInjector', v); saveJIT() },
+    set: (v) => {
+      data['disableAuthlibInjector'] = v
+      saveJIT()
+    },
   })
   const disableElyByAuthlib = computed({
     get: () => data.disableElyByAuthlib ?? globalDisableElyByAuthlib.value,
-    set: (v) => { set(data, 'disableElyByAuthlib', v); saveJIT() },
+    set: (v) => {
+      data['disableElyByAuthlib'] = v
+      saveJIT()
+    },
+  })
+  const syncGameLanguage = computed({
+    get: () => data.syncGameLanguage ?? globalSyncGameLanguage.value,
+    set: (v) => {
+      data['syncGameLanguage'] = v
+      saveJIT()
+    },
   })
   const javaPath = computed({
     get: () => data.javaPath,
-    set: (v) => { data.javaPath = v; saveJIT() },
+    set: (v) => {
+      data.javaPath = v
+      saveJIT()
+    },
   })
   const resolution = computed({
     get: () => data.resolution ?? globalResolution.value,
-    set: (v) => { set(data, 'resolution', v); saveJIT() },
+    set: (v) => {
+      data['resolution'] = v
+      saveJIT()
+    },
   })
   const env = computed({
     get: () => data.env,
-    set: (v) => { data.env = v; saveJIT() },
+    set: (v) => {
+      data.env = v
+      saveJIT()
+    },
   })
 
   const isModified = computed(() => {
@@ -212,50 +301,35 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     if (!current) {
       return true
     }
-    if (current.name !== data.name) {
-      return true
-    }
-    if (current.version !== data.version) {
-      return true
-    }
-    if (current.runtime.minecraft !== data.runtime.minecraft) {
-      return true
-    }
-    if (current.runtime.forge !== data.runtime.forge) {
-      return true
-    }
-    if (current.runtime.neoForged !== data.runtime.neoForged) {
-      return true
-    }
-    if (current.runtime.labyMod !== data.runtime.labyMod) {
-      return true
-    }
-    if (current.runtime.fabricLoader !== data.runtime.fabricLoader) {
-      return true
-    }
-    if (current.runtime.quiltLoader !== data.runtime.quiltLoader) {
-      return true
-    }
-    if (current.runtime.optifine !== data.runtime.optifine) {
-      return true
-    }
-    if (current.icon !== data.icon) {
-      return true
-    }
+    const eq = (a: unknown, b: unknown) => (a ?? '') === (b ?? '')
+    if (!eq(current.name, data.name)) return true
+    if (!eq(current.version, data.version)) return true
+    if (!eq(current.runtime.minecraft, data.runtime.minecraft)) return true
+    if (!eq(current.runtime.forge, data.runtime.forge)) return true
+    if (!eq(current.runtime.neoForged, data.runtime.neoForged)) return true
+    if (!eq(current.runtime.labyMod, data.runtime.labyMod)) return true
+    if (!eq(current.runtime.fabricLoader, data.runtime.fabricLoader)) return true
+    if (!eq(current.runtime.quiltLoader, data.runtime.quiltLoader)) return true
+    if (!eq(current.runtime.optifine, data.runtime.optifine)) return true
+    if (!eq(current.icon, data.icon)) return true
     return false
   })
 
-  watch(computed(() => instance.value), () => load(), {
-    immediate: true,
-    deep: true,
-  })
+  watch(
+    computed(() => instance.value),
+    () => load(),
+    {
+      immediate: true,
+      deep: true,
+    },
+  )
 
-  let buffer: EditInstanceOptions & { instancePath: string } | undefined
-  const queue = debounce(flush, 2000)
+  let buffer: (EditInstanceOptions & { instancePath: string }) | undefined
+  const queue = useDebounceFn(flush, 2000)
 
   async function flush() {
     if (buffer) {
-      await edit(buffer)
+      await edit(nullifyUndefined(buffer))
       buffer = undefined
       load()
     }
@@ -285,8 +359,8 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       fileApi: data.fileServerApi,
       minMemory: data.minMemory,
       maxMemory: data.maxMemory,
-      vmOptions: data.vmOptions?.split(' ').filter(v => v.length !== 0),
-      mcOptions: data.mcOptions?.split(' ').filter(v => v.length !== 0),
+      vmOptions: data.vmOptions?.split(' ').filter((v) => v.length !== 0),
+      mcOptions: data.mcOptions?.split(' ').filter((v) => v.length !== 0),
       assignMemory: data.assignMemory,
       fastLaunch: data.fastLaunch,
       showLog: data.showLog,
@@ -294,6 +368,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       java: data.javaPath,
       disableAuthlibInjector: data.disableAuthlibInjector,
       disableElybyAuthlib: data.disableElyByAuthlib,
+      syncGameLanguage: data.syncGameLanguage,
       prependCommand: data.prependCommand,
       preExecuteCommand: data.preExecuteCommand,
       author: data.author,
@@ -304,9 +379,9 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     if (instance.value.server) {
       payload.server = instance.value?.server
         ? {
-          host: data.host,
-          port: Number.parseInt(data.port, 10),
-        }
+            host: data.host,
+            port: Number.parseInt(data.port, 10),
+          }
         : undefined
     }
     enqueue({
@@ -316,30 +391,42 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
   }
 
   async function save() {
+    const savedPath = instance.value.path
+    const previousIcon = instance.value.icon
+    const editingIcon = previousIcon !== data.icon
     const payload = {
       name: data.name,
       version: data.version,
-      runtime: data.runtime,
+      runtime: { ...data.runtime },
       icon: data.icon,
-      resolution: data.resolution,
+      resolution: data.resolution ? { ...data.resolution } : undefined,
     }
-    if (!instance.value?.server) {
-      await edit({
-        ...payload,
-        instancePath: instance.value?.path,
-        author: data.author,
-        description: data.description,
-      })
-    } else {
-      await edit({
-        ...payload,
-        instancePath: instance.value?.path,
-        server: {
-          host: data.host,
-          port: Number.parseInt(data.port, 10),
-        },
-      })
+    try {
+      if (!instance.value?.server) {
+        await edit(nullifyUndefined({
+          ...payload,
+          instancePath: instance.value?.path,
+          author: data.author,
+          description: data.description,
+        }))
+      } else {
+        await edit(nullifyUndefined({
+          ...payload,
+          instancePath: instance.value?.path,
+          server: {
+            host: data.host,
+            port: Number.parseInt(data.port, 10),
+          },
+        }))
+      }
+    } catch (error) {
+      if (editingIcon) {
+        if (instance.value.path === savedPath) data.icon = instance.value.icon
+        notify({ level: 'error', title: t('instance.iconError') })
+      }
+      throw error
     }
+    if (instance.value.path !== savedPath) return
     data.icon = instance.value?.icon
     load()
   }
@@ -366,6 +453,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
       data.icon = current.icon
       data.disableAuthlibInjector = current.disableAuthlibInjector
       data.disableElyByAuthlib = current.disableElybyAuthlib
+      data.syncGameLanguage = current.syncGameLanguage
       data.prependCommand = current.prependCommand
       data.preExecuteCommand = current.preExecuteCommand
       data.env = current.env ?? {}
@@ -398,6 +486,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     isGlobalShowLog,
     isGlobalDisableElyByAuthlib,
     isGlobalDisableAuthlibInjector,
+    isGlobalSyncGameLanguage,
     isGlobalPrependCommand,
     isGlobalPreExecuteCommand,
     assignMemory,
@@ -406,6 +495,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     fastLaunch,
     hideLauncher,
     showLog,
+    syncGameLanguage,
     javaPath,
     disableAuthlibInjector,
     disableElyByAuthlib,
@@ -419,6 +509,7 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
     resetShowLog,
     resetDisableAuthlibInjector,
     resetDisableElyByAuthlib,
+    resetSyncGameLanguage,
     resetPrependCommand,
     resetPreExecuteCommand,
     resetResolution,
@@ -434,7 +525,10 @@ export function useInstanceEdit(instance: Ref<Instance>, edit: (instance: EditIn
   }
 }
 
-export function useInstanceEditVersions(data: Pick<InstanceData, 'runtime' | 'version'>, versions: Ref<VersionHeader[]>) {
+export function useInstanceEditVersions(
+  data: Pick<InstanceData, 'runtime' | 'version'>,
+  versions: Ref<VersionHeader[]>,
+) {
   function onSelectMinecraft(version: string) {
     if (data?.runtime) {
       const runtime = data.runtime
@@ -511,12 +605,8 @@ export function useInstanceEditVersions(data: Pick<InstanceData, 'runtime' | 've
   }
   function onSelectLabyMod(version: string) {
     if (data.runtime) {
-      const runtime = data.runtime
-      if ('labyMod' in runtime) {
-        runtime.labyMod = version
-      } else {
-        set(runtime, 'labyMod', version)
-      }
+      const runtime = data.runtime as Record<string, string>
+      runtime.labyMod = version
       if (version) {
         data.version = ''
         // Select all other to empty
@@ -529,17 +619,16 @@ export function useInstanceEditVersions(data: Pick<InstanceData, 'runtime' | 've
   }
   function onSelectLocalVersion(version: string) {
     data.version = version
-    const v = versions.value.find(ver => ver.id === version)
+    const v = versions.value.find((ver) => ver.id === version)
     if (v) {
       data.runtime.minecraft = v.minecraft
       data.runtime.forge = v.forge
-      data.runtime.liteloader = v.liteloader
       data.runtime.fabricLoader = v.fabric
       data.runtime.neoForged = v.neoForged
       data.runtime.optifine = v.optifine
       data.runtime.quiltLoader = v.quilt
       data.runtime.labyMod = v.labyMod
-    } else {
+    } else if (version) {
       throw new AnyError('SelectLocalVersionError', `Cannot find version ${version}`)
     }
   }

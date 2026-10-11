@@ -1,61 +1,48 @@
-import { SettingSchema, Settings } from '@xmcl/runtime-api'
+import { resolveLauncherLocale, SettingSchema, Settings } from '@xmcl/runtime-api'
+import { AggregateExecutor } from '@xmcl/utils'
+import { readJson, writeJson } from 'fs-extra'
 import { join } from 'path'
 import { LauncherAppPlugin } from '~/app'
 import { ServiceStateManager } from '~/service'
-import { AggregateExecutor } from '../util/aggregator'
-import { createSafeFile } from '../util/persistance'
 import { kSettings } from './settings'
 
 export const pluginSettings: LauncherAppPlugin = async (app) => {
   const stateManager = await app.registry.get(ServiceStateManager)
   const state = stateManager.registerStatic(new Settings(), 'settings')
   const logger = app.getLogger('Settings')
-  const settingFile = createSafeFile(join(app.appDataPath, 'setting.json'), SettingSchema, logger, [])
-  const saver = new AggregateExecutor<void, void>(() => { }, () =>
-    settingFile.write({
-      locale: state.locale,
-      autoInstallOnAppQuit: state.autoInstallOnAppQuit,
-      autoDownload: state.autoDownload,
-      allowPrerelease: state.allowPrerelease,
-      apiSets: state.apiSets,
-      apiSetsPreference: state.apiSetsPreference,
-      allowTurn: state.allowTurn,
-      httpProxy: state.httpProxy,
-      httpProxyEnabled: state.httpProxyEnabled,
-      theme: state.theme,
-      maxSockets: state.maxSockets,
-      globalMinMemory: state.globalMinMemory,
-      globalMaxMemory: state.globalMaxMemory,
-      globalAssignMemory: state.globalAssignMemory,
-      globalVmOptions: state.globalVmOptions,
-      globalMcOptions: state.globalMcOptions,
-      globalFastLaunch: state.globalFastLaunch,
-      globalHideLauncher: state.globalHideLauncher,
-      globalShowLog: state.globalShowLog,
-      globalPrependCommand: state.globalPrependCommand,
-      discordPresence: state.discordPresence,
-      developerMode: state.developerMode,
-      disableTelemetry: state.disableTelemetry,
-      linuxTitlebar: state.linuxTitlebar,
-      globalDisableAuthlibInjector: state.globalDisableAuthlibInjector,
-      globalDisableElyByAuthlib: state.globalDisableElyByAuthlib,
-      enableDedicatedGPUOptimization: state.enableDedicatedGPUOptimization,
-      replaceNatives: state.replaceNatives,
-      globalEnv: state.globalEnv,
-      globalPreExecuteCommand: state.globalPreExecuteCommand,
-      globalResolution: state.globalResolution,
-    }), 1000)
+  const settingJsonPath = join(app.appDataPath, 'setting.json')
+
+  const saver = new AggregateExecutor<void, void>(() => { }, async () => {
+    const data = SettingSchema.parse(state)
+    try {
+      await writeJson(settingJsonPath, data, { spaces: 2 })
+    } catch (e) {
+      // Best-effort: do NOT propagate as an unhandled rejection.
+      // This saver runs on every state change; if writeJson fails
+      // (EPERM/EBUSY/EROFS because of OneDrive sync, antivirus,
+      // read-only mount on Linux, ...), reporting every retry as a
+      // trackException creates a per-user storm and we still cannot
+      // recover from the underlying environment issue. The next state
+      // change re-triggers the saver, so transient locks self-heal.
+      logger.warn(`Fail to save ${settingJsonPath}`)
+      logger.warn(e as Error)
+    }
+  }, 1000)
 
   app.registryDisposer(async () => {
     return saver.flush()
   })
 
-  settingFile.read().then(async () => {
-    const data = await settingFile.read()
-    data.locale = data.locale || app.host.getLocale()
-    if (data.locale.startsWith('en')) {
-      data.locale = 'en'
-    }
+  readJson(settingJsonPath).catch(() => ({})).then((rawData) => {
+    // SettingSchema uses .catch() for each field, so invalid fields fallback to defaults automatically
+    const data = SettingSchema.parse(rawData)
+    data.locale = resolveLauncherLocale(data.locale)
+    state.config(data)
+  }).catch((e) => {
+    logger.error(e)
+    // Still normalize locale with defaults when everything fails
+    const data = SettingSchema.parse({})
+    data.locale = resolveLauncherLocale(data.locale)
     state.config(data)
   }).finally(() => {
     app.registry.register(kSettings, state)

@@ -19,6 +19,10 @@ export interface SaveMetadata {
   time: number
 
   advancements: number
+  /**
+   * The world seed
+   */
+  seed: string
 }
 
 export interface InstanceSaveHeader {
@@ -82,3 +86,156 @@ export class Saves {
     this.saves = this.saves.filter((s) => s.path !== save)
   }
 }
+
+/**
+ * A datapack installed under a save's `datapacks/` folder.
+ */
+export interface InstanceDatapack {
+  /**
+   * The full path of the datapack file (zip) or folder.
+   */
+  path: string
+  /**
+   * The owner save folder path.
+   */
+  savePath: string
+  /**
+   * The file/folder name (basename) of the datapack.
+   */
+  fileName: string
+  /**
+   * The display name of the datapack.
+   */
+  name: string
+  /**
+   * The icon data url (from pack.png). Empty string if not present.
+   */
+  icon: string
+  /**
+   * The datapack description text.
+   */
+  description: string
+  /**
+   * The pack format declared in pack.mcmeta.
+   */
+  packFormat: number
+  /**
+   * The last modified time.
+   */
+  mtime: number
+  curseforge?: {
+    projectId: number
+    fileId: number
+  }
+  modrinth?: {
+    projectId: string
+    versionId: string
+  }
+}
+
+export function getInstanceSaveDatapacksKey(savePath: string) {
+  return `save-datapacks://${savePath}`
+}
+
+export class SaveDatapacks {
+  datapacks = [] as InstanceDatapack[]
+
+  saveDatapacks(datapacks: InstanceDatapack[]) {
+    this.datapacks = datapacks
+  }
+
+  saveDatapackUpdate(datapack: InstanceDatapack) {
+    const existed = this.datapacks.find(d => d.path === datapack.path)
+    if (existed) {
+      Object.assign(existed, datapack)
+    } else {
+      this.datapacks.push(datapack)
+    }
+  }
+
+  saveDatapackRemove(path: string) {
+    this.datapacks = this.datapacks.filter((d) => d.path !== path)
+  }
+}
+
+export interface InstanceProgressAdvancement {
+  id: string
+  mod: string
+  done: boolean
+  criteriaCompleted: number
+  totalCriteria: number
+  completedTime?: string
+  parent?: string
+  icon?: string
+  iconDataUrl?: string
+  frame?: 'task' | 'goal' | 'challenge'
+  title?: string
+  description?: string
+  background?: string
+  x?: number
+  y?: number
+}
+
+export interface InstanceProgressQuestItem {
+  id: string
+  title: string
+  subtitle?: string
+  description?: string
+  icon?: string
+  iconDataUrl?: string
+  x: number
+  y: number
+  size?: number
+  shape?: string
+  dependencies: string[]
+  done: boolean
+  locked?: boolean
+  tasksCount?: number
+  tasksCompleted?: number
+}
+
+export interface InstanceProgressChapter {
+  id: string
+  title: string
+  icon?: string
+  iconDataUrl?: string
+  defaultShape?: string
+  completedQuests: number
+  totalQuests: number
+  percentage: number
+  quests: InstanceProgressQuestItem[]
+}
+
+export interface InstanceProgressQuests {
+  modType: 'ftbquests' | 'betterquesting' | 'heracles'
+  completedQuests: number
+  totalQuests: number
+  percentage: number
+  chapters: InstanceProgressChapter[]
+}
+
+export interface InstanceProgressStats {
+  playTimeTicks: number
+  deaths: number
+  mobKills: number
+  damageDealt?: number
+  damageTaken?: number
+  jump?: number
+  minedBlocksTotal?: number
+}
+
+export interface InstanceSaveProgress {
+  savePath: string
+  saveName: string
+  playerUuid?: string
+  lastPlayed: number
+  advancements: {
+    completed: number
+    categories: Record<string, number>
+    items: InstanceProgressAdvancement[]
+  }
+  quests?: InstanceProgressQuests
+  stats?: InstanceProgressStats
+  icons?: Record<string, string>
+}
+

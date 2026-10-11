@@ -1,8 +1,23 @@
-import { FabricModMetadata, ForgeModMetadata, ForgeModTOMLData, LiteloaderModMetadata, QuiltModMetadata } from '@xmcl/mod-parser'
-import { ForgeModCommonMetadata, NeoforgeMetadata, Resource, ResourceSourceCurseforge, ResourceSourceModrinth, RuntimeVersions } from '@xmcl/runtime-api'
-import { ModDependencies, ModDependency, getModDependencies, getModProvides } from './modDependencies'
-import { ProjectFile } from './search'
 import { notNullish } from '@vueuse/core'
+import { RuntimeVersions } from '@xmcl/instance'
+import { FabricModMetadata, ForgeModMetadata, ForgeModTOMLData, QuiltModMetadata } from '@xmcl/mod-parser'
+import { Resource, ResourceSourceCurseforge, ResourceSourceModrinth } from '@xmcl/resource'
+import { ForgeModCommonMetadata, NeoforgeMetadata } from '@xmcl/runtime-api'
+import { ModDependencies, getModDependencies, getModProvides } from './modDependencies'
+import { ProjectFile } from './search'
+
+const runtimeDependencyIds = new Set([
+  'minecraft',
+  'java',
+  'forge',
+  'neoforge',
+  'fabric',
+  'fabricloader',
+  'fabric-loader',
+  'fabric_loader',
+  'quilt_loader',
+  'quilt-loader',
+])
 
 interface ModMetadata {
   /**
@@ -237,6 +252,55 @@ export function isModFile(file: ProjectFile): file is ModFile {
   return (file as ModFile).dependencies !== undefined
 }
 
+export interface ModDependent {
+  id: string
+  icon?: string
+  title: string
+  description: string
+  type: 'optional' | 'required'
+}
+
+/**
+ * Find installed mods whose declared dependencies point at the selected mod.
+ */
+export function getModDependents(
+  installedFiles: ProjectFile[] | undefined,
+  allMods: ModFile[],
+  fallbackLoader?: string,
+): ModDependent[] {
+  const installed = installedFiles?.filter(isModFile) ?? []
+  if (installed.length === 0) return []
+
+  const installedPaths = new Set(installed.map(file => file.path))
+  const targetIds = new Set(
+    installed
+      .map(file => file.modId)
+      .filter(id => id && !runtimeDependencyIds.has(id)),
+  )
+  if (targetIds.size === 0) return []
+
+  const loaders = new Set(installed.flatMap(file => file.modLoaders).filter(Boolean))
+  if (loaders.size === 0 && fallbackLoader) {
+    loaders.add(fallbackLoader)
+  }
+
+  return allMods.flatMap((candidate): ModDependent[] => {
+    if (installedPaths.has(candidate.path)) return []
+    const dependencies = loaders.size > 0
+      ? [...loaders].flatMap(loader => candidate.dependencies[loader] ?? [])
+      : Object.values(candidate.dependencies).flat()
+    const matched = dependencies.filter(dependency => targetIds.has(dependency.modId))
+    if (matched.length === 0) return []
+    return [{
+      id: candidate.modrinth?.projectId || candidate.curseforge?.projectId.toString() || candidate.name,
+      icon: candidate.icon,
+      title: candidate.name,
+      description: candidate.version,
+      type: matched.every(dependency => dependency.optional) ? 'optional' : 'required',
+    }]
+  })
+}
+
 export function getModMinecraftVersion(mod: ModFile) {
   for (const deps of Object.values(mod.dependencies)) {
     for (const dep of deps) {
@@ -249,6 +313,129 @@ export function getModMinecraftVersion(mod: ModFile) {
       }
     }
   }
+}
+
+/**
+ * Get the required (non-optional) dependency mod ids of a mod across all runtimes.
+ */
+export function getRequiredModDependencyIds(mod: ModFile): string[] {
+  const result = new Set<string>()
+  for (const deps of Object.values(mod.dependencies)) {
+    for (const dep of deps) {
+      if (dep.optional) continue
+      result.add(dep.modId)
+    }
+  }
+  return [...result]
+}
+
+/**
+ * Build an index mapping a provided mod id to the mods that provide it.
+ */
+function buildModProviderIndex(mods: ModFile[]) {
+  const providers = new Map<string, ModFile[]>()
+  for (const mod of mods) {
+    for (const id of Object.keys(mod.provideRuntime)) {
+      const arr = providers.get(id)
+      if (arr) arr.push(mod)
+      else providers.set(id, [mod])
+    }
+  }
+  return providers
+}
+
+export function getEnabledModsWithNoDependent(mods: ModFile[], allowedLoaders: string[]): ModFile[] {
+  const enabledMods = mods.filter(mod => mod.enabled)
+  const providers = new Map<string, ModFile>()
+  for (const mod of enabledMods) {
+    providers.set(mod.modId, mod)
+    for (const alias of Object.keys(mod.provideRuntime)) {
+      providers.set(alias, mod)
+    }
+  }
+
+  const dependencies = new Set<ModFile>()
+  for (const mod of enabledMods) {
+    for (const loader of allowedLoaders) {
+      for (const dependency of mod.dependencies[loader] || []) {
+        const provider = providers.get(dependency.modId)
+        if (provider) dependencies.add(provider)
+      }
+    }
+  }
+
+  return enabledMods.filter(mod => !dependencies.has(mod))
+}
+
+/**
+ * Resolve the full set of mods that should be disabled together with the given mods.
+ *
+ * When a mod is disabled, its dependency mods are disabled as well, but only if they
+ * are no longer required by any other mod that stays enabled. Dependencies are matched
+ * by mod id via each mod's provided runtime.
+ */
+export function resolveModsToDisable(toDisable: ModFile[], allMods: ModFile[]): ModFile[] {
+  const providers = buildModProviderIndex(allMods)
+  const disabled = new Set(toDisable)
+  const queue = [...toDisable]
+
+  const isStillNeeded = (dep: ModFile) => {
+    const providedIds = Object.keys(dep.provideRuntime)
+    if (providedIds.length === 0) return false
+    const providedSet = new Set(providedIds)
+    for (const mod of allMods) {
+      if (mod === dep || disabled.has(mod) || !mod.enabled) continue
+      for (const depId of getRequiredModDependencyIds(mod)) {
+        if (providedSet.has(depId)) return true
+      }
+    }
+    return false
+  }
+
+  while (queue.length) {
+    const mod = queue.pop()!
+    for (const depId of getRequiredModDependencyIds(mod)) {
+      const provs = providers.get(depId)
+      if (!provs) continue
+      for (const dep of provs) {
+        if (disabled.has(dep) || !dep.enabled) continue
+        if (isStillNeeded(dep)) continue
+        disabled.add(dep)
+        queue.push(dep)
+      }
+    }
+  }
+
+  return [...disabled]
+}
+
+/**
+ * Resolve the full set of mods that should be enabled together with the given mods.
+ *
+ * When a mod is enabled, its dependency mods are enabled as well, if they exist and are
+ * not already enabled. Dependencies are matched by mod id via each mod's provided runtime.
+ */
+export function resolveModsToEnable(toEnable: ModFile[], allMods: ModFile[]): ModFile[] {
+  const providers = buildModProviderIndex(allMods)
+  const enabled = new Set(toEnable)
+  const queue = [...toEnable]
+
+  while (queue.length) {
+    const mod = queue.pop()!
+    for (const depId of getRequiredModDependencyIds(mod)) {
+      const provs = providers.get(depId)
+      if (!provs) continue
+      // Already satisfied by a provider that is (or will be) enabled
+      if (provs.some(p => p.enabled || enabled.has(p))) continue
+      for (const dep of provs) {
+        if (enabled.has(dep)) continue
+        enabled.add(dep)
+        queue.push(dep)
+      }
+    }
+  }
+
+  return [...enabled]
 }
 
 export function getModFileFromResource(resource: Resource, runtime: RuntimeVersions): ModFile {
@@ -324,7 +511,17 @@ export function getModFileFromResource(resource: Resource, runtime: RuntimeVersi
     modItem.version = meta.version
     modItem.name = meta.name ?? meta.id
     modItem.description = meta.description ?? ''
-    modItem.authors = meta.authors?.map(a => typeof a === 'string' ? a : a.name) ?? []
+    // Fabric mods in the wild sometimes serialise `authors` as a single
+    // string instead of the spec-mandated array, which crashed the UI
+    // with `TypeError: se.authors?.map is not a function` (telemetry,
+    // 0.56.4). Normalise both shapes before mapping.
+    const fabricAuthorsRaw: any = meta.authors
+    const fabricAuthors: any[] = Array.isArray(fabricAuthorsRaw)
+      ? fabricAuthorsRaw
+      : typeof fabricAuthorsRaw === 'string'
+        ? [fabricAuthorsRaw]
+        : []
+    modItem.authors = fabricAuthors.map(a => typeof a === 'string' ? a : a.name)
     modItem.links = getFabricLikeModLinks(meta.contact)
     modItem.license = typeof meta.license === 'string' ? { name: meta.license } : meta.license ? { name: meta.license?.[0] } : undefined
   }

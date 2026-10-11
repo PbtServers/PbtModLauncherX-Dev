@@ -24,60 +24,68 @@
           <v-icon>arrow_drop_down</v-icon>
         </v-btn>
       </v-toolbar>
-      <v-stepper v-model="step">
-        <v-stepper-items class="visible-scroll overflow-y-auto">
-          <v-stepper-content
-            class="max-h-[70vh]"
-            :step="1"
-          >
-            <StepSelect @select="onSelectType" />
-          </v-stepper-content>
-          <v-stepper-content
-            class="max-h-[70vh]"
-            :step="2"
-          >
+      <ErrorView
+        v-if="error"
+        class="mx-6 my-4"
+        :error="error"
+        no-refresh
+      />
+      <v-window
+        v-model="step"
+        class="visible-scroll overflow-y-auto"
+      >
+        <v-window-item
+          class="max-h-[70vh]"
+          :value="1"
+        >
+          <StepSelect @select="onSelectType" />
+        </v-window-item>
+        <v-window-item
+          class="max-h-[70vh]"
+          :value="2"
+        >
             <template v-if="manifest">
               <v-list
                 color="transparent"
                 class="overflow-auto"
               >
-                <v-subheader>
+                <v-list-subheader>
                   {{ t('instanceDiscover.gameFolder', { count: activeFolders.length }) }}
-                </v-subheader>
+                </v-list-subheader>
                 <v-list-item
                   v-for="folder in activeFolders"
                   :key="folder"
                   @click="onEnableFolder(folder)"
                 >
-                  <v-list-item-avatar>
-                    <v-icon>
-                      folder
-                    </v-icon>
-                  </v-list-item-avatar>
-                  <v-list-item-content>
-                    <v-list-item-title>{{ basename(folder) }}</v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ folder }}
-                    </v-list-item-subtitle>
-                  </v-list-item-content>
-                  <v-list-item-action>
+                  <template #prepend>
+                    <v-avatar>
+                      <v-icon>
+                        folder
+                      </v-icon>
+                    </v-avatar>
+                  </template>
+                  <v-list-item-title>{{ basename(folder) }}</v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ folder }}
+                  </v-list-item-subtitle>
+                  <template #append>
                     <v-checkbox
-                      :value="included.includes(folder)"
-                      :input-value="included.includes(folder)"
+                      :model-value="included.includes(folder)"
+                      hide-details
                       readonly
-                      @input="onEnableFolder(folder)"
+                      @click.stop="onEnableFolder(folder)"
                     />
-                  </v-list-item-action>
+                  </template>
                 </v-list-item>
-                <v-subheader>
+                <v-list-subheader>
                   {{ t('instanceDiscover.instanceFolder', { count: manifest.instances.length }) }}
-                </v-subheader>
+                </v-list-subheader>
 
                 <InstanceItem
                   v-for="m of manifest.instances"
                   :key="m.path"
                   :value="included.includes(m.path)"
-                  :runtime="m.options.runtime"
+                  :runtime="m.options.runtime || { minecraft: '' }"
                   :name="m.options.name"
                   @select="onEnableFolder(m.path)"
                 />
@@ -85,36 +93,20 @@
             </template>
             <StepperFooter
               class="px-6 pb-6 pt-4"
-              :disabled="false"
-              :creating="false"
+              :disabled="importing"
+              :creating="importing"
               create
               @quit="cancel"
               @create="onConfirm"
-            >
-              <div
-                v-if="error"
-                class="pointer-events-none absolute left-0 flex w-full justify-center"
-              >
-                <v-alert
-                  dense
-                  class="w-[50%]"
-                  type="error"
-                >
-                  {{ errorText ?? error }}
-                  <div>
-                    {{ error?.path }}
-                  </div>
-                </v-alert>
-              </div>
-            </StepperFooter>
-          </v-stepper-content>
-        </v-stepper-items>
-      </v-stepper>
-    </v-card>
-  </v-dialog>
+            />
+          </v-window-item>
+        </v-window>
+      </v-card>
+    </v-dialog>
 </template>
 <script setup lang="ts">
 import InstanceItem from '@/components/InstanceItem.vue'
+import ErrorView from '@/components/ErrorView.vue'
 import StepperFooter from '@/components/StepperFooter.vue'
 import StepSelect from '@/components/StepSelect.vue'
 import { useDialog } from '@/composables/dialog'
@@ -123,16 +115,16 @@ import { basename } from '@/util/basename'
 import { InstanceIOServiceKey, InstanceType, ThirdPartyLauncherManifest } from '@xmcl/runtime-api'
 
 const { t } = useI18n()
+const step = ref(1)
+const error = shallowRef<unknown>()
+const importing = ref(false)
+const manifest = shallowRef(undefined as ThirdPartyLauncherManifest | undefined)
 const { isShown, hide: cancel } = useDialog('migrate-wizard', () => {
   step.value = 1
   error.value = undefined
   manifest.value = undefined
 })
 
-const step = ref(1)
-const error = shallowRef(undefined as any)
-const manifest = shallowRef(undefined as ThirdPartyLauncherManifest | undefined)
-const errorText = computed(() => t('errors.BadInstanceType', {}))
 const included = shallowRef([] as string[])
 
 const { getGameDefaultPath, importLauncherData, parseLauncherData } = useService(InstanceIOServiceKey)
@@ -153,6 +145,7 @@ const onSelectType = async (type: InstanceType) => {
     return
   }
   const instancePath = dir.filePaths[0]
+  error.value = undefined
   const man = await parseLauncherData(instancePath, type).catch((e) => {
     error.value = e
     return undefined
@@ -189,8 +182,8 @@ const onSelectType = async (type: InstanceType) => {
 
 const activeFolders = computed(() => manifest.value ? Object.values(manifest.value.folder).filter(v => !!v) : [])
 
-function onConfirm() {
-  if (!manifest.value) {
+async function onConfirm() {
+  if (!manifest.value || importing.value) {
     return
   }
   const man = manifest.value
@@ -205,9 +198,16 @@ function onConfirm() {
     },
   }
 
-  cancel()
-
-  importLauncherData(newMan)
+  importing.value = true
+  error.value = undefined
+  try {
+    await importLauncherData(newMan)
+    cancel()
+  } catch (e) {
+    error.value = e
+  } finally {
+    importing.value = false
+  }
 }
 
 function onEnableFolder(folder: string) {

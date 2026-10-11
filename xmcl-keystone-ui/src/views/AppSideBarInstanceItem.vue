@@ -1,48 +1,73 @@
 <template>
-  <div class="relative">
+  <div class="relative sidebar-instance-wrapper">
     <AppSideBarGroupItemIndicator :state="overState" />
-    <v-list-item
+    <div
       v-context-menu="getItems"
       v-shared-tooltip.right="() => ({ text: name, items: runtimes })"
-      push
-      link
-      draggable
-      class="non-moveable sidebar-item flex-1 flex-grow-0 px-2"
-      :class="{ 'v-list-item--active': path === selectedInstance }"
+      data-testid="instance-item"
+      class="sidebar-instance non-moveable"
+      :class="{
+        'sidebar-instance--active': isActive,
+        'sidebar-instance--launching': isLaunching(path),
+        'sidebar-instance--running': isRunning(path),
+      }"
+      role="button"
+      tabindex="0"
+      :aria-label="name"
+      :aria-pressed="isActive"
+      :aria-busy="isLaunching(path)"
+      draggable="true"
       @click="navigate"
+      @dblclick="launchInstance"
+      @keydown.enter.prevent="navigate"
+      @keydown.space.prevent="navigate"
       @dragover.prevent
       @dragstart="onDragStart"
       @dragend="onDragEnd"
       @dragover="onDragOver"
       @dragenter="onDragEnter"
       @dragleave="onDragLeave"
-      @drop="onDrop"
+      @drop.prevent="onDrop"
     >
-      <v-list-item-avatar
-        size="48"
-        class="transition-all duration-300 hover:rounded"
-        large
-      >
-        <v-img
+      <span class="sidebar-instance__indicator" />
+      <span class="sidebar-instance__content">
+        <InstanceIcon
           v-if="!dragging"
-          width="54"
-          height="54"
+          class="sidebar-instance__image"
+          :width="48"
+          :height="48"
           :src="favicon"
-          @dragenter="onDragEnter"
-          @dragleave="onDragLeave"
+          draggable="false"
         />
         <v-skeleton-loader
           v-else
           type="avatar"
         />
-      </v-list-item-avatar>
-      <v-list-item-title>{{ name }}</v-list-item-title>
-    </v-list-item>
+        <span v-if="isLaunching(path)" class="sidebar-instance__status">
+          <v-progress-circular indeterminate :size="22" :width="3" color="white" />
+        </span>
+        <span v-else-if="isRunning(path)" class="sidebar-instance__status sidebar-instance__status--running">
+          <v-icon :size="14" color="white">play_arrow</v-icon>
+        </span>
+      </span>
+    </div>
+    <!-- Pin indicator -->
+    <div
+      v-if="pinned"
+      class="absolute -top-1 end-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center shadow-md z-20 pointer-events-none"
+    >
+      <v-icon color="white" :size="10">
+        push_pin
+      </v-icon>
+    </div>
   </div>
 </template>
 <script lang="ts" setup>
+import InstanceIcon from '@/components/InstanceIcon.vue'
 import { kInstance } from '@/composables/instance'
 import { useInstanceContextMenuItems } from '@/composables/instanceContextMenu'
+import { kInstanceLaunchCoordinator } from '@/composables/instanceLaunchCoordinator'
+import { kLaunchButton } from '@/composables/launchButton'
 import { getInstanceIcon } from '@/util/favicon'
 import { injection } from '@/util/inject'
 import { useInstanceServerStatus } from '../composables/serverStatus'
@@ -50,16 +75,19 @@ import { vContextMenu } from '../directives/contextMenu'
 import { BuiltinImages } from '../constant'
 import { kInstances } from '@/composables/instances'
 import AppSideBarGroupItemIndicator from './AppSideBarGroupItemIndicator.vue'
-import { useGroupDragDropState } from '@/composables/instanceGroup'
+import { isDraggingInstance, useGroupDragDropState } from '@/composables/instanceGroup'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 
 const props = defineProps<{
   path: string
   inside?: boolean
+  pinned?: boolean
 }>()
-const emit = defineEmits(['arrange', 'drop-save', 'group'])
+const emit = defineEmits(['arrange', 'drop-save', 'group', 'toggle-pin'])
 
 const { instances, selectedInstance } = injection(kInstances)
+const { isLaunching, isRunning, launch } = injection(kInstanceLaunchCoordinator)
+const { onClick: onLaunchClick } = injection(kLaunchButton)
 const instance = computed(() => instances.value.find((i) => i.path === props.path))
 const name = computed(() => {
   if (!instance.value) return ''
@@ -94,14 +122,30 @@ const favicon = computed(() => {
 
 const getItems = useInstanceContextMenuItems(instance)
 
+const route = useRoute()
+const isActive = computed(() => {
+  if (props.path !== selectedInstance.value) return false
+  // Active when the current route is hosted by the instance HomeLayout
+  // (e.g. '/', '/mods', '/save', '/resourcepacks', '/shaderpacks', '/base-setting')
+  return route.matched[0]?.path === '/'
+})
+
 const navigate = () => {
-  if (router.currentRoute.path !== '/') {
+  if (router.currentRoute.value.path !== '/') {
     router.push('/').then(() => {
       select(props.path)
     })
   } else {
     select(props.path)
   }
+}
+
+const launchInstance = () => {
+  void launch(props.path, async () => {
+    select(props.path)
+    await nextTick()
+    await onLaunchClick()
+  }).catch(console.error)
 }
 
 const onDragStart = (e: DragEvent) => {
@@ -120,8 +164,106 @@ const onDragStart = (e: DragEvent) => {
   }
   e.dataTransfer!.setData('instance', props.path)
   dragging.value = true
+  isDraggingInstance.value = true
 }
 
 const { dragging, overState, onDragEnd, onDragEnter, onDragLeave, onDragOver, onDrop } = useGroupDragDropState(emit, computed(() => props.inside))
-
 </script>
+
+<style scoped>
+.sidebar-instance-wrapper {
+  position: relative;
+  width: 100%;
+  height: 56px; /* 48px content + 4px top + 4px bottom margin */
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-instance {
+  position: relative;
+  display: block;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.sidebar-instance__content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: transparent;
+  transition:
+    border-radius 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* The avatar is purely decorative during drag operations - the wrapping
+     div is the only drop target. */
+  pointer-events: none;
+}
+
+/* But still allow click + context menu when not dragging */
+.sidebar-instance:hover .sidebar-instance__content,
+.sidebar-instance--active .sidebar-instance__content {
+  border-radius: 16px;
+}
+
+.sidebar-instance--active .sidebar-instance__content {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.sidebar-instance__image {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.sidebar-instance__status {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.sidebar-instance__status--running {
+  inset: auto 2px 2px auto;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgb(var(--v-theme-surface));
+  border-radius: 50%;
+  background: rgb(var(--v-theme-success));
+}
+
+.sidebar-instance__indicator {
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  width: 4px;
+  height: 0;
+  border-radius: 0 4px 4px 0;
+  background-color: white;
+  transform: translateY(-50%);
+  transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.sidebar-instance:hover .sidebar-instance__indicator {
+  height: 20px;
+}
+
+.sidebar-instance--active .sidebar-instance__indicator {
+  height: 36px;
+}
+</style>

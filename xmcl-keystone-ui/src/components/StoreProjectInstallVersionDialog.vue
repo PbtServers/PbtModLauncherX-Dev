@@ -1,47 +1,63 @@
 <template>
   <v-dialog
-    :value="value"
+    :model-value="modelValue"
+    data-testid="install-version-dialog"
     transition="fade-transition"
-    width="700"
-    @input="$emit('input', $event)"
+    width="760"
+    content-class="elevation-0"
+    @update:model-value="$emit('update:modelValue', $event)"
   >
-    <v-card
-      rounded
-      outlined
-      class="visible-scroll max-h-[90vh] overflow-auto flex flex-col"
-    >
+    <div class="visible-scroll flex max-h-[90vh] flex-col overflow-hidden select-none">
       <v-progress-linear
         class="absolute left-0 top-0 z-20 m-0 p-0"
         :active="loading"
         height="3"
         :indeterminate="true"
+        color="primary"
       />
-      <div
-        v-if="selectedDetail"
-      >
+
+      <!-- Header -->
+      <div class="flex items-center px-6 pt-6 pb-4">
+        <div class="flex items-center gap-3 flex-grow">
+          <v-btn
+            v-if="!noBack && selectedDetail"
+            icon="arrow_back"
+            variant="text"
+            size="small"
+            @click="selectedDetail = undefined"
+          />
+          <div
+            v-else
+            class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style="background-color: rgba(var(--v-theme-primary), 0.12)"
+          >
+            <v-icon size="22" color="primary">download</v-icon>
+          </div>
+          <div class="text-base font-bold tracking-tight" style="color: rgba(var(--v-theme-on-surface), 0.9);">
+            {{ selectedDetail ? selectedDetail.version.name : t('shared.install') }}
+          </div>
+        </div>
         <v-btn
-          text
-          large
-          @click="selectedDetail = undefined"
-        >
-          <v-icon>
-            arrow_back
-          </v-icon>
-        </v-btn>
+          icon="close"
+          variant="text"
+          size="small"
+          @click="$emit('update:modelValue', false)"
+        />
       </div>
+
       <div
-        v-else
-        class="mx-5 mt-3 grid flex-grow-0 grid-cols-3 gap-5"
+        v-if="!selectedDetail"
+        class="grid flex-grow-0 grid-cols-3 gap-3 px-5 pb-2 pt-4"
       >
         <v-select
           v-model="gameVersion"
           clearable
           :disabled="loading"
           hide-details
-          flat
-          solo
+          variant="outlined"
+          density="compact"
+          prepend-inner-icon="sports_esports"
           :items="gameVersions"
-          dense
           :label="t('modrinth.gameVersions.name')"
         />
         <v-select
@@ -49,10 +65,10 @@
           clearable
           :disabled="loading"
           hide-details
-          flat
-          solo
+          variant="outlined"
+          density="compact"
+          prepend-inner-icon="extension"
           :items="loaders"
-          dense
           :label="t('modrinth.modLoaders.name')"
         />
         <v-select
@@ -60,48 +76,69 @@
           clearable
           :disabled="loading"
           hide-details
-          flat
-          solo
+          variant="outlined"
+          density="compact"
+          prepend-inner-icon="label"
           :items="versionTypes"
-          dense
+          item-title="text"
+          item-value="value"
           :label="t('versionType.name')"
         />
       </div>
 
-      <StoreProjectInstallVersionDialogVersion
-        v-if="selectedDetail"
-        class="min-h-22"
-        :version="selectedDetail.version"
-        no-click
-      >
-        <v-list-item-action>
-          <v-btn
-            color="primary"
-            @click="emit('install', selectedDetail.version)"
+      <template v-if="selectedDetail">
+        <div class="flex items-center gap-3 px-5 py-3">
+          <StoreProjectInstallVersionDialogVersion
+            class="min-h-22 flex-1"
+            :version="selectedDetail.version"
+            no-click
           >
-            <v-icon
-              class="material-icons-outlined"
+            <v-btn
+              data-testid="install-version-confirm"
+              color="primary"
+              variant="flat"
+              rounded="pill"
+              size="large"
+              prepend-icon="file_download"
+              :loading="installing"
+              @click="emit('install', selectedDetail.version)"
             >
-              file_download
-            </v-icon>
-            {{ t('install') }}
-          </v-btn>
-        </v-list-item-action>
-      </StoreProjectInstallVersionDialogVersion>
+              {{ t('shared.install') }}
+            </v-btn>
+          </StoreProjectInstallVersionDialogVersion>
+        </div>
+
+        <InstanceVersionShiftAlert
+          v-if="!loading && initialSelectedDetail"
+          class="mx-4 mb-2"
+          :old-runtime="instance.runtime"
+          :runtime="newRuntime"
+        />
+      </template>
 
       <div
         ref="scrollElement"
-        class="overflow-auto"
+        class="flex-1 overflow-auto"
       >
         <div
           v-if="selectedDetail && selectedDetail.changelog"
-          class="z-1 markdown-body m-2 hover:(bg-[rgba(0,0,0,0.05)]) dark:hover:(bg-[rgba(0,0,0,0.3)]) overflow-auto rounded-lg bg-[rgba(0,0,0,0.07)] py-2 pl-2 text-gray-500 transition-colors hover:text-black dark:bg-[rgba(0,0,0,0.4)] dark:hover:text-gray-300"
+          class="markdown-body z-1 mx-4 mb-2 mt-1 overflow-auto rounded-lg bg-[rgba(0,0,0,0.04)] p-3 text-sm dark:bg-[rgba(255,255,255,0.06)]"
+          style="color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity, 0.95))"
           v-html="render(selectedDetail.changelog)"
         />
-        <v-divider
-          v-if="selectedDetail"
-          class="z-1"
-        />
+
+        <div
+          v-if="selectedDetail && !loading && selectedDetail.dependencies.length > 0"
+          class="text-caption mx-4 mt-2 flex items-center gap-2"
+          style="color: rgba(var(--v-theme-on-surface), 0.85)"
+        >
+          <v-icon size="small">device_hub</v-icon>
+          {{ t('dependencies.name') }}
+          <span class="opacity-70">
+            ({{ selectedDetail.dependencies.length }})
+          </span>
+        </div>
+
         <v-list
           ref="containerRef"
           class="overflow-auto"
@@ -126,29 +163,49 @@
               transform: `translateY(${row.start}px)`
             }"
           >
-            <template v-if="selectedDetail">
+            <template v-if="loading">
+              <v-skeleton-loader
+                type="list-item-two-line, list-item-two-line"
+              />
+            </template>
+            <template v-else-if="selectedDetail">
               <v-list-item
+                class="mx-2 rounded-lg"
                 :href="selectedDetail.dependencies[row.index].href"
+                :title="selectedDetail.dependencies[row.index].title"
+                :subtitle="selectedDetail.dependencies[row.index].description"
               >
-                <v-list-item-avatar>
-                  <img :src="selectedDetail.dependencies[row.index].icon">
-                </v-list-item-avatar>
-                <v-list-item-content>
-                  <v-list-item-title v-text="selectedDetail.dependencies[row.index].title" />
-                  <v-list-item-subtitle v-text="selectedDetail.dependencies[row.index].title" />
-                </v-list-item-content>
+                <template #prepend>
+                  <v-avatar>
+                    <img width="40" :src="selectedDetail.dependencies[row.index].icon">
+                  </v-avatar>
+                </template>
+                <template #append>
+                  <v-chip
+                    size="x-small"
+                    label
+                    variant="tonal"
+                    :color="getDepColor(selectedDetail.dependencies[row.index].dependencyType)"
+                  >
+                    {{ selectedDetail.dependencies[row.index].dependencyType }}
+                  </v-chip>
+                </template>
               </v-list-item>
             </template>
             <template v-else>
-              <template v-if="typeof all[row.index] === 'string'">
-                <v-subheader>
-                  <v-divider class="mx-4" />
-                  {{ t('modrinth.featuredVersions') }}
-                  <v-divider class="mx-4" />
-                </v-subheader>
-              </template>
+              <div
+                v-if="typeof all[row.index] === 'string'"
+                class="text-caption mx-4 mt-3 flex items-center gap-3 uppercase tracking-wider"
+                style="color: rgba(var(--v-theme-on-surface), 0.7)"
+              >
+                <v-divider class="flex-1" />
+                <span>{{ t('modrinth.featuredVersions') }}</span>
+                <v-divider class="flex-1" />
+              </div>
               <StoreProjectInstallVersionDialogVersion
                 v-else
+                class="mx-2"
+                data-testid="install-version-item"
                 :disabled="loading"
                 :version="asAny(all[row.index])"
                 @click="onVersionClicked(asAny(all[row.index]))"
@@ -157,7 +214,7 @@
           </div>
         </v-list>
       </div>
-    </v-card>
+    </div>
   </v-dialog>
 </template>
 
@@ -167,6 +224,9 @@ import { useVirtualizer, VirtualItem, VirtualizerOptions } from '@tanstack/vue-v
 import { VueInstance } from '@vueuse/core'
 import { getEl } from '@/util/el'
 import StoreProjectInstallVersionDialogVersion from './StoreProjectInstallVersionDialogVersion.vue'
+import InstanceVersionShiftAlert from './InstanceVersionShiftAlert.vue'
+import { injection } from '@/util/inject'
+import { kInstance } from '@/composables/instance'
 
 export interface StoreProjectVersion {
   id: string
@@ -191,12 +251,15 @@ export interface StoreProjectVersionDetail {
 const props = defineProps<{
   versions: StoreProjectVersion[]
   getVersionDetail: (version: StoreProjectVersion) => Promise<StoreProjectVersionDetail>
-  value: boolean
+  modelValue: boolean
+  initialSelectedDetail?: StoreProjectVersion
+  noBack?: boolean
+  installing?: boolean
 }>()
 
 const { t } = useI18n()
 
-const emit = defineEmits(['install', 'input'])
+const emit = defineEmits(['install', 'update:modelValue'])
 
 const gameVersions = computed(() => {
   const result = [] as string[]
@@ -270,14 +333,32 @@ const all = computed(() => {
     }
   }
 
-  return [...result, 'divider', ...originals.filter(v => !result.includes(v))]
+  const otherVersions = originals.filter(v => !result.includes(v))
+
+  if (otherVersions.length === 0) {
+    return result
+  }
+
+  return [...result, 'divider', ...otherVersions]
 })
 
 // Select versions
 const loading = ref(false)
-const selectedDetail = ref<StoreProjectVersionDetail | undefined>(undefined)
+const selectedDetail = shallowRef<StoreProjectVersionDetail | undefined>()
+watch(() => props.initialSelectedDetail, (v) => {
+  if (v) {
+    onVersionClicked(v)
+  } else {
+    selectedDetail.value = undefined
+  }
+}, { immediate: true })
 async function onVersionClicked(version: StoreProjectVersion) {
   try {
+    selectedDetail.value = {
+      version,
+      dependencies: [],
+      changelog: '',
+    }
     loading.value = true
     const detail = await props.getVersionDetail(version)
     selectedDetail.value = detail
@@ -286,13 +367,46 @@ async function onVersionClicked(version: StoreProjectVersion) {
   }
 }
 
+const { instance } = injection(kInstance)
+const newRuntime = computed(() => {
+  if (!selectedDetail.value) return {}
+  const v = selectedDetail.value
+  if (v.version.loaders.includes('fabric')) {
+    return { fabricLoader: 1 }
+  }
+  if (v.version.loaders.includes('forge')) {
+    return { forge: 1 }
+  }
+  if (v.version.loaders.includes('quilt')) {
+    return { quiltLoader: 1 }
+  }
+  if (v.version.loaders.includes('neoforge')) {
+    return { neoForged: 1 }
+  }
+  return {}
+})
+
 function asAny(v: unknown): any {
   return v as any
 }
 
-watch(() => props.value, (newVal) => {
+function getDepColor(type: string) {
+  switch (type) {
+    case 'required': return 'error'
+    case 'optional': return 'info'
+    case 'incompatible': return 'warning'
+    case 'embedded': return 'success'
+    default: return 'grey'
+  }
+}
+
+watch(() => props.modelValue, (newVal) => {
   if (!newVal) {
     selectedDetail.value = undefined
+  } else {
+    if (props.initialSelectedDetail) {
+      onVersionClicked(props.initialSelectedDetail)
+    }
   }
 })
 const { render } = useMarkdown()
@@ -315,7 +429,7 @@ function getKey(i: number) {
 }
 
 const virtualizerOptions = computed(() => ({
-  count: selectedDetail.value ? selectedDetail.value.dependencies.length : all.value.length,
+  count: selectedDetail.value ? (loading.value ? 4 : selectedDetail.value.dependencies.length) : all.value.length,
   getScrollElement: () => getEl(scrollElement.value)/* ?.$el */ as any,
   estimateSize: () => selectedDetail.value ? 62 : 79,
   overscan: 10,

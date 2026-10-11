@@ -1,23 +1,27 @@
 <template>
   <v-chip
     label
-    :small="small"
-    :outlined="outlined"
+    :size="small ? 'small' : undefined"
+    :variant="outlined ? 'outlined' : undefined"
     @click="$emit('click')"
   >
-    <v-avatar
-      v-if="item.icon?.startsWith('http')"
-      left
-    >
-      <v-img
-        :src="item.icon"
+    <template #prepend>
+      <v-avatar
+        v-if="item.icon?.startsWith('http')"
+        variant="plain"
+        start
+      >
+        <v-img
+          :src="item.icon"
+        />
+      </v-avatar>
+      <v-avatar
+        v-else-if="item.icon"
+        variant="plain"
+        start
+        v-html="item.icon"
       />
-    </v-avatar>
-    <v-avatar
-      v-else-if="item.icon"
-      left
-      v-html="item.icon"
-    />
+    </template>
     {{ item.text }}
   </v-chip>
 </template>

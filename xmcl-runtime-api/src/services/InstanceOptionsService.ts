@@ -1,7 +1,7 @@
 import type { Frame as GameSetting } from '@xmcl/gamesetting'
-import { ShaderOptions } from '../entities/shaderpack'
-import { SharedState } from '../util/SharedState'
-import { ServiceKey } from './Service'
+import type { ShaderOptions } from '../entities/shaderpack'
+import type { SharedState } from '../util/SharedState'
+import type { ServiceKey } from './Service'
 export interface EditGameSettingOptions extends GameSetting {
   /**
    * The instance to edit game setting.
@@ -129,6 +129,49 @@ export interface InstanceOptionsService {
   getServerProperties(instancePath: string): Promise<Record<string, string>>
 
   setServerProperties(instancePath: string, properties: Record<string, string | number | boolean>): Promise<void>
+
+  /**
+   * Read the raw text content of a known top-level file under the instance's
+   * dedicated-server folder (`<instance>/server/`). Allowed files: `server.properties`,
+   * `eula.txt`, `ops.json`, `whitelist.json`, `banned-ips.json`, `banned-players.json`,
+   * `usercache.json`. Returns `''` when the file does not exist. Subpaths and path
+   * traversal are rejected.
+   * @param instancePath The instance path
+   * @param file The server file name (one of the allowed files)
+   */
+  getServerFile(instancePath: string, file: string): Promise<string>
+
+  /**
+   * Overwrite the raw text content of a known top-level server file (see
+   * {@link getServerFile} for the allowed set). Creates the file if missing.
+   * @param instancePath The instance path
+   * @param file The server file name (one of the allowed files)
+   * @param content The new file content
+   */
+  setServerFile(instancePath: string, file: string, content: string): Promise<void>
+
+  /**
+   * List the relative paths of every file under the instance `config/` directory.
+   * @param instancePath The instance path
+   */
+  getInstanceConfigFiles(instancePath: string): Promise<string[]>
+
+  /**
+   * Read the raw text content of a file under the instance `config/` directory.
+   * @param instancePath The instance path
+   * @param filePath The file path relative to the `config/` directory
+   */
+  getInstanceConfig(instancePath: string, filePath: string): Promise<string>
+
+  /**
+   * Overwrite the raw text content of a file under the instance `config/` directory.
+   * @param instancePath The instance path
+   * @param filePath The file path relative to the `config/` directory
+   * @param content The new file content
+   */
+  setInstanceConfig(instancePath: string, filePath: string, content: string): Promise<void>
+  /** Remove a file under the instance `config/` directory. */
+  removeInstanceConfig(instancePath: string, filePath: string): Promise<void>
 }
 
 export const InstanceOptionsServiceKey: ServiceKey<InstanceOptionsService> = 'InstanceOptionsService'

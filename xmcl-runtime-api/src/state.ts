@@ -2,9 +2,11 @@ import { ResourceState } from './entities/resource'
 import { Saves } from './entities/save'
 import { Settings } from './entities/setting'
 import { LocalVersions } from './entities/version'
+import { LocalCollectionState } from './services/CollectionService'
 import { InstanceInstallStatus } from './services/InstanceInstallService'
 import { InstanceModsGroupState } from './services/InstanceModsGroupService'
 import { GameOptionsState } from './services/InstanceOptionsService'
+import { ServerInfoState } from './services/InstanceServerInfoService'
 import { InstanceState } from './services/InstanceService'
 import { JavaState } from './services/JavaService'
 import { ModpackState } from './services/ModpackService'
@@ -28,4 +30,6 @@ export const AllStates = [
   PeerState,
   InstanceInstallStatus,
   InstanceModsGroupState,
+  ServerInfoState,
+  LocalCollectionState,
 ]

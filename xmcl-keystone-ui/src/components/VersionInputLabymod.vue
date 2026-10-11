@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import VersionInput, { VersionItem } from './VersionInput.vue'
 import { useLabyModManifest } from '@/composables/version'
+import { getLabyModMinecraftVersion } from '@xmcl/installer/labymod.browser'
 import { BuiltinImages } from '../constant'
 
 const props = defineProps<{
   minecraft: string
   value?: string
+  autoSelectLatest?: boolean
 }>()
 
 const { data, isValidating, mutate, error } = useLabyModManifest()
@@ -13,7 +15,7 @@ const { data, isValidating, mutate, error } = useLabyModManifest()
 const items = computed(() => {
   const manifest = data.value
   if (!manifest) { return [] }
-  const mcVersion = manifest.minecraftVersions.find(v => v.tag === props.minecraft)
+  const mcVersion = getLabyModMinecraftVersion(manifest, props.minecraft)
   if (!mcVersion) { return [] }
   const result: VersionItem[] = [markRaw({
     name: manifest.labyModVersion,
@@ -21,6 +23,7 @@ const items = computed(() => {
   })]
   return result
 })
+const latestVersion = computed(() => items.value[0]?.name ?? '')
 const { t } = useI18n()
 
 const emit = defineEmits<{
@@ -39,6 +42,7 @@ const emit = defineEmits<{
     :empty-text="t('labyMod.empty', { version: minecraft })"
     :refreshing="isValidating"
     :placeholder="t('labyMod.disable')"
+    :auto-select="autoSelectLatest ? latestVersion : undefined"
     :value="value"
     @refresh="mutate()"
     @input="emit('input', $event)"

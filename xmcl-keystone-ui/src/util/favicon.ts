@@ -1,5 +1,6 @@
-import { InstanceData, ServerStatus } from '@xmcl/runtime-api'
+import { ServerStatus } from '@xmcl/runtime-api'
 import { BuiltinImages } from '@/constant'
+import { InstanceData } from '@xmcl/instance'
 
 export function getInstanceIcon(instance: InstanceData, status: ServerStatus | undefined) {
   if (status?.favicon && status?.favicon !== BuiltinImages.unknownServer) {
@@ -8,6 +9,9 @@ export function getInstanceIcon(instance: InstanceData, status: ServerStatus | u
     return BuiltinImages.unknownServer
   }
   if (!instance.icon) {
+    if (instance.edition === 'bedrock') {
+      return BuiltinImages.bedrock
+    }
     if (instance.runtime.forge) {
       return BuiltinImages.forge
     } else if (instance.runtime.neoForged) {

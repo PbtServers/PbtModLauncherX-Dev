@@ -1,18 +1,41 @@
-import { CreateInstanceOption, EditInstanceOptions, InstanceService as IInstanceService, InstanceSchema, InstanceServiceKey, InstanceState, InstancesSchema, SharedState, RuntimeVersions, createTemplate, LockKey } from '@xmcl/runtime-api'
+import {
+  CreateInstanceOptions,
+  duplicateInstance,
+  InstanceDataWithTime,
+  InstanceSchema,
+  computeInstanceEditChanges,
+  createInstance,
+  type EditInstanceOptions,
+  DuplicateInstanceTrackerEvents,
+} from '@xmcl/instance'
+import {
+  InstanceModpackMetadataSchema,
+  InstanceServiceKey,
+  InstanceState,
+  InstancesSchema,
+  LockKey,
+  DuplicateInstanceTask,
+  type InstanceService as IInstanceService,
+  type SharedState,
+} from '@xmcl/runtime-api'
+import { AnyError, isSystemError } from '@xmcl/utils'
 import filenamify from 'filenamify'
-import { existsSync } from 'fs'
-import { copy, ensureDir, readdir, readlink, rename, rm, stat } from 'fs-extra'
+import { createHash, randomUUID } from 'crypto'
+import { createReadStream, existsSync } from 'fs'
+import { ensureDir, readdir, readlink, readJson, stat, rename, rm, writeFile, writeJson } from 'fs-extra'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'path'
-import { Inject, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
-import { ImageStorage } from '~/imageStore'
-import { VersionMetadataService } from '~/install'
-import { ExposeServiceKey, ServiceStateManager, StatefulService } from '~/service'
-import { AnyError, isSystemError } from '~/util/error'
+import { Inject, LauncherAppKey, kGameDataPath, type PathResolver } from '~/app'
+import { ImageStorage, kTasks, Tasks } from '~/infra'
+import { VersionMetadataService } from '~/install/VersionMetadataService'
+import { ExposeServiceKey, ServiceStateManager, Singleton, StatefulService } from '~/service'
 import { validateDirectory } from '~/util/validate'
 import { LauncherApp } from '../app/LauncherApp'
-import { ENOENT_ERROR, exists, isDirectory, isPathDiskRootPath, linkWithTimeoutOrCopy, readdirEnsured } from '../util/fs'
-import { assignShallow, requireObject, requireString } from '../util/object'
-import { SafeFile, createSafeFile, createSafeIO } from '../util/persistance'
+import { ENOENT_ERROR, exists, isDirectory, isPathDiskRootPath, readdirEnsured } from '../util/fs'
+import { getMediaIconPath, resolveInstanceIcon, serializeInstanceIcon, toMediaIconUrl } from './instanceIcon'
+import { validateInstanceIconData } from './instanceIconValidation'
+import { requireObject, requireString } from '../util/object'
+import { getTracker } from '~/util/taskHelper'
+import { setTimeout } from 'timers/promises'
 
 const INSTANCES_FOLDER = 'instances'
 
@@ -21,60 +44,188 @@ const INSTANCES_FOLDER = 'instances'
  */
 @ExposeServiceKey(InstanceServiceKey)
 export class InstanceService extends StatefulService<InstanceState> implements IInstanceService {
-  protected readonly instancesFile: SafeFile<InstancesSchema>
-  protected readonly instanceFile = createSafeIO(InstanceSchema, this)
-  #removeHandlers: Record<string, (WeakRef<() => Promise<void> | void>)[]> = {}
+  // Strong references so the handler stays alive until removal or
+  // explicit unregister; previously these were `WeakRef`s, which made
+  // inline arrow handlers (e.g. abort-on-delete callbacks registered
+  // by InstanceInstallService) eligible for GC mid-install and break
+  // the install/delete cancellation handshake.
+  #removeHandlers: Record<string, Array<() => Promise<void> | void>> = {}
+  #onRenamedInstancePath?: (oldPath: string, newPath: string) => void
+  #metadataWrites = new Map<string, Promise<void>>()
+  #iconEdits = new Map<string, number>()
 
-  constructor(@Inject(LauncherAppKey) app: LauncherApp,
+  constructor(
+    @Inject(LauncherAppKey) app: LauncherApp,
     @Inject(ServiceStateManager) store: ServiceStateManager,
     @Inject(VersionMetadataService) private versionMetadataService: VersionMetadataService,
     @Inject(kGameDataPath) private getPath: PathResolver,
     @Inject(ImageStorage) private imageStore: ImageStorage,
+    @Inject(kTasks) private tasks: Tasks,
   ) {
-    super(app, () => store.registerStatic(new InstanceState(), InstanceServiceKey), async () => {
-      const instanceConfig = await this.instancesFile.read()
-      const managed = (await readdirEnsured(this.getPathUnder())).map(p => this.getPathUnder(p))
+    super(
+      app,
+      () => store.registerStatic(new InstanceState(), InstanceServiceKey),
+      async () => {
+        // instances.json is launcher-level state and stays in appData: it must
+        // not travel with the game data root on a migration. Managed instances
+        // are stored relative to the (movable) instances folder, so they still
+        // resolve after a root change. Fall back once to the legacy game-root
+        // copy so groups/selection survive the move of this file into appData.
+        const instancesPath = join(this.app.appDataPath, 'instances.json')
+        const legacyInstancesPath = this.getPath('instances.json')
+        const instanceConfig = await readJson(instancesPath)
+          .catch(() => readJson(legacyInstancesPath))
+          .then(InstancesSchema.parse)
+          .catch(() => InstancesSchema.parse({}))
+        const managed = (await readdirEnsured(this.getPathUnder())).map((p) => this.getPathUnder(p))
 
-      this.log(`Found ${managed.length} managed instances and ${instanceConfig.instances.length} external instances.`)
+        this.log(
+          `Found ${managed.length} managed instances and ${instanceConfig.instances.length} external instances.`,
+        )
 
-      const all = [...new Set([...instanceConfig.instances, ...managed])]
-      const staleInstances = new Set<string>()
+        const all = [...new Set([...instanceConfig.instances, ...managed])]
+        const staleInstances = new Set<string>()
 
-      await Promise.all(all.map(async (path) => {
-        if (basename(path).startsWith('.')) {
-          return
+        const rename: [string, string][] = []
+        await Promise.all(
+          all.map(async (path) => {
+            if (basename(path).startsWith('.')) {
+              return
+            }
+            if (!isAbsolute(path)) {
+              path = this.getPathUnder(path)
+            }
+            if (!(await this.loadInstance(path, (old, newPath) => rename.push([old, newPath])))) {
+              staleInstances.add(path)
+            }
+          }),
+        )
+
+        const normalizeInstancePath = (path: string) => {
+          if (this.isUnderManaged(path)) {
+            const relativePath = relative(this.getPathUnder(), path)
+            return relativePath
+          }
+          return path
         }
-        if (!await this.loadInstance(path)) {
-          staleInstances.add(path)
+
+        const selectedInstance = instanceConfig.selectedInstance || ''
+
+        const groups = instanceConfig.groups.map((g) =>
+          typeof g === 'string'
+            ? this.getPathUnder(g)
+            : {
+                ...g,
+                instances: g.instances.map((s) => this.getPathUnder(s)),
+              },
+        )
+
+        if (rename.length > 0) {
+          // fix the group paths
+          for (const [oldPath, newPath] of rename) {
+            for (const group of groups) {
+              if (typeof group === 'string') {
+                if (group === oldPath) {
+                  const idx = groups.indexOf(group)
+                  groups[idx] = newPath
+                }
+              } else {
+                const idx = group.instances.indexOf(oldPath)
+                if (idx !== -1) {
+                  group.instances[idx] = newPath
+                }
+              }
+            }
+          }
         }
-      }))
 
-      const normalizeInstancePath = (path: string) => {
-        if (this.isUnderManaged(path)) {
-          const relativePath = relative(this.getPathUnder(), path)
-          return relativePath
+        this.state.instanceGroupsSet(groups)
+
+        this.#onRenamedInstancePath = (oldPath: string, newPath: string) => {
+          const groups = this.state.groups
+          for (const group of groups) {
+            if (typeof group === 'string') {
+              if (group === oldPath) {
+                const idx = groups.indexOf(group)
+                groups[idx] = newPath
+              }
+            } else {
+              const idx = group.instances.indexOf(oldPath)
+              if (idx !== -1) {
+                group.instances[idx] = newPath
+              }
+            }
+          }
+          this.state.instanceGroupsSet(groups)
         }
-        return path
-      }
 
-      const selectedInstance = instanceConfig.selectedInstance || ''
+        if (staleInstances.size > 0 || rename.length > 0) {
+          await writeJson(instancesPath, {
+            selectedInstance: normalizeInstancePath(selectedInstance),
+            instances: instanceConfig.instances
+              .filter((p) => !staleInstances.has(p))
+              .map(normalizeInstancePath),
+            groups,
+          })
+        }
 
-      if (staleInstances.size > 0) {
-        await this.instancesFile.write({
-          selectedInstance: normalizeInstancePath(selectedInstance),
-          instances: instanceConfig.instances.filter(p => !staleInstances.has(p)).map(normalizeInstancePath),
+        this.state.subscribe('instanceGroupsSet', async () => {
+          await writeJson(instancesPath, {
+            selectedInstance,
+            instances: this.state.instances.map((s) => s.path).map(normalizeInstancePath),
+            groups: this.state.groups.map((g) =>
+              typeof g === 'string'
+                ? normalizeInstancePath(g)
+                : { ...g, instances: g.instances.map(normalizeInstancePath) },
+            ),
+          })
         })
-      }
 
-      this.state
-        .subscribe('instanceEdit', async ({ path }) => {
+        this.state.subscribe('instanceEdit', async ({ path }) => {
           const inst = this.state.all[path]
-          await this.instanceFile.write(join(path, 'instance.json'), inst)
+          const persisted = { ...inst, icon: serializeInstanceIcon(inst.icon, path) }
+          await this.#persistMetadata(path, persisted)
           this.log(`Saved instance ${path}`)
         })
-    })
+      },
+    )
+  }
 
-    this.instancesFile = createSafeFile(this.getAppDataPath('instances.json'), InstancesSchema, this, [this.getPath('instances.json')])
+  async #persistMetadata(path: string, metadata: unknown) {
+    const data = JSON.stringify(metadata, null, 2)
+    const previous = this.#metadataWrites.get(path) || Promise.resolve()
+    const pending = previous.catch(() => {}).then(async () => {
+      const temporary = join(path, `.instance-${randomUUID()}.tmp`)
+      try {
+        await writeFile(temporary, data, { flag: 'wx' })
+        await rename(temporary, join(path, 'instance.json'))
+      } finally {
+        await rm(temporary, { force: true })
+      }
+    })
+    this.#metadataWrites.set(path, pending)
+    try { await pending } finally {
+      if (this.#metadataWrites.get(path) === pending) this.#metadataWrites.delete(path)
+    }
+  }
+
+  getInstanceModpackMetadata(path: string): Promise<InstanceModpackMetadataSchema | undefined> {
+    const metadataPath = join(path, 'modpack-metadata.json')
+    return readJson(metadataPath)
+      .then(InstanceModpackMetadataSchema.parse)
+      .catch(() => undefined)
+  }
+
+  setInstanceModpackMetadata(
+    path: string,
+    metadata: InstanceModpackMetadataSchema | undefined,
+  ): Promise<void> {
+    const metadataPath = join(path, 'modpack-metadata.json')
+    if (metadata) {
+      return writeJson(metadataPath, InstanceModpackMetadataSchema.parse(metadata))
+    } else {
+      return rm(metadataPath, { force: true }).catch(() => undefined)
+    }
   }
 
   async getSharedInstancesState(): Promise<SharedState<InstanceState>> {
@@ -100,7 +251,23 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     }
   }
 
-  async loadInstance(path: string) {
+  registerRemoveHandler(path: string, handler: () => Promise<void> | void): () => void {
+    if (!this.#removeHandlers[path]) {
+      this.#removeHandlers[path] = []
+    }
+    const list = this.#removeHandlers[path]
+    list.push(handler)
+    return () => {
+      const idx = list.indexOf(handler)
+      if (idx >= 0) list.splice(idx, 1)
+    }
+  }
+
+  @Singleton((v) => v)
+  async loadInstance(
+    path: string,
+    onRename: ((old: string, newPath: string) => void) | undefined = this.#onRenamedInstancePath,
+  ): Promise<boolean> {
     requireString(path)
 
     // Fix the wrong path if user set the name start/end with space
@@ -110,14 +277,16 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       path = this.getPathUnder(path)
     }
 
-    let option: InstanceSchema
+    let option: InstanceDataWithTime
 
-    if (!await isDirectory(path)) {
+    if (!(await isDirectory(path))) {
       return false
     }
+
     this.log(`Start load instance under ${path}`)
     try {
-      option = await this.instanceFile.read(join(path, 'instance.json'))
+      option = await readJson(join(path, 'instance.json')).then(InstanceSchema.parse)
+      delete option.path
     } catch (e) {
       this.warn(`Cannot load instance json ${path}`)
       this.warn(e)
@@ -125,64 +294,38 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     }
 
     // Fix the wrong path if user set the name start/end with space
-    option.name = option.name.trim()
+    const instance = createInstance(
+      option,
+      () => path,
+      this.versionMetadataService.getLatestRelease,
+      false,
+    )
+    instance.path = path
 
-    const name = option.name
+    const name = instance.name
     const expectPath = this.getPathUnder(filenamify(name, { replacement: '_' }))
 
     try {
       if (this.isUnderManaged(path) && expectPath !== path && !existsSync(expectPath)) {
         this.log(`Migrate instance ${path} -> ${expectPath}`)
         await rename(path, expectPath)
-        path = expectPath
+        // const failed = await Promise.race([
+        //   await setTimeout(5_500).then(() => true),
+        // ])
+        // if (!failed) {
+        onRename?.(path, expectPath)
+        instance.path = expectPath
+        // }
       }
     } catch (e) {
       this.warn(`Fail to rename instance ${path} -> ${expectPath}`)
       this.warn(e)
     }
 
-    const instance = createTemplate()
-
-    instance.author = instance.author || ''
-
-    assignShallow(instance, option)
-    if (option.runtime) {
-      assignShallow(instance.runtime, option.runtime)
-    }
-    instance.assignMemory = option.assignMemory
-    instance.showLog = option.showLog
-    instance.hideLauncher = option.hideLauncher
-    instance.fastLaunch = option.fastLaunch
-    instance.icon = option.icon
-    instance.maxMemory = option.maxMemory
-    instance.minMemory = option.minMemory
-    instance.vmOptions = option.vmOptions
-    instance.mcOptions = option.mcOptions
-    instance.creationDate = option.creationDate
-    instance.lastAccessDate = option.lastAccessDate
-    instance.disableAuthlibInjector = option.disableAuthlibInjector
-    instance.disableElybyAuthlib = option.disableElybyAuthlib
-    if (option.resolution) {
-      if (instance.resolution) {
-        instance.resolution.width = option.resolution.width
-        instance.resolution.height = option.resolution.height
-        instance.resolution.fullscreen = option.resolution.fullscreen
-      } else {
-        instance.resolution = option.resolution
-      }
-    }
-
-    instance.runtime.minecraft = instance.runtime.minecraft || this.versionMetadataService.getLatestRelease()
-    instance.upstream = option.upstream
-    instance.playtime = option.playtime
-    instance.lastPlayedDate = option.lastPlayedDate
-    instance.prependCommand = option.prependCommand
-
-    if (option.server) {
-      instance.server = option.server
-    }
-
-    instance.path = path
+    // Icons stored inside the instance folder are persisted as a relative path
+    // for portability. Resolve them against the instance's current absolute
+    // path so the renderer can display them.
+    instance.icon = resolveInstanceIcon(instance.icon, instance.path)
 
     this.state.instanceAdd(instance)
 
@@ -191,65 +334,144 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     return true
   }
 
-  async createInstance(payload: CreateInstanceOption): Promise<string> {
+  async createInstance(payload: CreateInstanceOptions): Promise<string> {
     requireObject(payload)
 
     if (!payload.name) {
       throw new TypeError('payload.name should not be empty!')
     }
 
-    const instance = createTemplate()
-
-    assignShallow(instance, payload)
-    if (payload.runtime) {
-      assignShallow(instance.runtime, payload.runtime)
-    }
-    if (payload.resolution) {
-      if (instance.resolution) {
-        assignShallow(instance.resolution, payload.resolution)
-      } else {
-        instance.resolution = payload.resolution
-      }
-    }
-    if (payload.server) {
-      instance.server = payload.server
-    }
-
-    payload.name = payload.name.trim()
-
-    if (!payload.path) {
-      instance.path = this.getCandidatePath(payload.name)
-    }
-
-    instance.runtime.minecraft = instance.runtime.minecraft || this.versionMetadataService.getLatestRelease()
-    instance.creationDate = Date.now()
-    instance.lastAccessDate = Date.now()
-
-    instance.author = payload.author ?? instance.author
-    instance.description = payload.description ?? instance.description
-    instance.showLog = payload.showLog ?? instance.showLog
-    instance.upstream = payload.upstream
-    instance.icon = payload.icon ?? ''
+    const instance = createInstance(
+      payload,
+      (v) => this.getCandidatePath(v),
+      this.versionMetadataService.getLatestRelease,
+    )
 
     if (!isPathDiskRootPath(instance.path)) {
       await ensureDir(instance.path).catch(() => undefined)
     }
 
-    const forceFolder = true
-    if (forceFolder || payload.resourcepacks) {
-      await ensureDir(join(instance.path, 'resourcepacks')).catch(() => undefined)
-    }
-    if (forceFolder || payload.shaderpacks) {
-      await ensureDir(join(instance.path, 'shaderpacks')).catch(() => undefined)
+    const isBedrock = instance.edition === 'bedrock'
+    if (!isBedrock) {
+      const forceFolder = true
+      if (forceFolder || payload.resourcepacks) {
+        await ensureDir(join(instance.path, 'resourcepacks')).catch(() => undefined)
+      }
+      if (forceFolder || payload.shaderpacks) {
+        await ensureDir(join(instance.path, 'shaderpacks')).catch(() => undefined)
+      }
     }
 
-    await this.instanceFile.write(join(instance.path, 'instance.json'), instance)
+    // Store the icon inside the instance folder so it is portable and shared
+    // with the instance.
+    instance.icon = await this.#resolveIncomingInstanceIcon(instance.path, instance.icon).catch((e) => {
+      this.error(e)
+      return ''
+    })
+
+    await writeJson(join(instance.path, 'instance.json'), {
+      ...instance,
+      icon: serializeInstanceIcon(instance.icon, instance.path),
+    })
     this.state.instanceAdd(instance)
 
     this.log('Created instance with option')
     this.log(JSON.stringify(instance, null, 4))
 
     return instance.path
+  }
+
+  /**
+   * Ensure an incoming icon value is stored inside the instance folder when it
+    * is a local or remote image, returning the in-memory (absolute) media URL
+    * to display it. Every non-empty icon is owned by the instance afterwards.
+   */
+  async #resolveIncomingInstanceIcon(instancePath: string, icon: string | undefined): Promise<string> {
+    if (!icon) return ''
+    const mediaPath = getMediaIconPath(icon)
+    if (mediaPath) {
+      return this.#storeInstanceIcon(instancePath, mediaPath)
+    }
+    if (icon.startsWith('http://launcher/image/')) {
+      const imageName = basename(new URL(icon).pathname)
+      if (!/^[a-f0-9]{40}$/i.test(imageName)) {
+        throw new Error('Invalid shared image URL')
+      }
+      const source = this.getAppDataPath('resource-images', imageName)
+      if (!existsSync(source)) {
+        throw new Error('Shared image does not exist')
+      }
+      return this.#storeInstanceIcon(instancePath, source)
+    }
+    if (icon.startsWith('http://') || icon.startsWith('https://') || icon.startsWith('data:image/')) {
+      const response = await this.app.fetch(icon)
+      if (!response.ok) {
+        throw new Error(`Fail to fetch instance icon: ${response.status}`)
+      }
+      const contentLength = Number(response.headers.get('content-length') || 0)
+      if (contentLength > 8 * 1024 * 1024) {
+        throw new Error('Instance icon exceeds maximum size of 8 MB')
+      }
+      if (!response.body) throw new Error('Empty instance icon response')
+      const reader = response.body.getReader()
+      const chunks: Buffer[] = []
+      let size = 0
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          size += value.byteLength
+          if (size > 8 * 1024 * 1024) {
+            await reader.cancel()
+            throw new Error('Instance icon exceeds maximum size of 8 MB')
+          }
+          chunks.push(Buffer.from(value))
+        }
+      } finally {
+        reader.releaseLock()
+      }
+      return this.#storeInstanceIconData(instancePath, Buffer.concat(chunks))
+    }
+    // No scheme: a relative reference resolved against the instance folder.
+    if (isAbsolute(icon) || !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(icon)) {
+      if (!isAbsolute(icon)) {
+        const rel = relative(instancePath, resolve(instancePath, icon))
+        if (rel === '..' || rel.startsWith('../') || rel.startsWith('..\\') || isAbsolute(rel)) throw new Error('Invalid instance icon path')
+      }
+      return this.#storeInstanceIcon(instancePath, resolve(instancePath, icon))
+    }
+    throw new Error('Unsupported instance icon URL')
+  }
+
+  async #storeInstanceIconData(instancePath: string, data: Buffer): Promise<string> {
+    const ext = await validateInstanceIconData(data)
+    const iconPath = join(instancePath, `icon-${createHash('sha256').update(data).digest('hex')}.${ext}`)
+    await ensureDir(instancePath)
+    const temporary = join(instancePath, `.icon-${randomUUID()}.tmp`)
+    try {
+      await writeFile(temporary, data, { flag: 'wx' })
+      await rename(temporary, iconPath)
+    } finally {
+      await rm(temporary, { force: true })
+    }
+    return toMediaIconUrl(iconPath)
+  }
+
+  /**
+   * Copy validated bytes into an immutable, content-addressed instance file and
+   * return the in-memory media URL used to display it.
+   */
+  async #storeInstanceIcon(instancePath: string, source: string): Promise<string> {
+    const metadata = await stat(source)
+    if (!metadata.isFile() || metadata.size > 8 * 1024 * 1024) throw new Error('Invalid instance icon file or size')
+    const chunks: Buffer[] = []
+    let size = 0
+    for await (const chunk of createReadStream(source)) {
+      size += chunk.length
+      if (size > 8 * 1024 * 1024) throw new Error('Instance icon exceeds maximum size of 8 MB')
+      chunks.push(Buffer.from(chunk))
+    }
+    return this.#storeInstanceIconData(instancePath, Buffer.concat(chunks))
   }
 
   async duplicateInstance(path: string) {
@@ -269,107 +491,152 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       name: newName,
     })
 
-    let hasMods = false
-    let hasResourcepacks = false
-    let hasShaderpacks = false
-    await copy(path, newPath, {
-      filter: async (src, dest) => {
-        const linked = await readlink(src).catch(() => '')
-
-        if (linked) {
-          return false
-        }
-
-        const relativePath = relative(path, src).replaceAll('\\', '/')
-        if (relativePath.startsWith('mods')) {
-          hasMods = true
-          return false
-        }
-        if (relativePath.startsWith('resourcepacks')) {
-          hasResourcepacks = true
-          return false
-        }
-        if (relativePath.startsWith('shaderpacks')) {
-          hasShaderpacks = true
-          return false
-        }
-        return true
-      },
+    const task = this.tasks.create<DuplicateInstanceTask>({
+      type: 'duplicateInstance',
+      key: `duplicate-instance-${path}`,
+      from: path,
+      to: newPath,
     })
-    if (hasMods) {
-      const modDirSrc = join(path, 'mods')
-      await ensureDir(join(newPath, 'mods'))
-      // hard link all source to new path
-      const files = await readdir(modDirSrc)
-      await Promise.allSettled(files.map(f => linkWithTimeoutOrCopy(join(modDirSrc, f), join(newPath, 'mods', f))))
-    }
-    if (hasResourcepacks) {
-      const resourcepacksDirSrc = join(path, 'resourcepacks')
-      const status = await stat(resourcepacksDirSrc)
-      if (!status.isSymbolicLink()) {
-        // hard link all files
-        await ensureDir(join(newPath, 'resourcepacks'))
-        const files = await readdir(resourcepacksDirSrc)
-        await Promise.allSettled(files.map(f => linkWithTimeoutOrCopy(join(resourcepacksDirSrc, f), join(newPath, 'resourcepacks', f))))
-      }
-    }
-    if (hasShaderpacks) {
-      const shaderpacksDirSrc = join(path, 'shaderpacks')
-      const status = await stat(shaderpacksDirSrc)
-      if (!status.isSymbolicLink()) {
-        // hard link all files
-        await ensureDir(join(newPath, 'shaderpacks'))
-        const files = await readdir(shaderpacksDirSrc)
-        await Promise.allSettled(files.map(f => linkWithTimeoutOrCopy(join(shaderpacksDirSrc, f), join(newPath, 'shaderpacks', f))))
-      }
+
+    try {
+      await duplicateInstance({
+        instancePath: path,
+        newPath,
+        logger: this,
+        signal: task.controller.signal,
+        tracker: getTracker<DuplicateInstanceTrackerEvents>(task),
+      })
+      task.complete()
+    } catch (error) {
+      task.fail(error)
+      throw error
     }
 
     return newPath
   }
 
   /**
+   * Move all the saves of an instance to the shared saves folder before the
+   * instance is deleted, so the user can re-enable them on another instance
+   * instead of losing them. If the instance `saves` folder is a symlink to the
+   * shared folder, nothing needs to be moved.
+   */
+  private async moveSavesToShared(path: string) {
+    const instanceSaves = join(path, 'saves')
+    if (!existsSync(instanceSaves)) {
+      return
+    }
+    // If linked to shared, saves already live in the shared folder.
+    if (await readlink(instanceSaves).catch(() => '')) {
+      return
+    }
+    const sharedSaves = this.getPath('saves')
+    try {
+      await ensureDir(sharedSaves)
+      const saves = await readdir(instanceSaves)
+      for (const saveName of saves) {
+        if (saveName.startsWith('.')) continue
+        const savePath = join(instanceSaves, saveName)
+        // Skip individually linked saves
+        if (await readlink(savePath).catch(() => '')) continue
+        let dest = join(sharedSaves, saveName)
+        if (existsSync(dest)) {
+          dest = join(sharedSaves, `${saveName}-${Date.now()}`)
+        }
+        await rename(savePath, dest).catch((e) => this.warn(`Fail to move save ${savePath} to shared: ${e}`))
+      }
+    } catch (e) {
+      this.warn(`Fail to move instance saves to shared for ${path}: ${e}`)
+    }
+  }
+
+  /**
    * Delete the managed instance from the disk
    * @param path The instance path
    */
-  async deleteInstance(path: string) {
+  async deleteInstance(path: string, deleteData = true) {
     await this.initialize()
     requireString(path)
+
+    const instance = this.state.instances.find(i => i.path === path)
+    const isBedrock = instance?.edition === 'bedrock'
 
     const isManaged = this.isUnderManaged(path)
     const lock = this.mutex.of(LockKey.instanceRemove(path))
     const instanceLock = this.mutex.of(LockKey.instance(path))
-    if (isManaged && await exists(path)) {
+    if (isManaged && (await exists(path))) {
       await lock.runExclusive(async () => {
+        // Reject any install requests currently waiting for the instance
+        // lock so they don't start work that we are about to wipe out.
+        // NOTE: `cancel()` only rejects pending acquires; it does NOT
+        // abort the active holder. The active holder is signalled via
+        // the remove handlers below, and our own `runExclusive` call
+        // (queued synchronously before any `await`) will resolve only
+        // after that holder releases.
         instanceLock.cancel()
-        const oldHandlers = this.#removeHandlers[path]
-        for (const handlerRef of oldHandlers || []) {
-          handlerRef.deref()?.()
-        }
-        try {
-          await rm(path, { recursive: true, force: true, maxRetries: 1 })
-        } catch (e) {
-          if (isSystemError(e) && e.code === ENOENT_ERROR) {
-            this.warn(`Fail to remove instance ${path}`)
-          } else {
-            if ((e as any).name === 'Error') {
-              (e as any).name = 'InstanceDeleteError'
-            }
-            throw e
-          }
-        }
 
-        this.#removeHandlers[path] = []
+        // Snapshot handlers and start them BEFORE awaiting, so they get
+        // a chance to flip an AbortSignal on the currently-running
+        // install. We do not await them out of band here — we await
+        // them inside `runExclusive` so a new caller cannot squeeze
+        // into the lock between handlers finishing and rm starting.
+        const oldHandlers = this.#removeHandlers[path] || []
+        const handlerPromises = oldHandlers.map((fn) => {
+          try {
+            return Promise.resolve(fn())
+          } catch (e) {
+            return Promise.reject(e)
+          }
+        })
+
+        await instanceLock.runExclusive(async () => {
+          // Wait for in-flight cleanup (e.g. install unwinding after
+          // abort) to complete. allSettled so a buggy handler can't
+          // block deletion.
+          await Promise.allSettled(handlerPromises)
+
+          if (isBedrock && process.platform === 'win32') {
+            try {
+              const { execFile } = require('child_process')
+              await new Promise<void>((resolve, reject) => {
+                execFile('powershell', ['-Command', 'Get-AppxPackage Microsoft.MinecraftUWP | Remove-AppxPackage'], { windowsHide: true }, (err: any) => {
+                  if (err) reject(err)
+                  else resolve()
+                })
+              })
+              this.log(`Successfully uninstalled Bedrock UWP package for instance ${path}`)
+            } catch (e) {
+              this.warn(`Failed to uninstall Bedrock UWP package: ${e}`)
+            }
+          }
+
+          if (deleteData) {
+            await this.moveSavesToShared(path)
+            try {
+              await rm(path, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
+            } catch (e) {
+              if (isSystemError(e) && (e.code === ENOENT_ERROR || e.code === 'EPERM')) {
+                this.warn(`Fail to remove instance ${path}: ${e}`)
+              } else {
+                if (e instanceof Error && e.name === 'Error') {
+                  e.name = 'InstanceDeleteError'
+                }
+                throw e
+              }
+            }
+          } else {
+            // Rename to hidden
+            const name = basename(path)
+            const newPath = join(dirname(path), '.' + name)
+            await rename(path, newPath).catch(() => undefined)
+          }
+
+          this.#removeHandlers[path] = []
+        })
       })
     }
 
     this.state.instanceRemove(path)
-  }
-
-  registerRemoveHandler(path: string, handler: () => Promise<void> | void) {
-    if (!this.#removeHandlers[path]) {
-      this.#removeHandlers[path] = []
-    }
-    this.#removeHandlers[path].push(new WeakRef(handler))
   }
 
   /**
@@ -382,35 +649,30 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     requireObject(options)
 
     const instancePath = options.instancePath
+    const changesIcon = Object.prototype.hasOwnProperty.call(options, 'icon')
+    const iconEdit = changesIcon ? (this.#iconEdits.get(instancePath) || 0) + 1 : 0
+    if (changesIcon) this.#iconEdits.set(instancePath, iconEdit)
 
     if (!instancePath) {
       return
     }
-    let state = this.state.all[instancePath] || this.state.instances.find(i => i.path === instancePath)
+    let state =
+      this.state.all[instancePath] || this.state.instances.find((i) => i.path === instancePath)
 
     if (!state) {
       // Try to force load the instance
       await this.loadInstance(instancePath).catch(() => false)
-      state = this.state.all[instancePath] || this.state.instances.find(i => i.path === instancePath)
+      state =
+        this.state.all[instancePath] || this.state.instances.find((i) => i.path === instancePath)
 
       if (!state) {
-        this.error(new AnyError('InstanceNotFoundError',
-          `Fail to find ${instancePath}. Existed: ${Object.keys(this.state.all).join(', ')}.`,
-        ))
+        this.error(
+          new AnyError(
+            'InstanceNotFoundError',
+            `Fail to find ${instancePath}. Existed: ${Object.keys(this.state.all).join(', ')}.`,
+          ),
+        )
         return
-      }
-    }
-
-    const ignored = { runtime: true, deployments: true, server: true, vmOptions: true, mcOptions: true, minMemory: true, maxMemory: true }
-    const result: Record<string, any> = {}
-    for (const key of Object.keys(options)) {
-      if (key in ignored) {
-        continue
-      }
-      if (key in state) {
-        if ((state as any)[key] !== (options as any)[key]) {
-          result[key] = (options as any)[key]
-        }
       }
     }
 
@@ -418,7 +680,7 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       if (this.isUnderManaged(instancePath)) {
         const newPath = join(dirname(instancePath), options.name)
         if (newPath !== instancePath) {
-          if (this.state.instances.some(i => i.path === newPath)) {
+          if (this.state.instances.some((i) => i.path === newPath)) {
             options.name = undefined
             this.error(new AnyError('InstanceNameDuplicatedError'))
           }
@@ -426,136 +688,33 @@ export class InstanceService extends StatefulService<InstanceState> implements I
       }
     }
 
-    if (typeof options.fileApi === 'string' && options.fileApi !== state.fileApi) {
-      result.fileApi = options.fileApi
+    const result = await computeInstanceEditChanges(state, options, async (path: string) => toMediaIconUrl(path))
+    if (result.icon) {
+      result.icon = await this.#resolveIncomingInstanceIcon(instancePath, result.icon)
     }
-
-    if ('maxMemory' in options && options.maxMemory !== state.maxMemory) {
-      if (typeof options.maxMemory === 'undefined') {
-        result.maxMemory = undefined
-      } else if (typeof options.maxMemory === 'number') {
-        result.maxMemory = Math.floor(options.maxMemory > 0 ? options.maxMemory : 0)
-      } else {
-        throw new Error(`Invalid Argument: Expect maxMemory to be number or undefined! Got ${typeof options.maxMemory}.`)
-      }
-    }
-    if ('minMemory' in options && options.minMemory !== state.minMemory) {
-      if (typeof options.minMemory === 'undefined') {
-        result.minMemory = undefined
-      } else if (typeof options.minMemory === 'number') {
-        result.minMemory = Math.floor(options.minMemory > 0 ? options.minMemory : 0)
-      } else {
-        throw new Error(`Invalid Argument: Expect minMemory to be number or undefined! Got ${typeof options.maxMemory}.`)
-      }
-    }
-    if ('prependCommand' in options && options.prependCommand !== state.prependCommand) {
-      result.prependCommand = options.prependCommand
-    }
-    if ('assignMemory' in options && options.assignMemory !== state.assignMemory) {
-      result.assignMemory = options.assignMemory
-    }
-    if ('showLog' in options && options.showLog !== state.showLog) {
-      result.showLog = options.showLog
-    }
-    if ('hideLauncher' in options && options.hideLauncher !== state.hideLauncher) {
-      result.hideLauncher = options.hideLauncher
-    }
-    if ('fastLaunch' in options && options.fastLaunch !== state.fastLaunch) {
-      result.fastLaunch = options.fastLaunch
-    }
-    if ('disableAuthlibInjector' in options && options.disableAuthlibInjector !== state.disableAuthlibInjector) {
-      result.disableAuthlibInjector = options.disableAuthlibInjector
-    }
-    if ('disableElybyAuthlib' in options && options.disableElybyAuthlib !== state.disableElybyAuthlib) {
-      result.disableElybyAuthlib = options.disableElybyAuthlib
-    }
-
-    if ('resolution' in options) {
-      // Compare resolution values
-      const currentRes = state.resolution
-      const newRes = options.resolution
-
-      if (!options.resolution) {
-        result.resolution = undefined
-      } else if ((currentRes === undefined && newRes !== undefined) ||
-        (currentRes !== undefined && newRes === undefined) ||
-        (currentRes && newRes &&
-          (currentRes.fullscreen !== newRes.fullscreen ||
-            currentRes.width !== newRes.width ||
-            currentRes.height !== newRes.height))) {
-        result.resolution = options.resolution
-      }
-    }
-
-    if ('runtime' in options && options.runtime) {
-      const runtime = options.runtime
-      const currentRuntime = state.runtime
-      const resultRuntime: Partial<RuntimeVersions> = {}
-      for (const version of Object.keys(runtime)) {
-        if (version in currentRuntime) {
-          if (currentRuntime[version] !== runtime[version]) {
-            resultRuntime[version] = runtime[version] || ''
-          }
-        } else {
-          resultRuntime[version] = runtime[version] || ''
-        }
-      }
-      if (Object.keys(resultRuntime).length > 0) {
-        result.runtime = resultRuntime
-      }
-    }
-
-    if (result.runtime && state.version && typeof result.version === 'undefined') {
-      // Reset the version if the runtime is changed
-      result.version = ''
-    }
-
-    if ('server' in options) {
-      if (options.server) {
-        if (options.server.host !== state.server?.host || options.server.port !== state.server.port) {
-          result.server = options.server
-        }
-      } else if (state.server !== undefined) {
-        result.server = options.server
-      }
-    }
-
-    if ('vmOptions' in options) {
-      const hasDiff = typeof options.vmOptions !== typeof state.vmOptions || options.vmOptions?.length !== state.vmOptions?.length || options.vmOptions?.some((e, i) => e !== state.vmOptions?.[i])
-      if (hasDiff) {
-        result.vmOptions = options.vmOptions
-      }
-    }
-
-    if ('mcOptions' in options) {
-      const hasDiff = typeof options.mcOptions !== typeof state.mcOptions || options.mcOptions?.length !== state.mcOptions?.length || options.mcOptions?.some((e, i) => e !== state.mcOptions?.[i])
-      if (hasDiff) {
-        result.mcOptions = options.mcOptions
-      }
-    }
-
-    if ('env' in options) {
-      const hasDiff = typeof options.env !== typeof state.env || (options.env && state.env && Object.keys(options.env).some(k => options.env?.[k] !== state.env?.[k]))
-      if (hasDiff) {
-        result.env = options.env
-      }
-    }
-
-    if ('icon' in result && result.icon) {
-      try {
-        const iconURL = new URL(result.icon)
-        const path = iconURL.searchParams.get('path')
-        if (iconURL.host === 'launcher' && iconURL.pathname === '/media' && path) {
-          result.icon = await this.imageStore.addImage(path)
-        }
-      } catch (e) {
-        if (e instanceof Error) this.error(e)
-      }
+    if (changesIcon && this.#iconEdits.get(instancePath) !== iconEdit) delete result.icon
+    if (Object.prototype.hasOwnProperty.call(result, 'icon')) {
+      const persisted = { ...state, ...result }
+      await this.#persistMetadata(instancePath, { ...persisted, icon: serializeInstanceIcon(persisted.icon, instancePath) })
+      if (this.#iconEdits.get(instancePath) !== iconEdit) delete result.icon
     }
 
     if (Object.keys(result).length > 0) {
-      this.log(`Modify instance ${instancePath} (${options.name}) ${JSON.stringify(result, null, 4)}.`)
-      this.state.instanceEdit({ ...result, path: instancePath })
+      this.log(
+        `Modify instance ${instancePath} (${options.name}) ${JSON.stringify(result, null, 4)}.`,
+      )
+      // A reset-to-global field is represented as `undefined` in `result`.
+      // The mutation payload is broadcast to renderer processes over Electron
+      // IPC, whose structured clone serialization silently drops `undefined`
+      // properties — so the renderer would never learn the override was
+      // removed and its in-memory state would stay stale. Send `null` instead;
+      // `applyInstanceChanges` maps it back to `undefined` when applying.
+      const payload: Record<string, any> = { path: instancePath }
+      for (const key of Object.keys(result)) {
+        const value = (result as any)[key]
+        payload[key] = value === undefined ? null : value
+      }
+      this.state.instanceEdit(payload as any)
     }
   }
 
@@ -584,9 +743,10 @@ export class InstanceService extends StatefulService<InstanceState> implements I
     if (err && err !== 'exists') {
       return err
     }
+    await this.initialize()
     if (this.state.all[path]) {
       return undefined
     }
-    return await this.loadInstance(path).catch(() => 'bad') ? undefined : 'bad'
+    return (await this.loadInstance(path).catch(() => 'bad')) ? undefined : 'bad'
   }
 }

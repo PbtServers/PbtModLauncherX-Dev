@@ -1,9 +1,9 @@
 import { createPromiseSignal, PromiseSignal, ServiceKey, SharedState, State } from '@xmcl/runtime-api'
 import { join } from 'path'
 import { EventEmitter } from 'stream'
-import { Logger } from '~/logger'
+import { Logger } from '~/infra'
 import { LauncherApp } from '../app/LauncherApp'
-import { AnyError } from '../util/error'
+import { AnyError } from '@xmcl/utils'
 
 export type ServiceConstructor<T extends AbstractService = AbstractService> = {
   new(...args: any[]): T
@@ -93,12 +93,13 @@ export function Singleton<T extends AbstractService>(param: ParamSerializer<T> =
       if (last) {
         return last
       } else {
-        this.log(`Acquire singleton ${targetKey}`)
-
         const startTime = Date.now()
         instances[targetKey] = exec().finally(() => {
           const endTime = Date.now()
-          this.log(`Release singleton ${targetKey}. Took ${endTime - startTime}ms.`)
+          const time = endTime - startTime
+          if (time > 1000) {
+            this.log(`Release singleton ${targetKey}. Took ${time}ms.`)
+          }
           delete instances[targetKey]
         })
         return instances[targetKey]
@@ -167,12 +168,14 @@ export abstract class AbstractService extends EventEmitter {
       this.initializeSignal = createPromiseSignal()
       if (this.initializer) {
         const startTime = Date.now()
+        this.log('[startup] service initialization started')
         this.initializeSignal.accept(this.initializer().catch((e) => {
+          this.warn('[startup] service initialization failed')
           this.error(new AnyError('ServiceInitializeError', 'Fail to initialize', { cause: e }))
           throw e
         }).finally(() => {
           const endTime = Date.now()
-          this.log(`Initialized in ${endTime - startTime}ms.`)
+          this.log(`[startup] service initialization settled in ${endTime - startTime}ms.`)
         }))
       } else {
         this.initializeSignal.resolve()

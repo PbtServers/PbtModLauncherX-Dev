@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { useService } from '@/composables'
-import { useLocalStorageCacheBool } from '@/composables/cache'
 import { getCurseforgeProjectFilesModel, getCurseforgeProjectModel, useCurseforgeUpstreamHeader } from '@/composables/curseforge'
 import { getCurseforgeChangelogModel } from '@/composables/curseforgeChangelog'
 import { useDateString } from '@/composables/date'
@@ -13,9 +12,11 @@ import { kSWRVConfig } from '@/composables/swrvConfig'
 import { getCurseforgeFileGameVersions, getCursforgeFileModLoaders } from '@/util/curseforge'
 import { injection } from '@/util/inject'
 import { getSWRV } from '@/util/swrvGet'
-import { CurseforgeUpstream, ModpackServiceKey } from '@xmcl/runtime-api'
+import { ModpackServiceKey } from '@xmcl/runtime-api'
 import HomeUpstreamBase from './HomeUpstreamBase.vue'
 import { ProjectVersionProps } from './HomeUpstreamVersion.vue'
+import { CurseforgeUpstream } from '@xmcl/instance'
+import { throttledRef, useLocalStorage } from '@vueuse/core'
 
 const props = defineProps<{
   id: number
@@ -27,6 +28,9 @@ const upstream = computed(() => instance.value?.upstream as CurseforgeUpstream)
 const { data: project } = useSWRVModel(getCurseforgeProjectModel(computed(() => props.id)))
 const { getDateString } = useDateString()
 const headerData = useCurseforgeUpstreamHeader(project)
+const changelogs = shallowRef({} as Record<string, string>)
+const changelogsThrottled = throttledRef(changelogs, 500)
+
 const { data: files, isValidating: loadingFiles } = useSWRVModel(getCurseforgeProjectFilesModel(computed(() => props.id), ref(undefined), ref(undefined)))
 const currentVersion = computed(() => {
   const val = upstream.value
@@ -42,12 +46,13 @@ const currentVersion = computed(() => {
     gameVersions: getCurseforgeFileGameVersions(ver),
     datePublished: (ver.fileDate),
     downloads: ver.downloadCount,
-    changelog: '',
+    changelog: changelogsThrottled.value[ver.id] ?? '',
   })
   return result
 })
 const limit = ref(10)
-const onlyCurrentVersion = useLocalStorageCacheBool(computed(() => `instanceUpstreamOnlyShowCurrentVersion/${instance.value.path}`), false)
+const onlyCurrentVersion = useLocalStorage(computed(() => `instanceUpstreamOnlyShowCurrentVersion/${instance.value.path}`), false, { writeDefaults: false })
+
 const items = computed(() => {
   const result = {} as Record<string, ProjectVersionProps[]>
 
@@ -70,7 +75,7 @@ const items = computed(() => {
       gameVersions: getCurseforgeFileGameVersions(d),
       datePublished: (d.fileDate),
       downloads: d.downloadCount,
-      changelog: '',
+      changelog: changelogsThrottled.value[d.id] || '',
     }))
   }
 
@@ -133,7 +138,10 @@ const config = inject(kSWRVConfig)
 const loadChangelog = async (v: ProjectVersionProps) => {
   const changelog = await getSWRV(getCurseforgeChangelogModel(ref(props.id), ref(Number(v.id))), { ...config, dedupingInterval: Infinity }).catch(() => '')
   if (changelog) {
-    v.changelog = changelog
+    changelogs.value = {
+      ...changelogs.value,
+      [v.id]: changelog
+    }
   }
 }
 
@@ -144,7 +152,7 @@ const loadChangelog = async (v: ProjectVersionProps) => {
     :current-version="currentVersion"
     :header="headerData"
     :duplicating="duplicating"
-    :only-current-version.sync="onlyCurrentVersion"
+    v-model:only-current-version="onlyCurrentVersion"
     :updating="updating"
     :loading="loadingFiles"
     @duplicate="onDuplicate"

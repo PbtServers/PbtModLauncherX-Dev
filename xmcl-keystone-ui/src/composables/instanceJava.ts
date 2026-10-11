@@ -1,8 +1,10 @@
-import { AutoDetectedJava, Instance, JavaCompatibleState, JavaRecord, JavaServiceKey, getAutoOrManuallJava, getAutoSelectedJava } from '@xmcl/runtime-api'
+import { AutoDetectedJava, JavaCompatibleState, JavaRecord, JavaServiceKey, getAutoOrManuallJava, getAutoSelectedJava } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
 import { InstanceResolveVersion } from './instanceVersion'
 import { useRefreshable } from './refreshable'
 import { useService } from './service'
+import { Instance } from '@xmcl/instance'
+import { useInstanceLoading } from './instanceLoading'
 
 export { JavaCompatibleState }
 
@@ -24,32 +26,45 @@ export interface InstanceJavaStatus extends AutoDetectedJava {
   preferredJava?: JavaRecord
 }
 
-export function useInstanceJava(instance: Ref<Instance>, version: Ref<InstanceResolveVersion | undefined>, all: Ref<JavaRecord[]>) {
+export function useInstanceJava(instance: Ref<Instance>, version: Ref<InstanceResolveVersion | undefined>, all: Ref<JavaRecord[]>, globalJava?: Ref<string | undefined>) {
   const { resolveJava } = useService(JavaServiceKey)
 
-  const data: Ref<InstanceJavaStatus | undefined> = ref(undefined)
-  const { refresh: mutate, refreshing: isValidating, error } = useRefreshable(async () => {
+  const data: Ref<InstanceJavaStatus | undefined> = shallowRef(undefined)
+  // Monotonic generation: every call to `mutate()` claims the next id, and
+  // only the call whose id matches `latestToken` at completion time is
+  // allowed to commit. This is a stricter guard than the previous
+  // field-by-field comparison, which missed in-place mutations to `all`
+  // (`JavaState.javaUpdate` push/edit kept the same array reference, so
+  // `all.value !== _all` was always false even when Java was added).
+  let latestToken = 0
+  const instancePath = computed(() => instance.value.path)
+  const { begin: beginLoading, isLoading: isValidating } = useInstanceLoading(instancePath)
+  const { refresh: mutate, error } = useRefreshable(async () => {
+    const myToken = ++latestToken
     const _version = version.value
     const inst = instance.value
-    const _all = all.value
-
     const path = inst.path
-    const javaPath = inst.java
-    const minecraft = inst.runtime.minecraft
-    const forge = inst.runtime.forge
-    data.value = undefined
-    if (version.value && version.value.instance !== path) {
+    if (!path) {
+      data.value = undefined
       return
     }
-    const result = await getInstanceJavaStatus(_version, inst)
-    if (version.value !== _version ||
-      instance.value.java !== javaPath ||
-      instance.value.runtime.minecraft !== minecraft ||
-      instance.value.runtime.forge !== forge ||
-      all.value !== _all) {
-      return
+    const endLoading = beginLoading(path)
+    try {
+      if (_version && _version.instance !== path) {
+        // Resolver is racing a not-yet-loaded version for a different
+        // instance; skip without clobbering the current data.
+        return
+      }
+      const result = await getInstanceJavaStatus(_version, inst)
+      if (myToken !== latestToken) {
+        // A newer `mutate()` superseded us while we were awaiting the
+        // resolver — discard rather than overwriting a fresher snapshot.
+        return
+      }
+      data.value = result
+    } finally {
+      endLoading()
     }
-    data.value = result
   })
 
   function getComputedJava(instance: Instance, version: InstanceResolveVersion | undefined) {
@@ -58,6 +73,7 @@ export function useInstanceJava(instance: Ref<Instance>, version: Ref<InstanceRe
       instance.runtime.minecraft,
       instance.runtime.forge,
       version,
+      globalJava?.value || undefined,
     )
   }
 
@@ -79,9 +95,20 @@ export function useInstanceJava(instance: Ref<Instance>, version: Ref<InstanceRe
 
   const java = computed(() => data.value?.java)
 
-  watch([all, version, computed(() => instance.value.java), computed(() => instance.value.runtime)], () => {
+  // Only the fields that actually feed selection matter; watching the whole
+  // `runtime` object with { deep: true } makes every unrelated edit
+  // (mod loader switch, optifine tweak, etc.) re-run the resolver and race
+  // with in-flight launch compatibility checks.
+  watch([
+    all,
+    version,
+    computed(() => instance.value.java),
+    computed(() => instance.value.runtime.minecraft),
+    computed(() => instance.value.runtime.forge),
+    ...(globalJava ? [globalJava] : []),
+  ], () => {
     mutate()
-  }, { deep: true })
+  })
 
   return {
     java,

@@ -1,6 +1,5 @@
-import { Instance } from '@xmcl/runtime-api'
+import { Instance } from '@xmcl/instance'
 import { InjectionKey, Ref, computed } from 'vue'
-import { useLocalStorageCacheStringValue } from './cache'
 
 export const kInstance: InjectionKey<ReturnType<typeof useInstance>> = Symbol('Instance')
 
@@ -9,6 +8,12 @@ const EMPTY_INSTANCE: Instance = {
   name: '',
   runtime: {
     minecraft: '',
+    forge: '',
+    fabricLoader: '',
+    quiltLoader: '',
+    neoForged: '',
+    optifine: '',
+    labyMod: '',
   },
   lastAccessDate: 0,
   lastPlayedDate: 0,
@@ -17,12 +22,11 @@ const EMPTY_INSTANCE: Instance = {
   author: '',
   description: '',
   version: '',
+  edition: 'java',
   url: '',
   icon: '',
-  modpackVersion: '',
   fileApi: '',
   server: null,
-  tags: [],
 }
 /**
  * Use the general info of the instance

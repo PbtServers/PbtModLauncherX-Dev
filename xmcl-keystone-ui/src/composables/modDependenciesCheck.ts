@@ -1,4 +1,3 @@
-import { TaskItem } from '@/entities/task'
 import { clientCurseforgeV1, clientModrinthV2 } from '@/util/clients'
 import { getCurseforgeModLoaderTypeFromRuntime, getInstanceFileFromCurseforgeFile } from '@/util/curseforge'
 import { ModFile } from '@/util/mod'
@@ -6,14 +5,15 @@ import { getInstanceFileFromModrinthVersion, getModrinthModLoaders } from '@/uti
 import { getSWRV } from '@/util/swrvGet'
 import { notNullish } from '@vueuse/core'
 import { FileRelationType } from '@xmcl/curseforge'
-import { InstanceFile, RuntimeVersions, TaskState } from '@xmcl/runtime-api'
+import { InstanceFile, RuntimeVersions } from '@xmcl/instance'
 import { InjectionKey, Ref } from 'vue'
 import { useDialog } from './dialog'
 import { InstanceInstallDialog } from './instanceUpdate'
 import { getModrinthVersionModel } from './modrinthVersions'
 import { useRefreshable } from './refreshable'
 import { kSWRVConfig } from './swrvConfig'
-import { useTask } from './task'
+import { deduplicateModDependencyInstallations } from './modDependencyInstall'
+import { useInstanceInstallOperation } from './instanceInstallOperation'
 
 export const kModDependenciesCheck: InjectionKey<ReturnType<typeof useModDependenciesCheck>> = Symbol('mod-dependencies-check')
 
@@ -21,9 +21,10 @@ export function useModDependenciesCheck(path: Ref<string>, runtime: Ref<RuntimeV
   const installation = shallowRef([] as [InstanceFile, ModFile][])
   const checked = ref(false)
   const config = inject(kSWRVConfig)
-  let operationId = ''
-  let operationPath = ''
   const { show } = useDialog(InstanceInstallDialog)
+  const operation = useInstanceInstallOperation(path, () => {
+    installation.value = []
+  })
 
   async function checkModrinthDependencies(mods: ModFile[], runtimes: RuntimeVersions, result: [InstanceFile, ModFile][]) {
     const modrinthTarget = mods.filter(m => m.modrinth)
@@ -122,7 +123,6 @@ export function useModDependenciesCheck(path: Ref<string>, runtime: Ref<RuntimeV
 
   const { refresh, refreshing, error } = useRefreshable(async () => {
     await updateMetadata()
-    await new Promise((resolve) => setTimeout(resolve, 500))
 
     const result: [InstanceFile, ModFile][] = []
     const mods = instanceMods.value
@@ -157,10 +157,13 @@ export function useModDependenciesCheck(path: Ref<string>, runtime: Ref<RuntimeV
     //   }
     // }
 
-    installation.value = result
+    // A dependency can be reported by more than one installed mod (and the
+    // Modrinth / CurseForge checks run in parallel). Keep one file per
+    // dependency project so an install plan can never contain two versions
+    // of the same mod.
+    installation.value = deduplicateModDependencyInstallations(result)
     checked.value = true
-    operationId = crypto.getRandomValues(new Uint8Array(8)).join('')
-    operationPath = _path
+    operation.begin(_path)
   })
 
   function apply() {
@@ -168,41 +171,20 @@ export function useModDependenciesCheck(path: Ref<string>, runtime: Ref<RuntimeV
       type: 'updates',
       oldFiles: [],
       files: installation.value.map(([f]) => f),
-      id: operationId,
+      id: operation.id.value,
     })
   }
-
-  function isCurrentTask(task: TaskItem) {
-    return task.path === 'installInstance' && task.param.operationId === operationId &&
-      task.param.instance === operationPath
-  }
-
-  const { task } = useTask((i) => {
-    if (isCurrentTask(i)) {
-      return true
-    }
-    return false
-  })
 
   function effect() {
     onUnmounted(() => {
       installation.value = []
       checked.value = false
-      operationId = ''
-      operationPath = ''
+      operation.reset()
     })
     watch(path, () => {
       checked.value = false
       installation.value = []
-      operationId = ''
-      operationPath = path.value
-    })
-    watch(task, (newV, oldV) => {
-      if (oldV && isCurrentTask(oldV) && !newV) {
-        if (oldV.state === TaskState.Succeed) {
-          installation.value = []
-        }
-      }
+      operation.reset()
     })
   }
 
@@ -214,6 +196,6 @@ export function useModDependenciesCheck(path: Ref<string>, runtime: Ref<RuntimeV
     installation,
     checked,
     apply,
-    installing: computed(() => !!task.value),
+    installing: computed(() => !!operation.task.value),
   }
 }
