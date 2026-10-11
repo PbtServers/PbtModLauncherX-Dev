@@ -47,7 +47,7 @@ export async function prepareFactoryModel() {
   const store = join(work, 'models')
   await mkdir(store, { recursive: true })
   const platform = { win32: 'win', linux: 'linux', darwin: 'mac' }[process.platform]
-  const engine = new ManagedOllama({ bundle: resolve(`xmcl-electron-app/build/ollama/${platform}-${process.arch}`), data: join(work, 'engine') })
+  const engine = new ManagedOllama({ bundle: resolve(`xmcl-electron-app/build/ollama/${platform}-${process.arch}`), data: join(work, 'engine'), readinessTimeoutMs: 120000 }, undefined, (event, details) => console.log('Ollama preparation:', event, JSON.stringify(details || {})))
   await engine.configure({ modelsDirectory: store })
   try {
     const origin = await engine.ensure()

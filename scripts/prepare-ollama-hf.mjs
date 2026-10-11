@@ -141,7 +141,7 @@ async function prepareUnlocked({ downloadOnly = false } = {}) {
   const storedBlob = join(store, 'blobs', 'sha256-' + model.HF_SHA256)
   const storedSize = await safeSize(storedBlob)
   if (storedSize === undefined && space.bavail * space.bsize < model.HF_BYTES + 32 * 1024 ** 2) throw new Error('Insufficient space for isolated Ollama import')
-  const engine = new ManagedOllama({ bundle: runtimePath, data: join(work, 'engine') })
+  const engine = new ManagedOllama({ bundle: runtimePath, data: join(work, 'engine'), readinessTimeoutMs: 120000 }, undefined, (event, details) => console.log('Ollama HF import:', event, JSON.stringify(details || {})))
   await engine.configure({ modelsDirectory: store })
   await writeFile(join(cache, 'Modelfile'), `FROM ./Qwen3-4B-Q4_K_M.gguf\nLICENSE """${license}"""\nPARAMETER num_ctx 4096\n`)
   try {

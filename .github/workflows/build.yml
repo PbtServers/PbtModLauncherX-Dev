@@ -35,12 +35,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+        include:
+          - os: ubuntu-latest
+            package_arch: x64
+          - os: ubuntu-latest
+            package_arch: arm64
+          - os: macos-latest
+            package_arch: x64
+          - os: macos-latest
+            package_arch: arm64
+          - os: windows-latest
+            package_arch: x64
       fail-fast: false
     env:
+      PBT_PACKAGE_ARCH: ${{ matrix.package_arch }}
       ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
       ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
     steps:
@@ -79,6 +87,12 @@ jobs:
         run: pnpm exec tsx scripts/ci-ollama.ts
       - name: Verify all AI resources before packaging
         run: pnpm exec tsx scripts/ci-ollama.ts --verify-only
+      - name: Check available packaging space
+        if: ${{ runner.os != 'Windows' }}
+        shell: bash
+        run: |
+          df -h .
+          du -sh xmcl-electron-app/build/ollama/* 2>/dev/null || true
       - name: Build
         shell: bash
         run: |
@@ -86,7 +100,7 @@ jobs:
           pnpm run --prefix xmcl-electron-app build
         env:
           BUILD_NUMBER: ${{ github.run_number }}
-          NODE_OPTIONS: --max-old-space-size=32768
+          NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
           RELEASE: 'true'
           CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_TOKEN }}
@@ -161,7 +175,7 @@ jobs:
       - name: Upload Build
         uses: actions/upload-artifact@v6
         with:
-          name: build-${{ runner.os }}
+          name: build-${{ runner.os }}-${{ matrix.package_arch }}
           if-no-files-found: error
           overwrite: true
           compression-level: 0
@@ -180,7 +194,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         uses: actions/upload-artifact@v6
         with:
-          name: linux-b${{ github.run_number }}-x64
+          name: linux-b${{ github.run_number }}-${{ matrix.package_arch }}-x64
           overwrite: true
           compression-level: 0
           path: |
@@ -189,7 +203,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         uses: actions/upload-artifact@v6
         with:
-          name: linux-b${{ github.run_number }}-arm64
+          name: linux-b${{ github.run_number }}-${{ matrix.package_arch }}-arm64
           overwrite: true
           compression-level: 0
           path: |
@@ -198,7 +212,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         uses: actions/upload-artifact@v6
         with:
-          name: mac-b${{ github.run_number }}-x64
+          name: mac-b${{ github.run_number }}-${{ matrix.package_arch }}-x64
           overwrite: true
           compression-level: 0
           path: |
@@ -207,7 +221,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         uses: actions/upload-artifact@v6
         with:
-          name: mac-b${{ github.run_number }}-arm64
+          name: mac-b${{ github.run_number }}-${{ matrix.package_arch }}-arm64
           overwrite: true
           compression-level: 0
           path: |

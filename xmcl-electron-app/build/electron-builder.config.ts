@@ -93,7 +93,7 @@ export const config = {
     target: [
       {
         target: 'dmg',
-        arch: ['arm64', 'x64'],
+        arch: [process.env.PBT_PACKAGE_ARCH === 'x64' ? 'x64' : 'arm64'],
       },
     ],
     extendInfo: {
@@ -134,11 +134,11 @@ export const config = {
     icon: 'icons/dark@256x256.png',
     artifactName: 'pbtmodlauncherx-${version}-${arch}.${ext}',
     target: [
-      { target: 'deb', arch: ['x64', 'arm64'] },
-      { target: 'rpm', arch: ['x64', 'arm64'] },
-      { target: 'AppImage', arch: ['x64', 'arm64'] },
-      { target: 'tar.xz', arch: ['x64', 'arm64'] },
-      { target: 'pacman', arch: ['x64', 'arm64'] },
+      { target: 'deb', arch: [process.env.PBT_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'] },
+      { target: 'rpm', arch: [process.env.PBT_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'] },
+      { target: 'AppImage', arch: [process.env.PBT_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'] },
+      { target: 'tar.xz', arch: [process.env.PBT_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'] },
+      { target: 'pacman', arch: [process.env.PBT_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'] },
     ],
   },
   deb: linuxPackageScripts,

@@ -9,7 +9,10 @@ async function main() {
   const version = 'v0.34.0'
   const folder = { win32: 'win', linux: 'linux', darwin: 'mac' }[process.platform]
   if (!folder) throw new Error('Unsupported CI platform')
-  const arches = process.platform === 'win32' ? ['x64'] : ['x64', 'arm64']
+  const targetArch = process.env.PBT_PACKAGE_ARCH
+  if (targetArch && !['x64', 'arm64'].includes(targetArch)) throw new Error('Invalid package architecture')
+  // Keep the host-native engine for offline model import, plus the requested package runtime.
+  const arches = process.platform === 'win32' ? ['x64'] : [...new Set([process.arch, targetArch || 'x64', ...(targetArch ? [] : ['arm64'])])]
   const root = resolve('xmcl-electron-app/build/ollama')
   function run(script: string, args: string[] = []) {
     const result = spawnSync(process.execPath, ['--import', 'tsx', script, ...args], { stdio: 'inherit', windowsHide: true })
@@ -19,7 +22,7 @@ async function main() {
     const space = await statfs('.')
     console.log(`Free runner space: ${(space.bavail * space.bsize / 1024 ** 3).toFixed(1)} GiB`)
     // Two runtimes, isolated model import and several copies in packaged targets.
-    const requiredGiB = process.platform === 'linux' ? 40 : process.platform === 'win32' ? 20 : 12
+    const requiredGiB = process.platform === 'linux' ? 20 : process.platform === 'win32' ? 20 : 12
     if (space.bavail * space.bsize < requiredGiB * 1024 ** 3) throw new Error(`At least ${requiredGiB} GiB free space required for bundled AI packaging`)
     for (const arch of arches) {
       run('scripts/prepare-ollama.mjs', ['--version', version, '--platform', process.platform, '--arch', arch])
