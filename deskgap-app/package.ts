@@ -3,8 +3,12 @@ import { cp, mkdir, readFile, rm, stat } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { assertClickToRun, assertRawBootstrap, assetNames, stageApplication, stageRuntime } from './packaging'
-import { validateOllamaBundle } from '../xmcl-runtime/agent/runtimeBundle'
-import { validateFactoryModel } from '../xmcl-runtime/agent/modelBundle'
+import * as ollamaModule from '../xmcl-runtime/agent/runtimeBundle'
+const validateOllamaBundle = (ollamaModule.default as typeof import('../xmcl-runtime/agent/runtimeBundle') | undefined)?.validateOllamaBundle ?? ollamaModule.validateOllamaBundle
+if (typeof validateOllamaBundle !== 'function') throw new Error('Ollama validator unavailable')
+import * as modelModule from '../xmcl-runtime/agent/modelBundle'
+const validateFactoryModel = (modelModule.default as typeof import('../xmcl-runtime/agent/modelBundle') | undefined)?.validateFactoryModel ?? modelModule.validateFactoryModel
+if (typeof validateFactoryModel !== 'function') throw new Error('Factory model validator unavailable')
 
 const root = dirname(fileURLToPath(import.meta.url))
 
