@@ -216,6 +216,15 @@ jobs:
           path: |
             xmcl-electron-app/dist/*.js.map
             xmcl-electron-app/dist/renderer/assets/*.js.map
+      - name: Verify macOS DMG output
+        if: ${{ runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'macOS build output:'
+          ls -lah xmcl-electron-app/build/output/
+          find xmcl-electron-app/build/output -maxdepth 1 -type f -name '*.dmg' -print
+          compgen -G 'xmcl-electron-app/build/output/*.dmg' > /dev/null || { echo 'ERROR: electron-builder did not produce a DMG'; exit 1; }
       - name: Upload Build
         uses: actions/upload-artifact@v6
         with:
@@ -252,24 +261,6 @@ jobs:
           compression-level: 0
           path: |
             xmcl-electron-app/build/output/linux-arm64-unpacked/
-      - name: Upload Mac x64 Zip Build
-        if: ${{ runner.os == 'macOS' }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: mac-b${{ github.run_number }}-${{ matrix.package_arch }}-x64
-          overwrite: true
-          compression-level: 0
-          path: |
-            xmcl-electron-app/build/output/mac/
-      - name: Upload Mac arm64 Zip Build
-        if: ${{ runner.os == 'macOS' }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: mac-b${{ github.run_number }}-${{ matrix.package_arch }}-arm64
-          overwrite: true
-          compression-level: 0
-          path: |
-            xmcl-electron-app/build/output/mac-arm64/
   release:
     name: Attach artifacts to existing release
     runs-on: ubuntu-latest
