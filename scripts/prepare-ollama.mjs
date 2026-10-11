@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import { validateOllamaBundle } from '../xmcl-runtime/agent/runtimeBundle.ts'
+import * as runtimeBundle from '../xmcl-runtime/agent/runtimeBundle.ts'
+const validateOllamaBundle = runtimeBundle.validateOllamaBundle ?? runtimeBundle.default?.validateOllamaBundle
+if (typeof validateOllamaBundle !== 'function') throw new Error('Ollama bundle validator unavailable')
 
 export function runtimeAsset(version, platform, arch) {
   if (!/^v\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(version)) throw new Error('Supply an exact official release tag')
