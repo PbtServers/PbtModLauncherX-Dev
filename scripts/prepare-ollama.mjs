@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { lstat, mkdir, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { Readable } from 'node:stream'
@@ -32,6 +32,32 @@ async function officialFetch(url) {
 async function sha(path) { const hash = createHash('sha256'); for await (const chunk of createReadStream(path)) hash.update(chunk); return hash.digest('hex') }
 function run(command, args) { const result = spawnSync(command, args, { shell: false, encoding: 'utf8', windowsHide: true }); if (result.status !== 0 || result.error) throw new Error(`Extraction failed: ${result.error?.code || result.stderr}`); return result.stdout }
 
+// Official v0.34.0 dylib/so aliases must survive packaging. Materialize only
+// internal regular-file links after archive authentication; reject directory
+// links, external destinations, cycles and broken links. Runtime remains link-free.
+export async function materializeLibraryLinks(root) {
+  const base = await realpath(root)
+  const links = []
+  async function scan(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isSymbolicLink()) {
+        const target = await realpath(path)
+        const name = relative(base, target)
+        if (isAbsolute(name) || name === '..' || name.startsWith('../') || name.startsWith('..\\') || !(await lstat(target)).isFile() || !/\.(?:dylib|so(?:\.\d+)*)$/.test(entry.name)) throw new Error('Unsafe runtime library link')
+        links.push({ path, target })
+      } else if (entry.isDirectory()) await scan(path)
+    }
+  }
+  await scan(base)
+  for (const { path, target } of links) {
+    const temporary = path + `.materializing-${process.pid}`
+    await copyFile(target, temporary)
+    await unlink(path)
+    await rename(temporary, path)
+  }
+}
+
 export async function prepare({ version, platform, arch, archive: supplied, output, metadata: suppliedMetadata }) {
   const assetName = runtimeAsset(version, platform, arch)
   const release = `https://api.github.com/repos/ollama/ollama/releases/tags/${version}`
@@ -60,8 +86,10 @@ export async function prepare({ version, platform, arch, archive: supplied, outp
     const compression = platform === 'darwin' ? [] : ['--zstd']
     const names = run('tar', [...compression, '-tf', archive]).split('\n').filter(Boolean)
     if (names.some(name => name.startsWith('/') || name.includes('\\') || name.split('/').includes('..'))) throw new Error('Unsafe archive path')
-    // Archive has a trusted digest. Extraction is isolated; symlinks are subsequently rejected.
+    // Archive has a trusted digest. Extraction is isolated; only internal library
+    // file aliases are materialized, then all remaining links are rejected.
     run('tar', [...compression, '-xf', archive, '-C', extracted, '--no-same-owner', '--no-same-permissions'])
+    await materializeLibraryLinks(extracted)
     if (platform === 'darwin') run('/usr/bin/codesign', ['--verify', '--strict', join(extracted, 'ollama')])
   }
   const license = await (await officialFetch(`https://raw.githubusercontent.com/ollama/ollama/${version}/LICENSE`)).text()

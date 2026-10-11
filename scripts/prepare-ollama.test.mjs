@@ -1,10 +1,25 @@
-import { mkdtemp, writeFile, rm } from 'node:fs/promises'
+import { lstat, mkdtemp, readFile, writeFile, rm, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { prepare, runtimeAsset } from './prepare-ollama.mjs'
+import { materializeLibraryLinks, prepare, runtimeAsset } from './prepare-ollama.mjs'
 
 describe('official runtime preparation', () => {
+  test('materializes internal library aliases and rejects external links', async (context) => {
+    const root = await mkdtemp(join(tmpdir(), 'pbt-library-links-'))
+    try {
+      await writeFile(join(root, 'libtest.1.dylib'), 'signed library bytes')
+      try { await symlink('libtest.1.dylib', join(root, 'libtest.dylib')) } catch (error) {
+        if (error.code === 'EPERM') { context.skip(); return }
+        throw error
+      }
+      await materializeLibraryLinks(root)
+      expect((await lstat(join(root, 'libtest.dylib'))).isSymbolicLink()).toBe(false)
+      expect(await readFile(join(root, 'libtest.dylib'), 'utf8')).toBe('signed library bytes')
+      await symlink(join(root, '..'), join(root, 'outside.dylib'), 'junction')
+      await expect(materializeLibraryLinks(root)).rejects.toThrow('Unsafe runtime library link')
+    } finally { await rm(root, { recursive: true, force: true }) }
+  })
   test('selects exact official assets and rejects ia32', () => {
     expect(runtimeAsset('v1.2.3', 'win32', 'x64')).toBe('ollama-windows-amd64.zip')
     expect(runtimeAsset('v1.2.3', 'linux', 'arm64')).toBe('ollama-linux-arm64.tar.zst')
