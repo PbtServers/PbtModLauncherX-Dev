@@ -1613,7 +1613,7 @@ resourcepack:
     content: Això eliminarà el fitxer del paquet de recursos del disc, i no podrà desfer-se. Estàs segur de fer-ho?
     title: Elimina el paquet de recursos
   dropHint: Arrossega la carpeta/zip del paquet de recursos aquí per importar.
-  enable: '{count} Paquet de Recursos habilitat'
+  enable: '{count} paquet de recursos habilitat | {count} paquets de recursos habilitats'
   import: Importa el Paquet de Recursos
   incompatible: Format del Paquet de Recursos incompatible ({format}). S'ajusta a {accept}. Actual {actual}.
   independent: La instància usa la carpeta del paquet de recursos independent
@@ -3139,3 +3139,45 @@ lowResources:
 ollamaRuntime:
   diagnostic: 'Diagnòstic del motor local: {code}'
   checking: Comprovant recursos, model i connexió amb el motor local…
+
+pbtadminInstallQwen: Instal·lar Qwen3 4B
+qwenInstall:
+  title: Instal·lar Qwen3 4B
+  local: IA local
+  description: Conversa amb PbtAdmin i utilitza les seves eines al teu equip. El model només es descarrega quan ho autoritzes.
+  size: 'Descàrrega aproximada: {size} GiB'
+  memory: 8 GiB de RAM recomanats
+  install: Instal·lar model
+  retry: Reintentar la instal·lació
+  preparing: Preparant la descàrrega…
+  downloading: Descarregant el model
+  completed: Model instal·lat. Connectant PbtAdmin…
+  cancelled: Descàrrega cancel·lada. Pots tornar-ho a provar quan vulguis.
+  progress: Progrés de descàrrega del model
+  openChat: Obrir el xat
+  otherProvider: Utilitzar un altre proveïdor
+  storageError: No hi ha prou espai per a aquest model. Allibera espai o tria una altra carpeta als ajustos de PbtAdmin.
+  timeout: La descàrrega ha deixat de respondre. Comprova la connexió i torna-ho a provar.
+newsStatus:
+  older: Mostra notícies anteriors
+  featured: Destacada
+  minecraft: "Minecraft"
+  launcher: "PbtModLauncherX"
+  loading: "Carregant notícies…"
+  empty: "No hi ha notícies disponibles."
+  offline: "No es poden actualitzar les notícies. Els articles desats continuen disponibles."
+  translating: "Traduint notícies…"
+  original: "Alguns articles es mostren en el seu idioma original perquè la traducció no està disponible."
+appText:
+  new: Nou
+  context: "Context"
+  patch: "Correcció"
+  minor: "Menor"
+  major: "Major"
+  workspace: "Espai de treball P2P"
+  transport: "Transport WebRTC i reenviament de ports locals"
+  basedOn: "Basat en"
+  disclaimer: "No és un producte oficial de Minecraft. No està aprovat per Mojang o Microsoft ni hi està associat."
+  sponsor: "Dona suport a ci010 a {service}"
+  logo: "Logotip de PbtModLauncherX"
+  avatar: "Avatar del col·laborador"

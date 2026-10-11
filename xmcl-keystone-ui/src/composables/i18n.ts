@@ -11,7 +11,9 @@ const pendingTranslations = new Map<string, Promise<string>>()
 export function useI18nSync(state: Ref<Settings | undefined>) {
   const { locale, setLocaleMessage } = useI18n()
   const vuetifyLocale = useLocale()
-  watch(computed(() => state.value?.locale || ''), (newValue: string, oldValue: string) => {
+  let generation = 0
+  watch(computed(() => state.value?.locale || ''), (newValue: string, oldValue: string | undefined) => {
+    const current = ++generation
     newValue = resolveLauncherLocale(newValue)
     console.log(`Locale changed ${oldValue} -> ${newValue}`)
     vuetifyLocale.current.value = resolveVuetifyLocale(newValue)
@@ -25,8 +27,10 @@ export function useI18nSync(state: Ref<Settings | undefined>) {
     }
 
     locales[`../../locales/${newValue}.yaml`]().then((message: any) => {
+      if (current !== generation) return
       setLocaleMessage(newValue, message.default)
       locale.value = newValue
+      document.documentElement.lang = newValue
     })
 
     // Persist for windows that boot before the settings service is ready (e.g.
@@ -36,7 +40,7 @@ export function useI18nSync(state: Ref<Settings | undefined>) {
     } catch {
       // Ignore storage failures — this is only a hint for other windows.
     }
-  })
+  }, { immediate: true })
 }
 
 

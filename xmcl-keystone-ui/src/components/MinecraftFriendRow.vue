@@ -66,7 +66,7 @@ const props = defineProps<{
   busy?: string
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const now = useReactiveNow(60_000)
 const imageFailed = ref(false)
 
@@ -142,7 +142,7 @@ const absoluteDate = computed(() => {
   const raw = props.friend.expiresAt ?? props.friend.addedAt
   if (!raw) return ''
   const d = new Date(raw)
-  return isNaN(d.getTime()) ? raw : d.toLocaleString()
+  return isNaN(d.getTime()) ? raw : d.toLocaleString(locale.value)
 })
 </script>
 

@@ -3,6 +3,7 @@ import { activeLocalChats } from './ollamaChat'
 import { OllamaController } from './ollama'
 import { ManagedOllama, kOllamaResourceRoot, type LocalRuntimeConfig } from './managedOllama'
 import { validateOllamaBundle } from './runtimeBundle'
+import { FACTORY_MODEL, HF_FACTORY_MODEL } from './modelBundle'
 import { XMCL_CLOUD_ENABLED, assertIndependentUrl, isXmclExclusiveUrl, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import {
   AgentServiceKey,
@@ -61,7 +62,7 @@ export class AgentService extends AbstractService implements IAgentService {
     @Inject(kOllamaResourceRoot) resourceRoot: string,
   ) {
     super(app)
-    this.engine = new ManagedOllama({ bundle: resourceRoot, data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args), () => {})
+    this.engine = new ManagedOllama({ bundle: resourceRoot, data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args), (event, details) => this.logAgent(`[local.runtime] ${JSON.stringify({ event, ...details })}`))
     this.ollama = new OllamaController((...args) => app.fetch(...args), async () => {
       try { await validateOllamaBundle(resourceRoot); return true } catch { return false }
     }, undefined, () => this.engine.ensure())
@@ -129,7 +130,7 @@ export class AgentService extends AbstractService implements IAgentService {
     if (settings.lowResourceMode && !this.localAgentRequested && isOllamaEndpoint(endpoint)) return { mode: 'unconfigured' }
     if (isOllamaEndpoint(endpoint)) await this.engine.ensure()
     if (!model && isOllamaEndpoint(endpoint)) {
-      const local = await this.ollama.resolveModel('qwen3:4b-q4_K_M')
+      const local = await this.ollama.resolveModel(HF_FACTORY_MODEL) || await this.ollama.resolveModel(FACTORY_MODEL)
       if (local) {
         const latest = await this.app.registry.get(kSettings)
         if (latest.agentModel.trim() || (latest.agentEndpoint.trim() || OLLAMA_ENDPOINT) !== endpoint) return this[kResolvedAgentProvider]()
@@ -152,7 +153,10 @@ export class AgentService extends AbstractService implements IAgentService {
     return XMCL_CLOUD_ENABLED && flights[BUILTIN_AGENT_FLIGHT] === true ? { mode: 'builtin' } : { mode: 'unconfigured' }
   }
 
-  async activateLocalAgent() { this.localAgentRequested = true; await this.engine.ensure() }
+  async activateLocalAgent() {
+    await this.engine.ensure()
+    this.localAgentRequested = true
+  }
 
   async releaseLocalAgent() {
     const settings = await this.app.registry.get(kSettings)
@@ -163,7 +167,7 @@ export class AgentService extends AbstractService implements IAgentService {
   }
 
   async getOllamaStatus() {
-    if ((await this.app.registry.get(kSettings)).lowResourceMode && !this.localAgentRequested) return { installed: undefined, running: false, models: [], recommendedModels: [], totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length, runtimeError: 'ollama_runtime_unavailable' }
+    if ((await this.app.registry.get(kSettings)).lowResourceMode && !this.localAgentRequested) return { installed: undefined, running: false, models: [], recommendedModels: [], totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length }
     let runtimeError: string | undefined
     try { await this.engine.ensure() } catch (e) {
       const message = (e as Error).message

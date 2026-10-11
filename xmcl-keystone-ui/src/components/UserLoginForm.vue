@@ -59,7 +59,8 @@
       density="comfortable"
       rounded="lg"
       required
-      type="password"
+      type="text"
+      autocomplete="username"
       :label="getUserServiceAccount(authority)"
       :rules="usernameRules"
       :error="!!errorMessage"

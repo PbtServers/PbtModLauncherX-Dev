@@ -214,6 +214,7 @@
 
 <script lang="ts" setup>
 import SettingCard from '@/components/SettingCard.vue'
+import LocalAiSetup from '@/components/LocalAiSetup.vue'
 import SettingItem from '@/components/SettingItem.vue'
 import SettingItemSelect from '@/components/SettingItemSelect.vue'
 import SettingItemSwitcher from '@/components/SettingItemSwitcher.vue'

@@ -34,7 +34,7 @@
           class="ml-2"
           label
         >
-          NEW
+          {{ t('appText.new') }}
         </v-chip>
       </template>
       

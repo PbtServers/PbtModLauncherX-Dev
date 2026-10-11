@@ -240,6 +240,7 @@ export const useAgentSettings = createSharedComposable(() => {
     configured,
     mode,
     loaded,
+    checkingAccess,
     error,
     ready,
     refreshStatus,
@@ -250,6 +251,7 @@ export const useAgentSettings = createSharedComposable(() => {
     resolvedEndpoint,
     detectedEndpoint,
     runtimeError,
+    ollamaStatus,
     resolvedModel,
   }
 })

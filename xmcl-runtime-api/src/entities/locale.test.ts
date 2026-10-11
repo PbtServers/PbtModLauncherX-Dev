@@ -10,11 +10,14 @@ describe('launcher language preference', () => {
     expect(SettingSchema.parse({}).locale).toBe('es-ES')
   })
 
-  it.each(Object.keys(locales))('preserves the supported preference %s exactly', (locale) => {
-    expect(resolveLauncherLocale(locale)).toBe(locale)
+  it.each(Object.keys(locales))('uses reviewed languages or English for %s', (locale) => {
+    expect(resolveLauncherLocale(locale)).toBe(['es-ES', 'ca', 'en'].includes(locale) ? locale : 'en')
   })
 
-  it.each([undefined, null, '', 'unsupported', 'en-GB', 123, '__proto__'])('falls back to Spanish for %s', (locale) => {
+  it.each([undefined, null, '', 123])('falls back to Spanish for an absent preference %s', (locale) => {
     expect(resolveLauncherLocale(locale)).toBe('es-ES')
+  })
+  it.each(['unsupported', 'en-GB', '__proto__'])('uses English for %s', locale => {
+    expect(resolveLauncherLocale(locale)).toBe('en')
   })
 })

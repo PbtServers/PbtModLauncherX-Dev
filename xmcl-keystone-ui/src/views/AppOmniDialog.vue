@@ -19,6 +19,7 @@
       />
       <div class="omni-input-card">
         <v-textarea
+          v-if="!installingLocal"
           ref="inputRef"
           v-model="activeInput"
           :data-testid="mode === 'command' ? 'command-palette-input' : 'agent-input'"
@@ -61,7 +62,7 @@
             />
           </template>
         </v-textarea>
-        <v-divider />
+        <v-divider v-if="!installingLocal" />
         <div class="omni-mode-controls">
           <v-btn-toggle
             v-model="mode"
@@ -116,6 +117,7 @@ const activeInput = computed({
   },
 })
 const agentAvailable = computed(() => agentPanel.value?.available ?? false)
+const installingLocal = computed(() => mode.value === 'agent' && (agentPanel.value?.installingLocal ?? false))
 const agentRunning = computed(() => agentPanel.value?.running ?? false)
 const inputDisabled = computed(() => mode.value === 'agent' && !agentAvailable.value)
 const inputReadonly = computed(() => mode.value === 'command' && (commandPanel.value?.inputReadonly ?? false))

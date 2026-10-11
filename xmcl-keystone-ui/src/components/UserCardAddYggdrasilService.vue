@@ -85,7 +85,7 @@
               <img
                 v-if="a.favicon"
                 :src="a.favicon"
-                alt="favicon"
+                alt=""
                 class="h-6 w-6 rounded shadow-sm"
               />
               <v-icon v-else size="24" class="opacity-50">api</v-icon>

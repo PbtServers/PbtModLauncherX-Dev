@@ -1,6 +1,6 @@
 <template>
   <div data-testid="agent-dialog" class="agent-surface">
-      <div class="flex items-center gap-3 px-4 py-2">
+      <div v-if="!installingLocal" class="flex items-center gap-3 px-4 py-2">
         <v-avatar size="36" color="primary"><span aria-hidden="true">PA</span></v-avatar>
         <div class="min-w-0 flex-1 agent-header-text">
           <div class="text-sm font-medium">{{ t('pbtadminLore.name') }}</div>
@@ -15,7 +15,16 @@
       <div
         v-if="!available"
         class="agent-disabled-card"
+        :class="{ 'agent-disabled-card--install': installingLocal }"
       >
+        <template v-if="agentSettings.localProvider.value">
+          <QwenInstallCard v-if="agentSettings.loaded.value" @settings="openSettings" />
+          <template v-else>
+            <v-progress-circular indeterminate color="primary" :aria-label="t('ollamaRuntime.checking')" />
+            <p role="status">{{ t('ollamaRuntime.checking') }}</p>
+          </template>
+        </template>
+        <template v-else>
         <v-avatar size="72" color="warning" variant="tonal">
           <v-icon size="40">settings</v-icon>
         </v-avatar>
@@ -30,6 +39,7 @@
             {{ t('agent.openSettings') }}
           </v-btn>
         </div>
+        </template>
       </div>
 
       <!-- Transcript -->
@@ -200,12 +210,12 @@
         </div>
       </div>
 
-      <Teleport v-if="isShown" defer to="#omni-mode-specific-controls">
+      <Teleport v-if="isShown && !installingLocal" defer to="#omni-mode-specific-controls">
         <div class="agent-mode-controls">
           <div class="agent-mode-meta text-xs text-medium-emphasis flex min-w-0 items-center gap-2">
             <span v-if="!available" class="agent-composer-status" :title="t(agentSettings.statusKey.value)">{{ t(agentSettings.statusKey.value) }}</span>
             <span v-else-if="developerMode" data-testid="agent-context-usage" class="tabular-nums" :title="contextUsageTitle">
-              Context {{ contextUsageLabel }}
+              {{ t('appText.context') }} {{ contextUsageLabel }}
             </span>
             <v-spacer />
             <span v-if="displayError" class="text-error truncate" :title="displayError">{{ displayError }}</span>
@@ -264,6 +274,7 @@
 import AgentMarketList from '@/components/AgentMarketList.vue'
 import AgentPassiveEventCard from '@/components/AgentPassiveEventCard.vue'
 import AgentToolCall from '@/components/AgentToolCall.vue'
+import QwenInstallCard from '@/components/QwenInstallCard.vue'
 import { kAgent, useCssAgent } from '@/composables/agent'
 import { useAgentConfirmation } from '@/composables/agent/confirm'
 import { projectAgentTranscript } from '@/composables/agent/projection'
@@ -281,12 +292,15 @@ import { computed, nextTick, ref, watch } from 'vue'
 import type { AgentContentPart as ContentPart } from '@xmcl/runtime-api'
 import { AGENT_PROVIDER_PRESETS } from '@xmcl/runtime-api'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const commonAgent = injection(kAgent)
 const agentSettings = useAgentSettings()
 async function startLocalAgent() {
-  try { await agentSettings.activateLocal() } catch (error) { lastError.value = error instanceof Error ? error.message : String(error) }
+  try {
+    await agentSettings.ready
+    if (agentSettings.localProvider.value) await agentSettings.activateLocal()
+  } catch (error) { lastError.value = error instanceof Error ? error.message : String(error) }
 }
 const providerLabel = computed(() => {
   const provider = AGENT_PROVIDER_PRESETS.find(item => item.endpoint === agentSettings.resolvedEndpoint.value)?.id ?? 'compatible'
@@ -304,6 +318,7 @@ const selectedAgent = ref<'common' | 'css'>('common')
 const activeAgent = computed(() => (selectedAgent.value === 'css' ? cssAgent : commonAgent))
 
 const available = computed(() => activeAgent.value.available.value)
+const installingLocal = computed(() => !available.value && agentSettings.localProvider.value)
 const running = computed(() => activeAgent.value.running.value)
 const anyRunning = computed(() => commonAgent.running.value || cssAgent.running.value)
 const runError = computed(() => activeAgent.value.runError.value)
@@ -311,16 +326,16 @@ const messages = computed(() => activeAgent.value.messages.value)
 const events = computed(() => activeAgent.value.events.value)
 const contextUsage = computed(() => activeAgent.value.contextUsage.value)
 const developerMode = computed(() => settingsState.value?.developerMode ?? false)
-const numberFormat = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 })
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value, { notation: 'compact', maximumFractionDigits: 1 }))
 const contextUsageLabel = computed(() => {
   const { usedTokens, contextWindow } = contextUsage.value
-  const used = usedTokens ? numberFormat.format(usedTokens) : '—'
+  const used = usedTokens ? numberFormat.value.format(usedTokens) : '—'
   const percent = usedTokens ? ` (${Math.round(usedTokens / contextWindow * 100)}%)` : ''
-  return `${used} / ${numberFormat.format(contextWindow)}${percent}`
+  return `${used} / ${numberFormat.value.format(contextWindow)}${percent}`
 })
 const contextUsageTitle = computed(() => {
   const { usedTokens, contextWindow } = contextUsage.value
-  return `${usedTokens.toLocaleString('en-US')} / ${contextWindow.toLocaleString('en-US')} tokens`
+  return `${usedTokens.toLocaleString(locale.value)} / ${contextWindow.toLocaleString(locale.value)} tokens`
 })
 
 const { render: renderMd } = useMarkdown()
@@ -440,6 +455,7 @@ function startNewConversation() {
 function abort() { activeAgent.value.abort() }
 
 defineExpose({
+  installingLocal,
   available,
   running,
   send: onSend,
@@ -738,11 +754,13 @@ useResizeObserver(scrollEl, () => {
   gap: 16px;
   padding: 32px;
   text-align: center;
+  overflow-y: auto;
 }
 .agent-transcript:focus-visible {
   outline: 2px solid rgb(var(--v-theme-primary));
   outline-offset: -2px;
 }
+.agent-disabled-card--install { justify-content: flex-start; padding: 12px; }
 @media (max-height: 560px) {
   .agent-empty-wrap { padding: 8px; }
   .agent-empty-card { padding: 16px; }

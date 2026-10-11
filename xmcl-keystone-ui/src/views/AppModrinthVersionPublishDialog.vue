@@ -25,7 +25,7 @@
           </v-expansion-panels>
         </v-alert>
         <v-btn-toggle v-model="bump" mandatory density="compact" variant="outlined" divided>
-          <v-btn value="patch">Patch</v-btn><v-btn value="minor">Minor</v-btn><v-btn value="major">Major</v-btn><v-btn value="custom">{{ t('modpack.publishCustomVersion') }}</v-btn>
+          <v-btn value="patch">{{ t('appText.patch') }}</v-btn><v-btn value="minor">{{ t('appText.minor') }}</v-btn><v-btn value="major">{{ t('appText.major') }}</v-btn><v-btn value="custom">{{ t('modpack.publishCustomVersion') }}</v-btn>
         </v-btn-toggle>
         <div class="version-grid">
           <v-text-field v-model="versionNumber" data-testid="modrinth-version-number" :label="t('modpack.modpackVersion')" variant="outlined" density="compact" hide-details />

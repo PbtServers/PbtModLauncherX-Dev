@@ -80,6 +80,25 @@ describe('local Ollama', () => {
     try { expect(() => client.start(preview.confirmationId)).toThrow('ollama_confirmation_required') } finally { now.mockRestore() }
   })
 
+  test('a cancelled pull cannot overwrite the progress of a later consented retry', async () => {
+    let finishFirst!: (response: Response) => void
+    const fetch = vi.fn<typeof globalThis.fetch>()
+      .mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve }))
+      .mockImplementationOnce((_url, init) => new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new Error('abort')), { once: true })
+      }))
+    const client = controller(fetch)
+    client.start(client.prepare('qwen3:4b-q4_K_M').confirmationId)
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+    client.cancel()
+    client.start(client.prepare('qwen3:4b-q4_K_M').confirmationId)
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    finishFirst(new Response('{"status":"success"}\n'))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(client.getDownloadStatus().state).toBe('running')
+    client.cancel()
+  })
+
   test('handles corrupt progress and cancellation without claiming completion', async () => {
     const corrupt = controller(vi.fn(async () => new Response('broken\n')))
     corrupt.start(corrupt.prepare('qwen3:4b-q4_K_M').confirmationId)

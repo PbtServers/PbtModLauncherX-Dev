@@ -17,7 +17,7 @@ beforeEach(async () => {
   await mkdir(fixture, { recursive: true })
 })
 afterEach(async () => {
-  await rm(fixture, { recursive: true, force: true })
+  await rm(fixture, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
 })
 
 async function stageFixture() {

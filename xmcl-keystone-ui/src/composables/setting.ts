@@ -1,6 +1,6 @@
 import { useService } from '@/composables'
 import { injection } from '@/util/inject'
-import { BaseServiceKey, Environment, Settings } from '@xmcl/runtime-api'
+import { BaseServiceKey, Environment, Settings, resolveLauncherLocale } from '@xmcl/runtime-api'
 import { InjectionKey, Ref } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { kEnvironment } from './environment'
@@ -202,8 +202,8 @@ export function useSettings() {
 
   const locales = computed(() => state.value?.locales || [])
   const selectedLocale = computed({
-    get: () => locales.value.find(l => l.locale === state.value?.locale)?.locale || 'en',
-    set: v => state.value?.localeSet(v),
+    get: () => resolveLauncherLocale(state.value?.locale),
+    set: v => state.value?.localeSet(resolveLauncherLocale(v)),
   })
   const enableDedicatedGPUOptimization = computed({
     get: () => state.value?.enableDedicatedGPUOptimization ?? false,

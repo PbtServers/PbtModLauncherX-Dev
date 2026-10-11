@@ -53,7 +53,7 @@
     <v-card variant="outlined" class="pa-4">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="max-w-xl">
-          <div class="text-xs font-semibold uppercase opacity-60">Together Home</div>
+          <div class="text-xs font-semibold uppercase opacity-60">{{ t('home') }} · Together</div>
           <div class="mt-2 flex items-baseline gap-2">
             <span class="text-3xl font-semibold">
               {{ overview ? formatMoney(overview.offer.monthlyPrice) : '$2.99' }}

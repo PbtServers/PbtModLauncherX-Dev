@@ -71,7 +71,7 @@ export interface Log extends LogRecord {
   id: number
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { hide } = windowController
 const logsRecord: Record<number, Log[]> = reactive({})
 const tab = ref(0)
@@ -103,7 +103,7 @@ function accept(pid: number, log: string) {
       const level = /level="(.+?)"/g.exec(trimmed)?.[1]
       const thread = /thread="(.+?)"/g.exec(trimmed)?.[1]
       const text = /<!\[CDATA\[(.+?)\]\]>/g.exec(trimmed)?.[1]
-      timestamp = timestamp ? new Date(Number.parseInt(timestamp)).toLocaleString() : ''
+      timestamp = timestamp ? new Date(Number.parseInt(timestamp)).toLocaleString(locale.value) : ''
       logs.push({
         tags: [],
         date: timestamp,

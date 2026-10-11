@@ -26,20 +26,26 @@ import { Instance } from '@xmcl/instance'
 import { Ref, computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MeProfilePanel from './MeProfilePanel.vue'
+import LauncherNewsCover from '@/components/LauncherNewsCover.vue'
 
 const { t } = useI18n()
 const { isDark } = injection(kTheme)
 const arrowColor = computed(() => (isDark.value ? 'white' : 'black'))
-const { news } = useMojangNews()
-const { news: launcherNews } = useLauncherNews()
+const { news, error: minecraftNewsError, isValidating: loadingMinecraft, translating, translationError, mutate: refreshMinecraft } = useMojangNews()
+const { news: launcherNews, error: launcherNewsError, isValidating: loadingLauncher, mutate: refreshLauncher } = useLauncherNews()
+const newsSource = ref('minecraft')
+const newsLimit = ref(8)
+const newsIndex = ref(0)
+watch(newsSource, () => { newsLimit.value = 8; newsIndex.value = 0 })
+const openNews = (link: string) => window.open(link, 'browser')
 const { getDateString } = useDateString()
 
 const allNews = computed((): LauncherNews[] => {
   const result: LauncherNews[] = [
-    ...launcherNews.value,
-    ...news.value.map((n) => ({
+    ...(newsSource.value === 'launcher' ? launcherNews.value : []),
+    ...(newsSource.value === 'minecraft' ? news.value.map((n) => ({
       title: n.title,
-      category: n.tag,
+      category: 'Minecraft',
       date: n.date,
       description: n.text,
       image: {
@@ -48,10 +54,12 @@ const allNews = computed((): LauncherNews[] => {
         height: n.newsPageImage.dimensions.height,
       },
       link: n.readMoreLink,
-    })),
+    })) : []),
   ]
   return result.sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
 })
+watch(() => Math.min(allNews.value.length, newsLimit.value), count => { if (newsIndex.value >= count) newsIndex.value = 0 })
+watch(() => allNews.value.map(item => item.id || item.link).join('\n'), () => { newsIndex.value = 0 }, { flush: 'post' })
 
 const filterKey = ref('')
 const displayNewsHeader = useLocalStorage('displayNewsHeader', true, { writeDefaults: false })
@@ -265,10 +273,6 @@ const filter = ref<HTMLElement | null>(null)
 const { focused } = useFocus(filter)
 useTextFieldBehavior(filter, focused)
 
-function openInBrowser(url: string) {
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
 useTutorial(
   computed(() => [
     {
@@ -305,14 +309,24 @@ useTutorial(
     <div ref="container" class="my-stuff-page h-full flex-grow overflow-auto min-w-0">
     <div class="classic-container">
       <!-- News Section (Hero Style) -->
-      <section v-if="true && allNews.length > 0" class="news-section">
+      <section class="news-section">
         <div class="section-header">
           <v-icon class="section-icon" color="primary">article</v-icon>
           <h2 class="section-title">{{ t('news.name') }}</h2>
+          <v-btn icon="refresh" variant="text" size="small" :aria-label="t('shared.refresh')" :loading="loadingMinecraft || loadingLauncher" @click="newsSource === 'minecraft' ? refreshMinecraft() : refreshLauncher()" />
         </div>
-
-        <div class="news-carousel-wrapper">
+        <v-tabs v-model="newsSource" :aria-label="t('news.name')" class="mb-2">
+          <v-tab value="minecraft">Minecraft</v-tab>
+          <v-tab value="launcher">PbtModLauncherX</v-tab>
+        </v-tabs>
+        <p v-if="loadingMinecraft || loadingLauncher" role="status">{{ t('newsStatus.loading') }}</p>
+        <p v-if="newsSource === 'minecraft' && translating" role="status">{{ t('newsStatus.translating') }}</p>
+        <p v-if="newsSource === 'minecraft' && translationError" role="status">{{ t('newsStatus.original') }}</p>
+        <p v-if="newsSource === 'minecraft' ? minecraftNewsError : launcherNewsError" role="status">{{ t('newsStatus.offline') }}</p>
+        <p v-if="!allNews.length && !loadingMinecraft && !loadingLauncher">{{ t('newsStatus.empty') }}</p>
+        <div v-if="allNews.length" class="news-carousel-wrapper">
           <v-carousel
+            v-model="newsIndex"
             height="280"
             hide-delimiter-background
             show-arrows-on-hover
@@ -324,6 +338,7 @@ useTutorial(
               <v-btn
                 variant="plain"
                 icon="chevron_left"
+                :aria-label="t('previous')"
                 :color="arrowColor"
                 @click="btnProps.onClick"
               />
@@ -332,17 +347,19 @@ useTutorial(
               <v-btn
                 variant="plain"
                 icon="chevron_right"
+                :aria-label="t('next')"
                 :color="arrowColor"
                 @click="btnProps.onClick"
               />
             </template>
-            <v-carousel-item v-for="(item, index) in allNews.slice(0, 8)" :key="index">
-              <div class="news-slide" @click="openInBrowser(item.link)">
-                <div class="news-image-wrapper">
-                  <v-img :src="item.image.url" height="280" cover class="news-image">
-                    <template v-slot:placeholder>
+            <v-carousel-item v-for="(item, index) in allNews.slice(0, newsLimit)" :key="item.id || item.link" :value="index">
+              <div class="news-slide" @click="openNews(item.link)">
+                <div class="news-image-wrapper" :class="{ 'news-image-wrapper--custom': item.source === 'custom' }">
+                  <LauncherNewsCover v-if="item.source === 'custom'" :key="`${item.id}:${item.imageRevision}`" :url="item.image.url" :title="item.title" :custom="true" />
+                  <v-img v-else :src="item.image.url" height="280" cover class="news-image">
+                    <template #placeholder>
                       <div class="d-flex align-center justify-center fill-height">
-                        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                        <v-progress-circular indeterminate color="primary" />
                       </div>
                     </template>
                   </v-img>
@@ -351,14 +368,16 @@ useTutorial(
                 <div class="news-info">
                   <div class="news-meta">
                     <span class="news-category">{{ item.category }}</span>
-                    <span class="news-dot">•</span>
+                    <span v-if="item.source === 'custom'" class="text-caption">v{{ item.version }}</span>
+                    <v-chip v-if="item.featured" size="x-small" color="primary" variant="tonal">{{ t('newsStatus.featured') }}</v-chip>
+                    <span class="news-dot" aria-hidden="true">·</span>
                     <span class="news-date">{{
                       getDateString(item.date, { dateStyle: 'medium' })
                     }}</span>
                   </div>
                   <h3 class="news-title">{{ item.title }}</h3>
                   <p class="news-description">{{ item.description }}</p>
-                  <v-btn color="primary" class="news-read-more" size="small" variant="text">
+                  <v-btn color="primary" class="news-read-more" size="small" variant="text" :href="item.link" target="browser" rel="noopener noreferrer" @click.stop>
                     {{ t('news.readMore') }}
                     <v-icon end size="small">open_in_new</v-icon>
                   </v-btn>
@@ -367,6 +386,7 @@ useTutorial(
             </v-carousel-item>
           </v-carousel>
         </div>
+        <v-btn v-if="allNews.length > newsLimit" variant="text" class="mt-2" @click="newsLimit += 8">{{ t('newsStatus.older') }}</v-btn>
       </section>
 
       <!-- Instances Section -->
@@ -545,6 +565,7 @@ useTutorial(
 }
 
 .news-section {
+  container-type: inline-size;
   user-select: none;
   width: 100%;
 }
@@ -562,7 +583,6 @@ useTutorial(
 .news-slide {
   position: relative;
   height: 100%;
-  cursor: pointer;
   display: flex;
   transition: transform 0.3s ease;
 }
@@ -581,6 +601,14 @@ useTutorial(
   height: 100%;
 }
 
+.news-image-wrapper--custom {
+  height: auto;
+  aspect-ratio: 16 / 9;
+  align-self: center;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
 .news-gradient {
   position: absolute;
   top: 0;
@@ -595,6 +623,7 @@ useTutorial(
 }
 
 .news-info {
+  min-width: 0;
   flex: 1;
   padding: 24px 32px;
   display: flex;
@@ -608,6 +637,8 @@ useTutorial(
 }
 
 .news-meta {
+  overflow-wrap: anywhere;
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -803,6 +834,14 @@ useTutorial(
 
 .dark .instance-version {
   color: rgba(255, 255, 255, 0.5);
+}
+
+@container (max-width: 650px) {
+  .news-image-wrapper { width: 32%; }
+  .news-info { padding: 12px; }
+  .news-title { font-size: 1.1rem; }
+  .news-description { -webkit-line-clamp: 3; line-clamp: 3; }
+  .news-gradient { display: none; }
 }
 
 @media (max-width: 768px) {

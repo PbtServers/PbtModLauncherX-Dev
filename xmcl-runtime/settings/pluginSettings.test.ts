@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
-import { AppManifest, SettingSchema, Settings, SharedState } from '@xmcl/runtime-api'
+import { AppManifest, SettingSchema, Settings, SharedState, resolveLauncherLocale } from '@xmcl/runtime-api'
 import { join } from 'path'
 import * as fsExtra from 'fs-extra'
 
@@ -106,7 +106,7 @@ describe('pluginSettings', () => {
     expect(mockState.locale).toBe('es-ES')
   })
 
-  test('uses Spanish for an unsupported saved locale', async () => {
+  test('uses English for an unsupported saved locale', async () => {
     vi.mocked(fsExtra.readJson).mockResolvedValue({ locale: 'en-GB' })
 
     const { pluginSettings } = await import('./pluginSettings')
@@ -116,8 +116,7 @@ describe('pluginSettings', () => {
       expect(mockApp.registry.register).toHaveBeenCalled()
     })
 
-    // Unsupported saved preferences fall back to Spanish.
-    expect(mockState.locale).toBe('es-ES')
+    expect(mockState.locale).toBe('en')
   })
 
   test.each(['en-US', 'de', 'ca', 'es-ES', 'zh-CN'])('uses Spanish independently of system locale %s', async (locale) => {
@@ -130,12 +129,12 @@ describe('pluginSettings', () => {
     expect(mockApp.host.getLocale).not.toHaveBeenCalled()
   })
 
-  test.each(['es-ES', 'ca', 'en', 'en-IN', 'fr', 'zh-CN'])('keeps saved locale %s over the system language', async (locale) => {
+  test.each(['es-ES', 'ca', 'en', 'en-IN', 'fr', 'zh-CN'])('resolves saved locale %s independently of the system language', async (locale) => {
     vi.mocked(fsExtra.readJson).mockResolvedValue({ locale })
     const { pluginSettings } = await import('./pluginSettings')
     await pluginSettings(mockApp, mockManifest)
     await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
-    expect(mockState.locale).toBe(locale)
+    expect(mockState.locale).toBe(resolveLauncherLocale(locale))
     expect(mockApp.host.getLocale).not.toHaveBeenCalled()
   })
 
@@ -153,16 +152,16 @@ describe('pluginSettings', () => {
     vi.mocked(fsExtra.readJson).mockResolvedValue(saved)
     mockState.localeSet('es-ES')
     await pluginSettings(mockApp, mockManifest)
-    await vi.waitFor(() => expect(mockState.locale).toBe(locale))
+    await vi.waitFor(() => expect(mockState.locale).toBe(resolveLauncherLocale(locale)))
     expect(mockApp.host.getLocale).not.toHaveBeenCalled()
   })
 
-  test.each(['', 'unsupported', null, 123])('uses Spanish for invalid saved preference %s', async (locale) => {
+  test.each(['', 'unsupported', null, 123])('resolves invalid saved preference %s', async (locale) => {
     vi.mocked(fsExtra.readJson).mockResolvedValue({ locale })
     const { pluginSettings } = await import('./pluginSettings')
     await pluginSettings(mockApp, mockManifest)
     await vi.waitFor(() => expect(mockApp.registry.register).toHaveBeenCalled())
-    expect(mockState.locale).toBe('es-ES')
+    expect(mockState.locale).toBe(locale === 'unsupported' ? 'en' : 'es-ES')
   })
 
   test('should handle missing setting.json gracefully', async () => {

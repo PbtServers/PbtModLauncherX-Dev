@@ -1,10 +1,7 @@
-import locales from '../../../assets/locales.json'
-
 export const DEFAULT_LAUNCHER_LOCALE = 'es-ES'
 
-/** Saved, supported preferences win. Never infer the initial language from the OS. */
+/** Spanish at first launch; English for preferences outside the three reviewed languages. */
 export function resolveLauncherLocale(preferred: unknown): string {
-  return typeof preferred === 'string' && Object.hasOwn(locales, preferred)
-    ? preferred
-    : DEFAULT_LAUNCHER_LOCALE
+  if (typeof preferred !== 'string' || !preferred) return DEFAULT_LAUNCHER_LOCALE
+  return ['es-ES', 'ca', 'en'].includes(preferred) ? preferred : 'en'
 }

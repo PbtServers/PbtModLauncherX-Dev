@@ -13,7 +13,7 @@
           </v-avatar>
           <div>
             <div class="text-subtitle-1 font-weight-bold">Together</div>
-            <div class="text-caption text-medium-emphasis">P2P Workspace</div>
+            <div class="text-caption text-medium-emphasis">{{ t('appText.workspace') }}</div>
           </div>
         </div>
 
@@ -334,7 +334,7 @@
           <div class="panel-heading">
             <div>
               <h2 class="text-h6 font-weight-bold">{{ t('setting.name') }}</h2>
-              <div class="text-body-2 text-medium-emphasis">WebRTC transport and local port forwarding</div>
+              <div class="text-body-2 text-medium-emphasis">{{ t('appText.transport') }}</div>
             </div>
           </div>
           <div class="settings-list">

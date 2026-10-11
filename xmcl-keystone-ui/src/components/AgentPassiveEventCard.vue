@@ -24,7 +24,7 @@
 import type { AgentPassiveTranscriptEvent } from '@/composables/agent/projection'
 
 const props = defineProps<{ event: AgentPassiveTranscriptEvent }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 function valueText(value: unknown, fallback = '-') {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : fallback
@@ -38,9 +38,9 @@ function records(value: unknown) {
 
 function durationText(value: unknown) {
   if (typeof value !== 'number') return '-'
-  if (value < 1000) return `${value} ms`
+  if (value < 1000) return `${value.toLocaleString(locale.value)} ms`
   const seconds = value / 1000
-  return `${seconds.toFixed(seconds < 10 && !Number.isInteger(seconds) ? 1 : 0)} s`
+  return `${seconds.toLocaleString(locale.value, { maximumFractionDigits: seconds < 10 && !Number.isInteger(seconds) ? 1 : 0 })} s`
 }
 
 const crashed = computed(() => props.event.type === 'game-exit' && props.event.payload.crashed === true)

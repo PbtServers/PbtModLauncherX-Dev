@@ -1677,7 +1677,7 @@ resourcepack:
     content: Esto eliminará el archivo de paquete de recursos del disco, y no podremos deshacerlo. ¿Estás seguro de hacerlo?
     title: Eliminar el paquete de recursos
   dropHint: Arrastra la carpeta/zip del paquete de recursos aquí para importar.
-  enable: '{count} Paquete de Recursos está habilitado'
+  enable: '{count} paquete de recursos habilitado | {count} paquetes de recursos habilitados'
   incompatible: Formato de Paquete de Recursos incompatible ({format}). Se ajusta a {accept}. Actual {actual}.
   name: Paquete de Recursos | Paquetes de Recursos
   searchHint: Buscar Recursos
@@ -3093,3 +3093,45 @@ lowResources:
 ollamaRuntime:
   diagnostic: 'Diagnóstico del motor local: {code}'
   checking: Comprobando recursos, modelo y conexión con el motor local…
+
+pbtadminInstallQwen: Instalar Qwen3 4B
+qwenInstall:
+  title: Instalar Qwen3 4B
+  local: IA local
+  description: Conversa con PbtAdmin y utiliza sus herramientas en tu equipo. El modelo se descarga solo cuando lo autorizas.
+  size: 'Descarga aproximada: {size} GiB'
+  memory: 8 GiB de RAM recomendados
+  install: Instalar modelo
+  retry: Reintentar instalación
+  preparing: Preparando descarga…
+  downloading: Descargando modelo
+  completed: Modelo instalado. Conectando PbtAdmin…
+  cancelled: Descarga cancelada. Puedes reintentarlo cuando quieras.
+  progress: Progreso de descarga del modelo
+  openChat: Abrir chat
+  otherProvider: Usar otro proveedor
+  storageError: No hay espacio suficiente para este modelo. Libera espacio o elige otra carpeta en los ajustes de PbtAdmin.
+  timeout: La descarga dejó de responder. Comprueba tu conexión y vuelve a intentarlo.
+newsStatus:
+  older: Ver noticias anteriores
+  featured: Destacada
+  minecraft: "Minecraft"
+  launcher: "PbtModLauncherX"
+  loading: "Cargando noticias…"
+  empty: "No hay noticias disponibles."
+  offline: "No se pueden actualizar las noticias. Los artículos guardados siguen disponibles."
+  translating: "Traduciendo noticias…"
+  original: "Algunos artículos se muestran en su idioma original porque la traducción no está disponible."
+appText:
+  new: Nuevo
+  context: "Contexto"
+  patch: "Corrección"
+  minor: "Menor"
+  major: "Mayor"
+  workspace: "Espacio de trabajo P2P"
+  transport: "Transporte WebRTC y reenvío de puertos locales"
+  basedOn: "Basado en"
+  disclaimer: "No es un producto oficial de Minecraft. No está aprobado por Mojang o Microsoft ni asociado con ellos."
+  sponsor: "Apoya a ci010 en {service}"
+  logo: "Logotipo de PbtModLauncherX"
+  avatar: "Avatar del colaborador"

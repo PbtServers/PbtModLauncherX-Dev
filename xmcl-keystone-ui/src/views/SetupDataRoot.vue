@@ -60,8 +60,8 @@
       <v-progress-linear class="my-2 p-0" :model-value="(d.used / (d.available + d.used)) * 100" />
       <v-list-item-subtitle class="flex">
         <span class="">
-          {{ t('disk.available') }}: {{ (d.available / 1024 / 1024 / 1024).toFixed(2) }}G
-          {{ t('disk.used') }}: {{ (d.used / 1024 / 1024 / 1024).toFixed(2) }}G
+          {{ t('disk.available') }}: {{ formatGiB(d.available) }} GiB
+          {{ t('disk.used') }}: {{ formatGiB(d.used) }} GiB
         </span>
         <div class="flex-grow" />
         <span>
@@ -85,7 +85,8 @@ const emit = defineEmits<{
   (event: 'update:modelValue', path: string): void
 }>()
 const { showOpenDialog } = windowController
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const formatGiB = (bytes: number) => (bytes / 1024 ** 3).toLocaleString(locale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const getDataDirErrorText = useGetDataDirErrorText()
 

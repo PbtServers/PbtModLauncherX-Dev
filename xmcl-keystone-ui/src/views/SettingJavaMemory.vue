@@ -142,7 +142,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits(['update:max', 'update:min'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { getMemoryStatus } = useService(BaseServiceKey)
 
 const MB = 1024 * 1024
@@ -210,9 +210,9 @@ const maxPercent = computed(() => (sysmem.value.total ? (displayMax.value * MB) 
 function formatMb(mb: number) {
   if (mb >= 1024) {
     const gb = mb / 1024
-    return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`
+    return `${gb.toLocaleString(locale.value, { maximumFractionDigits: 1 })} GB`
   }
-  return `${mb} MB`
+  return `${mb.toLocaleString(locale.value)} MB`
 }
 
 function snap(v: number) {

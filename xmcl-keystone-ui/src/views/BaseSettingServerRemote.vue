@@ -283,7 +283,7 @@
           <div v-if="status.error" class="col-span-2 text-red-500">{{ status.error }}</div>
           <div v-if="status.pid">PID: {{ status.pid }}</div>
           <div v-if="status.loadAverage">
-            {{ t('server.remoteLoad') }}: {{ status.loadAverage.map(v => v.toFixed(2)).join(' / ') }}
+            {{ t('server.remoteLoad') }}: {{ status.loadAverage.map(v => v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })).join(' / ') }}
           </div>
           <div v-if="status.memoryTotalMB !== undefined">
             {{ t('server.remoteMemory') }}: {{ status.memoryUsedMB }} / {{ status.memoryTotalMB }} MB
@@ -335,7 +335,7 @@ import { runInRendererAction, withRendererAction, type RendererActionScope } fro
 import { InstanceServerConfigSchema, type InstanceFile, type RemoteServerConnection, type ServerDeploymentPolicy } from '@xmcl/instance'
 import { InstanceManifestServiceKey, InstanceServiceKey, ModpackServiceKey, type ExportFileDirective, type ServerDeploymentCategory, type ServerDeploymentFile, type ServerDeploymentPlan, type ServerDeploymentPreview } from '@xmcl/runtime-api'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { path, instance } = injection(kInstance)
 const { versionId } = injection(kInstanceVersion)
 const { generateLaunchOptions } = injection(kInstanceLaunch)
@@ -502,9 +502,10 @@ function openFileSelector(category: 'config' | 'extra') {
 }
 
 function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MiB`
+  const format = (value: number) => value.toLocaleString(locale.value, { maximumFractionDigits: 1 })
+  if (bytes < 1024) return `${format(bytes)} B`
+  if (bytes < 1024 * 1024) return `${format(bytes / 1024)} KiB`
+  return `${format(bytes / 1024 / 1024)} MiB`
 }
 
 async function onSelectPrivateKey() {

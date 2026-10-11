@@ -6,7 +6,7 @@ import ca from '../locales/ca.yaml'
 export const i18n = createI18n({
   legacy: false,
   locale: 'es-ES',
-  fallbackLocale: ['es-ES', 'en'],
+  fallbackLocale: ['en'],
   silentTranslationWarn: true,
   missingWarn: false,
   fallbackWarn: false,

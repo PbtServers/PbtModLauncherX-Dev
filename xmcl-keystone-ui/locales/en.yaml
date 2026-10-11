@@ -1602,7 +1602,7 @@ resourcepack:
     content: This will remove the resource pack file from disk, and we cannot undo it. Are you sure you want to do this?
     title: Delete the resource pack
   dropHint: Drop Resource Pack's folder/zip here to import.
-  enable: '{count} resource packs enabled'
+  enable: '{count} resource pack enabled | {count} resource packs enabled'
   incompatible: Incompatible Resource Pack format({format}). Fitin {accept}. Current {actual}.
   name: Resource Pack | Resource Packs
   linkShared: Share resource packs across instances
@@ -2814,3 +2814,45 @@ lowResources:
 ollamaRuntime:
   diagnostic: 'Local engine diagnostic: {code}'
   checking: Checking resources, model and connection to the local engine…
+
+pbtadminInstallQwen: Install Qwen3 4B
+qwenInstall:
+  title: Install Qwen3 4B
+  local: Local AI
+  description: Chat with PbtAdmin and use its tools on your computer. The model downloads only with your consent.
+  size: 'Approximate download: {size} GiB'
+  memory: 8 GiB of RAM recommended
+  install: Install model
+  retry: Retry installation
+  preparing: Preparing download…
+  downloading: Downloading model
+  completed: Model installed. Connecting PbtAdmin…
+  cancelled: Download cancelled. You can try again whenever you want.
+  progress: Model download progress
+  openChat: Open chat
+  otherProvider: Use another provider
+  storageError: There is not enough space for this model. Free up space or choose another folder in PbtAdmin settings.
+  timeout: The download stopped responding. Check your connection and try again.
+newsStatus:
+  older: Show older news
+  featured: Featured
+  minecraft: "Minecraft"
+  launcher: "PbtModLauncherX"
+  loading: "Loading news…"
+  empty: "No news available."
+  offline: "Unable to refresh news. Cached articles remain available."
+  translating: "Translating news…"
+  original: "Some articles are shown in their original language because translation is unavailable."
+appText:
+  new: New
+  context: "Context"
+  patch: "Patch"
+  minor: "Minor"
+  major: "Major"
+  workspace: "P2P workspace"
+  transport: "WebRTC transport and local port forwarding"
+  basedOn: "Based on"
+  disclaimer: "Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft."
+  sponsor: "Sponsor ci010 on {service}"
+  logo: "PbtModLauncherX logo"
+  avatar: "Contributor avatar"

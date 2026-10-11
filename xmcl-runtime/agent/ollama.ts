@@ -123,6 +123,7 @@ export class OllamaController {
         method: 'POST', redirect: 'error', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30 * 60_000)]),
         headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model, stream: true }),
       })
+      if (controller.signal.aborted) throw new Error('downloadCancelled')
       if (!response.ok || !response.body) throw new Error('downloadFailed')
       reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -147,7 +148,7 @@ export class OllamaController {
           const event = JSON.parse(line)
           if (event.error) throw new Error('downloadFailed')
           if (event.status === 'success') success = true
-          this.status = { state: 'running', model, completed: event.completed, total: event.total }
+          if (this.controller === controller && !controller.signal.aborted) this.status = { state: 'running', model, completed: event.completed, total: event.total }
         }
       }
       if (buffer.trim()) {
@@ -156,9 +157,9 @@ export class OllamaController {
         success ||= event.status === 'success'
       }
       if (!success) throw new Error('downloadFailed')
-      this.status = { state: 'completed', model }
+      if (this.controller === controller && !controller.signal.aborted) this.status = { state: 'completed', model }
     } catch (e) {
-      if (this.status.state !== 'cancelled') this.status = { state: 'failed', model, error: (e as Error).message === 'timeout' ? 'timeout' : 'downloadFailed' }
+      if (this.controller === controller && this.status.state !== 'cancelled') this.status = { state: 'failed', model, error: (e as Error).message === 'timeout' ? 'timeout' : 'downloadFailed' }
     } finally {
       await reader?.cancel().catch(() => {})
       if (this.controller === controller) this.controller = undefined

@@ -153,7 +153,7 @@ import { kSettingsState } from '@/composables/setting'
 import { BackgroundType, kTheme } from '@/composables/theme'
 import { injection } from '@/util/inject'
 import { setupRequest } from '@/util/setupRequest'
-import { BaseServiceKey, Drive, InvalidDirectoryErrorCode } from '@xmcl/runtime-api'
+import { BaseServiceKey, Drive, InvalidDirectoryErrorCode, resolveLauncherLocale } from '@xmcl/runtime-api'
 import SetupAccount from './SetupAccount.vue'
 import SetupAppearance from './SetupAppearance.vue'
 import SetDataRoot from './SetupDataRoot.vue'
@@ -172,9 +172,9 @@ const prev = () => {
 
 const { locale, t } = useI18n()
 const localeRef = computed({
-  get: () => state.value?.locale ?? locale.value,
+  get: () => resolveLauncherLocale(state.value?.locale ?? locale.value),
   set: (v) => {
-    state.value?.localeSet(v ?? locale.value)
+    state.value?.localeSet(resolveLauncherLocale(v ?? locale.value))
   },
 })
 

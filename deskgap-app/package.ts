@@ -6,9 +6,6 @@ import { assertClickToRun, assertRawBootstrap, assetNames, stageApplication, sta
 import * as ollamaModule from '../xmcl-runtime/agent/runtimeBundle'
 const validateOllamaBundle = (ollamaModule.default as typeof import('../xmcl-runtime/agent/runtimeBundle') | undefined)?.validateOllamaBundle ?? ollamaModule.validateOllamaBundle
 if (typeof validateOllamaBundle !== 'function') throw new Error('Ollama validator unavailable')
-import * as modelModule from '../xmcl-runtime/agent/modelBundle'
-const validateFactoryModel = (modelModule.default as typeof import('../xmcl-runtime/agent/modelBundle') | undefined)?.validateFactoryModel ?? modelModule.validateFactoryModel
-if (typeof validateFactoryModel !== 'function') throw new Error('Factory model validator unavailable')
 
 const root = dirname(fileURLToPath(import.meta.url))
 
@@ -36,8 +33,6 @@ async function main() {
   const runtimeStaging = join(output, 'runtime-staging')
   const ollama = join(root, '..', 'xmcl-electron-app', 'build', 'ollama', 'win-x64')
   await validateOllamaBundle(ollama, 'win32', 'x64')
-  const model = join(ollama, '..', 'ollama-model')
-  await validateFactoryModel(model)
   const run = (args: string[], production = false) => {
     const env = { ...process.env }
     if (production) env.NODE_ENV = 'production'
@@ -49,7 +44,6 @@ async function main() {
   run(['--import', 'tsx', join(root, 'build.ts')], true)
   await stageApplication(join(root, 'dist'), application, version)
   await cp(ollama, join(application, 'resources', 'ollama'), { recursive: true })
-  await cp(model, join(application, 'resources', 'ollama-model'), { recursive: true })
   if (process.env.PBT_DISTRIBUTION_MODE === 'portable') await cp(join(root, '..', 'xmcl-electron-app', 'build', 'pbt-portable.json'), join(application, 'pbt-portable.json'))
   await rm(release, { recursive: true, force: true })
   await mkdir(release, { recursive: true })

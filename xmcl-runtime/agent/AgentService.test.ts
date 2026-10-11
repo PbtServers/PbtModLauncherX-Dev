@@ -32,7 +32,32 @@ const { AgentService, kResolvedAgentProvider } = await import('./AgentService')
 const { kFlights } = await import('~/infra')
 const { kSettings } = await import('~/settings')
 
-describe('low resource local engine policy', () => {
+describe('on-demand local engine policy', () => {
+  test('passive status and provider reads remain paused in low resource mode', async () => {
+    for (const lowResourceMode of [true]) {
+      const context = createServiceContext({})
+      Object.assign(context, { localAgentRequested: false })
+      Object.assign(context.settings, { lowResourceMode, agentModel: HF_FACTORY_MODEL })
+      const service = Object.assign(Object.create(AgentService.prototype), context)
+      expect(await service.getProviderSettings()).toMatchObject({ configured: false, model: HF_FACTORY_MODEL })
+      expect(await service.getOllamaStatus()).toMatchObject({ running: false, models: [] })
+      expect(context.engine.ensure).not.toHaveBeenCalled()
+      expect(context.ollama.resolveModel).not.toHaveBeenCalled()
+      expect(context.settings.agentProviderSet).not.toHaveBeenCalled()
+    }
+  })
+  test('failed activation leaves passive queries paused and permits retry', async () => {
+    const context = createServiceContext({})
+    Object.assign(context.settings, { lowResourceMode: true })
+    Object.assign(context, { localAgentRequested: false })
+    context.engine.ensure.mockRejectedValueOnce(new Error('ollama_readiness_timeout'))
+    const service = Object.assign(Object.create(AgentService.prototype), context)
+    await expect(service.activateLocalAgent()).rejects.toThrow('ollama_readiness_timeout')
+    expect(await service.getProviderSettings()).toMatchObject({ configured: false })
+    expect(context.engine.ensure).toHaveBeenCalledTimes(1)
+    await service.activateLocalAgent()
+    expect(context.engine.ensure).toHaveBeenCalledTimes(2)
+  })
   test('reports readiness failure separately from a missing model and recovers on a later query', async () => {
     const context = createServiceContext({})
     context.engine.ensure.mockRejectedValueOnce(new Error('ollama_readiness_timeout'))
@@ -59,6 +84,7 @@ describe('low resource local engine policy', () => {
   })
   test('does not discover or start Ollama during passive provider queries', async () => {
     const service = createServiceContext({})
+    Object.assign(service, { localAgentRequested: false })
     Object.assign(service.settings, { lowResourceMode: true, agentModel: HF_FACTORY_MODEL })
     await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toEqual({ mode: 'unconfigured' })
     expect(service.engine.ensure).not.toHaveBeenCalled()
@@ -67,7 +93,7 @@ describe('low resource local engine policy', () => {
   })
   test('explicit activation permits the preserved local model', async () => {
     const service = createServiceContext({})
-    Object.assign(service.settings, { lowResourceMode: true, agentModel: 'user-choice' })
+    Object.assign(service.settings, { lowResourceMode: false, agentModel: 'user-choice' })
     await AgentService.prototype.activateLocalAgent.call(service as any)
     await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ mode: 'custom', model: 'user-choice' })
     expect(service.engine.ensure).toHaveBeenCalled()
@@ -105,6 +131,7 @@ function createServiceContext(flights: Record<string, unknown>) {
     agentProviderSet: vi.fn(),
   }
   return {
+    localAgentRequested: true,
     app: {
       registry: {
         get: vi.fn(async key => key === kSettings ? settings : key === kFlights ? flights : undefined),
@@ -250,5 +277,13 @@ test('preserves an existing local model selection instead of selecting the facto
   service.settings.agentModel = 'qwen3:1.7b-q4_K_M'
   await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ model: 'qwen3:1.7b-q4_K_M' })
   expect(service.settings.agentProviderSet).not.toHaveBeenCalled()
+  expect(service.ollama.resolveModel).not.toHaveBeenCalledWith(FACTORY_MODEL)
+})
+
+test('prefers the verified Hugging Face import without pulling or replacing existing models', async () => {
+  const service = createServiceContext({})
+  service.ollama.resolveModel.mockImplementation(async name => ({ name, compatible: true, size: 1, contextWindow: 4096 }))
+  await expect((AgentService.prototype as any)[kResolvedAgentProvider].call(service)).resolves.toMatchObject({ model: HF_FACTORY_MODEL })
+  expect(service.ollama.resolveModel).toHaveBeenNthCalledWith(1, HF_FACTORY_MODEL)
   expect(service.ollama.resolveModel).not.toHaveBeenCalledWith(FACTORY_MODEL)
 })
