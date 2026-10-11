@@ -46,7 +46,7 @@ try {
   if (!retrievalOnly) {
     const { ManagedOllama } = await moduleFrom('xmcl-runtime/agent/managedOllama.ts')
     const { validateFactoryModel } = await moduleFrom('xmcl-runtime/agent/modelBundle.ts')
-    const { buildAgentSystemPrompt } = await moduleFrom('xmcl-keystone-ui/src/composables/agent/prompt.ts')
+    const { buildPbtAdminWorkingPrompt } = await moduleFrom('xmcl-keystone-ui/src/composables/agent/requestPolicy.ts')
     ;({ handleOllamaChat } = await moduleFrom('xmcl-runtime/agent/ollamaChat.ts'))
     model = (await validateFactoryModel(join(packaged, 'resources', 'ollama-model'))).index.model
     receipt.runtimeEvents = []
@@ -58,19 +58,21 @@ try {
     show = await response.json()
     if (!show.capabilities?.includes('completion')) throw new Error('Model does not support completion')
     Object.assign(receipt, { origin, model, details: show.details, capabilities: show.capabilities })
-    system = buildAgentSystemPrompt({ role: 'launcher-main', locale: 'es-ES', readonly: true, tools: [], sessionContext: { scope: 'global' } })
+    receipt.contextWindow = Number(show.parameters?.match(/(?:^|\n)\s*num_ctx\s+(\d+)/)?.[1]) || 4096
+    system = buildPbtAdminWorkingPrompt('es-ES', [])
+    receipt.systemCharacters = system.length
   }
   for (const question of questions) {
     const query = pbtAdminKnowledgeQuery(question)
     const results = await store.search(query, 5)
     const evidence = createPbtAdminKnowledgeEvidence(results)
-    if (!evidence) throw new Error('No local lore evidence for: ' + question)
+    if (!evidence && retrievalOnly) throw new Error('No local lore evidence for: ' + question)
     const result = { question, query, documentIds: results.map(result => result.id), evidence }
     if (!retrievalOnly) {
       const context = { request: { body: Buffer.from(JSON.stringify({ messages: [
-        { role: 'system', content: system }, { role: 'user', content: evidence }, { role: 'user', content: question },
+        { role: 'system', content: system }, ...(evidence ? [{ role: 'user', content: evidence }] : []), { role: 'user', content: question },
       ] })) }, response: {} }
-      await handleOllamaChat(context, { model, localOrigin: origin, contextWindow: 4096, toolsSupported: show.capabilities.includes('tools') }, fetch)
+      await handleOllamaChat(context, { model, localOrigin: origin, contextWindow: receipt.contextWindow, toolsSupported: show.capabilities.includes('tools') }, fetch)
       if (context.response.status !== 200) throw new Error('Native lore chat failed')
       const { answer, chunks } = await readValidationStream(context.response.body)
       Object.assign(result, { authenticAnswer: answer, streamingChunks: chunks, semanticReview: 'required' })

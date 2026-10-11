@@ -14,14 +14,21 @@ export const AGENT_COMPACTION_SYSTEM_PROMPT = 'You summarize conversation contex
 
 /** Bound local prompts without claiming omitted evidence was inspected. History stays intact. */
 export function boundAgentProviderContext(context: ProviderContext, contextWindow: number, maxOutput: number): ProviderContext {
-  const messages = context.messages.map(message => message.role === 'toolResult' ? {
+  const textOnly = !context.tools?.length
+  const messages = context.messages.filter(message => !textOnly || message.role !== 'toolResult').map(message =>
+    message.role === 'assistant' ? { ...message, content: message.content.filter(part => part.type !== 'thinking' && (!textOnly || part.type !== 'toolCall')) } : message
+  ).map(message => message.role === 'toolResult' ? {
     ...message,
-    content: message.content.map(part => part.type === 'text' && part.text.length > contextWindow
-      ? { ...part, text: part.text.slice(0, contextWindow) + '\n[Tool output truncated. Request a smaller range with the appropriate read tool.]' }
+    content: message.content.map(part => part.type === 'text' && part.text.length > Math.floor(contextWindow / 2)
+      ? { ...part, text: part.text.slice(0, Math.floor(contextWindow / 2)) + '\n[Tool output truncated. Request a smaller range with the appropriate read tool.]' }
       : part),
   } : message)
-  const budget = Math.max(128, contextWindow - maxOutput)
-  const estimate = () => Math.ceil(JSON.stringify({ ...context, messages }).length / 4)
+  const budget = Math.max(128, contextWindow - maxOutput - 128)
+  // Transport metadata (usage/cost/provider/timestamps) is not part of the prompt.
+  const estimate = () => Math.ceil(((context.systemPrompt || '').length
+    + JSON.stringify(context.tools || []).length
+    + messages.reduce((sum, message) => sum + JSON.stringify(message.content).length
+      + (message.role === 'assistant' ? JSON.stringify(message.content.filter(part => part.type === 'toolCall')).length : 0) + 32, 0)) / 3)
   let omitted = false
   while (estimate() > budget) {
     const nextUser = messages.findIndex((message, index) => index > 0 && message.role === 'user')

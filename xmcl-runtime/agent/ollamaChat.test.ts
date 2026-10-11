@@ -1,6 +1,13 @@
 import { Readable } from 'stream'
 import { expect, test, vi } from 'vitest'
-import { handleOllamaChat, toOllamaChat } from './ollamaChat'
+import { classifyOllamaError, handleOllamaChat, toOllamaChat } from './ollamaChat'
+
+test('distinguishes memory, context, timeout and unknown errors without disclosing bodies', () => {
+  expect(classifyOllamaError('model requires more system memory')).toBe('pbtadmin.ollamaMemory')
+  expect(classifyOllamaError('context length exceeded')).toBe('pbtadmin.contextTooSmall')
+  expect(classifyOllamaError('request timed out')).toBe('pbtadmin.ollamaTimeout')
+  expect(classifyOllamaError('private token secret')).toBe('pbtadmin.ollamaRequestFailed')
+})
 
 test('rejects non-loopback managed inference before any request', async () => {
   const fetch = vi.fn()

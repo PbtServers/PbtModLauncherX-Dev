@@ -2,6 +2,15 @@ import { Readable } from 'stream'
 import { randomUUID } from 'crypto'
 import type { Context } from '../app/LauncherProtocolHandler'
 
+/** Inspect only a bounded error string; never relay provider bodies or private content. */
+export function classifyOllamaError(error: unknown) {
+  const text = typeof error === 'string' ? error.slice(0, 4096).toLowerCase() : ''
+  if (/out of memory|not enough memory|insufficient memory|requires more.*memory|unable to allocate/.test(text)) return 'pbtadmin.ollamaMemory'
+  if (/context.*(exceed|full|too (large|long)|length)|token.*(limit|exceed)|input.*too long/.test(text)) return 'pbtadmin.contextTooSmall'
+  if (/timeout|timed out/.test(text)) return 'pbtadmin.ollamaTimeout'
+  return 'pbtadmin.ollamaRequestFailed'
+}
+
 export function toOllamaChat(input: any, model: string, contextWindow: number) {
   if (!Array.isArray(input?.messages)) throw new Error('invalid_agent_messages')
   const toolNames = new Map<string, string>()
@@ -50,6 +59,10 @@ async function handleNativeChat(ctx: Context, provider: { model: string; context
   } else raw = ctx.request.body?.toString() || '{}'
   if (Buffer.byteLength(raw) > 4_000_000) throw new Error('agent_request_too_large')
   const body = toOllamaChat(JSON.parse(raw), provider.model, provider.contextWindow ?? 8192)
+  console.info('[local.context]', JSON.stringify({ contextWindow: body.options.num_ctx, responseReserve: body.options.num_predict,
+    messageCount: body.messages.length, toolCount: body.tools?.length || 0,
+    toolSchemaCharacters: JSON.stringify(body.tools || []).length,
+    messageCharacters: body.messages.reduce((sum: number, message: any) => sum + message.content.length, 0) }))
   if (provider.toolsSupported === false && (body.tools?.length || body.messages.some((message: any) => message.role === 'tool' || message.tool_calls?.length))) throw new Error('ollama_chat_only')
   const controller = new AbortController()
   const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10 * 60_000), ...(ctx.request.signal ? [ctx.request.signal] : [])])
@@ -59,13 +72,15 @@ async function handleNativeChat(ctx: Context, provider: { model: string; context
   const result = await fetch(origin + '/api/chat', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body), redirect: 'error', signal,
-  })
+  }).catch(error => { if (signal.reason?.name === 'TimeoutError') throw new Error('pbtadmin.ollamaTimeout'); throw error })
   ctx.response.handled = true
   ctx.response.status = result.status
   if (!result.ok || !result.body) {
     // Do not relay arbitrary server error bodies or credential-like data.
     ctx.response.headers = { 'content-type': 'application/json' }
-    ctx.response.body = JSON.stringify({ error: { message: 'pbtadmin.ollamaRequestFailed' } })
+    let error: unknown
+    try { const reader = result.body?.getReader(); const chunk = await reader?.read(); await reader?.cancel(); error = JSON.parse(new TextDecoder().decode(chunk?.value)).error } catch {}
+    ctx.response.body = JSON.stringify({ error: { message: classifyOllamaError(error) } })
     controller.abort()
     return
   }
@@ -79,7 +94,7 @@ async function handleNativeChat(ctx: Context, provider: { model: string; context
     let done = false
     const encode = (data: any) => `data: ${JSON.stringify({ id, object: 'chat.completion.chunk', model: provider.model, ...data })}\n\n`
     const convert = (event: any) => {
-      if (event.error) throw new Error('pbtadmin.ollamaRequestFailed')
+      if (event.error) throw new Error(classifyOllamaError(event.error))
       const delta: any = { role: 'assistant' }
       if (event.message?.content) delta.content = event.message.content
       if (event.message?.tool_calls?.length) delta.tool_calls = event.message.tool_calls.map((call: any) => ({

@@ -398,3 +398,49 @@ No se ha probado que un defecto de spawn, permisos, transporte Electron o un loc
 **Pendiente obligatorio:** reconstruir fuera del sandbox, abrir exclusivamente el nuevo `win-unpacked/PbtModLauncherX.exe` con `PBT_PORTABLE_DATA` apuntando a un perfil temporal nuevo, comprobar modelo/endpoint visibles, conversar mediante PbtAdmin, cerrar y reabrir el mismo perfil. Revisar únicamente las líneas `[local.runtime]` de sus logs y confirmar el cierre de procesos propios. La inferencia anterior por script sigue siendo evidencia independiente y no sustituye esta prueba. Linux/macOS no se han ejecutado nativamente.
 
 Si `.git/index.lock` impide el commit, esta corrección se preserva mediante ZIP verificado, manifiesto SHA-256 y parche bajo `temp/ollama-sync-preservacion-20261011.*`, sin binarios ni pesos. No hay push, merge, tags ni release.
+
+## Fase 15.8 — contexto de Qwen3 4B (2026-10-11)
+
+Base: `44d9938c`, rama `dev/upstream-v1.0.7`, árbol inicialmente limpio. Versión 1.0.7 sin publicar.
+
+### Causa reproducida y alcance de la evidencia
+
+El importador oficial GGUF genera `PARAMETER num_ctx 4096`; `parseOllamaModel` respeta ese valor y los metadatos del modelo, con un techo conservador de 8192. El puente `/api/chat` transmite el contexto observado y reserva 1024 tokens de respuesta para 4096. No se aumenta el contexto ni se atribuye el error a RAM sin evidencia.
+
+El frontend construía herramientas, instrucciones extensas y el catálogo de documentos incluso para un saludo. `boundAgentProviderContext` podía lanzar `pbtadmin.contextTooSmall` antes de contactar a Ollama: no es necesariamente un error devuelto por el motor. Una regresión reproduce ese fallo con 24 descripciones y un saludo. La estimación anterior incluía metadatos de transporte que no forman parte del prompt. Esto demuestra un mecanismo del defecto; no sustituye la captura de la ejecución visual original.
+
+### Corrección
+
+- Política conservadora por petición: saludos, identidad, lore y explicaciones generales reconocidas utilizan chat sin herramientas. Peticiones ambiguas o diagnósticas conservan el gateway virtual `vfs_shell` y lectura; escritura/eliminación añaden las herramientas directas pertinentes. El gateway mantiene descubrimiento de operaciones mediante `help`; no se modifica su allowlist ni sus confirmaciones. No se introducen comandos de sistema ni reintentos automáticos de acciones.
+- Prompt de trabajo pequeño: identidad, creadora en femenino, privacidad, distinción entre miembros reales y parodias, evidencia no confiable y confirmaciones. Se retira el catálogo completo; el lore se recupera localmente por consulta, máximo tres fragmentos de 1200 caracteres. No se introducen historias completas en cada turno.
+- El prompt de cada petición refleja sus capacidades actuales; no se reutiliza una copia antigua guardada con herramientas/documentos adicionales. No se cambian selecciones de modelo o proveedor.
+- Proyección acotada del historial: conserva turnos recientes y pares de herramientas; omite razonamiento antiguo y llamadas/resultados de herramientas en el modo de conversación. Los resultados extensos se limitan con un aviso. El historial persistido no se reemplaza por resúmenes ni se borra. Un mensaje actual que por sí solo no cabe produce un error explícito.
+- Estimación conservadora por caracteres, no un tokenizer exacto: cuenta prompt, contenido y esquemas, excluye coste/usage/timestamps; reserva respuesta más 128 tokens de margen. No se presentan estimaciones como tokens medidos por Qwen.
+- Métricas numéricas `[local.context]` en el puente: contexto, reserva, cantidades de mensajes/herramientas y caracteres, sin registrar contenidos. El debug de desarrollo añade cuántos mensajes quedaron fuera. El uso real sigue procediendo de `prompt_eval_count`/`eval_count` y la telemetría existente.
+- Errores conocidos de memoria, contexto y timeout se distinguen sin retransmitir cuerpos arbitrarios del proveedor. Nuevos textos en es-ES, ca e inglés, comprobados en UTF-8. La disposición centrada del chat y las preferencias de bajos recursos se conservan.
+
+### Validación y pendientes
+
+| Comprobación | Estado | Evidencia |
+| --- | --- | --- |
+| Regresiones agente/proveedor/transporte | APROBADO | 253 tests, 24 archivos, cero fallos; `temp/phase158-tests.log` |
+| Typecheck completo | APROBADO | `pnpm check`, salida 0; `temp/phase158-check.log` |
+| Lint | APROBADO | `pnpm lint`, salida 0; avisos existentes, sin errores |
+| Keystone UI | APROBADO | `pnpm build:renderer`, salida 0; bundle verificado, 110 chunks |
+| Compilación Electron | BLOQUEADO | `pnpm --prefix=xmcl-electron-app compile`: ENOMEM en `uv_os_get_passwd`, Node 22.22.3 |
+| Diagnóstico ambiental mínimo | BLOQUEADO | `node` con `os.userInfo()` reproduce ENOMEM fuera del código del launcher |
+| Nuevo portable e inferencia de esta corrección | NO EJECUTADO | No se ha reconstruido Electron en este sandbox |
+| Chat visual, diez turnos, diagnóstico, reinicio y bajos recursos | NO EJECUTADO | Requiere prueba externa; no se declara solucionado completamente |
+| Linux/macOS nativos | NO EJECUTADO | No hay entorno nativo validado |
+
+No se repiten descargas del GGUF válido ni se incorporan pesos/binarios a Git. La inferencia auténtica de fases anteriores no valida esta nueva ruta de contexto. No se inicia otra inferencia nativa dentro del sandbox mientras el cierre de procesos mediante taskkill siga siendo una limitación conocida; ENOMEM y cleanup son bloqueos distintos.
+
+Validación externa reproducible, desde PowerShell normal en la raíz:
+
+```powershell
+& './scripts/validate-pbtadmin-context.ps1'
+```
+
+El helper reconstruye UI y portable, verifica primero un saludo y el lore con el puente productivo, y abre dos veces un perfil nuevo `temp/phase158-ui-*`. Restaura las variables del proceso y no detiene aplicaciones ajenas. La inferencia por script sigue siendo distinta de la comprobación visual. Devuelve logs `temp/phase158-*-external.log`, JSON UTF-8 emitidos y resultados visuales: saludo, identidad, 0ftome, JuanD, explicación técnica, diagnóstico real, diez turnos, streaming, modo reducido, persistencia y cierre de procesos propios. No aprobar cambios de archivos durante esta prueba. La falta real de memoria física no se simula con fixtures.
+
+Git no pudo crear `.git/index.lock`: `Permission denied`. Se preservan fuentes/documentación mediante `temp/phase158-preservacion-20261011.{zip,manifest.json,patch}`, incluyendo archivos nuevos y excluyendo modelos, binarios, perfiles y fuentes RTF privadas. No se alteran permisos, master o backups; no hay push, merge, tags ni publicación.

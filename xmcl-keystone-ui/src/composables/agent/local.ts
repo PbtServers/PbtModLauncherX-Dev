@@ -28,6 +28,7 @@ import { buildAgentSystemPrompt, createXmclBuiltInPayload, isCurrentPbtAdminProm
 import { contentText, createAgentId, createAgentModel, fromPiMessage, getAgentContextTokens, toPiMessage } from './protocol'
 import { useAgentSettings } from './settings'
 import { createPbtAdminKnowledgeEvidence, pbtAdminKnowledgeQuery } from './knowledge'
+import { buildPbtAdminWorkingPrompt, isPbtAdminConversation, pbtAdminToolNames } from './requestPolicy'
 import { createAgentToolFailureGuard, stringifyAgentToolEventResult, wrapAgentToolsWithErrorNormalization, wrapAgentToolsWithResultSpill } from './toolSupport'
 import { createAgentPassiveContextMessage, readAgentSessionContext, resolveAgentSessionSystemPrompt, type AgentPassiveContext } from './context'
 import { createAgentPassiveEventMessage, registerAgentPassiveEventConsumer, type AgentPassiveEvent } from './passiveEvents'
@@ -105,7 +106,12 @@ export function useLocalAgent(options: LocalAgentOptions): LocalAgentSession {
     const transportModel = { ...model, baseUrl: model.api === 'anthropic-messages' ? 'https://agent.runtime' : LOCAL_AGENT_TRANSPORT_ENDPOINT.replace('/chat/completions', '') }
     const selectedApi = model.api === 'anthropic-messages' ? anthropicMessagesApi() : providerApi
     if (activeRunTelemetry) recordAgentProviderRequest(activeRunTelemetry)
-    return selectedApi.streamSimple(transportModel, boundAgentProviderContext(context, model.contextWindow, model.maxTokens), {
+    const bounded = boundAgentProviderContext(context, model.contextWindow, model.maxTokens)
+    agentDebug('context.budget', { contextWindow: model.contextWindow, responseReserve: model.maxTokens,
+      systemCharacters: bounded.systemPrompt?.length || 0, toolCount: bounded.tools?.length || 0,
+      toolSchemaCharacters: JSON.stringify(bounded.tools || []).length, messageCount: bounded.messages.length,
+      omittedMessages: context.messages.length - bounded.messages.length })
+    return selectedApi.streamSimple(transportModel, bounded, {
       ...streamOptions,
       apiKey: 'runtime-managed',
       onPayload: settings.mode.value === 'builtin'
@@ -314,7 +320,11 @@ export function useLocalAgent(options: LocalAgentOptions): LocalAgentSession {
       locale: options.getLocale(),
       userId: options.getUserId?.(),
     }
-    const createdTools = settings.toolsSupported.value ? wrapAgentToolsWithErrorNormalization(await options.createTools(runContext)) : []
+    const conversational = options.agentId === 'launcher' && isPbtAdminConversation(input)
+    const requestedTools = options.agentId === 'launcher' ? pbtAdminToolNames(input) : undefined
+    const createdTools = settings.toolsSupported.value && !conversational
+      ? wrapAgentToolsWithErrorNormalization((await options.createTools(runContext)).filter(tool => !requestedTools || requestedTools.includes(tool.name)))
+      : []
     const supportsArtifacts = settings.historyEnabled.value && createdTools.some(tool => tool.name === 'vfs_read') && createdTools.some(tool => tool.name === 'vfs_shell')
     const artifactKey: AgentConversationKey = { agentId: options.agentId, scope }
     const tools = supportsArtifacts
@@ -323,10 +333,9 @@ export function useLocalAgent(options: LocalAgentOptions): LocalAgentSession {
     setAgentRunTelemetryTools(telemetry, tools.map(tool => tool.name))
     const role = options.agentId === 'css' ? 'css-main' : options.agentId === 'modpack-changelog' ? 'modpack-changelog-main' : 'launcher-main'
     telemetry.failureStage = 'documents'
-    const documents = role === 'launcher-main' && tools.some(tool => tool.name === 'vfs_shell')
-      ? await service.listDocuments()
-      : undefined
-    documentCount = documents?.length ?? 0
+    // Discover document IDs on demand, rather than paying for every document on every turn.
+    const documents = undefined
+    documentCount = 0
     telemetry.failureStage = 'setup'
     const sessionContext = options.getSessionContext(runContext)
     const promptProfile = {
@@ -337,7 +346,9 @@ export function useLocalAgent(options: LocalAgentOptions): LocalAgentSession {
       documents,
       sessionContext,
     } as const
-    const generatedSystemPrompt = buildAgentSystemPrompt(promptProfile)
+    const generatedSystemPrompt = role === 'launcher-main'
+      ? buildPbtAdminWorkingPrompt(runContext.locale, tools.map(tool => tool.name))
+      : buildAgentSystemPrompt(promptProfile)
     const builtInContext: XmclBuiltInAgentContext = {
       promptVersion: 1,
       agentType: options.agentId,
@@ -346,7 +357,7 @@ export function useLocalAgent(options: LocalAgentOptions): LocalAgentSession {
       sessionContext,
     }
     const storedSessionContext = readAgentSessionContext(conversationContext)
-    const trustedStoredPrompt = isCurrentPbtAdminPrompt(storedSessionContext.systemPrompt) ? storedSessionContext.systemPrompt : undefined
+    const trustedStoredPrompt = role !== 'launcher-main' && isCurrentPbtAdminPrompt(storedSessionContext.systemPrompt) ? storedSessionContext.systemPrompt : undefined
     const initialSystemPrompt = resolveAgentSessionSystemPrompt(trustedStoredPrompt, generatedSystemPrompt, false)
     const passiveContext = options.getPassiveContext?.(runContext)
     const passiveMessage = passiveContext
@@ -377,7 +388,10 @@ export function useLocalAgent(options: LocalAgentOptions): LocalAgentSession {
     }
 
     telemetry.failureStage = 'compaction'
-    const compacted = await compactConversation(messages.value, initialSystemPrompt, input, providerModel, builtInContext)
+    // Launcher requests use a bounded projection. Do not replace the saved chat with a summary.
+    const compacted = role === 'launcher-main'
+      ? { messages: messages.value, compacted: false }
+      : await compactConversation(messages.value, initialSystemPrompt, input, providerModel, builtInContext)
     telemetry.failureStage = 'setup'
     const systemPrompt = resolveAgentSessionSystemPrompt(trustedStoredPrompt, generatedSystemPrompt, compacted.compacted)
     if (compacted.compacted) {

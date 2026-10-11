@@ -377,6 +377,8 @@ const liveStatus = computed(() => {
 const displayError = computed(() => {
   const error = lastError.value || runError.value
   if (error.includes('pbtadmin.contextTooSmall')) return t('pbtadmin.contextTooSmall')
+  if (error.includes('pbtadmin.ollamaMemory')) return t('pbtadmin.ollamaMemory')
+  if (error.includes('pbtadmin.ollamaTimeout')) return t('pbtadmin.ollamaTimeout')
   if (error.includes('pbtadmin.ollamaRequestFailed')) return t('pbtadmin.ollamaRequestFailed')
   return error
 })
