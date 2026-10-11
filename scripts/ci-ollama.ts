@@ -1,4 +1,4 @@
-import { access, readFile, readdir, rm, statfs } from 'node:fs/promises'
+import { access, mkdir, readFile, readdir, rm, statfs } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -18,6 +18,7 @@ async function main() {
   if (targetArch && !['x64', 'arm64'].includes(targetArch)) throw new Error('Invalid package architecture')
   const arches = process.platform === 'win32' ? ['x64'] : [...new Set([process.arch, targetArch || 'x64', ...(targetArch ? [] : ['arm64'])])]
   const root = resolve('xmcl-electron-app/build/ollama')
+  await mkdir(root, { recursive: true })
   const verifyOnly = process.argv.includes('--verify-only')
 
   function run(script: string, args: string[] = []) {

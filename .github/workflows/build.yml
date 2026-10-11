@@ -31,8 +31,37 @@ concurrency:
   group: build-release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 jobs:
+  prepare-macos-x64-ollama:
+    name: Prepare verified Ollama Intel runtime on ARM
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+      - name: Use Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Prepare Intel Ollama runtime on ARM
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          pnpm exec tsx scripts/prepare-ollama.mjs --version v0.34.0 --platform darwin --arch x64
+          tar -czf mac-x64-ollama-runtime.tar.gz -C xmcl-electron-app/build/ollama mac-x64
+      - name: Upload verified Intel Ollama runtime
+        uses: actions/upload-artifact@v6
+        with:
+          name: ollama-macos-x64-runtime
+          path: mac-x64-ollama-runtime.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
   build:
-    runs-on: ${{ matrix.os }}
+    needs: prepare-macos-x64-ollama
+    runs-on: ${{ matrix.os == 'macos-latest' && matrix.package_arch == 'x64' && 'macos-15-intel' || matrix.os }}
     strategy:
       matrix:
         include:
@@ -83,7 +112,22 @@ jobs:
           sudo apt-get install -y libarchive-tools zstd
           # Hosted runner toolchains unused by this build; preserve workspace/data.
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+      - name: Download preverified macOS Intel runtime
+        if: ${{ runner.os == 'macOS' && matrix.package_arch == 'x64' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ollama-macos-x64-runtime
+          path: .ollama-intel-artifact
+      - name: Restore verified Intel runtime
+        if: ${{ runner.os == 'macOS' && matrix.package_arch == 'x64' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p xmcl-electron-app/build/ollama
+          tar -xzf .ollama-intel-artifact/mac-x64-ollama-runtime.tar.gz -C xmcl-electron-app/build/ollama
       - name: Prepare verified Ollama runtimes and Qwen3 4B
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: pnpm exec tsx scripts/ci-ollama.ts
       - name: Verify all AI resources before packaging
         run: pnpm exec tsx scripts/ci-ollama.ts --verify-only
