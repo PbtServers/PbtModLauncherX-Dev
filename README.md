@@ -18,8 +18,6 @@ PbtModLauncherX es una adaptación y evolución de **X Minecraft Launcher**, per
 
 PbtinaDev es la creadora, propietaria y administradora del proyecto. PbtServers es su network y comunidad; su servidor documentado es `mc.pbtservers.com`. La arquitectura y numerosos servicios proceden de [X Minecraft Launcher (XMCL), de Voxelum](https://github.com/Voxelum/x-minecraft-launcher): no es un launcher desarrollado desde cero.
 
-**1.0.7 está configurada en código y en preparación, sin publicación realizada en estas fases.** Persisten bloqueos de compilación y pruebas reales pendientes. Los badges indican plataformas objetivo, no instaladores certificados. Consulta [la matriz de validación](PbtModLauncherX-Data/Modificaciones/VALIDACION-FINAL-v1.0.7.md) y el [CHANGELOG](CHANGELOG.md).
-
 ## Contenido
 
 - [Funciones y estado](#funciones-y-estado)
