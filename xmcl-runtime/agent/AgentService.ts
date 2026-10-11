@@ -3,7 +3,6 @@ import { activeLocalChats } from './ollamaChat'
 import { OllamaController } from './ollama'
 import { ManagedOllama, kOllamaResourceRoot, type LocalRuntimeConfig } from './managedOllama'
 import { validateOllamaBundle } from './runtimeBundle'
-import { FACTORY_MODEL, HF_FACTORY_MODEL } from './modelBundle'
 import { XMCL_CLOUD_ENABLED, assertIndependentUrl, isXmclExclusiveUrl, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import {
   AgentServiceKey,
@@ -62,7 +61,7 @@ export class AgentService extends AbstractService implements IAgentService {
     @Inject(kOllamaResourceRoot) resourceRoot: string,
   ) {
     super(app)
-    this.engine = new ManagedOllama({ bundle: resourceRoot, seed: join(resourceRoot, '..', 'ollama-model'), data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args), (event, details) => this.logAgent(`[local.runtime] ${JSON.stringify({ event, ...details })}`))
+    this.engine = new ManagedOllama({ bundle: resourceRoot, data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args), () => {})
     this.ollama = new OllamaController((...args) => app.fetch(...args), async () => {
       try { await validateOllamaBundle(resourceRoot); return true } catch { return false }
     }, undefined, () => this.engine.ensure())
@@ -113,10 +112,6 @@ export class AgentService extends AbstractService implements IAgentService {
       hasModel: !!input.model,
       hasApiKey: input.apiKey !== undefined,
     })}`)
-    // Persist the secret first: it is the only step that can fail (OS keychain
-    // errors), and we must not leave the endpoint/model settings committed while
-    // the API key write was rejected. The key is scoped to the endpoint being
-    // saved, so each provider keeps its own.
     if (input.apiKey !== undefined && endpoint) {
       await this.apiKeys.put(endpoint, input.apiKey)
     }
@@ -132,11 +127,9 @@ export class AgentService extends AbstractService implements IAgentService {
     const endpoint = settings.agentEndpoint.trim() || OLLAMA_ENDPOINT
     let model = settings.agentModel.trim()
     if (settings.lowResourceMode && !this.localAgentRequested && isOllamaEndpoint(endpoint)) return { mode: 'unconfigured' }
-    // Finish verified seed publication and readiness before interpreting tags.
-    // Otherwise a startup failure is swallowed by resolveModel as "no model".
     if (isOllamaEndpoint(endpoint)) await this.engine.ensure()
     if (!model && isOllamaEndpoint(endpoint)) {
-      const local = await this.ollama.resolveModel(HF_FACTORY_MODEL) || await this.ollama.resolveModel(FACTORY_MODEL)
+      const local = await this.ollama.resolveModel('qwen3:4b-q4_K_M')
       if (local) {
         const latest = await this.app.registry.get(kSettings)
         if (latest.agentModel.trim() || (latest.agentEndpoint.trim() || OLLAMA_ENDPOINT) !== endpoint) return this[kResolvedAgentProvider]()
@@ -170,7 +163,7 @@ export class AgentService extends AbstractService implements IAgentService {
   }
 
   async getOllamaStatus() {
-    if ((await this.app.registry.get(kSettings)).lowResourceMode && !this.localAgentRequested) return { installed: undefined, running: false, models: [], recommendedModels: [], totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length }
+    if ((await this.app.registry.get(kSettings)).lowResourceMode && !this.localAgentRequested) return { installed: undefined, running: false, models: [], recommendedModels: [], totalMemory: totalmem(), freeMemory: freemem(), cpuCount: cpus().length, runtimeError: 'ollama_runtime_unavailable' }
     let runtimeError: string | undefined
     try { await this.engine.ensure() } catch (e) {
       const message = (e as Error).message
@@ -180,7 +173,7 @@ export class AgentService extends AbstractService implements IAgentService {
     const status = await this.ollama.inspect()
     if (runtimeError) return { ...status, runtimeError }
     const storage = await this.engine.storage()
-    return { ...status, ...storage, freeStorageBytes: storage.freeBytes, recommendedModels: status.recommendedModels.filter(name => storage.freeBytes >= (LOCAL_AI_MODELS.find(entry => entry.name === name)?.estimatedBytes || Infinity) * 1.1) }
+    return { ...status, ...storage, freeStorageBytes: storage.freeBytes, recommendedModels: status.recommendedModels.filter(name => storage.freeBytes >= (LOCAL_AI_MODELS.find(entry => entry.name === name)?.estimatedBytes ?? 0) * 1.1) }
   }
   async getLocalRuntimeStorage() { return this.engine.storage() }
   async configureLocalRuntime(input: LocalRuntimeConfig) { await this.engine.configure(input) }
