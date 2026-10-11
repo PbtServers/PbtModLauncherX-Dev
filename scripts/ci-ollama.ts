@@ -3,12 +3,9 @@ import { constants } from 'node:fs'
 import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import * as runtimeBundle from '../xmcl-runtime/agent/runtimeBundle'
-import * as modelBundle from '../xmcl-runtime/agent/modelBundle'
 
 const validateOllamaBundle = runtimeBundle.validateOllamaBundle ?? (runtimeBundle as any).default?.validateOllamaBundle
-const validateFactoryModel = modelBundle.validateFactoryModel ?? (modelBundle as any).default?.validateFactoryModel
 if (typeof validateOllamaBundle !== 'function') throw new Error('Ollama bundle validator unavailable')
-if (typeof validateFactoryModel !== 'function') throw new Error('Factory model validator unavailable')
 
 async function main() {
   const version = 'v0.34.0'
@@ -66,7 +63,6 @@ async function main() {
       try {
         run('scripts/prepare-ollama.mjs', ['--version', version, '--platform', process.platform, '--arch', arch])
       } finally {
-        // Retain the preparer's original output and cleanup semantics.
         for (const name of await readdir(root)) {
           if (name.startsWith(`${folder}-${arch}.preparing-`)) {
             await rm(resolve(root, name), { recursive: true, force: true })
@@ -74,39 +70,15 @@ async function main() {
         }
       }
     }
-
-    // Optional model preparation: skip if model already exists or not needed for this build
-    const modelPath = resolve(root, 'ollama-model')
-    let hasModel = false
-    try {
-      await access(modelPath)
-      hasModel = true
-      console.log('Existing model found; skipping download to reduce build time')
-    } catch {
-      console.log('No existing model; skipping optional model download (users will download on first use)')
-    }
   }
 
-  // Verify runtimes are always present (required)
   for (const arch of arches) await verifyRuntime(arch)
-  
-  // Verify model if present (optional during build; may exist from cache or previous run)
-  const modelPath = resolve(root, 'ollama-model')
-  try {
-    await access(modelPath)
-    const model = await validateFactoryModel(modelPath)
-    console.log(`Verified factory model ${model.index.model}: ${model.bytes} bytes, ${model.files.length} files`)
-  } catch (error) {
-    if (verifyOnly) throw error
-    console.log(`Model not found or invalid (this is OK for normal builds): ${error}`)
-  }
 
-  // Cleanup temporary files
   if (!verifyOnly) {
     try {
       await rm(resolve(root, 'hf-qwen3-4b'), { recursive: true, force: true })
     } catch {
-      // May not exist; that's fine
+      // Best-effort cleanup of optional model caches from earlier builds.
     }
   }
 }
