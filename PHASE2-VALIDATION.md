@@ -5,6 +5,49 @@ No se modifican releases públicas, etiquetas ni notas de release. Esta fase
 todavía requiere builds actuales en GitHub Actions y pruebas nativas en Linux
 y macOS; esta sección se actualizará con sus resultados reales.
 
+## Estado al integrar la Fase 2 en master
+
+Por autorización expresa del mantenedor, se integra el historial de la rama sin
+esperar a las compilaciones remotas. **Las cinco builds finales siguen pendientes
+de confirmación y no se consideran validadas.** Un push normal solo compila:
+el trabajo de release exige `workflow_dispatch`, `prepare_draft: true`, un tag
+explícito y una release que siga siendo borrador. No se publican ni modifican
+automáticamente la release v1.0.7, sus archivos, notas o etiquetas.
+
+Comprobaciones locales esenciales superadas: 264 pruebas en 28 archivos,
+`pnpm check`, `pnpm lint` y carga del verificador mediante `tsx`. El último
+adaptador solo corrige la interoperabilidad CommonJS/ESM del script de CI;
+su comprobación previa también se ejecutará en los runners Node 24.
+
+La ejecución [38187710243](https://github.com/PbtServers/PbtModLauncherX-Dev/actions/runs/38187710243)
+pasó Windows y macOS Apple Silicon. macOS Intel agotó el heap de `vue-tsc`,
+corregido con 4 GiB únicamente en el paso de type-check/lint. Los dos Linux
+compilaron los cinco formatos y comprobaron tamaños/checksums, pero fallaron
+al cargar el script de extracción por interoperabilidad de módulos. Ese error
+está corregido y se añade una comprobación de imports antes del empaquetado.
+
+Los tamaños Linux medidos en esa ejecución, en bytes, son:
+
+| Arquitectura | AppImage | DEB | RPM | TAR.XZ | Pacman |
+|---|---:|---:|---:|---:|---:|
+| x64 | 1824990801 | 1546139376 | 1481413725 | 1477112980 | 1506366696 |
+| ARM64 | 1921314433 | 1658187956 | 1595110945 | 1597224080 | 1620163100 |
+
+Todos están por debajo de 2 GiB. Se conservaron 17 alias en cada arquitectura:
+1.487.906.728 bytes duplicados en x64 y 1.550.231.408 en ARM64. Estos resultados
+no sustituyen la extracción y validación final de bibliotecas, que sigue pendiente.
+
+La ejecución de revisión [38191562193](https://github.com/PbtServers/PbtModLauncherX-Dev/actions/runs/38191562193)
+corresponde a `db8ad242`, con el adaptador corregido. Las ejecuciones anteriores
+en cola que fueron sustituidas o canceladas no cuentan como validación.
+El push a master iniciará otra ejecución sobre el commit integrado.
+
+No se conoce un fallo crítico reproducible que impida usar el launcher Windows
+comprobado. Siguen sin probarse las instalaciones completas Linux/macOS, la firma
+y notarización macOS, el canal firmado de APPX y la actualización real desde
+1.0.6/ciclo AppImage. Las actualizaciones ZIP/APPX/DMG siguen siendo manuales.
+No se declara completada toda la Fase 2 ni se presentan esas pruebas como superadas.
+
 ## Validaciones locales
 
 - Batería local actual: **28 archivos, 264 pruebas superadas**, ninguna omitida.
@@ -105,7 +148,8 @@ ID Application: firma y notarización reales siguen pendientes.
   explícito de pesos y carpetas de modelos empaquetados.
 - Deduplicación Linux mediante enlaces duros de bibliotecas idénticas ya validadas:
   conserva nombres, permisos y bytes. Prueba con el mismo node-tar del builder
-  confirma almacenamiento y extracción de los alias. Falta medir builds Linux reales.
+  confirma almacenamiento y extracción de los alias. Los tamaños Linux ya medidos
+  están bajo el límite; falta completar la validación de extracción en los runners.
 - Nombres correctos de paquetes Linux y selección del AppImage de su arquitectura;
   descarga completa, comprobaciones de integridad y enlace manual oficial.
 - Borradores/prereleases excluidos cuando corresponde y selección de versión más
@@ -123,7 +167,7 @@ ID Application: firma y notarización reales siguen pendientes.
 
 ## Pendiente antes de declarar terminada la fase
 
-1. Ejecutar las cinco builds actuales en la rama de revisión, sin fusionar ni publicar.
+1. Confirmar las cinco builds finales del commit integrado en master, sin publicar.
 2. Confirmar tamaños Linux después de deduplicar; si algún paquete sigue por encima
    del límite, corregirlo sin retirar dependencias necesarias.
 3. Instalación y arranque nativos Linux/macOS, firma y canal APPX correspondiente.
