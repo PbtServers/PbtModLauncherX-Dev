@@ -11,6 +11,7 @@ import type ElectronLauncherApp from '../ElectronLauncherApp'
 import { runtimeDependencyFingerprint } from './releaseMetadata'
 import { checkRelease, fetchUpdate, readUpdateJSON, supportsAsar, updateManifestURL, updateReleaseURL, type CheckedRelease } from './updatePolicy'
 import { downloadVerifiedUpdate, hashUpdate, replaceVerifiedAsar } from './updateDownload'
+import { linuxPackageName } from './packageNames'
 
 export class ElectronUpdater implements LauncherAppUpdater {
   private approved?: { info: ReleaseInfo; key: string; manifest?: CheckedRelease; sha512?: string }
@@ -27,6 +28,7 @@ export class ElectronUpdater implements LauncherAppUpdater {
     updater.autoUpdater.autoDownload = false
     updater.autoUpdater.autoInstallOnAppQuit = false
     updater.autoUpdater.allowDowngrade = false
+    updater.autoUpdater.disableDifferentialDownload = true
     electronApp.on('before-quit', this.beforeQuit)
   }
 
@@ -74,15 +76,17 @@ export class ElectronUpdater implements LauncherAppUpdater {
         const result = await updater.autoUpdater.checkForUpdates()
         if (!result || !valid(result.updateInfo.version)) throw new Error('Invalid full update metadata')
         const version = result.updateInfo.version
-        const expected = `pbtmodlauncherx-${version}-${process.arch}.AppImage`
-        if (result.updateInfo.files.length !== 1 || result.updateInfo.files.some(file =>
-          (file.url !== expected && file.url !== `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/${expected}`) ||
+        const expected = linuxPackageName(version, process.arch, 'AppImage')
+        const allowed = ['AppImage', 'deb', 'rpm', 'pacman'].map(ext => linuxPackageName(version, process.arch, ext))
+        const image = result.updateInfo.files.filter(file => file.url === expected || file.url === `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/${expected}`)
+        if (image.length !== 1 || result.updateInfo.files.some(file =>
+          !allowed.some(name => file.url === name || file.url === `https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v${version}/${name}`) ||
           !/^[A-Za-z0-9+/]{86}==$/.test(file.sha512))) throw new Error('Invalid AppImage update source, architecture or digest')
-        sha512 = result.updateInfo.files[0].sha512
+        sha512 = image[0].sha512
         info = {
           name: version, body: typeof result.updateInfo.releaseNotes === 'string' ? result.updateInfo.releaseNotes : '',
           date: result.updateInfo.releaseDate,
-          files: result.updateInfo.files.map(f => ({ name: f.url, url: f.url })),
+          files: image.map(f => ({ name: f.url, url: f.url })),
           newUpdate: gt(version, this.app.version) && (allowPrerelease || !prerelease(version)),
           operation: ElectronUpdateOperation.AutoUpdater,
         }
@@ -91,14 +95,18 @@ export class ElectronUpdater implements LauncherAppUpdater {
         const candidates: CheckedRelease[] = []
         for (const source of [updateManifestURL, updateReleaseURL]) {
           try {
-            candidates.push(checkRelease(await readUpdateJSON(await fetchUpdate(fetcher, source)), this.app.version, allowPrerelease))
+            const value = await readUpdateJSON(await fetchUpdate(fetcher, source))
+            const checked = checkRelease(value, this.app.version, allowPrerelease)
+            const flags = value as { draft?: boolean; prerelease?: boolean }
+            if (flags.draft === true || (!allowPrerelease && (flags.prerelease === true || prerelease(checked.version)))) continue
+            candidates.push(checked)
           } catch {
             // Either existing fork-owned source can be temporarily unavailable.
             // Never trust an invalid response or silently claim up to date if both fail.
           }
         }
         if (!candidates.length) throw new Error('No valid PbtServers update manifest is available')
-        manifest = candidates.filter(candidate => candidate.newer).sort((a, b) => rcompare(a.version, b.version))[0] ?? candidates[0]
+        manifest = candidates.sort((a, b) => rcompare(a.version, b.version))[0]
         const suffix = this.app.platform.arch === 'x64' ? '' : `-${this.app.platform.arch}`
         const name = `app-${manifest.version}-linux${suffix}.asar`
         const runtime = { electron: process.versions.electron ?? '', platform: process.platform, arch: process.arch, dependencies: runtimeDependencyFingerprint }
@@ -161,7 +169,7 @@ export class ElectronUpdater implements LauncherAppUpdater {
     try {
       await this.checkChannel(info)
       if (info.operation === ElectronUpdateOperation.Manual) {
-        await shell.openExternal('https://mods.pbtservers.com')
+        await shell.openExternal(`https://github.com/PbtServers/PbtModLauncherX-Dev/releases/tag/v${info.name}`)
         return
       }
       if (info.operation === ElectronUpdateOperation.Asar && approved.manifest) {

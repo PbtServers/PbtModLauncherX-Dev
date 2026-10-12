@@ -18,5 +18,7 @@ test('packaging includes external runtime resources and excludes unsupported Win
   expect(config.extraResources).toContainEqual({ from: 'build/ollama/${os}-${arch}', to: 'ollama', filter: ['**/*'] })
   expect(config.extraResources.some(resource => resource.to === 'ollama-model')).toBe(false)
   expect(config.win.target[0]).toEqual({ target: 'zip', arch: ['x64'] })
-  expect(config.mac.signIgnore).toContain('resources/ollama/.*')
+  const ignored = (path: string) => config.mac.signIgnore.some(pattern => new RegExp(pattern).test(path))
+  expect(ignored('/Applications/PbtModLauncherX.app/Contents/Resources/ollama/ollama')).toBe(true)
+  expect(ignored('/Applications/PbtModLauncherX.app/Contents/MacOS/PbtModLauncherX')).toBe(false)
 })

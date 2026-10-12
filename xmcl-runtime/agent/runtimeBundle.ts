@@ -61,6 +61,12 @@ export async function validateOllamaBundle(root: string, platform = process.plat
   if (!names.has(manifest.executable) || !names.has('LICENSE')) throw new Error('ollama_incomplete_bundle')
   if (!(await readFile(join(base, 'LICENSE'), 'utf8')).includes('MIT License')) throw new Error('ollama_missing_license')
   const executable = bundlePath(base, manifest.executable)
+  await validateExecutableArchitecture(executable, platform, arch)
+  return { manifest, executable }
+}
+
+/** Shared binary-header check for the official runtime and packaged launcher. */
+export async function validateExecutableArchitecture(executable: string, platform: string, arch: string) {
   const descriptor = await open(executable, 'r')
   const header = Buffer.alloc(4096)
   try { await descriptor.read(header, 0, header.length, 0) } finally { await descriptor.close() }
@@ -78,5 +84,4 @@ export async function validateOllamaBundle(root: string, platform = process.plat
       if (count < 1 || count > 16 || !Array.from({ length: count }, (_, i) => header.readUInt32BE(8 + stride * i)).includes(cpu)) throw new Error('ollama_executable_mismatch')
     } else if (header.readUInt32LE(0) !== 0xfeedfacf || header.readUInt32LE(4) !== cpu) throw new Error('ollama_executable_mismatch')
   }
-  return { manifest, executable }
 }

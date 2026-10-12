@@ -15,14 +15,16 @@ test('CI prepares and verifies AI before packaging, including every configured a
   for (const target of config.linux.target) expect(target.arch).toEqual([process.env.PBT_PACKAGE_ARCH === 'arm64' ? 'arm64' : 'x64'])
   const matrix = workflow.split('        include:')[1].split('      fail-fast:')[0]
   expect([...matrix.matchAll(/- os: (\S+)\s+package_arch: (\S+)/g)].map(([, os, arch]) => `${os}/${arch}`)).toEqual([
-    'ubuntu-latest/x64', 'ubuntu-latest/arm64', 'macos-latest/x64', 'macos-latest/arm64', 'windows-latest/x64',
+    'ubuntu-latest/x64', 'ubuntu-24.04-arm/arm64', 'macos-latest/x64', 'macos-latest/arm64', 'windows-latest/x64',
   ])
 })
 
-test('release updates assets only after successful builds and never creates or edits notes', () => {
+test('release staging requires explicit draft consent and never overwrites public assets or edits notes', () => {
   const workflow = readFileSync('.github/workflows/build.yml', 'utf8').split('  release:')[1]
   expect(workflow).toContain("needs.build.result == 'success'")
-  expect(workflow).toContain('gh release view "$RELEASE_TAG"')
-  expect(workflow).toContain('gh release upload "$RELEASE_TAG" build/* --clobber')
+  expect(workflow).toContain('inputs.prepare_draft')
+  expect(workflow).toContain('--json isDraft')
+  expect(workflow).toContain('gh release upload "$RELEASE_TAG" build/release/*')
+  expect(workflow).not.toContain('--clobber')
   expect(workflow).not.toMatch(/release create|release edit|RELEASE_BODY|body_path/)
 })

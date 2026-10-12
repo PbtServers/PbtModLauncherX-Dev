@@ -12,7 +12,7 @@ for (const name of files) {
   const info = await stat(path)
   if (!info.isFile()) throw new Error(`Unexpected directory: ${name}`)
   if (info.size < 2 * 1024 ** 3) continue
-  // Model weights alone exceed GitHub's individual asset limit. Preserve every
+  // Future distributions may exceed GitHub's individual asset limit. Preserve every
   // byte in ordered 1 GiB parts; users reconstruct before installing.
   const parts = []
   const source = await open(path, 'r')

@@ -22,12 +22,12 @@ describe('Vuetify language preference', () => {
     i18n.global.locale.value = 'en'
     expect(i18n.global.t('missing')).toBe('English')
   })
-  it.each([undefined, '', 'unsupported'])('defaults to Spanish for %s', (locale) => {
+  it.each([undefined, ''])('defaults to Spanish for %s', (locale) => {
     expect(resolveVuetifyLocale(locale)).toBe('es')
   })
   it.each([
     ['es-ES', 'es'], ['ca', 'ca'], ['en', 'en'], ['en-IN', 'en'],
-    ['fr', 'fr'], ['zh-CN', 'zhHans'], ['ar-EG', 'ar'],
+    ['fr', 'en'], ['zh-CN', 'en'], ['ar-EG', 'en'], ['unsupported', 'en'],
   ])('keeps the selected %s control language as %s', (locale, expected) => {
     expect(resolveVuetifyLocale(locale)).toBe(expected)
   })

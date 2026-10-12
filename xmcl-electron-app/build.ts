@@ -18,6 +18,8 @@ import esbuildConfig from './esbuild.config'
 import { version } from './package.json'
 import { canEmitLegacyAsarAsset } from './build/releasePolicy'
 import { runtimeDependencyFingerprint } from './main/utils/releaseMetadata'
+import { verifyPackedResources } from './build/verifyPackedResources'
+import { validateExecutableArchitecture } from '../xmcl-runtime/agent/runtimeBundle'
 
 /**
  * @returns Hash string
@@ -163,6 +165,12 @@ async function start() {
         src = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app/Contents/Resources/app.asar`)
         console.log(`  ${chalk.yellow('•')} fallback to ${chalk.yellow('Resources/app.asar')} for ${chalk.yellow('resources/app.asar')} not found`)
       }
+      await verifyPackedResources(path.dirname(src), context.electronPlatformName, context.arch === 3 ? 'arm64' : 'x64')
+      const product = context.packager.appInfo.productFilename
+      const launcher = context.electronPlatformName === 'darwin'
+        ? join(context.appOutDir, `${product}.app`, 'Contents', 'MacOS', product)
+        : join(context.appOutDir, context.electronPlatformName === 'win32' ? `${product}.exe` : electronBuilderConfig.linux.executableName)
+      await validateExecutableArchitecture(launcher, context.electronPlatformName, context.arch === 3 ? 'arm64' : 'x64')
       if (canEmitLegacyAsarAsset(version)) {
         await copyFile(src, dest)
         await writeHash('sha256', dest)
@@ -173,8 +181,10 @@ async function start() {
       }
 
       // Public package metadata only; no XMCL npm package or mirror contract.
-      await writeFile('build/output/manifest.json', JSON.stringify({
+      await writeFile(`build/output/manifest-${platformName}.json`, JSON.stringify({
         version,
+        platform: context.electronPlatformName,
+        arch: context.arch === 3 ? 'arm64' : 'x64',
         electron: context.packager.info.framework.version,
         product: 'PbtModLauncherX',
         updateMode: canEmitLegacyAsarAsset(version) ? 'legacy-asar' : 'full-package',

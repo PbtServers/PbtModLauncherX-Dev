@@ -3,9 +3,24 @@ import { mkdtemp, writeFile, rm, realpath } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, expect, test } from 'vitest'
-import { bundlePath, validateOllamaBundle } from './runtimeBundle'
+import { bundlePath, validateExecutableArchitecture, validateOllamaBundle } from './runtimeBundle'
 
 const directories: string[] = []
+test.each([['win32', 'x64'], ['linux', 'x64'], ['linux', 'arm64'], ['darwin', 'x64'], ['darwin', 'arm64']])('checks synthetic binary headers for %s/%s; these are not native builds', async (platform, arch) => {
+  const root = await mkdtemp(join(tmpdir(), 'pbt-header-')); directories.push(root)
+  const header = Buffer.alloc(512)
+  if (platform === 'win32') {
+    header.write('MZ'); header.writeUInt32LE(128, 60); header.write('PE\0\0', 128); header.writeUInt16LE(0x8664, 132)
+  } else if (platform === 'linux') {
+    header.writeUInt32BE(0x7f454c46); header[4] = 2; header[5] = 1; header.writeUInt16LE(arch === 'x64' ? 62 : 183, 18)
+  } else {
+    header.writeUInt32LE(0xfeedfacf); header.writeUInt32LE(arch === 'x64' ? 0x01000007 : 0x0100000c, 4)
+  }
+  const path = join(root, 'synthetic-binary')
+  await writeFile(path, header)
+  await expect(validateExecutableArchitecture(path, platform, arch)).resolves.toBeUndefined()
+  await expect(validateExecutableArchitecture(path, platform, arch === 'x64' ? 'arm64' : 'x64')).rejects.toThrow('executable_mismatch')
+})
 afterEach(async () => { for (const path of directories.splice(0)) await rm(path, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }) })
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'pbt-bundle-')); directories.push(root)

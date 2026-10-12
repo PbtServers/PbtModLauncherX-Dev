@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - phase2/packaging-validation
     tags:
       - v*
     paths:
@@ -22,11 +23,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release existente a actualizar (ej: v1.0.7); vacío solo compila"
+        description: "Tag de una release en borrador; vacío solo compila"
         required: false
         default: ""
+      prepare_draft:
+        description: "Adjuntar los paquetes a un borrador existente, sin publicarlo"
+        type: boolean
+        default: false
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: build-release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
@@ -67,7 +72,7 @@ jobs:
         include:
           - os: ubuntu-latest
             package_arch: x64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04-arm
             package_arch: arm64
           - os: macos-latest
             package_arch: x64
@@ -97,7 +102,7 @@ jobs:
           path: |
             ${{ github.workspace }}/.cache/electron
             ${{ github.workspace }}/.cache/electron-builder
-          key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-${{ matrix.package_arch }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Cache Vite deps
         uses: actions/cache@v5
         with:
@@ -109,7 +114,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libarchive-tools zstd
+          sudo apt-get install -y libarchive-tools zstd rpm
           # Hosted runner toolchains unused by this build; preserve workspace/data.
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
       - name: Download preverified macOS Intel runtime
@@ -125,12 +130,19 @@ jobs:
           set -euo pipefail
           mkdir -p xmcl-electron-app/build/ollama
           tar -xzf .ollama-intel-artifact/mac-x64-ollama-runtime.tar.gz -C xmcl-electron-app/build/ollama
-      - name: Prepare verified Ollama runtimes and Qwen3 4B
+      - name: Prepare verified Ollama runtimes without model weights
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: pnpm exec tsx scripts/ci-ollama.ts
       - name: Verify all AI resources before packaging
         run: pnpm exec tsx scripts/ci-ollama.ts --verify-only
+      - name: Run packaging and updater regression tests
+        run: pnpm exec vitest run scripts/ci-ollama.test.ts scripts/release-assets.test.ts scripts/verify-release-packages.test.ts scripts/collect-release-assets.test.ts xmcl-electron-app/build/verifyPackedResources.test.ts xmcl-electron-app/build/deduplicateRuntime.test.ts xmcl-electron-app/build/ollamaPackaging.test.ts xmcl-electron-app/build/releaseMetadata.test.ts xmcl-electron-app/main/utils/updater.test.ts xmcl-electron-app/main/utils/updateDownload.test.ts xmcl-runtime/agent/runtimeBundle.test.ts xmcl-runtime/agent/managedOllama.test.ts xmcl-keystone-ui/src/composables/agent/qwenInstaller.test.ts xmcl-keystone-ui/src/util/customLauncherNews.test.ts xmcl-keystone-ui/src/util/newsTranslation.test.ts xmcl-keystone-ui/src/util/locale.test.ts xmcl-runtime-api/src/entities/locale.test.ts xmcl-runtime/user/UserService.persistence.test.ts xmcl-runtime/user/UserPersistence.test.ts xmcl-keystone-ui/src/composables/user.test.ts xmcl-runtime/app/BaseService.update.test.ts xmcl-electron-app/main/pluginAutoUpdate.test.ts xmcl-runtime/agent/AgentService.test.ts xmcl-runtime/agent/ollama.test.ts xmcl-keystone-ui/src/util/launcherReleaseNews.test.ts xmcl-keystone-ui/src/util/newsCache.test.ts xmcl-keystone-ui/src/util/newsImage.test.ts xmcl-electron-app/main/portableData.test.ts
+      - name: Type check and lint
+        shell: bash
+        run: |
+          pnpm check
+          pnpm lint
       - name: Check available packaging space
         if: ${{ runner.os != 'Windows' }}
         shell: bash
@@ -216,15 +228,11 @@ jobs:
           path: |
             xmcl-electron-app/dist/*.js.map
             xmcl-electron-app/dist/renderer/assets/*.js.map
-      - name: Verify macOS DMG output
-        if: ${{ runner.os == 'macOS' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo 'macOS build output:'
-          ls -lah xmcl-electron-app/build/output/
-          find xmcl-electron-app/build/output -maxdepth 1 -type f -name '*.dmg' -print
-          compgen -G 'xmcl-electron-app/build/output/*.dmg' > /dev/null || { echo 'ERROR: electron-builder did not produce a DMG'; exit 1; }
+      - name: Verify complete packages and write checksums
+        run: node scripts/verify-release-packages.mjs xmcl-electron-app/build/output ${{ runner.os }} ${{ matrix.package_arch }}
+      - name: Extract and verify every Linux package
+        if: ${{ runner.os == 'Linux' }}
+        run: pnpm exec tsx scripts/verify-linux-package-content.mjs xmcl-electron-app/build/output ${{ matrix.package_arch }}
       - name: Upload Build
         uses: actions/upload-artifact@v6
         with:
@@ -244,7 +252,7 @@ jobs:
           path: |
             xmcl-electron-app/build/output/win-unpacked/
       - name: Upload Linux x64 Zip Build
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' && matrix.package_arch == 'x64' }}
         uses: actions/upload-artifact@v6
         with:
           name: linux-b${{ github.run_number }}-${{ matrix.package_arch }}-x64
@@ -253,7 +261,7 @@ jobs:
           path: |
             xmcl-electron-app/build/output/linux-unpacked/
       - name: Upload Linux arm64 Zip Build
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' && matrix.package_arch == 'arm64' }}
         uses: actions/upload-artifact@v6
         with:
           name: linux-b${{ github.run_number }}-${{ matrix.package_arch }}-arm64
@@ -262,10 +270,12 @@ jobs:
           path: |
             xmcl-electron-app/build/output/linux-arm64-unpacked/
   release:
-    name: Attach artifacts to existing release
+    name: Prepare reviewed draft assets
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ needs.build.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')) }}
+    if: ${{ needs.build.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.prepare_draft && inputs.tag != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -283,8 +293,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: build-*
-          merge-multiple: true
+          merge-multiple: false
           path: build
+      - uses: pnpm/action-setup@v6
+      - name: Use Node.js 24 for release validation
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install validation dependencies
+        run: pnpm install --frozen-lockfile
       - name: Attach verified artifacts without editing release notes
         shell: bash
         env:
@@ -292,8 +310,9 @@ jobs:
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+          test "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')" = true
           test "$RELEASE_TAG" = "v$(node -p "require('./package.json').version")"
-          node scripts/release-assets.mjs build
-          # Only same-name assets are replaced on retry. Notes and other assets survive.
-          gh release upload "$RELEASE_TAG" build/* --clobber --repo "$GITHUB_REPOSITORY"
+          node scripts/collect-release-assets.mjs build
+          node scripts/release-assets.mjs build/release
+          # Never replace published assets or edit release notes. Name collisions fail.
+          gh release upload "$RELEASE_TAG" build/release/* --repo "$GITHUB_REPOSITORY"

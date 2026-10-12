@@ -85,7 +85,7 @@ export const config = {
   },
   mac: {
     // Preserve the independently signed, hash-verified official runtime.
-    signIgnore: ['resources/ollama/.*'],
+    signIgnore: ['[Rr]esources/ollama/.*'],
     icon: 'icons/dark.icns',
     darkModeSupport: true,
     target: [
