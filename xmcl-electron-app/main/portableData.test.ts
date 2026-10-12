@@ -3,7 +3,7 @@ import { join, dirname, resolve } from 'path'
 import { portableDataRoot } from './portableData'
 test('portable data follows the real executable when moved and supports Unicode', () => {
   for (const base of ['G:/Pbt carpeta àé', 'H:/otra carpeta ñ']) {
-    const executable = join(base, 'PbtModLauncherX.exe')
+    const executable = resolve(base, 'PbtModLauncherX.exe')
     expect(portableDataRoot(executable, {}, () => true)?.data).toBe(join(dirname(executable), 'data'))
   }
 })
