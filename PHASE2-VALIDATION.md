@@ -7,7 +7,8 @@ y macOS; esta sección se actualizará con sus resultados reales.
 
 ## Validaciones locales
 
-- Batería del workflow: **28 archivos, 263 pruebas superadas**, ninguna omitida.
+- Batería local actual: **28 archivos, 264 pruebas superadas**, ninguna omitida.
+  Las ejecuciones anteriores de Actions contenían 263; se añadió una prueba del feed.
 - Type-check del paquete Electron: correcto después de la deduplicación Linux.
 - `pnpm check`: correcto, incluida la última modificación del build de Electron.
 - `pnpm lint`: correcto; dos advertencias preexistentes en `InstanceBlueprintsService.ts`.
@@ -44,11 +45,29 @@ Los perfiles y directorios de prueba estuvieron aislados de los datos del usuari
 - Modo portable real: modelos bajo el directorio portable elegido, Ollama operativo.
 - Un archivo centinela confirmó conservación del directorio de modelos; no equivale
   a probar inferencia o actualización con pesos Qwen3 reales.
+- Comprobación posterior real de Qwen3 en Windows: consentimiento explícito en la
+  interfaz, descarga de `qwen3:4b-q4_K_M` y progreso de 1.489.174.419 sobre
+  2.620.774.592 bytes. El chat se activó automáticamente sin reiniciar y produjo
+  respuestas en español identificando PbtAdmin y PbtinaDev.
+- Tras reiniciar, los seis archivos de pesos/manifiesto conservaron sus SHA-256
+  (2.620.789.119 bytes). El bloqueo de proceso `.pbtadmin-engine.lock` se excluyó
+  de la comparación porque contiene el PID de cada arranque. El chat reconoció
+  el modelo instalado sin pedir otra descarga.
+- Se creó y seleccionó `Pbt Phase2 Model Test`, una instancia vacía sin descargar
+  Minecraft. Su conversación real se restauró en la interfaz tras reiniciar.
+  En el perfil sin instancia, la conversación se conservó en el backend, aunque
+  no apareció inicialmente en el chat; no se declara validada su recarga visual.
+- La descarga acabó antes de pulsar cancelar: cancelación/reintento están cubiertos
+  automáticamente, pero esta comprobación manual no los ejerció.
 - Los recursos temporales se eliminaron y se reabrió un perfil limpio para comprobar
   ausencia de cuentas e instancias de prueba. No se tocaron datos personales.
 
 Estos flujos completos se probaron con la penúltima build Windows. El filtro final
 de prereleases tiene pruebas automatizadas y está compilado en la última build.
+La instalación e inferencia reales de Qwen3 se probaron con esa última build local
+Windows. Los commits posteriores solo modifican un fixture y la memoria de CI;
+los prompts, el lore, el instalador del modelo y el sistema de noticias de la
+Fase 1 no se alteraron durante estas pruebas.
 Logs conservados localmente: `temp/phase2-dev-main.log`,
 `temp/phase2-packaged-main.log` y `temp/phase2-portable-main.log`.
 
@@ -91,6 +110,12 @@ ID Application: firma y notarización reales siguen pendientes.
   descarga completa, comprobaciones de integridad y enlace manual oficial.
 - Borradores/prereleases excluidos cuando corresponde y selección de versión más
   reciente entre el JSON histórico y GitHub.
+- Los tamaños declarados por los feeds y sus campos legacy `path`/`sha512` se
+  contrastan con los archivos y entradas `files`; una prueba confirmó que el
+  verificador anterior aceptaba un tamaño incorrecto y ahora lo rechaza.
+- La prueba portable usa rutas absolutas en todos los sistemas. macOS Intel
+  agotó el heap predeterminado de Node en `vue-tsc`; el paso de type-check/lint
+  dispone ahora de 4 GiB sin cambiar opciones del compilador ni del empaquetado.
 - Manifiestos separados por arquitectura y reunión explícita de ambos feeds macOS.
 - Preparación exclusiva de borradores, con comprobación de cinco builds, sin publicar,
   sin sobrescribir archivos ni borrar notas. Push normal solo genera artefactos.
@@ -105,7 +130,9 @@ ID Application: firma y notarización reales siguen pendientes.
 4. Actualización real desde 1.0.6 y ciclo AppImage descarga/instalación/reinicio.
    Se auditó el código del tag 1.0.6 y se probaron rutas de recuperación con fixtures;
    no se ejecutó una migración real de una instalación antigua.
-5. Instalación posterior de Qwen3 e inferencia sobre los nuevos paquetes.
+5. Instalación posterior de Qwen3 e inferencia en Linux/macOS; Windows local sí se
+   ejerció realmente, sin presentar ese resultado como una instalación desde el
+   artefacto descargado de Actions.
 
 La actualización automática multiparte no está implementada. El script existente
 se mantiene como respaldo para reconstrucción manual. ZIP, APPX y DMG conservan

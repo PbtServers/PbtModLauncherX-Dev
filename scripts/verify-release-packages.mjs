@@ -49,9 +49,14 @@ export async function verifyPackages(root, os, arch, version) {
     if (feed?.version !== version || !Array.isArray(feed.files) || !feed.files.length) throw new Error(`Invalid update metadata: ${name}`)
     for (const entry of feed.files) {
       if (typeof entry.url !== 'string' || !expected.includes(entry.url)) throw new Error(`Update metadata references a missing or incompatible package: ${name}`)
+      if (entry.size !== undefined && entry.size !== receipts.find(file => file.name === entry.url)?.bytes) throw new Error(`Update metadata size mismatch: ${entry.url}`)
       const digest = createHash('sha512')
       for await (const bytes of createReadStream(join(root, entry.url))) digest.update(bytes)
       if (entry.sha512 !== digest.digest('base64')) throw new Error(`Update metadata checksum mismatch: ${entry.url}`)
+    }
+    if (feed.path !== undefined || feed.sha512 !== undefined) {
+      const legacy = feed.files.find(entry => entry.url === feed.path)
+      if (!legacy || feed.sha512 !== legacy.sha512) throw new Error(`Inconsistent legacy update metadata: ${name}`)
     }
   }
   await writeFile(join(root, `packages-${os}-${arch}.json`), JSON.stringify({ version, os, arch, packages: receipts }, null, 2) + '\n')

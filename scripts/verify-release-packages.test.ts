@@ -48,3 +48,28 @@ test('rejects empty and oversized packages and stale update metadata', async () 
     await expect(verifyPackages(root, 'macOS', 'arm64', '1.0.7')).rejects.toThrow('checksum mismatch')
   } finally { await rm(root, { recursive: true, force: true }) }
 })
+
+test('rejects incorrect advertised sizes and inconsistent legacy update fields', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'pbt-package-check-'))
+  const name = 'pbtmodlauncherx-1.0.7-arm64.dmg'
+  const body = Buffer.from('complete DMG fixture')
+  const sha512 = createHash('sha512').update(body).digest('base64')
+  const feed = { version: '1.0.7', files: [{ url: name, sha512, size: body.length + 1 }], path: name, sha512 }
+  const save = () => writeFile(join(root, 'latest-mac.yml'), JSON.stringify(feed))
+  try {
+    await writeFile(join(root, name), body)
+    await save()
+    await expect(verifyPackages(root, 'macOS', 'arm64', '1.0.7')).rejects.toThrow('size mismatch')
+    feed.files[0].size = body.length
+    feed.path = 'pbtmodlauncherx-1.0.7-x64.dmg'
+    await save()
+    await expect(verifyPackages(root, 'macOS', 'arm64', '1.0.7')).rejects.toThrow('legacy update metadata')
+    feed.path = name
+    feed.sha512 = 'bad'
+    await save()
+    await expect(verifyPackages(root, 'macOS', 'arm64', '1.0.7')).rejects.toThrow('legacy update metadata')
+    feed.sha512 = sha512
+    await save()
+    await expect(verifyPackages(root, 'macOS', 'arm64', '1.0.7')).resolves.toHaveLength(1)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
