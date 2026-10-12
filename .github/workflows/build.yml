@@ -140,6 +140,8 @@ jobs:
         run: pnpm exec vitest run scripts/ci-ollama.test.ts scripts/release-assets.test.ts scripts/verify-release-packages.test.ts scripts/collect-release-assets.test.ts xmcl-electron-app/build/verifyPackedResources.test.ts xmcl-electron-app/build/deduplicateRuntime.test.ts xmcl-electron-app/build/ollamaPackaging.test.ts xmcl-electron-app/build/releaseMetadata.test.ts xmcl-electron-app/main/utils/updater.test.ts xmcl-electron-app/main/utils/updateDownload.test.ts xmcl-runtime/agent/runtimeBundle.test.ts xmcl-runtime/agent/managedOllama.test.ts xmcl-keystone-ui/src/composables/agent/qwenInstaller.test.ts xmcl-keystone-ui/src/util/customLauncherNews.test.ts xmcl-keystone-ui/src/util/newsTranslation.test.ts xmcl-keystone-ui/src/util/locale.test.ts xmcl-runtime-api/src/entities/locale.test.ts xmcl-runtime/user/UserService.persistence.test.ts xmcl-runtime/user/UserPersistence.test.ts xmcl-keystone-ui/src/composables/user.test.ts xmcl-runtime/app/BaseService.update.test.ts xmcl-electron-app/main/pluginAutoUpdate.test.ts xmcl-runtime/agent/AgentService.test.ts xmcl-runtime/agent/ollama.test.ts xmcl-keystone-ui/src/util/launcherReleaseNews.test.ts xmcl-keystone-ui/src/util/newsCache.test.ts xmcl-keystone-ui/src/util/newsImage.test.ts xmcl-electron-app/main/portableData.test.ts
       - name: Type check and lint
         shell: bash
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: |
           pnpm check
           pnpm lint
