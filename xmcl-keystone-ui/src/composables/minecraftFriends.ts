@@ -6,7 +6,7 @@ import {
   MinecraftFriendsServiceKey,
   type UserProfile,
 } from '@xmcl/runtime-api'
-import { useService } from '@/composables'
+import { useService } from '@/composables/service'
 import { kUserContext } from '@/composables/user'
 import { injection } from '@/util/inject'
 
@@ -39,34 +39,48 @@ export function useMinecraftFriendsImpl(userContext?: { userProfile: Ref<UserPro
   const fetchedAt = computed(() => data.value?.fetchedAt ?? 0)
 
   let lastFetchedUserId: string | undefined
+  let requestGeneration = 0
+  let pending: { userId: string; promise: Promise<void> } | undefined
 
   async function refresh(force = false) {
     if (!isMicrosoftUser.value || !userProfile.value?.id) {
       data.value = undefined
       return
     }
+    const user = userProfile.value
+    if (pending?.userId === user.id) return pending.promise
+    const generation = ++requestGeneration
     loading.value = true
     error.value = undefined
-    try {
-      data.value = await friendsService.getFriends(userProfile.value, force)
-      lastFetchedUserId = userProfile.value.id
+    const promise = (async () => { try {
+      const result = await friendsService.getFriends(user, force)
+      if (generation !== requestGeneration || userProfile.value?.id !== user.id) return
+      data.value = result
+      lastFetchedUserId = user.id
     } catch (e) {
-      error.value = e
+      if (generation === requestGeneration && userProfile.value?.id === user.id) error.value = e
     } finally {
-      loading.value = false
-    }
+      if (generation === requestGeneration) { loading.value = false; pending = undefined }
+    } })()
+    pending = { userId: user.id, promise }
+    return promise
   }
 
   // Reset / refresh when the active user changes.
-  watch(() => userProfile.value?.id, (id) => {
+  watch(() => [userProfile.value?.id, userProfile.value?.invalidated], ([id]) => {
+    requestGeneration++
+    pending = undefined
+    loading.value = false
+    preferences.value = undefined
+    preferencesLoading.value = false
     if (id !== lastFetchedUserId) data.value = undefined
     if (isMicrosoftUser.value) {
-      refresh(false)
+      refresh(true)
       refreshPreferences()
     } else {
       preferences.value = undefined
     }
-  })
+  }, { immediate: true })
 
   async function refreshPreferences() {
     if (!isMicrosoftUser.value || !userProfile.value?.id) {
@@ -74,31 +88,37 @@ export function useMinecraftFriendsImpl(userContext?: { userProfile: Ref<UserPro
       return
     }
     preferencesLoading.value = true
+    const user = userProfile.value
+    const generation = requestGeneration
     try {
-      preferences.value = await friendsService.getFriendsPreferences(userProfile.value)
+      const result = await friendsService.getFriendsPreferences(user)
+      if (generation === requestGeneration && userProfile.value?.id === user.id) preferences.value = result
     } catch {
       // non-critical – ignore silently
     } finally {
-      preferencesLoading.value = false
+      if (generation === requestGeneration && userProfile.value?.id === user.id) preferencesLoading.value = false
     }
   }
 
   async function setPreferences(prefs: Partial<MinecraftFriendsPreferences>) {
     if (!isMicrosoftUser.value || !userProfile.value?.id) return
     preferencesLoading.value = true
+    const user = userProfile.value
+    const generation = requestGeneration
     try {
-      preferences.value = await friendsService.setFriendsPreferences(userProfile.value, prefs)
+      const result = await friendsService.setFriendsPreferences(user, prefs)
+      if (generation === requestGeneration && userProfile.value?.id === user.id) preferences.value = result
     } catch (e) {
-      error.value = e
+      if (generation === requestGeneration && userProfile.value?.id === user.id) error.value = e
     } finally {
-      preferencesLoading.value = false
+      if (generation === requestGeneration && userProfile.value?.id === user.id) preferencesLoading.value = false
     }
   }
 
   // Background polling: keep the incoming-request count fresh while the
   // launcher window is visible so the system-bar badge updates without the
   // user opening the popover. The backend service already caches per
-  // ~10s + uses conditional GETs, so a 60s tick is cheap on the network.
+  // 60s + uses conditional GETs, so a 60s tick is cheap on the network.
   const POLL_INTERVAL_MS = 60_000
   let pollHandle: number | undefined
   const startPolling = () => {
@@ -118,11 +138,15 @@ export function useMinecraftFriendsImpl(userContext?: { userProfile: Ref<UserPro
       refresh(false)
     }
   }
+  const onOnline = () => { if (isMicrosoftUser.value) void refresh(true) }
   startPolling()
   document.addEventListener('visibilitychange', onVisibilityChange)
+  window.addEventListener('online', onOnline)
   onScopeDispose(() => {
+    requestGeneration++
     stopPolling()
     document.removeEventListener('visibilitychange', onVisibilityChange)
+    window.removeEventListener('online', onOnline)
   })
 
   return {

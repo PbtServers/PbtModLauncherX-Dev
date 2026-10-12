@@ -941,8 +941,8 @@ minecraftFriends:
   notifyAdded: Friend request sent to {name}
   outgoing: Outgoing requests
   privacy:
-    acceptInvites: Accept friend invites
-    acceptInvitesHint: When off, other players cannot send you friend requests.
+    acceptInvites: Allow friend requests
+    acceptInvitesHint: Other players can send you requests. Each request is accepted manually.
     friendsEnabled: Friends list enabled
   reconnectAction: Reconnect
   requiresMicrosoft: Sign in with a Microsoft account to use friends.
@@ -1507,6 +1507,7 @@ peerIceGatheringState:
 peerSignalingState:
   have-local-offer: Waiting peer description
 presence:
+  unknown: Presence unavailable
   away: Away
   instance: Idle in Instance {instance}
   instanceSetting: 'Edit Instance Setting: {instance}'
@@ -2856,3 +2857,24 @@ appText:
   sponsor: "Sponsor ci010 on {service}"
   logo: "PbtModLauncherX logo"
   avatar: "Contributor avatar"
+instanceView:
+  name: Instance view
+  description: Choose the initial layout when opening an instance.
+  full: Full view (default)
+  reduced: Reduced view
+modelPreview:
+  label: Interactive player skin preview
+nativePresence:
+  share: Share launcher presence with friends
+  shareHint: Minecraft requires publishing your online status to query friend presence. Enable this only if you want friends to see you online in the launcher. No requests are accepted automatically.
+  disabled: Friend presence is unknown until you choose to share your launcher presence. Your privacy preferences are preserved.
+  unavailable: Friend presence could not be refreshed. Unknown status is shown until the service responds.
+  game: Minecraft is managing presence while it is open. The launcher preserves the game's presence and privacy settings.
+modelStorage:
+  defaultLocation: Managed models use PbtAdmin/Ollama/models inside the launcher's data directory by default. Explicit custom folders and external providers are preserved.
+  checking: Checking model storage and verifying previous managed models…
+  migrated: 'Previous managed models were copied and verified. The original in {source} was preserved.'
+  integrityError: Model verification failed. The previous installation was preserved. Check the disk and retry.
+  accessError: Cannot access model storage or it is in use. Check folder permissions and close other managed engines before retrying.
+audioPlayer:
+  currentTrack: 'Current track: {name}'

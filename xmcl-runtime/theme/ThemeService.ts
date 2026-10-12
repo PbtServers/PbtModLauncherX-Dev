@@ -11,6 +11,8 @@ import { writeZipFile } from '~/util/zip'
 import { LauncherApp } from '../app/LauncherApp'
 import { ZipFile } from 'yazl'
 import { getDesktopWallpaper } from './getDesktopWallpaper'
+import { importMedia } from './importMedia'
+import { copyLegacyThemeMedia } from './migrateMedia'
 
 const MAX_CSS_SIZE = 1024 * 1024 // 1 MB
 /**
@@ -48,15 +50,17 @@ export class ThemeService extends AbstractService implements IThemeService {
       const jsonFiles = files.filter(f => f.endsWith('.json'))
 
       if (jsonFiles.length === 0) {
-        // No theme configs, just media files - move them to new location
+        // Recover media left behind by older migrations, including partial ones.
         const mediaFiles = files.filter(f => !f.endsWith('.json') && !f.endsWith('.xtheme'))
-        if (mediaFiles.length > 0 && !existsSync(newMediaFolder)) {
+        if (mediaFiles.length > 0) {
           this.log(`Migrating ${mediaFiles.length} media files from themes/ to theme-media/`)
           await ensureDir(newMediaFolder)
           for (const file of mediaFiles) {
             const srcPath = join(oldThemesFolder, file)
             const dstPath = join(newMediaFolder, file)
-            await move(srcPath, dstPath, { overwrite: true }).catch(() => { })
+            await copyLegacyThemeMedia(srcPath, dstPath).catch(e => {
+              this.warn(`Failed to migrate theme media ${file}: ${e}`)
+            })
           }
         }
         return
@@ -106,8 +110,8 @@ export class ThemeService extends AbstractService implements IThemeService {
       const srcPath = join(oldThemesFolder, fileName)
       const dstPath = join(newMediaFolder, fileName)
       if (existsSync(srcPath)) {
-        await move(srcPath, dstPath, { overwrite: true }).catch((e) => {
-          this.warn(`Failed to move media file ${fileName}: ${e}`)
+        await copyLegacyThemeMedia(srcPath, dstPath).catch((e) => {
+          this.warn(`Failed to migrate media file ${fileName}: ${e}`)
         })
       }
     }
@@ -186,11 +190,10 @@ export class ThemeService extends AbstractService implements IThemeService {
   async addMedia(filePath: string): Promise<MediaData> {
     const fileType = await fromFile(filePath)
     if (fileType?.mime.startsWith('audio') || fileType?.mime.startsWith('video') || fileType?.mime.startsWith('image') || fileType?.mime.startsWith('font')) {
-      const targetPath = this.getAppDataPath('theme-media', basename(filePath))
-      await ensureDir(this.getAppDataPath('theme-media'))
-      await copyFile(filePath, targetPath)
+      const name = await importMedia(filePath, this.getAppDataPath('theme-media'), fileType.ext)
       return {
-        url: 'http://launcher/theme-media/' + basename(filePath),
+        url: 'http://launcher/theme-media/' + name,
+        name: basename(filePath),
         type: fileType.mime.slice(0, fileType.mime.indexOf('/')) as 'audio' | 'video' | 'image' | 'font',
         mimeType: fileType.mime,
       }

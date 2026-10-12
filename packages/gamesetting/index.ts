@@ -525,6 +525,8 @@ const LOCALE_TO_MC_LANG: Record<string, string> = {
   ar: 'ar_sa',
   ar_eg: 'ar_sa',
   bn: 'bn_bd',
+  ca: 'ca_es',
+  ca_es: 'ca_es',
   cs: 'cs_cz',
   de: 'de_de',
   en: 'en_us',

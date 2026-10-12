@@ -32,6 +32,8 @@ export interface MinecraftFriend {
    * Xbox Live presence status if available.
    */
   xboxPresence?: XboxPresenceInfo
+  /** Native Java presence, confirmed by Minecraft Services. Missing means unknown. */
+  presence?: { status: string; lastUpdated?: string }
 }
 
 /**
@@ -46,6 +48,7 @@ export interface MinecraftFriendsList {
    * fetched / refreshed this payload. Useful for "Last updated" labels.
    */
   fetchedAt: number
+  presenceStatus?: 'disabled' | 'available' | 'unavailable' | 'game'
 }
 
 /**
@@ -61,6 +64,8 @@ export interface MinecraftFriendsPreferences {
    * Whether incoming friend invites are accepted.
    */
   acceptInvites: boolean
+  /** Local per-account consent. Native presence queries also publish online status. */
+  sharePresence?: boolean
 }
 
 export interface MinecraftFriendsService {

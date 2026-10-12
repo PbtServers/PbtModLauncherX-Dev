@@ -188,7 +188,9 @@ describe('InstanceService icon storage', () => {
   })
 
   test('imports from the workspace drive through a long Unicode path without modifying the source', async () => {
-    const directory = await mkdtemp(join(process.cwd(), 'temp', 'phase8-icon-source-'))
+    const workspaceTemp = join(process.cwd(), 'temp')
+    await ensureDir(workspaceTemp)
+    const directory = await mkdtemp(join(workspaceTemp, 'phase8-icon-source-'))
     try {
       const nested = join(directory, 'long'.repeat(18), 'path'.repeat(18), 'área # & %')
       await ensureDir(nested)

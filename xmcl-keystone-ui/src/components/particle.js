@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { backgroundFrameTime } from './backgroundFrame'
 /* -----------------------------------------------
 /* Author : Vincent Garreau  - vincentgarreau.com
 /* MIT license: http://opensource.org/licenses/MIT
@@ -1318,6 +1319,16 @@ var pJS = function (tag_id, params) {
 
 
   pJS.fn.vendors.draw = function () {
+    if (pJS.particles.move.enable) {
+      var frameTime = backgroundFrameTime(pJS.tmp.lastDrawTime, performance.now());
+      if (frameTime === undefined) {
+        pJS.fn.drawAnimFrame = requestAnimFrame(pJS.fn.vendors.draw);
+        return;
+      }
+      pJS.tmp.lastDrawTime = frameTime;
+    } else {
+      pJS.tmp.lastDrawTime = undefined;
+    }
 
     if (pJS.particles.shape.type == 'image') {
 

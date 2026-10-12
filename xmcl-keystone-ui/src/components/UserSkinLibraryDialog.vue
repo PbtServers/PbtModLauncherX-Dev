@@ -603,7 +603,7 @@ function onDropFile(event: DragEvent) {
 
 function setFileSkin(filePath: string) {
   loadSkinError.value = ''
-  draftUrl.value = `http://launcher/media?path=${filePath}`
+  draftUrl.value = `http://launcher/media?path=${encodeURIComponent(filePath)}`
   if (!draftName.value) {
     draftName.value = filePath.split(/[/\\]/).pop()?.replace(/\.png$/i, '') || 'Skin'
   }

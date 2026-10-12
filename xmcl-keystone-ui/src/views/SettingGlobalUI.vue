@@ -1,5 +1,12 @@
 <template>
   <div>
+    <SettingCard class="mb-4" :title="t('instanceView.name')" icon="dashboard">
+      <SettingItem :title="t('instanceView.name')" :description="t('instanceView.description')" long-action>
+        <template #action>
+          <v-select v-model="instanceView" :items="instanceViewOptions" :label="t('instanceView.name')" hide-details density="compact" class="min-w-[200px]" />
+        </template>
+      </SettingItem>
+    </SettingCard>
     <SettingCard class="mb-4" :title="t('setting.sidebarStyle')" icon="dashboard">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div class="md:col-span-5 flex justify-center items-center">
@@ -274,6 +281,11 @@ import { Ref, computed, watch, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+const instanceView = useLocalStorage('instanceView', 'full', { writeDefaults: false })
+const instanceViewOptions = computed(() => [
+  { title: t('instanceView.full'), value: 'full' },
+  { title: t('instanceView.reduced'), value: 'reduced' },
+])
 
 const env = injection(kEnvironment)
 const {

@@ -64,6 +64,17 @@ describe('Launcher', () => {
   })
 
   describe('#generateArguments', () => {
+    test('keeps a manual maximum valid when the saved initial heap is larger', async ({ mock }) => {
+      const args = await generateArguments({
+        version: '1.7.10-Forge10.13.3.1400-1.7.10',
+        gamePath: mock,
+        javaPath: '/test/java',
+        minMemory: 1024,
+        maxMemory: 512,
+      })
+      expect(args.filter(arg => arg.startsWith('-Xms'))).toEqual(['-Xms512M'])
+      expect(args.filter(arg => arg.startsWith('-Xmx'))).toEqual(['-Xmx512M'])
+    })
     test('should throw error if the version is empty', async () => {
       await expect(generateArguments({} as any)).rejects.toEqual(
         new TypeError('Version cannot be null!'),

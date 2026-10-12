@@ -3,8 +3,15 @@ import ShaderBase, { VANTA } from 'vanta/src/_shaderBase.js'
 import { LinearFilter, RGBAFormat, WebGLRenderTarget } from 'three'
 
 import halo from './halo.glsl?raw'
+import { backgroundFrameTime } from './backgroundFrame'
 
 class Halo extends ShaderBase {
+  animationLoop() {
+    const frameTime = backgroundFrameTime(this.lastDrawTime, performance.now())
+    if (frameTime === undefined) return this.req = requestAnimationFrame(this.animationLoop)
+    this.lastDrawTime = frameTime
+    return super.animationLoop()
+  }
   getDefaultOptions() {
     return {
       baseColor: 0x001a59,

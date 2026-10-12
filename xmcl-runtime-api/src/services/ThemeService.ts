@@ -3,6 +3,7 @@ import { GenericEventEmitter } from '../events'
 
 export interface MediaData {
   url: string
+  name?: string
   type: 'audio' | 'video' | 'image' | 'font'
   mimeType: string
 }

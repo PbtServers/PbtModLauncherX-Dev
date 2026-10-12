@@ -7,6 +7,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useResizeObserver } from '@vueuse/core'
 import {
   Camera, Color, LinearFilter, Mesh,
   PlaneGeometry, RGBAFormat, Scene,
@@ -42,20 +43,33 @@ import { injection } from '@/util/inject'
 import { kTheme } from '@/composables/theme'
 
 export default defineComponent({
-  setup() {
+  props: { paused: { type: Boolean, default: false } },
+  setup(props) {
     const halo = ref(null as any)
     const { isDark } = injection(kTheme)
     let effect: any
+    function updateAnimation() {
+      if (!effect) return
+      cancelAnimationFrame(effect.req)
+      effect.prevNow = undefined
+      effect.lastDrawTime = undefined
+      effect.animationLoop()
+      if (props.paused) cancelAnimationFrame(effect.req)
+    }
+    useResizeObserver(halo, () => { if (props.paused) updateAnimation() })
     onMounted(() => {
       effect = initHalo({
         el: halo.value,
         THREE: window.THREE,
         lightTheme: isDark.value ? 0 : 1,
       })
+      updateAnimation()
       watch(isDark, (dark) => {
         effect?.setOptions?.({ lightTheme: dark ? 0 : 1 })
+        if (props.paused) updateAnimation()
       })
     })
+    watch(() => props.paused, updateAnimation)
     onUnmounted(() => effect?.destroy())
     return { halo }
   },

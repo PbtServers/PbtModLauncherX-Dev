@@ -98,6 +98,7 @@ export const SettingSchema = z.object({
   agentModel: z.string().catch(DEFAULT_AGENT_MODEL),
   agentHistoryEnabled: z.boolean().catch(true),
   lowResourceMode: z.boolean().catch(false),
+  minecraftFriendsPresenceSharing: z.record(z.string(), z.boolean()).catch({}),
   /** Linux titlebar setting */
   linuxTitlebar: z.boolean().catch(false),
   /** Enable dedicated GPU optimization */

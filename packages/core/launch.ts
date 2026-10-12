@@ -12,6 +12,10 @@ import { MinecraftFolder } from './folder'
 import { Platform, getPlatform } from './platform'
 import { checksum, isNotNull, validateSha1 } from './utils'
 import { ResolvedLibrary, ResolvedVersion, Version } from './version'
+import { normalizeGameDirectory } from './gameDirectory'
+import { normalizeLabyModArguments } from './labyArguments'
+import { normalizeLaunchMemory } from './launchMemory'
+import { prepareLongClasspath } from './longClasspath'
 
 function format(template: string, args: any) {
   return template.replace(/\$\{(.*?)}/g, (key) => {
@@ -687,15 +691,31 @@ export async function launch(options: LaunchOption): Promise<ChildProcess> {
   await Promise.all(prechecks.map((f) => f(minecraftFolder, version, options)))
   const spawnOption = { cwd: options.gamePath, ...options.extraExecOption }
 
-  if (options.extraExecOption?.shell) {
-    args = args.map((a) => `"${a}"`)
-  }
   // fix the ENOTFOUND if cwd does not existed.
   if (!existsSync(gamePath)) {
     await mkdir(gamePath)
   }
 
-  return (options.spawn ?? spawn)(args[0], args.slice(1), spawnOption)
+  const prepared = await prepareLongClasspath(args, options.javaPath, gamePath, process.platform, spawnOption.env ?? process.env)
+  args = prepared.args
+  if (prepared.classpath !== undefined) {
+    spawnOption.env = { ...(spawnOption.env ?? process.env), CLASSPATH: prepared.classpath }
+  }
+  if (options.extraExecOption?.shell) {
+    args = args.map((a) => `"${a}"`)
+  }
+  try {
+    const child = (options.spawn ?? spawn)(args[0], args.slice(1), spawnOption)
+    // Keep the file until Java has finished; a spawn event precedes Java reading
+    // its arguments. Cleanup also covers a child that fails before starting.
+    const cleanup = () => { void prepared.cleanup().catch(error => process.emitWarning(error)) }
+    child.once('error', cleanup)
+    child.once('close', cleanup)
+    return child
+  } catch (error) {
+    await prepared.cleanup()
+    throw error
+  }
 }
 
 function unshiftPrependCommand(cmd: string[], prependCommand?: string[] | string) {
@@ -719,6 +739,7 @@ export function generateArgumentsServer(
   _delimiter: string = delimiter,
   _sep: string = sep,
 ) {
+  options = { ...options, ...normalizeLaunchMemory(options.minMemory, options.maxMemory) }
   const {
     javaPath,
     minMemory,
@@ -768,6 +789,7 @@ export function generateArgumentsServer(
  * @throws TypeError if options does not fully fulfill the requirement
  */
 export async function generateArguments(options: LaunchOption) {
+  options = { ...options, ...normalizeLaunchMemory(options.minMemory, options.maxMemory) }
   if (!options.version) {
     throw new TypeError('Version cannot be null!')
   }
@@ -928,11 +950,12 @@ export async function generateArguments(options: LaunchOption) {
     mcOptions.resolution_height = resolution.height
   }
 
-  cmd.push(...gameArguments.map((arg) => format(arg, mcOptions)))
-
-  if (options.extraMCArgs) {
-    cmd.push(...options.extraMCArgs)
-  }
+  const formattedGameArguments = [
+    ...gameArguments.map((arg) => format(arg, mcOptions)),
+    ...(options.extraMCArgs || []),
+  ]
+  const isLabyMod = version.libraries.some(library => library.name.startsWith('net.labymod:LabyMod:'))
+  cmd.push(...normalizeGameDirectory(isLabyMod ? normalizeLabyModArguments(formattedGameArguments) : formattedGameArguments, gamePath.replaceAll('\\', '/')))
   if (options.quickPlayMultiplayer) {
     cmd.push('--quickPlayMultiplayer', options.quickPlayMultiplayer)
   }

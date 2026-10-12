@@ -2,7 +2,6 @@ import { LOCAL_AI_MODELS, OLLAMA_ENDPOINT, isOllamaEndpoint } from '@xmcl/runtim
 import { activeLocalChats } from './ollamaChat'
 import { OllamaController } from './ollama'
 import { ManagedOllama, kOllamaResourceRoot, type LocalRuntimeConfig } from './managedOllama'
-import { validateOllamaBundle } from './runtimeBundle'
 import { FACTORY_MODEL, HF_FACTORY_MODEL } from './modelBundle'
 import { XMCL_CLOUD_ENABLED, assertIndependentUrl, isXmclExclusiveUrl, isLoopbackServiceUrl } from '@xmcl/runtime-api'
 import {
@@ -21,7 +20,7 @@ import {
 import { randomUUID } from 'crypto'
 import { totalmem, freemem, cpus } from 'os'
 import { join } from 'path'
-import { Inject, LauncherAppKey, type LauncherApp } from '~/app'
+import { Inject, LauncherAppKey, kGameDataPath, type PathResolver, type LauncherApp } from '~/app'
 import { IS_DEV } from '~/constant'
 import { kFlights } from '~/infra'
 import { kSettings } from '~/settings'
@@ -60,11 +59,15 @@ export class AgentService extends AbstractService implements IAgentService {
     @Inject(LauncherAppKey) app: LauncherApp,
     @Inject(kAgentDocumentDirectory) private readonly documentDirectory: string | string[],
     @Inject(kOllamaResourceRoot) resourceRoot: string,
+    @Inject(kGameDataPath) gameDataPath: PathResolver,
   ) {
     super(app)
-    this.engine = new ManagedOllama({ bundle: resourceRoot, data: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args), (event, details) => this.logAgent(`[local.runtime] ${JSON.stringify({ event, ...details })}`))
+    this.engine = new ManagedOllama({ bundle: resourceRoot, data: gameDataPath('PbtAdmin', 'Ollama'), legacyData: join(app.appDataPath, 'ai'), portableBase: process.env.PBT_PORTABLE_BASE }, (...args) => app.fetch(...args), (event, details) => this.logAgent(`[local.runtime] ${JSON.stringify({ event, ...details })}`))
     this.ollama = new OllamaController((...args) => app.fetch(...args), async () => {
-      try { await validateOllamaBundle(resourceRoot); return true } catch { return false }
+      // ManagedOllama verifies the complete bundle before starting an engine.
+      // Status reads reuse that verified running engine instead of hashing all
+      // runtime libraries again on every inspection.
+      try { await this.engine.ensure(); return true } catch { return false }
     }, undefined, () => this.engine.ensure())
     app.registryDisposer(() => { this.ollama.cancel(); return this.engine.stop() })
     this.documents = new AgentDocumentStore(documentDirectory, message => this.warn(message))

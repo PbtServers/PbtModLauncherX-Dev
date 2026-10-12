@@ -20,7 +20,7 @@ interface Step {
 }
 interface Workflow {
   on: { push: { paths: string[] } }
-  jobs: Record<string, { steps: Step[]; strategy?: { matrix: { os: string[] } } }>
+  jobs: Record<string, { steps: Step[]; strategy?: { matrix: { include: { os: string; package_arch: string }[] } } }>
 }
 const build = load(readFileSync(join(root, '.github', 'workflows', 'build.yml'), 'utf8')) as Workflow
 const signing = load(readFileSync(join(root, '.github', 'workflows', 'sign-release.yml'), 'utf8')) as Workflow
@@ -39,7 +39,13 @@ describe('regular DeskGap Windows release workflow', () => {
   it('adds only a Windows EXE to the existing Electron artifact, using a single pinned runtime tag', () => {
     const buildSteps = build.jobs.build.steps
     expect(build.on.push.paths).toContain('deskgap-app/**')
-    expect(build.jobs.build.strategy?.matrix.os).toEqual(['ubuntu-latest', 'macos-latest', 'windows-latest'])
+    expect(build.jobs.build.strategy?.matrix.include).toEqual([
+      { os: 'ubuntu-latest', package_arch: 'x64' },
+      { os: 'ubuntu-24.04-arm', package_arch: 'arm64' },
+      { os: 'macos-latest', package_arch: 'x64' },
+      { os: 'macos-latest', package_arch: 'arm64' },
+      { os: 'windows-latest', package_arch: 'x64' },
+    ])
     for (const step of buildSteps.filter(step => step.name?.includes('DeskGap'))) {
       expect(step.if).toBe("${{ runner.os == 'Windows' }}")
       expect(step['continue-on-error']).toBeUndefined()
@@ -57,7 +63,7 @@ describe('regular DeskGap Windows release workflow', () => {
     expect(packaging.run).toContain('win32-x64.exe" xmcl-electron-app\\build\\output\\')
     expect(packaging.run).toContain('Join-Path $extracted "DeskGapBootstrap-v$env:DESKGAP_VERSION-win32-x64.exe"')
     expect(packaging.run).toContain('package "$source" "$runtime" "$bootstrap"')
-    expect(buildSteps.find(step => step.name === 'Upload Build')!.with?.path).toBe('xmcl-electron-app/build/output/\n')
+    expect(buildSteps.find(step => step.name === 'Upload Build')!.with?.path).toBe('xmcl-electron-app/build/output/*.*\n')
   })
 
   it('signs only APPX with the existing policy and keeps DeskGap signing as a future template', () => {
@@ -104,13 +110,15 @@ describe('regular DeskGap Windows release workflow', () => {
   })
 
   it('labels the regular release EXE as an unsigned manual-install preview', () => {
-    const body = build.jobs.release.steps.find(step => step.name === 'Build release body')!.run!
+    // Installation guidance is an asset: published release notes must remain untouched.
+    const body = readFileSync(join(root, 'scripts', 'collect-release-assets.mjs'), 'utf8')
     expect(body).toContain('UNSIGNED PREVIEW')
     expect(body).toContain('manual installation only')
     expect(body).toContain('intentionally rejects unsigned EXEs')
-    const release = build.jobs.release.steps.find(step => step.name === 'Publish GitHub Release')!
-    expect(release.with?.body_path).toBe('RELEASE_BODY.md')
-    expect(release.with?.tag_name).toBe('${{ github.ref_name }}')
+    expect(body).toContain('INSTALLATION.txt')
+    const release = build.jobs.release.steps.find(step => step.name === 'Attach verified artifacts without editing release notes')!
+    expect(release.run).toContain('collect-release-assets.mjs')
+    expect(release.run).not.toContain('release edit')
   })
 
   it.skipIf(process.platform !== 'win32').each([false, true])('can hash/upload/publish APPX with unsigned preview present: %s', (withPreview) => {

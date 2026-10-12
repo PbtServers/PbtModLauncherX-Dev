@@ -79,14 +79,13 @@ describe('InstanceThemeService', () => {
     await service.setInstanceTheme(instancePath, theme)
 
     const saved = await readJson(join(instancePath, 'theme.json')) as ThemeData
-    expect((saved.assets.backgroundImage as any).url).toBe(
-      `http://launcher/instance-theme-media/background.png?instancePath=${encodeURIComponent(instancePath)}`,
-    )
-    expect((saved.assets.backgroundImageDark as any).url).toBe(
-      `http://launcher/instance-theme-media/${imageHash}?instancePath=${encodeURIComponent(instancePath)}`,
-    )
+    const image = new URL((saved.assets.backgroundImage as any).url)
+    const darkImage = new URL((saved.assets.backgroundImageDark as any).url)
+    expect(image.pathname).toMatch(/^\/instance-theme-media\/[a-f0-9-]+\.png$/)
+    expect(image.searchParams.get('instancePath')).toBe(instancePath)
+    expect(darkImage.searchParams.get('instancePath')).toBe(instancePath)
     expect((saved.assets.backgroundMusic as any[])[0].url).toBe('https://example.com/music.mp3')
-    expect(await pathExists(join(instancePath, 'theme', 'background.png'))).toBe(true)
-    expect(await pathExists(join(instancePath, 'theme', imageHash))).toBe(true)
+    expect(await pathExists(join(instancePath, 'theme', image.pathname.split('/').pop()!))).toBe(true)
+    expect(await pathExists(join(instancePath, 'theme', darkImage.pathname.split('/').pop()!))).toBe(true)
   })
 })

@@ -3,6 +3,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, expect, test, vi } from 'vitest'
 import { ManagedOllama, modelDirectory } from './managedOllama'
+import { validateOllamaBundle } from './runtimeBundle'
 
 vi.mock('./runtimeBundle', () => ({ validateOllamaBundle: vi.fn(async (path: string) => {
   if (path === 'missing') throw Object.assign(new Error('absent'), { code: 'ENOENT' })
@@ -28,7 +29,10 @@ async function fixture(body?: string) {
   const data = await mkdtemp(join(tmpdir(), 'Pbt IA unicode-')); directories.push(data)
   // A real Node child simulates only the API/lifecycle. It is NOT Ollama inference.
   await writeFile(join(data, 'serve'), body || `require('node:http').createServer((q,r)=>{r.setHeader('content-type','application/json');r.end(JSON.stringify({version:'1.2.3'}))}).listen(Number(process.env.OLLAMA_HOST.split(':').pop()),'127.0.0.1');`)
-  const engine = new ManagedOllama({ bundle: 'fixture', data, readinessTimeoutMs: 2000 }); engines.push(engine)
+  const bundle = join(data, 'bundle')
+  await mkdir(bundle)
+  await writeFile(join(bundle, 'bundle.json'), '{}')
+  const engine = new ManagedOllama({ bundle, data, readinessTimeoutMs: 2000 }); engines.push(engine)
   return { engine, data }
 }
 test('starts one supervised child for concurrent requests and closes/restarts without deleting models', async () => {
@@ -42,8 +46,11 @@ test('starts one supervised child for concurrent requests and closes/restarts wi
 }, 15000)
 test('rejects a second manager sharing a live model store', async () => {
   const { engine, data } = await fixture(); await engine.ensure()
-  const other = new ManagedOllama({ bundle: 'fixture', data }); engines.push(other)
+  const validations = vi.mocked(validateOllamaBundle).mock.calls.length
+  const other = new ManagedOllama({ bundle: engine.options.bundle, data }); engines.push(other)
   await expect(other.ensure()).rejects.toThrow('store_locked')
+  await expect(other.ensure()).rejects.toThrow('store_locked')
+  expect(vi.mocked(validateOllamaBundle).mock.calls.length).toBe(validations)
 })
 test('times out and releases its own lock for recovery', async () => {
   const { engine, data } = await fixture('setInterval(()=>{},1000)')

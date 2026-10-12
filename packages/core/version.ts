@@ -4,6 +4,7 @@ import { extname } from 'path'
 import { readFile } from 'fs/promises'
 import { isNotNull } from './utils'
 import { getCompatibleJavaVersion } from './java'
+import { normalizeLabyModLibraries } from './labyLibraries'
 
 interface PartialResolvedVersion extends Version {
   libraries: ResolvedLibrary[]
@@ -580,9 +581,9 @@ export namespace Version {
       inheritances,
       arguments: args,
       downloads: downloadsMap,
-      libraries: Object.keys(librariesMap)
+      libraries: normalizeLabyModLibraries(Object.keys(librariesMap)
         .map((k) => librariesMap[k])
-        .concat(Object.keys(nativesMap).map((k) => nativesMap[k])),
+        .concat(Object.keys(nativesMap).map((k) => nativesMap[k]))),
       mainClass,
       minimumLauncherVersion,
       releaseTime,

@@ -239,6 +239,15 @@ modelPart_hat:true
   })
 
   describe('toMinecraftLanguage', () => {
+    test.each([
+      ['ca', 'ca_es', 'ca_ES'],
+      ['ca-ES', 'ca_es', 'ca_ES'],
+      ['es-ES', 'es_es', 'es_ES'],
+      ['en', 'en_us', 'en_US'],
+    ])('maps launcher locale %s for modern and legacy Minecraft', (locale, modern, legacy) => {
+      expect(GameSetting.toMinecraftLanguage(locale, '1.21.1')).toBe(modern)
+      expect(GameSetting.toMinecraftLanguage(locale, '1.8.9')).toBe(legacy)
+    })
     test('maps common modern locales to lowercase minecraft codes', () => {
       expect(GameSetting.toMinecraftLanguage('zh-CN')).toBe('zh_cn')
       expect(GameSetting.toMinecraftLanguage('uk')).toBe('uk_ua')

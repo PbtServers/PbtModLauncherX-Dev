@@ -17,7 +17,17 @@ describe('PbtModLauncherX 1.0.7 distribution metadata', () => {
     expect(JSON.parse(read(`${name}/package.json`)).version).toBe(version)
   })
   it('keeps the last published feed historical, the identity persistent and all publishers fork-owned', () => {
-    expect(JSON.parse(read('latest_version.json')).tag_name).toBe('v1.0.6')
+    const published = JSON.parse(read('latest_version.json'))
+    // v1.0.7 was published after this test was first written. Keep checking a
+    // published, fork-owned snapshot rather than a hard-coded previous release.
+    expect(published.tag_name).toBe('v1.0.7')
+    expect(published.draft).toBe(false)
+    expect(published.prerelease).toBe(false)
+    expect(Number.isFinite(Date.parse(published.published_at))).toBe(true)
+    expect(published.html_url).toBe('https://github.com/PbtServers/PbtModLauncherX-Dev/releases/tag/v1.0.7')
+    for (const asset of published.assets) {
+      expect(asset.browser_download_url).toBe(`https://github.com/PbtServers/PbtModLauncherX-Dev/releases/download/v1.0.7/${asset.name}`)
+    }
     expect(config.appId).toBe('PbtModLauncherX')
     expect(config.protocols.schemes).toEqual(['xmcl'])
     expect(config.appx.identityName).toBe('pbtmodlauncherx')

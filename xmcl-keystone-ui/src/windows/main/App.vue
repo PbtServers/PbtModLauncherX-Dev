@@ -70,7 +70,6 @@ import { kSettingsState } from '@/composables/setting'
 import { kTheme } from '@/composables/theme'
 import { kInFocusMode } from '@/composables/uiLayout'
 import { kSidebarSettings, useInjectSidebarSettings, useSidebarSettings } from '@/composables/sidebarSettings'
-import { basename } from '@/util/basename'
 import { injection } from '@/util/inject'
 import AppAddInstanceDialog from '@/views/AppAddInstanceDialog.vue'
 import AppImportUrlDialog from '@/views/AppImportUrlDialog.vue'
@@ -86,7 +85,7 @@ import AppSideBarClassic from '@/views/AppSideBarClassic.vue'
 import AppSideBarNotch from '@/views/AppSideBarNotch.vue'
 import AppSystemBar from '@/views/AppSystemBar.vue'
 import Setup from '@/views/Setup.vue'
-import { useLocalStorage, useMediaQuery, usePreferredColorScheme, usePreferredDark } from '@vueuse/core'
+import { useLocalStorage, usePreferredColorScheme, usePreferredDark } from '@vueuse/core'
 import { kInstanceLauncher, useInstanceLauncher } from '@/composables/instanceLauncher'
 import { kMinecraftFriends, useMinecraftFriendsImpl } from '@/composables/minecraftFriends'
 import { useUserMenuControl } from '@/composables/userMenu'
@@ -148,7 +147,7 @@ const route = useRoute()
 const hasAttachedWorkspacePanel = computed(
   () => route.meta.workspaceSidePanel === true && sidebarPosition.value === 'left',
 )
-provide(UserSkinRenderPaused, computed(() => reducedMotion.value || (!userProfileDialogShown.value && route.path !== '/me')))
+provide(UserSkinRenderPaused, computed(() => !userProfileDialogShown.value && route.path !== '/me'))
 
 // Bind Ctrl/Cmd+Shift+C to open the command palette.
 useCommandPaletteHotkey()
@@ -159,24 +158,21 @@ useModpackUrlPaste()
 
 const defaultColor = useInstanceGroupDefaultColor()
 
-const modes = useLocalStorage('instanceEnabledDashboard', {} as Record<string, boolean>)
+const modes = ref({} as Record<string, boolean>)
+const instanceView = useLocalStorage('instanceView', 'full', { writeDefaults: false })
+watch(instanceView, () => { modes.value = {} })
 const { path } = injection(kInstance)
-const isLessThan490px = useMediaQuery('(max-height: 570px)')
 provide(kInFocusMode, computed({
   get() {
-    const less = isLessThan490px.value
-    const isDashboard = modes.value[basename(path.value)]
+    const isDashboard = modes.value[path.value]
     if (isDashboard === undefined) {
-      return true // 'focus' is default
-    }
-    if (less) {
-      return false
+      return instanceView.value === 'reduced'
     }
     return !isDashboard
   },
   set(inFocus) {
     const isDashboard = !inFocus
-    modes.value = { ...modes.value, [basename(path.value)]: isDashboard }
+    modes.value = { ...modes.value, [path.value]: isDashboard }
   },
 }))
 

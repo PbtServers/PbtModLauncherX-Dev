@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { isGifIcon, snapshotGifIcon, useInstanceIconSource } from './instanceIconSource'
 vi.mock('@vueuse/core', () => ({ usePreferredReducedMotion: () => preference }))
 const preference = ref<'reduce' | 'no-preference'>('no-preference')
-afterEach(() => { preference.value = 'no-preference'; vi.unstubAllGlobals() })
+const lowResourceMode = ref(false)
+vi.mock('./lowResource', () => ({ useLowResourceMode: () => ({ enabled: lowResourceMode }) }))
+afterEach(() => { preference.value = 'no-preference'; lowResourceMode.value = false; vi.unstubAllGlobals() })
 describe('instance GIF display policy', () => {
   it('identifies encoded local URLs and GIF data', () => {
     expect(isGifIcon('http://launcher/media?path=G%3A%5Cicon.gif&revision=3')).toBe(true)
@@ -19,19 +21,19 @@ describe('instance GIF display policy', () => {
     expect(snapshot).not.toHaveBeenCalled()
     scope.stop()
   })
-  it('uses a display-only still and responds to preference changes', async () => {
-    preference.value = 'reduce'
+  it('uses a display-only still only in low resource mode and restores GIF animation when disabled', async () => {
+    lowResourceMode.value = true
     const scope = effectScope()
     const snapshot = vi.fn().mockResolvedValue('data:image/png;base64,still')
     const displayed = scope.run(() => useInstanceIconSource(() => 'https://example.com/icon.gif', snapshot))!
     await vi.waitFor(() => expect(displayed.value).toBe('data:image/png;base64,still'))
-    preference.value = 'no-preference'
+    lowResourceMode.value = false
     await nextTick()
     expect(displayed.value).toBe('https://example.com/icon.gif')
     scope.stop()
   })
-  it.each(['png', 'jpg', 'webp', 'bmp', 'svg'])('keeps %s unchanged with reduced motion', (ext) => {
-    preference.value = 'reduce'
+  it.each(['png', 'jpg', 'webp', 'bmp', 'svg'])('keeps %s unchanged in low resource mode', (ext) => {
+    lowResourceMode.value = true
     const scope = effectScope()
     const snapshot = vi.fn()
     const url = `https://example.com/icon.${ext}`
@@ -41,7 +43,7 @@ describe('instance GIF display policy', () => {
     scope.stop()
   })
   it('ignores a previous snapshot after switching instances or icons', async () => {
-    preference.value = 'reduce'
+    lowResourceMode.value = true
     const source = ref('https://example.com/old.gif')
     let finish!: (value: string) => void
     const scope = effectScope()
@@ -53,14 +55,23 @@ describe('instance GIF display policy', () => {
     expect(displayed.value).toBe(source.value)
     scope.stop()
   })
-  it('does not fall back to animation when a reduced-motion snapshot fails', async () => {
-    preference.value = 'reduce'
+  it('keeps a static fallback when a low-resource snapshot fails', async () => {
+    lowResourceMode.value = true
     const scope = effectScope()
     const snapshot = vi.fn().mockRejectedValue(new Error('CORS or codec error'))
     const displayed = scope.run(() => useInstanceIconSource(() => 'https://example.com/icon.gif', snapshot))!
     await vi.waitFor(() => expect(snapshot).toHaveBeenCalled())
     await nextTick()
     expect(displayed.value).toBe('')
+    scope.stop()
+  })
+  it('animates user-selected GIF icons in normal mode even when Windows reduces decorative motion', () => {
+    preference.value = 'reduce'
+    const scope = effectScope()
+    const snapshot = vi.fn()
+    const displayed = scope.run(() => useInstanceIconSource(() => 'https://example.com/icon.gif', snapshot))!
+    expect(displayed.value).toBe('https://example.com/icon.gif')
+    expect(snapshot).not.toHaveBeenCalled()
     scope.stop()
   })
   it('captures a bounded still and releases the temporary animated image', async () => {

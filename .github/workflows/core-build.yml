@@ -5,16 +5,30 @@ on:
     branches: 
       - master
     paths:
-      - 'packages/*/*.ts'
-      - 'packages/*/package.json'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/**'
+      - 'scripts/**'
+      - 'deskgap-app/**'
+      - 'xmcl-runtime/**'
+      - 'xmcl-runtime-api/**'
+      - 'xmcl-keystone-ui/**'
+      - 'xmcl-electron-app/**'
+      - 'xmcl-client-vue/**'
+      - 'patches/**'
+      - 'assets/**'
+      - 'mock/**'
+      - 'test-setup.ts'
+      - 'vitest.config.mts'
+
+permissions:
+  contents: read
 
 jobs:
   automation:
     runs-on: ubuntu-latest
-
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore(release)') }}
 
     strategy:
       matrix:
@@ -45,6 +59,10 @@ jobs:
     - name: Lint
       run: |
         pnpm lint
+    - name: Type check
+      env:
+        NODE_OPTIONS: --max-old-space-size=4096
+      run: pnpm check
     - name: Test
       run: |
         pnpm coverage

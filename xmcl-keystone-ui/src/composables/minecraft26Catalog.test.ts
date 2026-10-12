@@ -12,6 +12,7 @@ const clients = vi.hoisted(() => ({
   curseforge: { searchMods: vi.fn(async (_request: { classId: number; gameVersion: string }) => ({ data: [], pagination: { totalCount: 0 } })) },
 }))
 vi.mock('@/util/clients', () => ({ clientModrinthV2: clients.modrinth, clientCurseforgeV1: clients.curseforge }))
+vi.mock('@/i18n', () => ({ i18n: { global: { locale: ref('en') } } }))
 vi.stubGlobal('markRaw', markRaw)
 
 describe('official Minecraft identifiers through catalogs and persistence', () => {

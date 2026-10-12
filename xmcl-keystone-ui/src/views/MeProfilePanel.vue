@@ -1,5 +1,5 @@
 <template>
-  <div class="me-profile-panel workspace-side-panel flex flex-col h-full overflow-hidden select-none">
+  <div class="me-profile-panel workspace-side-panel flex flex-col h-full overflow-y-auto overflow-x-hidden select-none">
     <UserAccountSwitcher class="profile-header px-3 pt-3 pb-2 flex-shrink-0" show-inline-delete />
 
     <!-- Skin & Cape Card -->

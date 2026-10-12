@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!reducedMotion" class="absolute z-0 h-full w-full">
+  <div class="absolute z-0 h-full w-full">
     <transition
       name="fade-transition"
     >
@@ -13,10 +13,12 @@
         autoplay
         loop
         playsinline
+        @loadeddata="updateVideoPlayback"
         :muted="isMuted"
       />
       <Particles
         v-else-if="backgroundType === BackgroundType.PARTICLE"
+        :move-enabled="!backgroundPaused"
         color="#dedede"
         class="absolute z-0 h-full w-full"
         :style="{ filter: `blur(${blur}px)` }"
@@ -24,6 +26,7 @@
       />
       <Halo
         v-else-if="backgroundType === BackgroundType.HALO"
+        :paused="backgroundPaused"
         class="absolute z-0 h-full w-full"
         :style="{ filter: `blur(${blur}px)` }"
       />
@@ -44,6 +47,7 @@
         autoplay
         loop
         playsinline
+        @loadeddata="updateVideoPlayback"
         :muted="isMuted"
       />
     </transition>
@@ -61,7 +65,9 @@
 </template>
 <script lang="ts" setup>
 import { useLowResourceMode } from '@/composables/lowResource'
-const { reducedMotion } = useLowResourceMode()
+import { useDocumentVisibility } from '@vueuse/core'
+const { enabled: lowResourceMode } = useLowResourceMode()
+const visibility = useDocumentVisibility()
 const Halo = defineAsyncComponent(() => import('@/components/Halo.vue'))
 const Particles = defineAsyncComponent(() => import('@/components/Particles.vue'))
 import { injection } from '@/util/inject'
@@ -87,18 +93,18 @@ watch(volume, (newVolume) => {
 })
 
 const { gameProcesses } = injection(kInstanceLaunch)
+const backgroundPaused = computed(() => lowResourceMode.value || visibility.value !== 'visible' || gameProcesses.value.length > 0)
 
-watch(computed(() => gameProcesses.value.length), (cur, last) => {
-  if (cur > 0 && last === 0) {
-    videoRef.value?.pause()
-  } else if (cur === 0 && last > 0) {
-    videoRef.value?.play()
-  }
-})
+function updateVideoPlayback() {
+  if (backgroundPaused.value) videoRef.value?.pause()
+  else void videoRef.value?.play().catch(() => {})
+}
+watch(backgroundPaused, updateVideoPlayback)
 
 watch(videoRef, (v) => {
   if (v) {
     v.volume = volume.value
+    updateVideoPlayback()
   }
 })
 
@@ -107,12 +113,6 @@ onMounted(() => {
     videoRef.value.volume = volume.value
   }
 })
-
-watch(backgroundType, (t) => {
-  console.log(t)
-  console.log(backgroundImage.value)
-})
-
 
 </script>
 <style scoped>

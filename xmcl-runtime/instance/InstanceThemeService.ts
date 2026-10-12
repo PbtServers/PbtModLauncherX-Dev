@@ -5,6 +5,7 @@ import { basename, join, resolve } from 'path'
 import { Inject, LauncherAppKey, kGameDataPath, PathResolver } from '~/app'
 import { AbstractService, ExposeServiceKey } from '~/service'
 import { LauncherApp } from '../app/LauncherApp'
+import { importMedia } from '../theme/importMedia'
 
 @ExposeServiceKey(InstanceThemeServiceKey)
 export class InstanceThemeService extends AbstractService implements IInstanceThemeService {
@@ -76,11 +77,10 @@ export class InstanceThemeService extends AbstractService implements IInstanceTh
     const fileType = await fromFile(filePath)
     if (fileType?.mime.startsWith('audio') || fileType?.mime.startsWith('video') || fileType?.mime.startsWith('image') || fileType?.mime.startsWith('font')) {
       const themeFolder = join(instancePath, 'theme')
-      const targetPath = join(themeFolder, basename(filePath))
-      await ensureDir(themeFolder)
-      await copyFile(filePath, targetPath)
+      const name = await importMedia(filePath, themeFolder, fileType.ext)
       return {
-        url: 'http://launcher/instance-theme-media/' + basename(filePath) + '?instancePath=' + encodeURIComponent(instancePath),
+        url: 'http://launcher/instance-theme-media/' + name + '?instancePath=' + encodeURIComponent(instancePath),
+        name: basename(filePath),
         type: fileType.mime.slice(0, fileType.mime.indexOf('/')) as 'audio' | 'video' | 'image' | 'font',
         mimeType: fileType.mime,
       }

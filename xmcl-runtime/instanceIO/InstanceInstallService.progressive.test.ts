@@ -495,7 +495,12 @@ describe('InstanceInstallService progressive installation', () => {
     await f.service.resumeInstanceInstall(f.instancePath)
 
     expect(mockedDownload.mock.calls.flatMap(([downloads]) => downloads.map(download => download.file.path))).toEqual([missing.path])
-    expect(await pathExists(join(f.instancePath, '.install'))).toBe(false)
+    const stagingRoot = join(f.instancePath, '.install')
+    const remains = await readdir(stagingRoot, { recursive: true }).catch(error => {
+      if (error.code === 'ENOENT') return []
+      throw error
+    })
+    expect(await pathExists(stagingRoot), `Unexpected staging entries: ${JSON.stringify(remains)}`).toBe(false)
     await vi.waitFor(() => expect(status.pendingFileCount).toBe(0))
   })
 

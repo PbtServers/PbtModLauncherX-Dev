@@ -533,6 +533,27 @@ export class MojangClient {
     return normalizeFriendsResponse(json, resp.headers.get('etag') ?? undefined)
   }
 
+  /** Native Java friends presence protocol, as shipped in Authlib 9.0.75.
+   * This POST also publishes the caller's status; callers must obtain consent. */
+  async updateFriendsPresence(token: string, status: 'ONLINE' | 'OFFLINE', signal?: AbortSignal): Promise<MojangPresenceRecord[]> {
+    const resp = await this.fetch('https://api.minecraftservices.com/presence', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+      signal: signal ?? AbortSignal.timeout(10_000),
+    })
+    if (resp.status === 401) throw new UnauthorizedError(await safeJson(resp))
+    if (!resp.ok) throw new MojangFriendsError(`Failed to fetch friends presence (status ${resp.status})`, resp.status, await safeJson(resp))
+    const result = await resp.json() as { presence?: unknown }
+    if (!Array.isArray(result.presence)) throw new Error('Invalid Minecraft presence response')
+    return result.presence.flatMap((entry): MojangPresenceRecord[] => {
+      if (!entry || typeof entry.profileId !== 'string' || typeof entry.status !== 'string') return []
+      const profileId = entry.profileId.replace(/-/g, '').toLowerCase()
+      if (!/^[a-f0-9]{32}$/.test(profileId)) return []
+      return [{ profileId, status: entry.status, lastUpdated: typeof entry.lastUpdated === 'string' ? entry.lastUpdated : undefined }]
+    })
+  }
+
   /**
    * Add a friend either by Minecraft username or by profile uuid.
    *
@@ -648,6 +669,12 @@ export interface MojangFriendsListResponse {
    * unchanged responses (the server replies with 304 in that case).
    */
   etag?: string
+}
+
+export interface MojangPresenceRecord {
+  profileId: string
+  status: string
+  lastUpdated?: string
 }
 
 export interface MojangPlayerAttributes {

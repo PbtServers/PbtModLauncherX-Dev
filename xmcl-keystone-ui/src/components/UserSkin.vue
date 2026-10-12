@@ -46,12 +46,13 @@
     </transition>
     <SkinView
       :paused="paused"
-      :height="300"
+      :height="previewHeight"
       :skin="skin"
       :slim="inferModelType ? undefined : slim"
       :cape="cape"
       :name="name"
-      :animation="hover ? 'running' : selected ? 'walking' : 'idle'"
+      :animation="lowResourceMode ? 'none' : hover ? 'idle' : reducedMotion ? 'none' : selected ? 'walking' : 'idle'"
+      :interactive-motion="hover && !lowResourceMode"
       @model="onModelChange"
       @error="onPreviewError"
       @drop.prevent="dropSkin"
@@ -100,6 +101,8 @@
 
 <script lang="ts" setup>
 import SkinView from '@/components/SkinView.vue'
+import { useLowResourceMode } from '@/composables/lowResource'
+import { useWindowSize } from '@vueuse/core'
 import { getDropFilePaths } from '@/composables/dropHandler'
 import { vSharedTooltip } from '@/directives/sharedTooltip'
 import { GameProfileAndTexture, UserProfile } from '@xmcl/runtime-api'
@@ -126,6 +129,9 @@ const props = withDefaults(
 )
 const { t } = useI18n()
 const hover = ref(false)
+const { enabled: lowResourceMode, reducedMotion } = useLowResourceMode()
+const { height: windowHeight } = useWindowSize()
+const previewHeight = computed(() => Math.max(160, Math.min(300, windowHeight.value - 260)))
 const { notify } = useNotifier()
 const toLocaleError = useLocaleError()
 
@@ -190,7 +196,7 @@ async function loadSkin() {
     filters: [{ extensions: ['png'], name: 'PNG Images' }],
   })
   if (filePaths && filePaths[0]) {
-    skin.value = `http://launcher/media?path=${filePaths[0]}`
+    skin.value = `http://launcher/media?path=${encodeURIComponent(filePaths[0])}`
     inferModelType.value = true
   }
 }
@@ -209,7 +215,7 @@ async function dropSkin(e: DragEvent) {
   if (e.dataTransfer) {
     const [filePath] = getDropFilePaths(e.dataTransfer.files)
     if (filePath) {
-      skin.value = `http://launcher/media?path=${filePath}`
+      skin.value = `http://launcher/media?path=${encodeURIComponent(filePath)}`
       inferModelType.value = true
     }
   }

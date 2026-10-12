@@ -1,4 +1,4 @@
-import { DEFAULT_LAUNCHER_LOCALE, resolveLauncherLocale } from '@xmcl/runtime-api'
+import { DEFAULT_LAUNCHER_LOCALE } from '@xmcl/runtime-api'
 
 export type TimeStyle = 'full' | 'long' | 'medium' | 'short' | undefined
 export interface TimeFormatOptions {
@@ -6,7 +6,8 @@ export interface TimeFormatOptions {
   timeStyle?: TimeStyle
 }
 export function getLocalDateString(s: string | number, options?: TimeFormatOptions, preferred?: string) {
-  let locale = resolveLauncherLocale(preferred)
+  // Date formatting supports regional locales beyond the reviewed UI translations.
+  let locale = preferred || DEFAULT_LAUNCHER_LOCALE
   try {
     if (!Intl.DateTimeFormat.supportedLocalesOf(locale).length) locale = DEFAULT_LAUNCHER_LOCALE
   } catch {

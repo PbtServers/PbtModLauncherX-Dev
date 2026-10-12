@@ -631,7 +631,8 @@ export function useThemeWritter(
     const theme = currentTheme.value
     if (!theme) return
     const old = isDark.value ? theme.backgroundImageDark : theme.backgroundImage
-    if (old && old.url.startsWith('http://launcher/')) {
+    const other = isDark.value ? theme.backgroundImage : theme.backgroundImageDark
+    if (old && old.url !== media.url && old.url !== other?.url && old.url.startsWith('http://launcher/')) {
       await _removeMedia(old.url).catch(() => {})
     }
     theme[isDark.value ? 'backgroundImageDark' : 'backgroundImage'] = media
@@ -650,7 +651,8 @@ export function useThemeWritter(
     const theme = currentTheme.value
     if (!theme) return
     const old = isDark.value ? theme.backgroundImageDark : theme.backgroundImage
-    if (old && old.url.startsWith('http://launcher/')) {
+    const other = isDark.value ? theme.backgroundImage : theme.backgroundImageDark
+    if (old && old.url !== media.url && old.url !== other?.url && old.url.startsWith('http://launcher/')) {
       await _removeMedia(old.url).catch(() => {})
     }
     theme[isDark.value ? 'backgroundImageDark' : 'backgroundImage'] = media

@@ -74,11 +74,10 @@ watch(computed(() => props.moveEnabled), (e) => {
   }
   const pJS = cur.pJS
   pJS.particles.move.enable = e
-  console.log(`enabled: ${e}`)
-  if (e) {
-    console.log(current())
-    pJS.fn.vendors.start()
-  }
+  pJS.interactivity.events.onhover.enable = e && props.hoverEffect
+  pJS.interactivity.events.onclick.enable = e && props.clickEffect
+  cancelAnimationFrame(pJS.fn.drawAnimFrame)
+  pJS.fn.vendors.draw()
 })
 
 watch(() => props.moveDirection, () => {

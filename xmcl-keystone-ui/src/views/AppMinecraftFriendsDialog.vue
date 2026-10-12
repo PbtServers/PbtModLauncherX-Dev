@@ -113,6 +113,26 @@
           />
         </div>
 
+        <div class="surface-panel flex items-center justify-between gap-3 px-4 py-3">
+          <div>
+            <div class="text-sm font-medium">{{ t('nativePresence.share') }}</div>
+            <div class="text-xs opacity-50">{{ t('nativePresence.shareHint') }}</div>
+          </div>
+          <v-switch
+            :model-value="preferences?.sharePresence ?? false"
+            :label="t('nativePresence.share')"
+            color="primary"
+            density="compact"
+            hide-details
+            :loading="preferencesLoading"
+            :disabled="preferencesLoading"
+            @update:model-value="setPreferences({ sharePresence: $event as boolean }).then(() => refresh(true))"
+          />
+        </div>
+        <p v-if="data?.presenceStatus && data.presenceStatus !== 'available'" class="text-xs opacity-60 px-4" role="status">
+          {{ t(`nativePresence.${data.presenceStatus}`) }}
+        </p>
+
         <!-- Hero empty state -->
         <div
           v-if="isHeroEmpty"

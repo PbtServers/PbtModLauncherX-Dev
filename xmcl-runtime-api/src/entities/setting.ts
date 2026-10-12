@@ -34,6 +34,7 @@ export class Settings implements SettingSchema {
   agentModel = DEFAULT_AGENT_MODEL
   agentHistoryEnabled = true
   lowResourceMode = false
+  minecraftFriendsPresenceSharing: Record<string, boolean> = {}
   linuxTitlebar = false
   windowTranslucent = false
   quickActionShortcut = ''
@@ -126,6 +127,7 @@ export class Settings implements SettingSchema {
     this.agentModel = config.agentModel
     this.agentHistoryEnabled = config.agentHistoryEnabled
     this.lowResourceMode = config.lowResourceMode ?? false
+    this.minecraftFriendsPresenceSharing = config.minecraftFriendsPresenceSharing ?? {}
     this.linuxTitlebar = config.linuxTitlebar
     this.windowTranslucent = config.windowTranslucent
     this.enableDedicatedGPUOptimization = config.enableDedicatedGPUOptimization
@@ -234,6 +236,9 @@ export class Settings implements SettingSchema {
   }
 
   lowResourceModeSet(enabled: boolean) { this.lowResourceMode = enabled }
+  minecraftFriendsPresenceSharingSet(input: { userId: string; enabled: boolean }) {
+    this.minecraftFriendsPresenceSharing = { ...this.minecraftFriendsPresenceSharing, [input.userId]: input.enabled }
+  }
 
   linuxTitlebarSet(enabled: boolean) {
     this.linuxTitlebar = enabled

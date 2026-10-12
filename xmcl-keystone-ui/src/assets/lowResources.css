@@ -1,8 +1,10 @@
 /* Runtime preference: no Minecraft settings or persistent theme values changed. */
 html.pbt-reduced-motion *, html.pbt-reduced-motion *::before, html.pbt-reduced-motion *::after {
-  animation: none !important;
   transition: none !important;
   scroll-behavior: auto !important;
+}
+html.pbt-reduced-motion *:not(.v-progress-circular--indeterminate, .v-progress-circular--indeterminate *, .v-progress-linear__indeterminate, .v-progress-linear__indeterminate *, .audio-track-title--scrolling) {
+  animation: none !important;
 }
 html.pbt-low-resources *, html.pbt-low-resources *::before, html.pbt-low-resources *::after {
   backdrop-filter: none !important;
@@ -10,14 +12,15 @@ html.pbt-low-resources *, html.pbt-low-resources *::before, html.pbt-low-resourc
   filter: none !important;
   box-shadow: none !important;
 }
-html.pbt-low-resources .v-application,
 html.pbt-low-resources .v-card,
 html.pbt-low-resources .v-overlay__content,
 html.pbt-low-resources .agent-surface,
 html.pbt-low-resources .omni-surface {
   background: rgb(var(--v-theme-surface)) !important;
 }
+
 html.pbt-low-resources .header-overlay { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
+  *:not(.v-progress-circular--indeterminate, .v-progress-circular--indeterminate *, .v-progress-linear__indeterminate, .v-progress-linear__indeterminate *, .audio-track-title--scrolling) { animation: none !important; }
 }

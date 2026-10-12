@@ -8,6 +8,7 @@ vi.mock('~/app', () => ({
   Inject: () => () => {},
   LauncherApp: class {},
   LauncherAppKey: Symbol('LauncherAppKey'),
+  kGameDataPath: Symbol('kGameDataPath'),
 }))
 
 vi.mock('~/infra', () => ({

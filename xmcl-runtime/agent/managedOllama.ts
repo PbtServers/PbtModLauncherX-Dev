@@ -1,15 +1,18 @@
 import { spawn, type ChildProcess } from 'child_process'
 import { constants } from 'fs'
-import { access, mkdir, open, readFile, rename, statfs, unlink, writeFile } from 'fs/promises'
+import { access, lstat, mkdir, open, readFile, rename, statfs, unlink, writeFile } from 'fs/promises'
 import { createServer } from 'net'
-import { isAbsolute, join, relative, resolve } from 'path'
+import { randomUUID } from 'crypto'
+import { dirname, isAbsolute, join, relative, resolve } from 'path'
 import { validateOllamaBundle } from './runtimeBundle'
 import { OLLAMA_SUPERVISOR } from './ollamaSupervisor'
 import { ownsOllamaPort } from './ollamaPortOwner'
 import { installFactoryModel } from './modelBundle'
+import { migrateManagedStorageLocation } from './modelStorageMigration'
+import { managedLeaseOwnerPath, recoverInactiveManagedLease, writeManagedLeaseOwner } from './modelStoreLease'
 export const kOllamaResourceRoot = Symbol('ollama-resource-root')
 
-export interface ManagedOllamaOptions { bundle: string; data: string; seed?: string; portableBase?: string; readinessTimeoutMs?: number }
+export interface ManagedOllamaOptions { bundle: string; data: string; legacyData?: string; seed?: string; portableBase?: string; readinessTimeoutMs?: number }
 export interface LocalRuntimeConfig { modelsDirectory?: string; externalOrigin?: string }
 
 export function modelDirectory(options: ManagedOllamaOptions, config: LocalRuntimeConfig) {
@@ -31,12 +34,22 @@ export class ManagedOllama {
   private stopping = false
   private lock?: Awaited<ReturnType<typeof open>>
   private lockPath?: string
+  private lockNonce?: string
   private lockRelease?: Promise<void>
   private abort?: AbortController
+  private storageReady?: Promise<void>
   constructor(readonly options: ManagedOllamaOptions, private fetch = globalThis.fetch,
     private diagnostic: (event: string, details?: Record<string, string | number>) => void = () => {}) {}
 
   async configuration(): Promise<LocalRuntimeConfig> {
+    if (this.options.legacyData) {
+      this.storageReady ??= migrateManagedStorageLocation(this.options.legacyData, this.options.data).catch(error => {
+        this.storageReady = undefined
+        if (['EACCES', 'EPERM', 'EROFS'].includes((error as NodeJS.ErrnoException).code || '')) throw new Error('ollama_storage_unavailable')
+        throw error
+      })
+      await this.storageReady
+    }
     try { return JSON.parse(await readFile(join(this.options.data, 'config.json'), 'utf8')) } catch (e) {
       if ((e as NodeJS.ErrnoException).code === 'ENOENT') return {}
       throw e
@@ -65,8 +78,14 @@ export class ManagedOllama {
     const config = await this.configuration()
     const models = modelDirectory(this.options, config)
     await mkdir(models, { recursive: true })
+    await access(models, constants.W_OK)
     const space = await statfs(models)
-    return { modelsDirectory: models, freeBytes: space.bavail * space.bsize, externalOrigin: config.externalOrigin }
+    let migrationSource: string | undefined
+    try {
+      const migration = JSON.parse(await readFile(join(this.options.data, '.legacy-storage-migrated'), 'utf8'))
+      if (migration.modelCount > 0) migrationSource = migration.source
+    } catch { /* Optional migration receipt; never changes model storage. */ }
+    return { modelsDirectory: models, freeBytes: space.bavail * space.bsize, externalOrigin: config.externalOrigin, migrationSource }
   }
 
   ensure(): Promise<string> {
@@ -84,6 +103,20 @@ export class ManagedOllama {
     const controller = new AbortController()
     this.abort = controller
     const config = await this.configuration()
+    const models = modelDirectory(this.options, config)
+    // A locked local store cannot be started. Reject before hashing the entire
+    // runtime on every status query; the exclusive open below still handles races.
+    // Missing bundles retain the explicitly configured external-service fallback.
+    let integratedBundle = false
+    try { await lstat(join(this.options.bundle, 'bundle.json')); integratedBundle = true } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    if (integratedBundle) {
+      await recoverInactiveManagedLease(models)
+      try { await lstat(join(models, '.pbtadmin-engine.lock')); throw new Error('ollama_store_locked_or_readonly') } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+    }
     let bundle: Awaited<ReturnType<typeof validateOllamaBundle>>
     try { bundle = await validateOllamaBundle(this.options.bundle) } catch (e) {
       // An absent integrated bundle may use only an explicitly saved external service.
@@ -96,7 +129,6 @@ export class ManagedOllama {
       }
       throw e
     }
-    const models = modelDirectory(this.options, config)
     this.diagnostic('storage', { models })
     await mkdir(models, { recursive: true })
     await mkdir(join(this.options.data, 'home'), { recursive: true })
@@ -105,7 +137,9 @@ export class ManagedOllama {
     try { this.lock = await open(this.lockPath, 'wx', 0o600) } catch { throw new Error('ollama_store_locked_or_readonly') }
     const reservation = createServer()
     try {
-      await this.lock.writeFile(JSON.stringify({ pid: process.pid }))
+      const nonce = randomUUID()
+      this.lockNonce = nonce
+      await this.lock.writeFile(JSON.stringify({ pid: process.pid, nonce }))
       if (this.options.seed) {
         this.diagnostic('seed.begin')
         try { await installFactoryModel(this.options.seed, models) } catch (error) {
@@ -122,7 +156,7 @@ export class ManagedOllama {
       const env: NodeJS.ProcessEnv = Object.fromEntries(Object.entries(process.env).filter(([name]) => ['PATH', 'SystemRoot', 'SYSTEMROOT', 'WINDIR', 'LANG', 'LC_ALL', 'LD_LIBRARY_PATH', 'CUDA_VISIBLE_DEVICES', 'HIP_VISIBLE_DEVICES', 'ROCR_VISIBLE_DEVICES', 'GGML_VK_VISIBLE_DEVICES'].includes(name)))
       Object.assign(env, { OLLAMA_HOST: `127.0.0.1:${port}`, OLLAMA_MODELS: models, OLLAMA_ORIGINS: 'http://pbtadmin.invalid', OLLAMA_NO_CLOUD: '1', OLLAMA_NOPRUNE: '1', HOME: join(this.options.data, 'home'), USERPROFILE: join(this.options.data, 'home'), APPDATA: join(this.options.data, 'home'), LOCALAPPDATA: join(this.options.data, 'home'), TMPDIR: join(this.options.data, 'tmp'), TEMP: join(this.options.data, 'tmp'), TMP: join(this.options.data, 'tmp') })
       // The supervisor detects parent death via stdin and owns only this engine's tree.
-      const child = spawn(process.execPath, ['-e', OLLAMA_SUPERVISOR, bundle.executable], { cwd: this.options.data, env: { ...env, ELECTRON_RUN_AS_NODE: '1' }, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
+      const child = spawn(process.execPath, ['-e', OLLAMA_SUPERVISOR, bundle.executable, this.lockPath, nonce], { cwd: this.options.data, env: { ...env, ELECTRON_RUN_AS_NODE: '1' }, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
       this.child = child
       this.diagnostic('supervisor.spawn', { pid: child.pid || 0, origin })
       let enginePid = 0
@@ -156,7 +190,13 @@ export class ManagedOllama {
           else if ((await response.json() as any).version !== bundle.manifest.version.replace(/^v/, '')) readinessReason = 'version_mismatch'
           else if (!enginePid) readinessReason = 'supervisor_pid_missing'
           else if (!await ownsOllamaPort(enginePid, port)) readinessReason = 'port_owner_mismatch'
-          else if (child.exitCode === null && !signal.aborted) { this.origin = origin; this.diagnostic('ready', { pid: enginePid, origin }); return origin }
+          else if (child.exitCode === null && !signal.aborted) {
+            await writeManagedLeaseOwner(models, { pid: process.pid, nonce, supervisorPid: child.pid!, enginePid })
+            if (child.exitCode !== null || signal.aborted) throw new Error('ollama_start_cancelled')
+            this.origin = origin
+            this.diagnostic('ready', { pid: enginePid, origin })
+            return origin
+          }
         } catch (error) {
           const code = (error as NodeJS.ErrnoException).code || (error as { cause?: { code?: string } }).cause?.code || (error as Error).name
           readinessReason = /^[a-zA-Z0-9_]+$/.test(code || '') ? code! : 'connection_error'
@@ -195,12 +235,20 @@ export class ManagedOllama {
   private async releaseLock() {
     const lock = this.lock
     const path = this.lockPath
+    const nonce = this.lockNonce
     if (!lock) { await this.lockRelease; return }
     this.lock = undefined
     this.lockPath = undefined
+    this.lockNonce = undefined
     this.lockRelease = (async () => {
       await lock.close()
-      if (path) await unlink(path).catch(e => { if (e.code !== 'ENOENT') throw e })
+      if (path) {
+        try {
+          const owner = JSON.parse(await readFile(path, 'utf8'))
+          if (owner.nonce === nonce && owner.pid === process.pid) await unlink(path)
+        } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+        if (nonce) await unlink(managedLeaseOwnerPath(dirname(path), nonce)).catch(error => { if (error.code !== 'ENOENT') throw error })
+      }
     })()
     await this.lockRelease.finally(() => { this.lockRelease = undefined })
   }

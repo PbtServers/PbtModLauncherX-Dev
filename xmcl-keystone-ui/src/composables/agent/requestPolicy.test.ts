@@ -26,6 +26,8 @@ describe('PbtAdmin request context policy', () => {
     const messages: any[] = [{ role: 'user', content: 'Local evidence: '.repeat(180), timestamp: 1 }, { role: 'user', content: 'Hola', timestamp: 2 }]
     expect(systemPrompt).toContain('PbtinaDev')
     expect(systemPrompt).toContain('feminine')
+    expect(systemPrompt).toContain('PbtServers is the community you assist')
+    expect(systemPrompt).toContain('not its owner or creator')
     expect(boundAgentProviderContext({ systemPrompt, messages }, 4096, 1024).messages).toHaveLength(2)
   })
   it('reproduces catalogue exhaustion before a greeting and fits the working diagnostic gateway', () => {

@@ -6,6 +6,9 @@
     <v-switch v-model="historyEnabled" :label="t('pbtadmin.history')" :hint="t('pbtadmin.historyHint')" persistent-hint />
     <template v-if="provider === 'ollama'">
       <v-text-field v-model="modelsDirectory" :label="t('pbtadmin.modelsDirectory')" />
+      <p class="text-caption">{{ t('modelStorage.defaultLocation') }}</p>
+      <v-alert v-if="migrationSource" type="success" variant="tonal">{{ t('modelStorage.migrated', { source: migrationSource }) }}</v-alert>
+      <p v-if="checking" role="status">{{ t('modelStorage.checking') }}</p>
       <v-checkbox v-model="externalConsent" :label="t('pbtadmin.externalConsent')" />
       <v-btn :disabled="checking" @click="saveStorage">{{ t('pbtadmin.saveStorage') }}</v-btn>
       <v-btn :loading="checking" :disabled="checking" @click="refresh(true)">{{ t('pbtadmin.detect') }}</v-btn>
@@ -15,10 +18,10 @@
         <p v-if="!status.runtimeError">{{ t(status.error === 'connectionFailed' || status.error === 'invalidResponse' ? 'pbtadmin.detectFailed' : status.running ? 'pbtadmin.running' : status.installed === true ? 'pbtadmin.stopped' : status.installed === false ? 'pbtadmin.missing' : 'pbtadmin.unknown') }}</p>
         <p>{{ t('pbtadmin.hardware', { total: gib(status.totalMemory), free: gib(status.freeMemory), cpus: status.cpuCount }) }}</p>
         <v-select v-model="model" :items="compatibleModels" item-title="name" item-value="name" :label="t('pbtadmin.model')" :disabled="!status.running" />
-        <p v-if="!compatibleModels.length">{{ t('pbtadmin.noModels') }}</p>
+        <p v-if="status.running && !compatibleModels.length">{{ t('pbtadmin.noModels') }}</p>
         <p v-if="status.models.some(entry => !entry.compatible && entry.chatCompatible)">{{ t('pbtadmin.chatOnly') }}</p>
         <p v-if="status.models.some(entry => !entry.compatible && !entry.chatCompatible)">{{ t('pbtadmin.unsupported') }}</p>
-        <p>{{ t('pbtadmin.recommendation') }} {{ status.recommendedModels.join(', ') || t('pbtadmin.lowMemory') }}</p>
+        <p v-if="status.running && !status.runtimeError">{{ t('pbtadmin.recommendation') }} {{ status.recommendedModels.join(', ') || t(recommendationIssueKey) }}</p>
         <v-alert v-if="lowFactoryResources" type="warning" class="my-2">
           {{ t('pbtadmin.lowMemory') }} {{ t('pbtadmin.recommendation') }} qwen3:1.7b-q4_K_M
           <v-btn class="mt-2" @click="offerLightModel">{{ t('pbtadmin.setup') }}</v-btn>
@@ -57,16 +60,19 @@ import { useI18n } from 'vue-i18n'
 import { AgentServiceKey, AGENT_PROVIDER_PRESETS, LOCAL_AI_MODELS, OLLAMA_ENDPOINT, type OllamaStatus, type OllamaDownloadStatus } from '@xmcl/runtime-api'
 import { useService } from '@/composables/service'
 import { useAgentSettings } from '@/composables/agent/settings'
+import { modelStorageErrorKey } from '@/composables/agent/modelStorageError'
+import { modelResourceIssue } from '@/composables/agent/modelResources'
 
 const { t, locale } = useI18n()
 const service = useService(AgentServiceKey)
 const modelsDirectory = ref('')
+const migrationSource = ref('')
 const externalConsent = ref(false)
 async function saveStorage() {
   try {
     await service.configureLocalRuntime({ modelsDirectory: modelsDirectory.value, externalOrigin: externalConsent.value ? 'http://127.0.0.1:11434' : undefined })
     await refresh()
-  } catch { error.value = 'pbtadmin.integratedFailed' }
+  } catch (e) { error.value = modelStorageErrorKey(e) }
 }
 const settings = useAgentSettings()
 const { endpoint, model, historyEnabled } = settings
@@ -84,7 +90,9 @@ const error = ref('')
 const wizard = ref(false)
 const consent = ref(false)
 const downloadModel = ref<(typeof LOCAL_AI_MODELS)[number]['name']>('qwen3:4b-q4_K_M')
-const lowFactoryResources = computed(() => !!status.value && !status.value.recommendedModels.includes('qwen3:4b-q4_K_M'))
+const factoryResourceIssue = computed(() => modelResourceIssue(status.value))
+const lowFactoryResources = computed(() => factoryResourceIssue.value === 'memory')
+const recommendationIssueKey = computed(() => factoryResourceIssue.value === 'memory' ? 'pbtadmin.lowMemory' : factoryResourceIssue.value === 'storage' ? 'qwenInstall.storageError' : 'pbtadmin.detectFailed')
 function offerLightModel() {
   downloadModel.value = 'qwen3:1.7b-q4_K_M'
   consent.value = false
@@ -110,12 +118,13 @@ async function refresh(activate = false) {
     await refreshStorage()
     await settings.refreshStatus()
     error.value = ''
-  } catch { error.value = 'pbtadmin.detectFailed' }
+  } catch (e) { error.value = modelStorageErrorKey(e, 'pbtadmin.detectFailed') }
   finally { checking.value = false }
 }
 async function refreshStorage() {
   const storage = await service.getLocalRuntimeStorage()
   modelsDirectory.value = storage.modelsDirectory
+  migrationSource.value = storage.migrationSource || ''
   externalConsent.value = !!storage.externalOrigin
 }
 async function startDownload() {
@@ -128,7 +137,7 @@ async function startDownload() {
     await service.startOllamaDownload(preview.confirmationId)
     download.value = await service.getOllamaDownloadStatus()
     wizard.value = false
-  } catch { error.value = 'pbtadmin.downloadFailed' }
+  } catch (e) { error.value = modelStorageErrorKey(e, 'pbtadmin.downloadFailed') }
   finally { starting.value = false }
 }
 async function cancelDownload() {

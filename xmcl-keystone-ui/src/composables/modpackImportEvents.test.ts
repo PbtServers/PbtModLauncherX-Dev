@@ -14,6 +14,7 @@ vi.mock('vue', async () => ({
   onBeforeUnmount: (run: () => void) => mocks.unmounts.push(run),
 }))
 vi.mock('./dialog', () => ({ useDialog: () => ({ show: mocks.show }) }))
+vi.mock('@/i18n', () => ({ i18n: { global: { locale: ref('en') } } }))
 vi.mock('@/util/inject', () => ({ injection: () => ({
   registerHandler: mocks.registerHandler, dragover: ref(false), path: ref('instance'),
 }) }))

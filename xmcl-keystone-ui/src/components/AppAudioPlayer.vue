@@ -1,8 +1,8 @@
 <template>
   <div v-if="currentUrl" class="non-moveable flex flex-grow-0 items-center">
-    <span class="max-w-40 overflow-hidden overflow-ellipsis whitespace-nowrap">
-      <span class="bar_content">
-        {{ basename(currentUrl, '/') }}
+    <span ref="trackViewport" class="audio-track-viewport" :title="currentTitle" :aria-label="t('audioPlayer.currentTrack', { name: currentTitle })">
+      <span ref="trackContent" :key="currentUrl" class="audio-track-title" :class="{ 'audio-track-title--scrolling': !lowResourceMode && scrollDistance > 0 }" :style="{ '--track-distance': `${-scrollDistance}px`, '--track-duration': `${Math.max(5, scrollDistance / 18 + 3)}s` }">
+        {{ currentTitle }}
       </span>
     </span>
     <v-btn icon variant="text" size="x-small" @click="prev">
@@ -43,18 +43,33 @@
 </template>
 <script lang="ts" setup>
 import { injection } from '@/util/inject'
-import { basename } from '@/util/basename'
-import { useLocalStorage, useMediaControls } from '@vueuse/core'
+import { mediaTitle } from '@/util/mediaTitle'
+import { useLocalStorage, useMediaControls, useResizeObserver } from '@vueuse/core'
+import { useLowResourceMode } from '@/composables/lowResource'
 import { kTheme } from '@/composables/theme'
 import { kInstanceLaunch } from '@/composables/instanceLaunch'
 
 defineProps<{}>()
 
 const { currentTheme } = injection(kTheme)
+const { t } = useI18n()
+const { enabled: lowResourceMode } = useLowResourceMode()
 const index = ref(0)
 const currentBackgroundMusics = computed(() => currentTheme.value?.backgroundMusic || [])
 const currentUrl = computed(() => currentBackgroundMusics.value[index.value]?.url)
 const currentMineType = computed(() => currentBackgroundMusics.value[index.value]?.mimeType)
+const currentTitle = computed(() => mediaTitle(currentBackgroundMusics.value[index.value]))
+const trackViewport = ref<HTMLElement | null>(null)
+const trackContent = ref<HTMLElement | null>(null)
+const scrollDistance = ref(0)
+function measureTrackTitle() {
+  scrollDistance.value = Math.max(0, (trackContent.value?.scrollWidth ?? 0) - (trackViewport.value?.clientWidth ?? 0))
+}
+useResizeObserver([trackViewport, trackContent], measureTrackTitle)
+watch(currentTitle, () => { void nextTick().then(measureTrackTitle) })
+watch(() => currentBackgroundMusics.value.length, length => {
+  if (index.value >= length) index.value = 0
+})
 
 const audio = ref<HTMLAudioElement | null>(null)
 const { playing, volume, ended } = useMediaControls(audio)
@@ -101,22 +116,21 @@ const play = () => {
   playing.value = !playing.value
 }
 const next = async () => {
+  const count = currentBackgroundMusics.value.length
+  if (!count) return
   audio.value?.pause()
   // play next
   if (!shuffle.value) {
-    index.value = (index.value + 1) % currentBackgroundMusics.value.length
+    index.value = (index.value + 1) % count
   } else {
     // should not play the same music
-    let nextIndex = index.value
-    while (nextIndex === index.value) {
-      nextIndex = Math.floor(Math.random() * currentBackgroundMusics.value.length)
-    }
-    index.value = nextIndex
+    index.value = count === 1 ? 0 : (index.value + 1 + Math.floor(Math.random() * (count - 1))) % count
   }
   await nextTick()
   audio.value?.play()
 }
 const prev = async () => {
+  if (!currentBackgroundMusics.value.length) return
   audio.value?.pause()
   // play prev
   index.value =
@@ -140,19 +154,22 @@ const onWheel = (e: WheelEvent) => {
 }
 </script>
 <style scoped>
-.bar_content {
-  display: block;
-  width: fit-content;
-
-  transform: translateX(160px); /* Animation start out of the screen */
-
-  /* Add the animation */
-  animation: move 20s linear infinite /* infinite make reapeat the animation indefinitely */;
+.audio-track-viewport {
+  max-width: 160px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
-/* Create the animation */
-@keyframes move {
-  to {
-    transform: translateX(-100%);
-  }
+.audio-track-title {
+  display: inline-block;
+  width: max-content;
+  vertical-align: middle;
+}
+.audio-track-title--scrolling {
+  animation: track-scroll var(--track-duration) ease-in-out infinite alternate;
+}
+@keyframes track-scroll {
+  0%, 20% { transform: translateX(0); }
+  80%, 100% { transform: translateX(var(--track-distance)); }
 }
 </style>

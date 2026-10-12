@@ -54,12 +54,13 @@
 </template>
 
 <script lang="ts" setup>
-import type { MinecraftFriend, XboxPresenceInfo } from '@xmcl/runtime-api'
+import type { MinecraftFriend } from '@xmcl/runtime-api'
 import {
   formatRelativeTime,
   useReactiveNow,
 } from '@/composables/minecraftFriends'
 import { computed, ref } from 'vue'
+import { minecraftPresenceStatus } from '@/composables/minecraftPresence'
 
 const props = defineProps<{
   friend: MinecraftFriend
@@ -86,27 +87,18 @@ const avatarUrl = computed(() => {
   return `https://mc-heads.net/avatar/${id}/36`
 })
 
-const effectiveStatus = computed<'offline' | 'online' | 'playing' | 'away'>(() => {
-  const xbox = props.friend.xboxPresence
-  if (xbox) {
-    const st = (xbox.state || '').toLowerCase()
-    if (st === 'online') {
-      return xbox.titleName ? 'playing' : 'online'
-    }
-    if (st === 'away') return 'away'
-  }
-  return 'offline'
-})
+const effectiveStatus = computed(() => minecraftPresenceStatus(props.friend.xboxPresence, props.friend.presence))
 
 const presenceStatusText = computed(() => {
-  if (props.friend.xboxPresence?.titleName) {
-    return `${t('presence.playing', { game: props.friend.xboxPresence.titleName }, `Playing ${props.friend.xboxPresence.titleName}`)}`
+  if (effectiveStatus.value === 'playing' && props.friend.xboxPresence?.titleName) {
+    return t('presence.playing', { game: props.friend.xboxPresence.titleName })
   }
   switch (effectiveStatus.value) {
-    case 'playing': return t('presence.playingGeneric', 'Playing')
-    case 'online': return t('presence.online', 'Online')
-    case 'away': return t('presence.away', 'Away')
-    default: return t('presence.offline', 'Offline')
+    case 'playing': return t('presence.playingGeneric')
+    case 'online': return t('presence.online')
+    case 'away': return t('presence.away')
+    case 'unknown': return t('presence.unknown')
+    default: return t('presence.offline')
   }
 })
 
@@ -119,7 +111,7 @@ const referenceTimestamp = computed(() => {
 
 const subtitle = computed(() => {
   if (effectiveStatus.value !== 'offline') {
-    if (props.friend.xboxPresence?.titleName) {
+    if (effectiveStatus.value === 'playing' && props.friend.xboxPresence?.titleName) {
       return props.friend.xboxPresence.titleName
     }
     return presenceStatusText.value

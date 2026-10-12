@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import type { AgentService, OllamaDownloadStatus } from '@xmcl/runtime-api'
+import { modelStorageErrorKey } from './modelStorageError'
 
 export const QWEN_MODEL = 'qwen3:4b-q4_K_M'
 export const QWEN_BYTES = 2_600_000_000
@@ -44,7 +45,7 @@ export function createQwenInstaller(
       if (current !== generation) return
       phase.value = 'error'
       const code = error instanceof Error ? error.message : ''
-      errorKey.value = code === 'ollama_storage_insufficient' ? 'qwenInstall.storageError' : code.startsWith('ollama_') ? 'pbtadmin.integratedFailed' : 'pbtadmin.downloadFailed'
+      errorKey.value = modelStorageErrorKey(error, code.startsWith('ollama_') ? 'pbtadmin.integratedFailed' : 'pbtadmin.downloadFailed')
     }
   }
 

@@ -1578,6 +1578,7 @@ peerSignalingState:
   have-local-offer: Esperant la descripció del parell
 popular: Popular
 presence:
+  unknown: Estat de connexió desconegut
   curseforge: Veient CurseForge
   curseforgeProject: Veient {name} a CurseForge
   instance: Llançador Inactiu a la Instància {instance}
@@ -2798,8 +2799,8 @@ minecraftFriends:
   notifyAdded: Sol·licitud d'amistat enviada a {name}
   outgoing: Sol·licituds sortints
   privacy:
-    acceptInvites: Accepta invitacions d'amistat
-    acceptInvitesHint: Quan està desactivat, altres jugadors no et poden enviar sol·licituds d'amistat.
+    acceptInvites: Permet sol·licituds d'amistat
+    acceptInvitesHint: Altres jugadors et poden enviar sol·licituds. Cada sol·licitud s’accepta manualment.
     friendsEnabled: Llista d'amics activada
   reconnectAction: Reconnecta
   requiresMicrosoft: Inicia sessió amb un compte de Microsoft per usar amics.
@@ -3181,3 +3182,24 @@ appText:
   sponsor: "Dona suport a ci010 a {service}"
   logo: "Logotip de PbtModLauncherX"
   avatar: "Avatar del col·laborador"
+instanceView:
+  name: Vista d’instàncies
+  description: Tria el disseny inicial en obrir una instància.
+  full: Vista completa (predeterminada)
+  reduced: Vista reduïda
+modelPreview:
+  label: Vista prèvia interactiva de la skin del jugador
+nativePresence:
+  share: Comparteix la presència del launcher amb amics
+  shareHint: Minecraft requereix publicar el teu estat connectat per consultar la presència d’amics. Activa-ho només si vols que els amics et vegin connectat al launcher. No s’accepten sol·licituds automàticament.
+  disabled: La presència d’amics és desconeguda fins que decideixis compartir la teva presència al launcher. Es conserven les preferències de privacitat.
+  unavailable: No s’ha pogut actualitzar la presència d’amics. Es mostra estat desconegut fins que respongui el servei.
+  game: Minecraft gestiona la presència mentre és obert. El launcher conserva l’estat i la privacitat del joc.
+modelStorage:
+  defaultLocation: Els models gestionats fan servir PbtAdmin/Ollama/models dins del directori de dades del launcher per defecte. Es conserven les carpetes personalitzades explícites i els proveïdors externs.
+  checking: Comprovant l’emmagatzematge i verificant els models gestionats anteriors…
+  migrated: 'Els models gestionats anteriors s’han copiat i verificat. S’ha conservat l’original a {source}.'
+  integrityError: Ha fallat la verificació del model. S’ha conservat la instal·lació anterior. Comprova el disc i torna-ho a provar.
+  accessError: No es pot accedir a l’emmagatzematge de models o està en ús. Comprova els permisos de la carpeta i tanca altres motors gestionats abans de tornar-ho a provar.
+audioPlayer:
+  currentTrack: 'Cançó actual: {name}'

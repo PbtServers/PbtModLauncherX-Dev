@@ -139,7 +139,7 @@ jobs:
       - name: Check package validator module loading
         run: pnpm exec tsx scripts/verify-linux-package-content.mjs --check-imports
       - name: Run packaging and updater regression tests
-        run: pnpm exec vitest run scripts/ci-ollama.test.ts scripts/release-assets.test.ts scripts/verify-release-packages.test.ts scripts/collect-release-assets.test.ts xmcl-electron-app/build/verifyPackedResources.test.ts xmcl-electron-app/build/deduplicateRuntime.test.ts xmcl-electron-app/build/ollamaPackaging.test.ts xmcl-electron-app/build/releaseMetadata.test.ts xmcl-electron-app/main/utils/updater.test.ts xmcl-electron-app/main/utils/updateDownload.test.ts xmcl-runtime/agent/runtimeBundle.test.ts xmcl-runtime/agent/managedOllama.test.ts xmcl-keystone-ui/src/composables/agent/qwenInstaller.test.ts xmcl-keystone-ui/src/util/customLauncherNews.test.ts xmcl-keystone-ui/src/util/newsTranslation.test.ts xmcl-keystone-ui/src/util/locale.test.ts xmcl-runtime-api/src/entities/locale.test.ts xmcl-runtime/user/UserService.persistence.test.ts xmcl-runtime/user/UserPersistence.test.ts xmcl-keystone-ui/src/composables/user.test.ts xmcl-runtime/app/BaseService.update.test.ts xmcl-electron-app/main/pluginAutoUpdate.test.ts xmcl-runtime/agent/AgentService.test.ts xmcl-runtime/agent/ollama.test.ts xmcl-keystone-ui/src/util/launcherReleaseNews.test.ts xmcl-keystone-ui/src/util/newsCache.test.ts xmcl-keystone-ui/src/util/newsImage.test.ts xmcl-electron-app/main/portableData.test.ts
+        run: pnpm exec vitest run scripts/ci-ollama.test.ts scripts/publish-release.test.ts scripts/release-assets.test.ts scripts/verify-release-packages.test.ts scripts/collect-release-assets.test.ts xmcl-electron-app/build/verifyPackedResources.test.ts xmcl-electron-app/build/deduplicateRuntime.test.ts xmcl-electron-app/build/ollamaPackaging.test.ts xmcl-electron-app/build/releaseMetadata.test.ts xmcl-electron-app/main/utils/updater.test.ts xmcl-electron-app/main/utils/updateDownload.test.ts xmcl-runtime/agent/runtimeBundle.test.ts xmcl-runtime/agent/managedOllama.test.ts xmcl-keystone-ui/src/composables/agent/qwenInstaller.test.ts xmcl-keystone-ui/src/util/customLauncherNews.test.ts xmcl-keystone-ui/src/util/newsTranslation.test.ts xmcl-keystone-ui/src/util/locale.test.ts xmcl-runtime-api/src/entities/locale.test.ts xmcl-runtime/user/UserService.persistence.test.ts xmcl-runtime/user/UserPersistence.test.ts xmcl-keystone-ui/src/composables/user.test.ts xmcl-runtime/app/BaseService.update.test.ts xmcl-electron-app/main/pluginAutoUpdate.test.ts xmcl-runtime/agent/AgentService.test.ts xmcl-runtime/agent/ollama.test.ts xmcl-keystone-ui/src/util/launcherReleaseNews.test.ts xmcl-keystone-ui/src/util/newsCache.test.ts xmcl-keystone-ui/src/util/newsImage.test.ts xmcl-electron-app/main/portableData.test.ts
       - name: Type check and lint
         shell: bash
         env:
@@ -279,6 +279,9 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     needs: build
+    concurrency:
+      group: pbtmodlauncherx-release-assets
+      cancel-in-progress: false
     if: ${{ needs.build.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.prepare_draft && inputs.tag != '' }}
     steps:
       - uses: actions/checkout@v4
@@ -320,3 +323,62 @@ jobs:
           node scripts/release-assets.mjs build/release
           # Never replace published assets or edit release notes. Name collisions fail.
           gh release upload "$RELEASE_TAG" build/release/* --repo "$GITHUB_REPOSITORY"
+
+  publish:
+    name: Check and publish latest stable release
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ needs.build.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'PbtServers/PbtModLauncherX-Dev' }}
+    permissions:
+      contents: write
+    concurrency:
+      group: pbtmodlauncherx-release-assets
+      cancel-in-progress: false
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      BUILD_RESULT: ${{ needs.build.result }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Check latest stable release and all asset pages
+        id: publication
+        run: node scripts/publish-release.mjs --check
+      - name: Reserve release staging space
+        if: steps.publication.outputs.needed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          available=$(df -Pk . | awk 'NR==2 {print $4}')
+          test "$available" -ge 41943040 || { echo 'At least 40 GiB required for release artifacts'; exit 1; }
+      - name: Download final packages from this run
+        if: steps.publication.outputs.needed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          merge-multiple: false
+          path: build
+      - name: Install validation dependencies
+        if: steps.publication.outputs.needed == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Validate five builds and collect immutable assets
+        if: steps.publication.outputs.needed == 'true'
+        run: |
+          node scripts/collect-release-assets.mjs build
+          node scripts/release-assets.mjs build/release
+      - name: Recheck and publish without replacing any asset
+        if: steps.publication.outputs.needed == 'true'
+        run: node scripts/publish-release.mjs build/release
+      - name: Preserve publication receipt for controlled recovery
+        if: ${{ always() && steps.publication.outputs.needed == 'true' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: publication-result
+          path: publication-result.json
+          if-no-files-found: error

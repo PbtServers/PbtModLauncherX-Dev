@@ -39,7 +39,7 @@ import { FSWatcher } from 'chokidar'
 import { randomUUID } from 'crypto'
 import filenamify from 'filenamify'
 import { unwatchFile, watchFile, type Stats } from 'fs'
-import { ensureDir, pathExists, readJSON, readJson, remove, rename, rmdir, stat, unlink, writeFile, writeJson } from 'fs-extra'
+import { ensureDir, pathExists, readJSON, readJson, remove, rename, stat, unlink, writeFile, writeJson } from 'fs-extra'
 import { basename, dirname, join, relative, resolve } from 'path'
 import { Inject, LauncherApp, LauncherAppKey } from '~/app'
 import { ZipManager, kTasks, type Tasks } from '~/infra'
@@ -56,6 +56,7 @@ import { deduplicateInstanceFiles } from '~/util/deduplicateInstanceFiles'
 import { resolveInstanceFiles } from './utils/resolveInstanceFiles'
 import { getTracker } from '~/util/taskHelper'
 import { readPendingInstalls, writeInstallState } from './utils/pendingInstall'
+import { removeEmptyInstallDirectory } from './utils/removeEmptyInstallDirectory'
 import { activeInstallFiles, hasInstallWork, installPathKey, supersedeInstallPlans } from './utils/installPlan'
 
 /**
@@ -553,9 +554,7 @@ export class InstanceInstallService extends AbstractService implements IInstance
           } else {
             await remove(older.state.workspace)
             if (dirname(dirname(older.state.workspace)) === join(instancePath, '.install')) {
-              await rmdir(dirname(older.state.workspace)).catch((error) => {
-                if (!isSystemError(error) || !['ENOENT', 'ENOTEMPTY'].includes(error.code)) throw error
-              })
+              await removeEmptyInstallDirectory(dirname(older.state.workspace))
             }
             await unlink(older.path)
           }
@@ -654,10 +653,7 @@ export class InstanceInstallService extends AbstractService implements IInstance
       const stagingRoot = join(instancePath, '.install')
       if (dirname(dirname(targetState.workspace)) === stagingRoot) {
         for (const directory of [dirname(targetState.workspace), stagingRoot]) {
-          await rmdir(directory).catch((error) => {
-            if (isSystemError(error) && ['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes(error.code)) return
-            throw error
-          })
+          await removeEmptyInstallDirectory(directory)
         }
       }
     }

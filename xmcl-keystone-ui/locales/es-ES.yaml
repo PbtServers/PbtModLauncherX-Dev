@@ -1630,6 +1630,7 @@ peerIceGatheringState:
 peerSignalingState:
   have-local-offer: Esperando descripción del par
 presence:
+  unknown: Estado de conexión desconocido
   instance: Launcher Inactivo en Instancia {instance}
   instanceSetting: 'Editar Configuración de la Instancia: {instance}'
   mod: Viendo Mods en {instance}
@@ -2739,8 +2740,8 @@ minecraftFriends:
   notifyAdded: Solicitud de amistad enviada a {name}
   outgoing: Solicitudes salientes
   privacy:
-    acceptInvites: Aceptar invitaciones de amistad
-    acceptInvitesHint: Cuando está desactivado, otros jugadores no pueden enviarte solicitudes de amistad.
+    acceptInvites: Permitir solicitudes de amistad
+    acceptInvitesHint: Otros jugadores pueden enviarte solicitudes. Cada solicitud se acepta manualmente.
     friendsEnabled: Lista de amigos activada
   reconnectAction: Reconectar
   requiresMicrosoft: Inicia sesión con una cuenta de Microsoft para usar amigos.
@@ -3135,3 +3136,24 @@ appText:
   sponsor: "Apoya a ci010 en {service}"
   logo: "Logotipo de PbtModLauncherX"
   avatar: "Avatar del colaborador"
+instanceView:
+  name: Vista de instancias
+  description: Elige el diseño inicial al abrir una instancia.
+  full: Vista completa (predeterminada)
+  reduced: Vista reducida
+modelPreview:
+  label: Vista previa interactiva de la skin del jugador
+nativePresence:
+  share: Compartir presencia del launcher con amigos
+  shareHint: Minecraft requiere publicar tu estado conectado para consultar la presencia de amigos. Actívalo solo si quieres que tus amigos te vean conectado al launcher. No se aceptan solicitudes automáticamente.
+  disabled: La presencia de amigos es desconocida hasta que decidas compartir tu presencia en el launcher. Se conservan tus preferencias de privacidad.
+  unavailable: No se pudo actualizar la presencia de amigos. Se muestra estado desconocido hasta que responda el servicio.
+  game: Minecraft gestiona la presencia mientras está abierto. El launcher conserva el estado y la privacidad del juego.
+modelStorage:
+  defaultLocation: Los modelos administrados usan PbtAdmin/Ollama/models dentro del directorio de datos del launcher por defecto. Se conservan las carpetas personalizadas explícitas y los proveedores externos.
+  checking: Comprobando el almacenamiento y verificando los modelos administrados anteriores…
+  migrated: 'Los modelos administrados anteriores se copiaron y verificaron. Se conservó el original en {source}.'
+  integrityError: Falló la verificación del modelo. Se conservó la instalación anterior. Comprueba el disco y vuelve a intentarlo.
+  accessError: No se puede acceder al almacenamiento de modelos o está en uso. Comprueba los permisos de la carpeta y cierra otros motores administrados antes de reintentar.
+audioPlayer:
+  currentTrack: 'Canción actual: {name}'

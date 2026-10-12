@@ -65,6 +65,7 @@ export function useUserSkin(userId: Ref<string>, gameProfile: Ref<GameProfileAnd
         userId: userId.value,
         gameProfileId: gameProfile.value.id,
       })
+      reset()
     } finally {
       data.loading = false
     }
@@ -77,6 +78,11 @@ export function useUserSkin(userId: Ref<string>, gameProfile: Ref<GameProfileAnd
     if (newId !== oldId) {
       reset()
     }
+  })
+  watch([activeSkinUrl, activeSlim, activeCapeUrl], ([url, model, capeUrl], [previousUrl, previousModel, previousCape]) => {
+    if (data.skin === previousUrl) data.skin = url
+    if (data.slim === previousModel) data.slim = model
+    if (data.cape === previousCape) data.cape = capeUrl
   })
 
   return {

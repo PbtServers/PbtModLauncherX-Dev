@@ -45,7 +45,7 @@ export function snapshotGifIcon(url: string, signal?: AbortSignal): Promise<stri
 }
 
 export function useInstanceIconSource(source: () => string | undefined, snapshot = snapshotGifIcon) {
-  const { reducedMotion: motion } = useLowResourceMode()
+  const { enabled: motion } = useLowResourceMode()
   const displayed = ref('')
   watch([source, motion], async ([url, preference], _old, cleanup) => {
     let current = true

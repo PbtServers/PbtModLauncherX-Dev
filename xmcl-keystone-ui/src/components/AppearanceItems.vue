@@ -206,7 +206,7 @@
           </template>
           <v-list density="compact" lines="two">
             <v-list-item v-for="(m, i) of backgroundMusic" :key="m.url" @click="viewMusic(m.url)">
-              <v-list-item-title>{{ basename(m.url, '/') }}</v-list-item-title>
+              <v-list-item-title>{{ mediaTitle(m) }}</v-list-item-title>
               <v-list-item-subtitle>{{ m.mimeType }}</v-list-item-subtitle>
               <template #append>
                 <v-btn icon variant="outlined" @click.stop="removeMusic(i)">
@@ -462,7 +462,7 @@ import { kInstanceTheme } from '@/composables/instanceTheme'
 import { useService } from '@/composables/service'
 import { kSettingsState } from '@/composables/setting'
 import { BackgroundType, UIThemeDataV1, useThemeWritter } from '@/composables/theme'
-import { basename } from '@/util/basename'
+import { mediaTitle } from '@/util/mediaTitle'
 import { injection } from '@/util/inject'
 import { ThemeServiceKey } from '@xmcl/runtime-api'
 import SettingAppearanceColor from '@/components/SettingAppearanceColor.vue'

@@ -14,6 +14,8 @@ import { AbstractService, ExposeServiceKey } from '~/service'
 import { kUserTokenStorage } from '~/user'
 import { UserService } from './UserService'
 import { translateMojangFriendsError } from './MinecraftFriendsErrors'
+import { kSettings } from '~/settings'
+import { LaunchService } from '~/launch'
 
 class UserAuthenticationError extends Exception<{ type: 'userAuthentication' }> {
   name = 'UserAuthenticationError'
@@ -42,6 +44,8 @@ const REFRESH_COOLDOWN_MS = 60_000
 export class MinecraftFriendsService extends AbstractService implements IMinecraftFriendsService {
   private cache = new Map<string, CacheEntry>()
   private authFailureUntil = new Map<string, number>()
+  private presenceFailureUntil = new Map<string, number>()
+  private publishedPresence = new Set<string>()
 
   constructor(
     @Inject(LauncherAppKey) app: LauncherApp,
@@ -68,6 +72,7 @@ export class MinecraftFriendsService extends AbstractService implements IMinecra
           // Server says nothing changed — extend the cache window and reuse
           // the previous data.
           if (entry) {
+            entry.data = await this.withPresence(user, { ...entry.data, fetchedAt: Date.now() })
             entry.expiresAt = Date.now() + REFRESH_COOLDOWN_MS
             if (result.etag) entry.etag = result.etag
             return entry.data
@@ -82,21 +87,21 @@ export class MinecraftFriendsService extends AbstractService implements IMinecra
             this.cache.set(user.id, { data: empty, expiresAt: Date.now() + REFRESH_COOLDOWN_MS })
             return empty
           }
-          const data: MinecraftFriendsList = {
+          const data: MinecraftFriendsList = await this.withPresence(user, {
             friends: fresh.friends,
             incomingRequests: fresh.incomingRequests,
             outgoingRequests: fresh.outgoingRequests,
             fetchedAt: Date.now(),
-          }
+          })
           this.cache.set(user.id, { data, etag: fresh.etag, expiresAt: Date.now() + REFRESH_COOLDOWN_MS })
           return data
         }
-        const data: MinecraftFriendsList = {
+        const data: MinecraftFriendsList = await this.withPresence(user, {
           friends: result.friends,
           incomingRequests: result.incomingRequests,
           outgoingRequests: result.outgoingRequests,
           fetchedAt: Date.now(),
-        }
+        })
         this.cache.set(user.id, { data, etag: result.etag, expiresAt: Date.now() + REFRESH_COOLDOWN_MS })
         return data
       } catch (e) {
@@ -162,6 +167,7 @@ export class MinecraftFriendsService extends AbstractService implements IMinecra
       return {
         friendsEnabled: attrs.friendsPreferences?.friends !== 'DISABLED',
         acceptInvites: attrs.friendsPreferences?.acceptInvites !== 'DISABLED',
+        sharePresence: (await this.app.registry.get(kSettings)).minecraftFriendsPresenceSharing[user.id] === true,
       }
     } catch (e) {
       throw this.translateError(e)
@@ -170,6 +176,24 @@ export class MinecraftFriendsService extends AbstractService implements IMinecra
 
   async setFriendsPreferences(user: UserProfile, prefs: Partial<MinecraftFriendsPreferences>): Promise<MinecraftFriendsPreferences> {
     this.assertSupported(user)
+    if (prefs.sharePresence !== undefined) {
+      const settings = await this.app.registry.get(kSettings)
+      settings.minecraftFriendsPresenceSharingSet({ userId: user.id, enabled: prefs.sharePresence })
+      this.invalidate(user.id)
+      if (!prefs.sharePresence && this.publishedPresence.has(user.id)) {
+        // Finish an existing ONLINE request before withdrawing our own presence.
+        // Never overwrite presence owned by a running Minecraft client.
+        await this.cache.get(user.id)?.inFlight?.catch(() => {})
+        try {
+          const launch = await this.app.registry.getOrCreate(LaunchService)
+          if (!settings.minecraftFriendsPresenceSharing[user.id] && !(await launch.getGameProcesses()).some(p => p.side !== 'server' && p.options.user?.id === user.id)) {
+            await this.withFreshToken(user, token => this.mojangApi.updateFriendsPresence(token, 'OFFLINE'))
+          }
+        } catch { /* Keep local sharing disabled when the provider is unavailable. */ }
+        if (!settings.minecraftFriendsPresenceSharing[user.id]) this.publishedPresence.delete(user.id)
+      }
+      if (prefs.friendsEnabled === undefined && prefs.acceptInvites === undefined) return this.getFriendsPreferences(user)
+    }
     try {
       // The API requires both fields; merge with current values when only one is provided.
       let friendsEnabled = prefs.friendsEnabled
@@ -187,13 +211,39 @@ export class MinecraftFriendsService extends AbstractService implements IMinecra
         friendsEnabled,
         acceptInvites,
       }))
-      return { friendsEnabled: friendsEnabled!, acceptInvites: acceptInvites! }
+      return { friendsEnabled: friendsEnabled!, acceptInvites: acceptInvites!, sharePresence: (await this.app.registry.get(kSettings)).minecraftFriendsPresenceSharing[user.id] === true }
     } catch (e) {
       throw this.translateError(e)
     }
   }
 
   // ---------- helpers ----------
+
+  private async withPresence(user: UserProfile, data: MinecraftFriendsList): Promise<MinecraftFriendsList> {
+    const unknown = { ...data, friends: data.friends.map(({ presence: _presence, xboxPresence: _xbox, ...friend }) => friend) }
+    const settings = await this.app.registry.get(kSettings)
+    if (!settings.minecraftFriendsPresenceSharing[user.id]) return { ...unknown, presenceStatus: 'disabled' }
+    if (!data.friends.length) return { ...unknown, presenceStatus: 'available' }
+    // An active Minecraft client owns its presence. Never overwrite its world,
+    // server or hidden status with a launcher's generic ONLINE heartbeat.
+    if ((this.presenceFailureUntil.get(user.id) ?? 0) > Date.now()) return { ...unknown, presenceStatus: 'unavailable' }
+    try {
+      const launch = await this.app.registry.getOrCreate(LaunchService)
+      if ((await launch.getGameProcesses()).some(p => p.side !== 'server' && p.options.user?.id === user.id)) return { ...unknown, presenceStatus: 'game' }
+      if (!(await this.getFriendsPreferences(user)).friendsEnabled) return { ...unknown, presenceStatus: 'disabled' }
+      const records = await this.withFreshToken(user, token => this.mojangApi.updateFriendsPresence(token, 'ONLINE'))
+      this.publishedPresence.add(user.id)
+      if (!settings.minecraftFriendsPresenceSharing[user.id]) return { ...unknown, presenceStatus: 'disabled' }
+      const byProfile = new Map(records.map(record => [record.profileId, record]))
+      return { ...unknown, presenceStatus: 'available', friends: unknown.friends.map(friend => {
+        const record = byProfile.get(friend.profileId.replace(/-/g, '').toLowerCase())
+        return record ? { ...friend, presence: { status: record.status, lastUpdated: record.lastUpdated } } : friend
+      }) }
+    } catch {
+      this.presenceFailureUntil.set(user.id, Date.now() + REFRESH_COOLDOWN_MS)
+      return { ...unknown, presenceStatus: 'unavailable' }
+    }
+  }
 
   private async removeByProfileId(user: UserProfile, profileId: string): Promise<void> {
     this.assertSupported(user)
