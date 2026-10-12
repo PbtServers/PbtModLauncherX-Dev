@@ -3,10 +3,20 @@ import { mkdtemp, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { verifyPackedResources } from '../xmcl-electron-app/build/verifyPackedResources.ts'
-import { validateExecutableArchitecture, validateOllamaBundle } from '../xmcl-runtime/agent/runtimeBundle.ts'
+import * as packedResourceModule from '../xmcl-electron-app/build/verifyPackedResources.ts'
+import * as runtimeBundleModule from '../xmcl-runtime/agent/runtimeBundle.ts'
 import { packageFileName, requiredFormats } from './verify-release-packages.mjs'
 import { readFile } from 'node:fs/promises'
+
+// tsx exposes package-local CommonJS TypeScript through the default namespace
+// on Node 24; use named exports directly when loaded as an ES module instead.
+const { verifyPackedResources } = packedResourceModule.default ?? packedResourceModule
+const { validateExecutableArchitecture, validateOllamaBundle } = runtimeBundleModule.default ?? runtimeBundleModule
+if (process.argv[2] === '--check-imports') {
+  if ([verifyPackedResources, validateExecutableArchitecture, validateOllamaBundle].some(value => typeof value !== 'function')) throw new Error('Package validator module exports are unavailable')
+  console.log(`Package validator TypeScript imports verified on Node ${process.versions.node}`)
+  process.exit(0)
+}
 
 const run = promisify(execFile)
 const output = resolve(process.argv[2])
